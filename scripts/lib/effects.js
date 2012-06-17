@@ -31,6 +31,8 @@ define([], function() {
 				var x = sample * amount;
 				return (x / (1 + abs(x))) / (log(amount) / ln2); //TODO: get rid of log / divide
 			};
+			// output.setPhase = function() {}
+			// output.getPhase = function() {}			
 			return output;
 		},
     }

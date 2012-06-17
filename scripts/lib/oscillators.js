@@ -10,7 +10,7 @@ define([], function() {
 			gibberish.Env = this.Env;
 		},
 		
-		Sine : function(freq, amp) {
+		Sine : function(freq, amp, name) {
 			var that = { 
 				type:		"Sine",
 				category:	"Gen",
@@ -74,6 +74,9 @@ define([], function() {
 				}
 				return val;
 			}
+			output.getPhase = function() { return phase; }
+			output.setPhase = function(_phase) { phase = _phase; }
+			
 			return output;
 		},
 			// 		Clip	: createGenerator("Clip", ["source", "amount", "amp"], "{0}({1},{2}) * {3}"),

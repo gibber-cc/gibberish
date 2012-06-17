@@ -15,22 +15,24 @@ requirejs(['sink/sink-light', 'gibberish', 'utils'],
 		
 		e = Gibberish.Env(44100, 44100);
 		s.mod("amp", e, "*");
+		// 
+		// c = Gibberish.Clip(50, .25);
+		// s.addFx(c);
 		
-		c = Gibberish.Clip(50, .25);
-		s.addFx(c);
+		//t = Gibberish.Sine(300, .4);
 		
-		t = Gibberish.Sine(300, .4);
-		
-		Gibberish.connectToOutput(s,t);
+		Gibberish.connectToOutput(s);
 		
 		Gibberish.callback = Gibberish.generateCallback( true );
 		var phase = 0;
 		var sink = Sink( function(buffer, channelCount){
-		    for (var i=0; i<buffer.length; i++){
-				if(phase++ % 500 == 0) {
+			//console.log("CHANNEL COUNT = ", channelCount);
+		    for (var i=0; i<buffer.length; i+=2){
+				if(phase++ % 22100 == 0) s.frequency = Math.round(400 + Math.random() * 400);
+				if(Gibberish.dirty) {
 					Gibberish.callback = Gibberish.generateCallback( false ); 
 				}
-				buffer[i] = Gibberish.callback();
+				buffer[i] = buffer[i+1] = Gibberish.callback();
 		    }
 		});
 	}
