@@ -21,6 +21,7 @@ define([], function() {
 				mod:		Gibberish.mod,
 				removeMod:	Gibberish.removeMod,
 				addFx:		Gibberish.addFx,
+				dirty:		true,
 			};
 			Gibberish.defineProperties( that, ["frequency", "amp"] );
 	
@@ -50,6 +51,7 @@ define([], function() {
 				attack:		attack || 10000,
 				decay:		decay || 10000,
 				mod:		Gibberish.mod,
+				dirty:		true,
 			};
 	
 			Gibberish.defineProperties( that, ["attack", "decay"] );

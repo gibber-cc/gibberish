@@ -12,32 +12,30 @@ define(["oscillators", "effects"], function(oscillators, effects) {
 			this.generators["="] = this.binop_generator;		
 		},
 		
-		generateCallback : function(debug) {	
+		generateCallback : function(debug) {
 			var masterUpvalues = [];
 			var masterCodeblock = [];
 			
 			var start = "function() {\n";
 			var upvalues = "";
 			var codeblock = "function cb() {\nvar output = 0;\n";
-	
+			
 			for(var i = 0; i < ugens.length; i++) {
 				var ugen = ugens[i];
-				
-				var p = (typeof ugen.fcn === "function") ? ugen.fcn.getPhase() : 0;	
-				
-				// loop through all init functions and execute, but only map first one to ugen
-				for(var j = 0; j < ugen.initialization.length; j++) {
-					var init = ugen.initialization[j];
+				if(ugen.dirty) {
+					if(ugen.ugenName)
+						console.log("REGENERATING " + ugen.ugenName);
 					
-					if(debug) console.log(init);
-
-					eval("var fcn = " + init + ";");
-					// 
-					// 					if(j == 0) {
-					// //						console.log("PHASE SET", ugen.type);
-					// 						ugen.fcn = fcn;
-					// 						ugen.fcn.setPhase(p);
-					// 					}
+					Gibberish.generate(ugen);
+					//var p = (typeof ugen.fcn === "function") ? ugen.fcn.getPhase() : 0;	
+				
+					// loop through all init functions and execute, but only map first one to ugen
+					for(var j = 0; j < ugen.initialization.length; j++) {
+						var init = ugen.initialization[j];
+						if(debug) console.log(init);
+						eval(init);
+					}
+					ugen.dirty = false;
 				}
 		
 				masterUpvalues.push( ugen.upvalues + ";\n" );
@@ -57,23 +55,27 @@ define(["oscillators", "effects"], function(oscillators, effects) {
 			
 			this.dirty = false;
 			
+			// todo: fix using new Function
+			// var f = new Function(cbgen);
+			// return f();
 			return eval("(" + cbgen + ")()");
 		},
 		
-		connectToOutput : function() {
-			console.log("CONNECT TO OUTPUT");
+		
+		
+		load : function() {
 			for(var i = 0; i < arguments.length; i++) {
 				ugens.push(arguments[i]);
-				Gibberish.generate(arguments[i]);
+				//Gibberish.generate(arguments[i]);
 			}
-			Gibberish.callback = Gibberish.generateCallback();
+			Gibberish.dirty = true;
 		},
 		
 		disconnectFromOutput : function() {
 			for(var i = 0; i < arguments.length; i++) {
 				ugens.remove(arguments[i]);
 			}
-			Gibberish.callback = Gibberish.generateCallback();
+			Gibberish.dirty = true;
 		},
 		
 		defineProperties : function(obj, props) {
@@ -87,16 +89,19 @@ define(["oscillators", "effects"], function(oscillators, effects) {
 				    Object.defineProperty(that, propName, {
 						get: function() { return value; },
 						set: function(_value) {
-							//value = _value;
 							if(typeof value === "number"){
 								value = _value;
 							}else{
 								value["operands"][0] = _value;
 							}
-							Gibberish.generate(that);
+							
+							if(that.modding) {	// when ugen containing mod is codegen'd, the mod will be as well
+								Gibberish.generate(that.modding);
+							}else{
+								Gibberish.generate(that);
+							}
+							that.dirty = true;
 							Gibberish.dirty = true;
-							//Gibberish.generateCodeblockForUgen(that);
-							//Gibberish.callback = Gibberish.generateCallback();
 						},
 					});
 				})(obj);
@@ -105,19 +110,15 @@ define(["oscillators", "effects"], function(oscillators, effects) {
 		
 		createGenerator : function(type, parameters, formula) {
 			var generator = function(op, codeDictionary) {
-				var name = Gibberish.generateSymbol(type);				
+				var name = op.ugenName || Gibberish.generateSymbol(type);
+				op.ugenName = name;
 				var code = "_{0} = Gibberish.make['{1}']();".format(name, type);
-				//console.log("NAME : ", op.name)
-				//console.log(op.test, op.type);
 				
 				codeDictionary.initialization.push(code);
 				
-				// console.log(op.frequency);
-				// restore phase from previous functions
-				if(op.functionName && eval("typeof " + op.functionName + " !== 'undefined'")) {
-					//console.log(op.functionName, eval(op.functionName+".getPhase()"));
-					codeDictionary.initialization.push("_{0}.setPhase({1})".format(name, eval(op.functionName+".getPhase()")));
-				}
+				// if(op.functionName && typeof window[op.functionName] !== "undefined" && window[op.functionName].getPhase) {
+				// 	codeDictionary.initialization.push("_{0}.setPhase({1})".format(name, window[op.functionName].getPhase()));
+				// }
 				op.functionName = "_"+name;
 		
 				codeDictionary.upvalues.push("var {0} = _{0}".format(name));
@@ -126,8 +127,9 @@ define(["oscillators", "effects"], function(oscillators, effects) {
 				for(var i = 0; i < parameters.length; i++) {
 					paramNames.push(Gibberish.codegen(op[parameters[i]], codeDictionary));
 				}
-				op.name = name;
+				
 				var c = String.prototype.format.apply(formula, paramNames);
+				
 				return c;
 			}
 			return generator;
@@ -139,9 +141,11 @@ define(["oscillators", "effects"], function(oscillators, effects) {
 				//if(memo) return memo;
 				
 				var gen = this.generators[op.type];
-				var name = this.generateSymbol("v");
+				
+				var name = op.ugenVariable || this.generateSymbol("v");
 				//codeDictionary.memo[JSON.stringify(op)] = name;
-		
+				op.ugenVariable = name;
+
 				if(op.category !== "FX") {
 					statement = "var {0} = {1}".format(name, gen(op, codeDictionary));
 				}else{
@@ -194,6 +198,7 @@ define(["oscillators", "effects"], function(oscillators, effects) {
 			this.mods.push(m);
 			Gibberish.generate(this);
 			Gibberish.dirty = true;
+			this.dirty = true;
 			return modulator;
 		},
 
@@ -208,6 +213,7 @@ define(["oscillators", "effects"], function(oscillators, effects) {
 			Gibberish.defineProperties(this, ["frequency"]);
 			Gibberish.generate(this);
 			Gibberish.dirty = true;
+			this.dirty = true;
 		},
 		
 		addFx : function() {

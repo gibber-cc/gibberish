@@ -15,7 +15,8 @@ define([], function() {
 				source:		null,
 				mod: 		Gibberish.mod,
 				mods:		[],
-				removeMod:	Gibberish.removeMod,		
+				removeMod:	Gibberish.removeMod,
+				dirty:		true,	
 			}
 			
 			Gibberish.defineProperties( that, ["amount", "amp"] );
