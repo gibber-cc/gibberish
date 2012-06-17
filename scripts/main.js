@@ -16,8 +16,7 @@ requirejs(['sink/sink-light', 'gibberish', 'utils'],
 		Gibberish.callback = Gibberish.generateCallback([s], true);
 
 		var sink = Sink( function(buffer, channelCount){
-		    var i;
-		    for (i=0; i<buffer.length; i++){
+		    for (var i=0; i<buffer.length; i++){
 				buffer[i] = Gibberish.callback();
 		    }
 		});
