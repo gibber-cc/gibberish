@@ -4,7 +4,12 @@ define([], function() {
 			gibberish.generators.Sine = gibberish.createGenerator("Sine", ["frequency", "amp"], "{0}({1}) * {2}");
 			gibberish.make["Sine"] = this.makeSine;
 			gibberish.Sine = this.Sine;
+			
+			gibberish.generators.Env = gibberish.createGenerator("Env",  ["attack",  "decay"], "{0}({1}, {2})" ),
+			gibberish.make["Env"] = this.makeEnv;
+			gibberish.Env = this.Env;
 		},
+		
 		Sine : function(freq, amp) {
 			var that = { 
 				type:		"Sine",
@@ -21,6 +26,7 @@ define([], function() {
 	
 			return that;
 		},
+		
 		makeSine: function() { // note, storing the increment value DOES NOT make this faster!
 			var phase = 0;
 			var sin = Math.sin;
@@ -35,9 +41,41 @@ define([], function() {
 	
 			return output;
 		},
-			// Sine	: createGenerator("Sine", ["frequency", "amp"], "{0}({1}) * {2}"),
-			// 		Env		: createGenerator("Env",  ["attack",  "decay"], "{0}({1}, {2})" ),
+		
+		Env : function(attack, decay) {
+			var that = { 
+				type:		"Env",
+				category:	"Gen",
+				mods:		[],
+				attack:		attack || 10000,
+				decay:		decay || 10000,
+				mod:		Gibberish.mod,
+			};
+	
+			Gibberish.defineProperties( that, ["attack", "decay"] );
+	
+			return that;
+		},
+		
+		makeEnv : function() {
+			var phase = 0;
+			var state = 0;
+			var output = function(attack,decay) {
+				var val = 0;
+				if(state === 0){
+					val = phase / attack;
+					if(++phase % attack === 0) {
+						state++;
+						phase = decay;
+					}
+				}else if(state === 1){
+					val = phase / decay;
+					if(--phase === 0) state = 0;			
+				}
+				return val;
+			}
+			return output;
+		},
 			// 		Clip	: createGenerator("Clip", ["source", "amount", "amp"], "{0}({1},{2}) * {3}"),
-			// 	};
     }
 });

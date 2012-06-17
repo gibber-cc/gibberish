@@ -1,7 +1,8 @@
-define(["oscillators"], function(oscillators) {
+define(["oscillators", "effects"], function(oscillators, effects) {
     return {
         init : function() { 
 			oscillators.init(this);
+			effects.init(this);
 			
 			this.generators["+"] = this.binop_generator;
 			this.generators["*"] = this.binop_generator;
@@ -15,14 +16,13 @@ define(["oscillators"], function(oscillators) {
 			masterCodeblock = [];
 			
 			var start = "function() {\n";
-			var init = "";
 			var upvalues = "";
-			var variables = "";
 			var codeblock = "function cb() {\nvar output = 0;\n";
 	
 			for(var i = 0; i < ugens.length; i++) {
 				var ugen = ugens[i];
 				var p = (typeof ugen.fcn === "function") ? ugen.fcn.getPhase() : 0;	
+				
 				// loop through all init functions and execute, but only map first one to ugen
 				for(var j = 0; j < ugen.initialization.length; j++) {
 					var init = ugen.initialization[j];
@@ -34,7 +34,6 @@ define(["oscillators"], function(oscillators) {
 					}
 				}
 		
-				//console.log(ugen.upvalues);
 				masterUpvalues.push( ugen.upvalues + ";\n" );
 				masterCodeblock.push(ugen.codeblock);
 		
@@ -45,9 +44,11 @@ define(["oscillators"], function(oscillators) {
 			codeblock += masterCodeblock.join("\n");
 			codeblock += "return output;\n}\n";
 			var end = "return cb;\n}";
+			
 			var cbgen = start + masterUpvalues.join("\n") + codeblock + end;
 	
 			if(debug) console.log(cbgen);
+			
 			return eval("(" + cbgen + ")()");
 		},
 		
@@ -85,7 +86,12 @@ define(["oscillators"], function(oscillators) {
 				var name = this.generateSymbol("v");
 				//codeDictionary.memo[JSON.stringify(op)] = name;
 		
-				var statement = "var {0} = {1}".format(name, gen(op, codeDictionary));
+				if(op.category !== "FX") {
+					statement = "var {0} = {1}".format(name, gen(op, codeDictionary));
+				}else{
+					statement = "{0} = {1}".format(op.source, gen(op, codeDictionary));
+				}
+				
 				codeDictionary.codeblock.push(statement);
 		
 				return name;
@@ -103,6 +109,15 @@ define(["oscillators"], function(oscillators) {
 			};
 	
 			var outputCode = this.codegen(ugen, codeDictionary);
+			
+			if(typeof ugen.fx !== "undefined") {
+				for(var i = 0; i < ugen.fx.length; i++) {
+					var effect = ugen.fx[i];
+					effect.source = outputCode;
+					this.codegen(effect, codeDictionary);
+				}
+			}
+			
 			codeDictionary.codeblock.push( "output += {0};\n".format(outputCode) );
 
 			ugen.initialization	= codeDictionary.initialization;
@@ -166,13 +181,9 @@ define(["oscillators"], function(oscillators) {
 			return name + "_" + this.id++; 
 		},
 		
-		id		: 0,
-		make 	: {},
-		
-		generators : {	
-			// Env		: createGenerator("Env",  ["attack",  "decay"], "{0}({1}, {2})" ),
-			// Clip	: createGenerator("Clip", ["source", "amount", "amp"], "{0}({1},{2}) * {3}"),
-		},
+		id			:  0,
+		make 		: {},
+		generators 	: {},
 		
     }
 });
