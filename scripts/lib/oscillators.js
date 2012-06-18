@@ -22,7 +22,25 @@ define([], function() {
 				removeMod:	Gibberish.removeMod,
 				addFx:		Gibberish.addFx,
 				dirty:		true,
+				output:		null,
+				
+				send: function(bus, amount) {
+					bus.senders.push({sender:this, amount:amount});
+				},
+				
+				connect : function(bus) {
+					this.output = bus;
+					if(bus === Gibberish.MASTER) {
+						Gibberish.connect(this);
+					}
+					Gibberish.dirty = true;
+				},
 			};
+			
+			that.name = Gibberish.generateSymbol(that.type);
+			
+			window[that.name] = Gibberish.make["Sine"]();
+
 			Gibberish.defineProperties( that, ["frequency", "amp"] );
 	
 			return that;
@@ -52,8 +70,11 @@ define([], function() {
 				decay:		decay || 10000,
 				mod:		Gibberish.mod,
 				dirty:		true,
-			};
-	
+			};			
+			that.name = Gibberish.generateSymbol(that.type);
+			
+			window[that.name] = Gibberish.make["Env"]();
+			
 			Gibberish.defineProperties( that, ["attack", "decay"] );
 	
 			return that;
@@ -81,6 +102,5 @@ define([], function() {
 			
 			return output;
 		},
-			// 		Clip	: createGenerator("Clip", ["source", "amount", "amp"], "{0}({1},{2}) * {3}"),
     }
 });
