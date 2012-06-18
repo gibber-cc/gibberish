@@ -21,7 +21,7 @@ define(["oscillators", "effects", "synths"], function(oscillators, effects, synt
 			var masterCodeblock = [];
 			this.memo = {};
 			
-			var start = "function(globals) {\n";
+			var start = "";//function(globals) {\n";
 			var upvalues = "";
 			var codeblock = "function cb() {\nvar output = 0;\n";
 			
@@ -38,7 +38,7 @@ define(["oscillators", "effects", "synths"], function(oscillators, effects, synt
 			}
 	
 			codeblock += masterCodeblock.join("\n");
-			var end = "return output;\n}\nreturn cb;\n}";
+			var end = "return output;\n}\nreturn cb;";
 			
 			var cbgen = start + masterUpvalues.join("") + codeblock + end;
 	
@@ -46,10 +46,7 @@ define(["oscillators", "effects", "synths"], function(oscillators, effects, synt
 			
 			this.dirty = false;
 			
-			// todo: fix using new Function
-			// var f = new Function(cbgen);
-			// return f();
-			return eval("(" + cbgen + ")(window)");
+			return (new Function("globals", cbgen))(window);
 		},
 
 		connect : function() {
@@ -83,8 +80,6 @@ define(["oscillators", "effects", "synths"], function(oscillators, effects, synt
 							}else{
 								value["operands"][0] = _value;
 							}
-
-							Gibberish.generate(that);
 							
 							that.dirty = true;
 							Gibberish.dirty = true;

@@ -52,13 +52,19 @@ requirejs(['sink/sink-light', 'gibberish', 'utils'],
 		// clip = Gibberish.Clip(50, .5);
 		// sendBus.addFx(clip);
 		
-		s = Gibberish.Synth("Sine", .4);
+		// s = Gibberish.Synth("Sine", .4);
+		// t = Gibberish.Synth("Sine", .4);
+		// t.note(880);
 		// s = Gibberish.Sine(440, .3);
-		// 		e = Gibberish.Env(44100, 44100);
-		// 		s.mod("amp", e, "*");
+		// e = Gibberish.Env(44100, 44100);
+		// s.mod("amp", e, "*");
+		// t = Gibberish.Square(440, .1);
+		// 		t.connect(Gibberish.MASTER);
 		
+		s = Gibberish.FMSynth();
 		s.connect(Gibberish.MASTER);
 		
+		//t.connect(Gibberish.MASTER);
 		Gibberish.callback = Gibberish.generateCallback( true );
 		
 		var phase = 0;

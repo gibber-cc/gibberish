@@ -5,6 +5,10 @@ define([], function() {
 			gibberish.make["Sine"] = this.makeSine;
 			gibberish.Sine = this.Sine;
 			
+			gibberish.generators.Square = gibberish.createGenerator(["frequency", "amp"], "{0}({1}) * {2}");
+			gibberish.make["Square"] = this.makeSquare;
+			gibberish.Square = this.Square;
+			
 			gibberish.generators.Env = gibberish.createGenerator(["attack",  "decay"], "{0}({1}, {2})" ),
 			gibberish.make["Env"] = this.makeEnv;
 			gibberish.Env = this.Env;
@@ -40,6 +44,39 @@ define([], function() {
 	
 			return output;
 		},
+		
+		Square : function(freq, amp, name) {
+			var that = { 
+				type:		"Square",
+				category:	"Gen",
+				frequency:	freq || 440, 
+				amp:		amp * .35 || .1,
+			};
+			Gibberish.extend(that, Gibberish.ugen);
+			
+			that.name = Gibberish.generateSymbol(that.type);
+			window[that.name] = Gibberish.make["Square"]();
+			that._function = window[that.name];
+			
+			Gibberish.defineProperties( that, ["frequency", "amp"] );
+	
+			return that;
+		},
+		
+		makeSquare: function() { // note, storing the increment value DOES NOT make this faster!
+			var cycle = 1;
+			var phase = 0;
+			var output = function(frequency) {
+				while(phase++ >= 44100 / frequency) {
+					cycle *= -1;
+					phase -= 44100;
+				}
+				return cycle;
+			}
+	
+			return output;
+		},
+		
 		
 		Env : function(attack, decay) {
 			var that = { 
