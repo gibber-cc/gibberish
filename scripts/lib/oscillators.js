@@ -49,6 +49,7 @@ define([], function() {
 				decay:		decay || 10000,
 
 				start: function() {
+					//that._function.setPhase(0);
 					that._function.setState(0);
 				},
 			};
@@ -56,7 +57,7 @@ define([], function() {
 			
 			that.name = Gibberish.generateSymbol(that.type);
 			window[that.name] = Gibberish.make["Env"]();
-			//that._function = window[that.name];
+			that._function = window[that.name];
 			
 			Gibberish.defineProperties( that, ["attack", "decay"] );
 	

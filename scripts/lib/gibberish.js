@@ -83,12 +83,9 @@ define(["oscillators", "effects", "synths"], function(oscillators, effects, synt
 							}else{
 								value["operands"][0] = _value;
 							}
+
+							Gibberish.generate(that);
 							
-							if(that.modding) {	// when ugen containing mod is codegen'd, the mod will be as well
-								Gibberish.generate(that.modding);
-							}else{
-								Gibberish.generate(that);
-							}
 							that.dirty = true;
 							Gibberish.dirty = true;
 						},
@@ -129,7 +126,7 @@ define(["oscillators", "effects", "synths"], function(oscillators, effects, synt
 				var name = op.ugenVariable || this.generateSymbol("v");
 				//console.log(name);
 				//this.memo[op.name] = name;
-				console.log("UGEN VARIABLE", name, "FOR", op.type);
+				//console.log("UGEN VARIABLE", name, "FOR", op.type);
 				op.ugenVariable = name;
 
 				if(op.category !== "FX") {
@@ -163,7 +160,7 @@ define(["oscillators", "effects", "synths"], function(oscillators, effects, synt
 				}
 			}
 			
-			if(ugen.output !== null) {
+			if(ugen.output !== null) { // mods don't have an output
 				var output = ugen.output.ugenVariable || ugen.output;
 				codeDictionary.codeblock.push( "{0} += {1};\n".format( output, outputCode) );
 			}

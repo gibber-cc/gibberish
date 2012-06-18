@@ -52,11 +52,11 @@ requirejs(['sink/sink-light', 'gibberish', 'utils'],
 		// clip = Gibberish.Clip(50, .5);
 		// sendBus.addFx(clip);
 		
-		//s = Gibberish.Synth("Sine", .4);
+		s = Gibberish.Synth("Sine", .4);
+		// s = Gibberish.Sine(440, .3);
+		// 		e = Gibberish.Env(44100, 44100);
+		// 		s.mod("amp", e, "*");
 		
-		s = Gibberish.Sine(440, .4);
-		e = Gibberish.Env(22050, 22050);
-		s.mod("amp", e, "*");
 		s.connect(Gibberish.MASTER);
 		
 		Gibberish.callback = Gibberish.generateCallback( true );
@@ -67,7 +67,7 @@ requirejs(['sink/sink-light', 'gibberish', 'utils'],
 		    for (var i=0; i<buffer.length; i+=2){
 				//if(phase++ % 100 == 0) s.frequency = Math.round(400 + Math.random() * 400);
 				if(Gibberish.dirty) {
-					Gibberish.callback = Gibberish.generateCallback( false ); 
+					Gibberish.callback = Gibberish.generateCallback( true ); 
 				}
 				buffer[i] = buffer[i+1] = Gibberish.callback();
 		    }
