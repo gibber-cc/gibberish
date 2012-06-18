@@ -129,6 +129,7 @@ define(["oscillators", "effects", "synths"], function(oscillators, effects, synt
 				var name = op.ugenVariable || this.generateSymbol("v");
 				//console.log(name);
 				//this.memo[op.name] = name;
+				console.log("UGEN VARIABLE", name, "FOR", op.type);
 				op.ugenVariable = name;
 
 				if(op.category !== "FX") {
@@ -162,8 +163,10 @@ define(["oscillators", "effects", "synths"], function(oscillators, effects, synt
 				}
 			}
 			
-			var output = ugen.output.ugenVariable || ugen.output;
-			codeDictionary.codeblock.push( "{0} += {1};\n".format( output, outputCode) );
+			if(ugen.output !== null) {
+				var output = ugen.output.ugenVariable || ugen.output;
+				codeDictionary.codeblock.push( "{0} += {1};\n".format( output, outputCode) );
+			}
 
 			ugen.initialization	= codeDictionary.initialization;
 			ugen.upvalues		= codeDictionary.upvalues.join(";\n");

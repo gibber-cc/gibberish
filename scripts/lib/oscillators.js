@@ -21,6 +21,8 @@ define([], function() {
 			
 			that.name = Gibberish.generateSymbol(that.type);
 			window[that.name] = Gibberish.make["Sine"]();
+			that._function = window[that.name];
+			
 			Gibberish.defineProperties( that, ["frequency", "amp"] );
 	
 			return that;
@@ -45,11 +47,17 @@ define([], function() {
 				category:	"Gen",
 				attack:		attack || 10000,
 				decay:		decay || 10000,
+
+				start: function() {
+					that._function.setState(0);
+				},
 			};
 			Gibberish.extend(that, Gibberish.ugen);
 			
 			that.name = Gibberish.generateSymbol(that.type);
 			window[that.name] = Gibberish.make["Env"]();
+			//that._function = window[that.name];
+			
 			Gibberish.defineProperties( that, ["attack", "decay"] );
 	
 			return that;
@@ -68,10 +76,12 @@ define([], function() {
 					}
 				}else if(state === 1){
 					val = phase / decay;
-					if(--phase === 0) state = 0;			
+					if(--phase === 0) state++;;			
 				}
 				return val;
-			}
+			};
+			output.setPhase = function(newPhase) { phase = newPhase; };
+			output.setState = function(newState) { state = newState; };
 			
 			return output;
 		},
