@@ -25,7 +25,7 @@ define([], function() {
 				output:		null,
 				
 				send: function(bus, amount) {
-					bus.senders.push({sender:this, amount:amount});
+					bus.connectUgen(this, amount);
 				},
 				
 				connect : function(bus) {
@@ -34,7 +34,7 @@ define([], function() {
 						Gibberish.connect(this);
 					}else{
 						//console.log("CONNECTING", this.ugenVariable);
-						bus.connectUgen(this, .4);
+						bus.connectUgen(this, 1);
 					}
 					Gibberish.dirty = true;
 				},
@@ -52,11 +52,11 @@ define([], function() {
 		makeSine: function() { // note, storing the increment value DOES NOT make this faster!
 			var phase = 0;
 			var sin = Math.sin;
-			var pi = Math.PI;
+			var pi_2 = Math.PI * 2;
 	
 			var output = function(frequency) {
 				phase += frequency / 44100;
-				return sin(phase * pi);
+				return sin(phase * pi_2);
 			}
 			output.getPhase = function() { return phase; }
 			output.setPhase = function(_phase) { phase = _phase; }

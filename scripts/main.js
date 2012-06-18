@@ -31,26 +31,29 @@ requirejs(['sink/sink-light', 'gibberish', 'utils'],
 		// t = Gibberish.Sine(300, .4);
 		// t.mod("amp", e, "*");
 		// 
-b = Gibberish.Bus();
-c = Gibberish.Bus();
-d = Gibberish.Bus();
-e = Gibberish.Bus();		
-		
-s = Gibberish.Sine(440, .4);
-s.connect(b);
-		
-t= Gibberish.Sine(880, .1);
-t.connect(c);	
-		
-u= Gibberish.Sine(1080, .1);
-u.connect(d);			
-		
-b.connect(e); c.connect(e); d.connect(e); 
+bus1 = Gibberish.Bus();
+bus2 = Gibberish.Bus();
+bus3 = Gibberish.Bus();
 
-z = Gibberish.Clip(15, .5);
-e.addFx(z);
+sendBus = Gibberish.Bus();	
 		
-e.connect(Gibberish.MASTER);
+sine1 = Gibberish.Sine(440, .25);
+sine1.connect(bus1);
+
+		
+sine2 = Gibberish.Sine(1080, .25);
+sine2.connect(bus2);	
+					
+bus1.connect(bus3); 
+bus2.connect(bus3);
+
+bus3.send(sendBus, .5); 
+sendBus.connect(Gibberish.MASTER);
+
+clip = Gibberish.Clip(50, .5);
+sendBus.addFx(clip);
+		
+
 		
 		Gibberish.callback = Gibberish.generateCallback( true );
 		

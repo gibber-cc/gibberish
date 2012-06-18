@@ -62,7 +62,7 @@ define([], function() {
 					if(bus === Gibberish.MASTER) {
 						Gibberish.connect(this);
 					}else{
-						bus.connectUgen(this, .4);
+						bus.connectUgen(this, 1);
 					}
 					this.dirty = true;
 					Gibberish.dirty = true;
@@ -79,11 +79,16 @@ define([], function() {
 					}
 					formula += ")";
 					
-					console.log("FORMULA : ", formula);
+					//console.log("FORMULA : ", formula);
 					//console.log(attrArray);
 					Gibberish.generators[that.type] = Gibberish.createGenerator(attrArray, formula);
 					
 				},
+				
+				send: function(bus, amount) {
+					bus.connectUgen(this, amount);
+				},
+				
 				
 			};
 			
