@@ -4,7 +4,7 @@ requirejs.config({
 });
 
 requirejs(['sink/sink-light', 'gibberish', 'utils'], 
-	function   (sink,   _gibberish, _) {
+	function   (sink,   _gibberish) {
 		window.Gibberish = _gibberish;
 		Gibberish.init();
 		// var __ugens = [];
@@ -31,30 +31,27 @@ requirejs(['sink/sink-light', 'gibberish', 'utils'],
 		// t = Gibberish.Sine(300, .4);
 		// t.mod("amp", e, "*");
 		// 
-bus1 = Gibberish.Bus();
-bus2 = Gibberish.Bus();
-bus3 = Gibberish.Bus();
+		bus1 = Gibberish.Bus();
+		bus2 = Gibberish.Bus();
+		bus3 = Gibberish.Bus();
 
-sendBus = Gibberish.Bus();	
+		sendBus = Gibberish.Bus();	
 		
-sine1 = Gibberish.Sine(440, .25);
-sine1.connect(bus1);
-
+		sine1 = Gibberish.Sine(440, .25);
+		sine1.connect(bus1);
 		
-sine2 = Gibberish.Sine(1080, .25);
-sine2.connect(bus2);	
+		sine2 = Gibberish.Sine(1080, .25);
+		sine2.connect(bus2);	
 					
-bus1.connect(bus3); 
-bus2.connect(bus3);
+		bus1.connect(bus3); 
+		bus2.connect(bus3);
 
-bus3.send(sendBus, .5); 
-sendBus.connect(Gibberish.MASTER);
+		bus3.send(sendBus, .5); 
+		sendBus.connect(Gibberish.MASTER);
 
-clip = Gibberish.Clip(50, .5);
-sendBus.addFx(clip);
-		
+		clip = Gibberish.Clip(50, .5);
+		sendBus.addFx(clip);
 
-		
 		Gibberish.callback = Gibberish.generateCallback( true );
 		
 		var phase = 0;

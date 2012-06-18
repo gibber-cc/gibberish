@@ -16,34 +16,11 @@ define([], function() {
 				category:	"Gen",
 				frequency:	freq || 440, 
 				amp:		amp || .5,
-				addFx:		Gibberish.addFx,
-				fx:			[],
-				mods:		[],
-				mod:		Gibberish.mod,
-				removeMod:	Gibberish.removeMod,
-				dirty:		true,
-				output:		null,
-				
-				send: function(bus, amount) {
-					bus.connectUgen(this, amount);
-				},
-				
-				connect : function(bus) {
-					this.output = bus;
-					if(bus === Gibberish.MASTER) {
-						Gibberish.connect(this);
-					}else{
-						//console.log("CONNECTING", this.ugenVariable);
-						bus.connectUgen(this, 1);
-					}
-					Gibberish.dirty = true;
-				},
 			};
+			Gibberish.extend(that, Gibberish.ugen);
 			
 			that.name = Gibberish.generateSymbol(that.type);
-			
 			window[that.name] = Gibberish.make["Sine"]();
-
 			Gibberish.defineProperties( that, ["frequency", "amp"] );
 	
 			return that;
@@ -58,8 +35,6 @@ define([], function() {
 				phase += frequency / 44100;
 				return sin(phase * pi_2);
 			}
-			output.getPhase = function() { return phase; }
-			output.setPhase = function(_phase) { phase = _phase; }
 	
 			return output;
 		},
@@ -68,16 +43,13 @@ define([], function() {
 			var that = { 
 				type:		"Env",
 				category:	"Gen",
-				mods:		[],
 				attack:		attack || 10000,
 				decay:		decay || 10000,
-				mod:		Gibberish.mod,
-				dirty:		true,
-			};			
+			};
+			Gibberish.extend(that, Gibberish.ugen);
+			
 			that.name = Gibberish.generateSymbol(that.type);
-			
 			window[that.name] = Gibberish.make["Env"]();
-			
 			Gibberish.defineProperties( that, ["attack", "decay"] );
 	
 			return that;
@@ -100,8 +72,6 @@ define([], function() {
 				}
 				return val;
 			}
-			output.getPhase = function() { return phase; }
-			output.setPhase = function(_phase) { phase = _phase; }
 			
 			return output;
 		},

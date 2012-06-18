@@ -117,10 +117,4 @@ define([], function() {
 	Array.prototype.insert = function(v, pos) {
 		this.splice(pos,0,v);
 	};
-
-	Array.prototype.add = function() {
-		for(var i = 0; i < arguments.length; i++) {
-			this.push(arguments[i]);
-		}
-	};
 });

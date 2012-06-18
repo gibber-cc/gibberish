@@ -1,15 +1,19 @@
-define(["oscillators", "effects"], function(oscillators, effects) {
+define(["oscillators", "effects", "synths"], function(oscillators, effects, synths) {
 	var ugens = [];
-    return {
+    var that = {
         init : function() { 
 			oscillators.init(this);
 			effects.init(this);
+			synths.init(this);			
 			
-			this.generators["+"] = this.binop_generator;
-			this.generators["*"] = this.binop_generator;
-			this.generators["-"] = this.binop_generator;
-			this.generators["/"] = this.binop_generator;
-			this.generators["="] = this.binop_generator;		
+			var binops = {
+				"+" : this.binop_generator,
+				"-" : this.binop_generator,
+				"*" : this.binop_generator,
+				"/" : this.binop_generator,
+				"=" : this.binop_generator,																
+			};
+			this.extend(this.generators, binops);
 		},
 
 		generateCallback : function(debug) {
@@ -199,6 +203,7 @@ define(["oscillators", "effects"], function(oscillators, effects) {
 		},
 		
 		addFx : function() {
+			console.log(this);
 			for(var i = 0; i < arguments.length; i++) {
 				var effect = arguments[i];
 				this.fx.push(effect);
@@ -210,6 +215,21 @@ define(["oscillators", "effects"], function(oscillators, effects) {
 			return name + "_" + this.id++; 
 		},
 		
+		// modified from http://andrewdupont.net/2009/08/28/deep-extending-objects-in-javascript/ to deep copy arrays
+		extend: function(destination, source) {
+		    for (var property in source) {
+				if(source[property] instanceof Array) {
+		            destination[property] = source[property].slice(0);				
+		        }else if (typeof source[property] === "object" && source[property] !== null) {
+		            destination[property] = destination[property] || {};
+		            arguments.callee(destination[property], source[property]);
+		        } else {
+		            destination[property] = source[property];
+		        }
+		    }
+		    return destination;
+		},
+
 		id			:  0,
 		make 		: {},
 		generators 	: {},
@@ -217,5 +237,31 @@ define(["oscillators", "effects"], function(oscillators, effects) {
 		dirty		: false,
 		memo		: {},
 		MASTER		: "output", // a constant to connect to master output		
-    }
+    };
+	
+	that.ugen = {	
+		send: function(bus, amount) {
+			bus.connectUgen(this, amount);
+		},
+		connect : function(bus) {
+			this.output = bus;
+			if(bus === Gibberish.MASTER) {
+				Gibberish.connect(this);
+			}else{
+				//console.log("CONNECTING", this.ugenVariable);
+				bus.connectUgen(this, 1);
+			}
+			Gibberish.dirty = true;
+		},
+		
+		addFx:		that.addFx,
+		fx:			[],
+		mods:		[],
+		mod:		that.mod,
+		removeMod:	that.removeMod,
+		dirty:		true,
+		output:		null,	
+	};
+	
+	return that;
 });
