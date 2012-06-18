@@ -16,7 +16,6 @@ requirejs(['sink/sink-light', 'gibberish', 'utils'],
 		// 	__ugens.push(s);
 		// }
 		
-		s = Gibberish.Sine(440, .4);
 		// 
 		// // m = Gibberish.Sine(5, 15);
 		// // s.mod("frequency", m);
@@ -32,7 +31,26 @@ requirejs(['sink/sink-light', 'gibberish', 'utils'],
 		// t = Gibberish.Sine(300, .4);
 		// t.mod("amp", e, "*");
 		// 
-		s.connect(Gibberish.MASTER);
+b = Gibberish.Bus();
+c = Gibberish.Bus();
+d = Gibberish.Bus();
+e = Gibberish.Bus();		
+		
+s = Gibberish.Sine(440, .4);
+s.connect(b);
+		
+t= Gibberish.Sine(880, .1);
+t.connect(c);	
+		
+u= Gibberish.Sine(1080, .1);
+u.connect(d);			
+		
+b.connect(e); c.connect(e); d.connect(e); 
+
+z = Gibberish.Clip(15, .5);
+e.addFx(z);
+		
+e.connect(Gibberish.MASTER);
 		
 		Gibberish.callback = Gibberish.generateCallback( true );
 		

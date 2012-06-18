@@ -93,10 +93,11 @@ define(["oscillators", "effects"], function(oscillators, effects) {
 			}
 		},
 		
-		createGenerator : function(type, parameters, formula) {
+		createGenerator : function(parameters, formula) {
 			var generator = function(op, codeDictionary) {
 				var name = op.name;
-		
+				
+				//console.log("GENERATING WITH FORMULA", formula, "PARAMETERS", parameters);
 				codeDictionary.upvalues.push("var {0} = globals.{0}".format(name));
 				
 				var paramNames = [name];
@@ -118,11 +119,11 @@ define(["oscillators", "effects"], function(oscillators, effects) {
 				// 					console.log("MEMO HOORAY! " + op.name );
 				// 					return memo;
 				// 				}
-				
+				//console.log(op);
 				var gen = this.generators[op.type];
 				
 				var name = op.ugenVariable || this.generateSymbol("v");
-				
+				//console.log(name);
 				//this.memo[op.name] = name;
 				op.ugenVariable = name;
 
@@ -146,6 +147,7 @@ define(["oscillators", "effects"], function(oscillators, effects) {
 				upvalues		: [],	// pointers to globals that will be included in callback closure
 				codeblock 		: [],	// will go directly into callback
 			};
+			//console.log("GENERATING " + ugen.type);
 			var outputCode = this.codegen(ugen, codeDictionary);
 			
 			if(typeof ugen.fx !== "undefined") {

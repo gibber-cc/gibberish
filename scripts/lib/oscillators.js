@@ -1,11 +1,11 @@
 define([], function() {
     return {
 		init: function(gibberish) {			
-			gibberish.generators.Sine = gibberish.createGenerator("Sine", ["frequency", "amp"], "{0}({1}) * {2}");
+			gibberish.generators.Sine = gibberish.createGenerator(["frequency", "amp"], "{0}({1}) * {2}");
 			gibberish.make["Sine"] = this.makeSine;
 			gibberish.Sine = this.Sine;
 			
-			gibberish.generators.Env = gibberish.createGenerator("Env",  ["attack",  "decay"], "{0}({1}, {2})" ),
+			gibberish.generators.Env = gibberish.createGenerator(["attack",  "decay"], "{0}({1}, {2})" ),
 			gibberish.make["Env"] = this.makeEnv;
 			gibberish.Env = this.Env;
 		},
@@ -16,11 +16,11 @@ define([], function() {
 				category:	"Gen",
 				frequency:	freq || 440, 
 				amp:		amp || .5,
+				addFx:		Gibberish.addFx,
 				fx:			[],
 				mods:		[],
 				mod:		Gibberish.mod,
 				removeMod:	Gibberish.removeMod,
-				addFx:		Gibberish.addFx,
 				dirty:		true,
 				output:		null,
 				
@@ -32,6 +32,9 @@ define([], function() {
 					this.output = bus;
 					if(bus === Gibberish.MASTER) {
 						Gibberish.connect(this);
+					}else{
+						//console.log("CONNECTING", this.ugenVariable);
+						bus.connectUgen(this, .4);
 					}
 					Gibberish.dirty = true;
 				},
