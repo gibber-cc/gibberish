@@ -48,16 +48,14 @@ define([], function() {
 			var buffer = _buffer;
 			
 			var output = function(sample, time, feedback) {
-				var delayPos = phase++ + time;
+				var _phase = phase++ % bufferLength;
+
+				var delayPos = (_phase + time) % bufferLength;				
 				
-				if(delayPos > bufferLength) {
-					delayPos -= bufferLength;
-				}
-				if(phase > bufferLength) phase = 0;
+				//if(phase % 22050 == 0) console.log(_phase, delayPos);
 				
-				buffer[delayPos] = sample + (buffer[phase] * feedback);
-				//if(phase % 22050 == 0) console.log("delay", buffer[delayPos], delayPos, phase, feedback, sample, buffer[phase]);
-				return sample + buffer[phase];
+				buffer[delayPos] = (sample + buffer[_phase]) * feedback;
+				return sample + buffer[_phase];
 			};
 			
 			return output;
@@ -127,7 +125,7 @@ define([], function() {
 						attrArray.push("senders"+(i-1));
 					}
 					formula += ")";
-					
+					variable.sendDestinations.push(this);
 					//console.log("FORMULA : ", formula);
 					//console.log(attrArray);
 					Gibberish.generators[that.type] = Gibberish.createGenerator(attrArray, formula);
@@ -148,7 +146,7 @@ define([], function() {
 			
 			window[that.name] = Gibberish.make["Bus"]();
 			
-			Gibberish.defineProperties( that, ["senders"]);
+			Gibberish.defineProperties( that, ["senders", "dirty"]);
 			return that;
 		},
 		

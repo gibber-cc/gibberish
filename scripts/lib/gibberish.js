@@ -74,13 +74,24 @@ define(["oscillators", "effects", "synths"], function(oscillators, effects, synt
 				    Object.defineProperty(that, propName, {
 						get: function() { return value; },
 						set: function(_value) {
-							if(typeof value === "number"){
+							if(typeof value === "number" || typeof value === "boolean"){
 								value = _value;
 							}else{
 								value["operands"][0] = _value;
 							}
 							
-							that.dirty = true;
+							if(propName !== "dirty") {
+								that.dirty = true;
+							}
+							
+							if(that.output !== null) {
+								that.output.dirty = true;
+							}
+							if(that.sendDestinations.length > 0) {
+								for(var i = 0; i < that.sendDestinations.length; i++) {
+									that.sendDestinations[i].dirty = true;
+								}
+							}
 							Gibberish.dirty = true;
 						},
 					});
@@ -254,7 +265,8 @@ define(["oscillators", "effects", "synths"], function(oscillators, effects, synt
 		mod:		that.mod,
 		removeMod:	that.removeMod,
 		dirty:		true,
-		output:		null,	
+		output:		null,
+		sendDestinations : [],	
 	};
 	
 	return that;
