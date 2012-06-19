@@ -62,7 +62,7 @@ define([], function() {
 				type:		"FMSynth",
 				category:	"Gen",
 				amp:		amp || .5,
-				cmRatio:	cmRatio || 1 / .5,
+				cmRatio:	cmRatio || (1 / .5),
 				index:		index || 5,			
 				attack:		attack || 22050,
 				decay:		decay  || 22050,
@@ -70,9 +70,11 @@ define([], function() {
 				
 				note : function(frequency) {
 					this.frequency = frequency;
+					
+					this.modulator.frequency = frequency * this.cmRatio;
 					this.carrier.frequency = this.frequency;
-					this.modulator.frequency = this.frequency * this.cmRatio;
-					this.modulator.amp = frequency * this.index;
+					this.modulator.amp = this.frequency * this.index;
+					
 					this.dirty = true;
 					this.env.start();
 				},
@@ -81,35 +83,38 @@ define([], function() {
 			
 			that.env = Gibberish.Env(that.attack, that.decay);
 			that.carrier = Gibberish["Sine"](that.frequency, that.amp);
-			that.modulator = Gibberish["Sine"](that.frequency * that.cmRatio, that.index * 440);
+			that.modulator = Gibberish["Sine"](that.frequency * that.cmRatio, that.index * that.frequency);
 			
 			that.carrier.mod("frequency", that.modulator, "+");
 			
 			that.name = Gibberish.generateSymbol(that.type);
 			window[that.name] = Gibberish.make["FMSynth"]();
-			//Gibberish.defineProperties( that, ["attack", "decay"] );
 			
-		    Object.defineProperties(that, {
-				cmRatio :  {
-					get: function() { return cmRatio; },
-					set: function(value) {
-						cmRatio = value;
-						console.log(that.frequency, value, that.modulator.amp);
-						that.modulator.frequency = that.frequency * cmRatio;
-						console.log(that.modulator.frequency);
-						that.modulator.dirty = true;
-						that.dirty = true;
+			(function(obj) {
+				var that = obj;
+				var _cmRatio = obj.cmRatio;
+				var _index = obj.index;
+	
+			    Object.defineProperties(that, {
+					cmRatio :  {
+						get: function() { return _cmRatio; },
+						set: function(value) {
+							_cmRatio = value;
+							that.modulator.frequency = that.frequency * _cmRatio;
+							that.modulator.dirty = true;
+							that.dirty = true;
+						},
 					},
-				},
-				index :  {
-					get: function() { return index; },
-					set: function(value) {
-						index = value;
-						that.modulator.amp = that.frequency * index;
-						that.dirty = true;
+					index :  {
+						get: function() { return _index; },
+						set: function(value) {
+							_index = value;
+							that.modulator.amp = that.frequency * _index;
+							that.dirty = true;
+						},
 					},
-				},
-			});
+				});
+			})(that);
 			
 			return that;
 		},
