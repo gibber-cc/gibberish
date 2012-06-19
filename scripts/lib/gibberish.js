@@ -17,8 +17,8 @@ define(["oscillators", "effects", "synths"], function(oscillators, effects, synt
 		},
 
 		generateCallback : function(debug) {
-			var masterUpvalues = [];
-			var masterCodeblock = [];
+			this.masterUpvalues = [];
+			this.masterCodeblock = [];
 			this.memo = {};
 			
 			var start = "";//function(globals) {\n";
@@ -32,15 +32,15 @@ define(["oscillators", "effects", "synths"], function(oscillators, effects, synt
 					Gibberish.generate(ugen);				
 					ugen.dirty = false;
 				}
-		
-				masterUpvalues.push( ugen.upvalues + ";\n" );
-				masterCodeblock.push(ugen.codeblock);
+				
+				this.masterUpvalues.push( ugen.upvalues + ";\n" );
+				this.masterCodeblock.push(ugen.codeblock);
 			}
 	
-			codeblock += masterCodeblock.join("\n");
+			codeblock += this.masterCodeblock.join("\n");
 			var end = "return output;\n}\nreturn cb;";
 			
-			var cbgen = start + masterUpvalues.join("") + codeblock + end;
+			var cbgen = start + this.masterUpvalues.join("") + codeblock + end;
 	
 			if(debug) console.log(cbgen);
 			
@@ -83,13 +83,12 @@ define(["oscillators", "effects", "synths"], function(oscillators, effects, synt
 							if(propName !== "dirty") {
 								that.dirty = true;
 							}
-							
-							if(that.output !== null) {
-								that.output.dirty = true;
-							}
-							if(that.sendDestinations.length > 0) {
-								for(var i = 0; i < that.sendDestinations.length; i++) {
-									that.sendDestinations[i].dirty = true;
+							//console.log(that);
+							if(typeof that.destinations !== "undefined") {
+								if(that.destinations.length > 0) {
+									for(var i = 0; i < that.destinations.length; i++) {
+										that.destinations[i].dirty = true;
+									}
 								}
 							}
 							Gibberish.dirty = true;
@@ -165,9 +164,11 @@ define(["oscillators", "effects", "synths"], function(oscillators, effects, synt
 				}
 			}
 			
-			if(ugen.output !== null) { // mods don't have an output
-				var output = ugen.output.ugenVariable || ugen.output;
-				codeDictionary.codeblock.push( "{0} += {1};\n".format( output, outputCode) );
+			if(ugen.destinations.length > 0) { // mods don't have an output
+				for(var i = 0; i < ugen.destinations.length; i++) {
+					var output = ugen.destinations[i].ugenVariable || ugen.destinations[i];
+					codeDictionary.codeblock.push( "{0} += {1};\n".format( output, outputCode) );
+				}
 			}
 
 			ugen.initialization	= codeDictionary.initialization;
@@ -241,7 +242,10 @@ define(["oscillators", "effects", "synths"], function(oscillators, effects, synt
 		ugens		: ugens,
 		dirty		: false,
 		memo		: {},
-		MASTER		: "output", // a constant to connect to master output		
+		MASTER		: "output", // a constant to connect to master output
+		masterUpvalues : [],
+		masterCodelock : [],
+		masterInit	   : [],	
     };
 	
 	that.ugen = {	
@@ -249,7 +253,7 @@ define(["oscillators", "effects", "synths"], function(oscillators, effects, synt
 			bus.connectUgen(this, amount);
 		},
 		connect : function(bus) {
-			this.output = bus;
+			this.destinations.push(bus);
 			if(bus === Gibberish.MASTER) {
 				Gibberish.connect(this);
 			}else{
@@ -265,8 +269,7 @@ define(["oscillators", "effects", "synths"], function(oscillators, effects, synt
 		mod:		that.mod,
 		removeMod:	that.removeMod,
 		dirty:		true,
-		output:		null,
-		sendDestinations : [],	
+		destinations : [],
 	};
 	
 	return that;

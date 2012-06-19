@@ -10,13 +10,22 @@ requirejs(['sink/sink-light', 'gibberish', 'utils'],
 		var timeout = null;
 		var codeTimeout = null;
 		
-		window.clear = function() {
+		window._clear_ = function() {
 			clearTimeout(timeout);
 			clearTimeout(codeTimeout);
 			
 			Gibberish.ugens.remove();
 			
 			Gibberish.dirty = true;
+			
+			var input = document.getElementById("input");
+			input.innerHTML = "";
+			
+			codeTimeout = setTimeout(function() { 
+				var codegen = document.getElementById("output");
+				codegen.innerHTML = "INITIALIZATION:\n\n" + Gibberish.masterInit.join("\n") + "\n\n" + "CALLBACK:\n\n" + Gibberish.callback;
+			}, 250);
+			
 		};
 		
 		window.sineTest = function() {
@@ -33,7 +42,7 @@ requirejs(['sink/sink-light', 'gibberish', 'utils'],
 			
 			codeTimeout = setTimeout(function() { 
 				var codegen = document.getElementById("output");
-				codegen.innerHTML = Gibberish.callback;
+				codegen.innerHTML = "INITIALIZATION:\n\n" + Gibberish.masterInit.join("\n") + "\n\n" + "CALLBACK:\n\n" + Gibberish.callback;
 			}, 250);
 			
 			Gibberish.dirty = true;
@@ -62,7 +71,7 @@ requirejs(['sink/sink-light', 'gibberish', 'utils'],
 			
 			codeTimeout = setTimeout(function() { 
 				var codegen = document.getElementById("output");
-				codegen.innerHTML = Gibberish.callback;
+				codegen.innerHTML = "INITIALIZATION:\n\n" + Gibberish.masterInit.join("\n") + "\n\n" + "CALLBACK:\n\n" + Gibberish.callback;
 			}, 250);
 			
 			Gibberish.dirty = true;
@@ -88,15 +97,15 @@ requirejs(['sink/sink-light', 'gibberish', 'utils'],
 			"s.fx.add( c );\n" +
 			"s.connect(Gibberish.MASTER);\n" +
 			"Gibberish.dirty = true;\n" +
-			"\n\n//note : a timeout changes pitches\n" +
-			"\//and randomizes clip amount";
+			"\n//note : a timeout changes pitches\n" +
+			"//and randomizes clip amount";
 
 			var input = document.getElementById("input");
 			input.innerHTML = inputString;
 			
 			codeTimeout = setTimeout(function() { 
 				var codegen = document.getElementById("output");
-				codegen.innerHTML = Gibberish.callback;
+				codegen.innerHTML = "INITIALIZATION:\n\n" + Gibberish.masterInit.join("\n") + "\n\n" + "CALLBACK:\n\n" + Gibberish.callback;
 			}, 250);
 			
 		};
@@ -119,15 +128,14 @@ requirejs(['sink/sink-light', 'gibberish', 'utils'],
 			"d = Gibberish.Delay(11025, .55);\n" +
 			"s.fx.add( d );\n" +
 			"s.connect(Gibberish.MASTER);\n" +
-			"Gibberish.dirty = true;\n" +
-			"\n\n//note : a timeout changes pitches\n";
+			"\n//note : a timeout changes pitches\n";
 
 			var input = document.getElementById("input");
 			input.innerHTML = inputString;
 			
 			codeTimeout = setTimeout(function() { 
 				var codegen = document.getElementById("output");
-				codegen.innerHTML = Gibberish.callback;
+				codegen.innerHTML = "INITIALIZATION:\n\n" + Gibberish.masterInit.join("\n") + "\n\n" + "CALLBACK:\n\n" + Gibberish.callback;
 			}, 250);
 			
 		};
@@ -152,7 +160,7 @@ requirejs(['sink/sink-light', 'gibberish', 'utils'],
 			
 			codeTimeout = setTimeout(function() { 
 				var codegen = document.getElementById("output");
-				codegen.innerHTML = Gibberish.callback;
+				codegen.innerHTML = "INITIALIZATION:\n\n" + Gibberish.masterInit.join("\n") + "\n\n" + "CALLBACK:\n\n" + Gibberish.callback;
 			}, 250);	
 		};
 		
@@ -169,14 +177,14 @@ requirejs(['sink/sink-light', 'gibberish', 'utils'],
 			
 			var inputString = "s = Gibberish.FMSynth();\n"+
 			"s.connect(Gibberish.MASTER);\n"+
-			"\n\n//note : a timeout changes pitches\n";
+			"\n//note : a timeout changes pitches";
 
 			var input = document.getElementById("input");
 			input.innerHTML = inputString;
 			
 			codeTimeout = setTimeout(function() { 
 				var codegen = document.getElementById("output");
-				codegen.innerHTML = Gibberish.callback;
+				codegen.innerHTML = "INITIALIZATION:\n\n" + Gibberish.masterInit.join("\n") + "\n\n" + "CALLBACK:\n\n" + Gibberish.callback;
 			}, 250);
 		};
 		
@@ -231,17 +239,52 @@ requirejs(['sink/sink-light', 'gibberish', 'utils'],
 			"\n"+
 			"delay = Gibberish.Delay(11050, .75);\n"+
 			"sendBus.addFx(delay);\n" +
-			"\n\n//note : a timeout changes pitches\n";
+			"\n//note : a timeout changes pitches\n";
 			
 			var input = document.getElementById("input");
 			input.innerHTML = inputString;
 			
 			codeTimeout = setTimeout(function() { 
 				var codegen = document.getElementById("output");
-				codegen.innerHTML = Gibberish.callback;
+				codegen.innerHTML = "INITIALIZATION:\n\n" + Gibberish.masterInit.join("\n") + "\n\n" + "CALLBACK:\n\n" + Gibberish.callback;
 			}, 250);	
 
 			Gibberish.dirty = true;
+		};
+		
+		window.busFeedbackTest = function() {
+			clearTimeout(timeout);
+			Gibberish.ugens.remove();
+			
+			bus1 = Gibberish.Bus();
+			bus2 = Gibberish.Bus();
+			
+			sine1 = Gibberish.Sine(440, .2);
+			sine1.connect(bus1);
+			bus1.connect(bus2);
+			bus2.connect(bus1);
+			bus2.connect(Gibberish.MASTER);
+			
+			var inputString = "bus1 = Gibberish.Bus();\n"+
+			"bus2 = Gibberish.Bus();\n"+
+			"\n"+
+			"sine1 = Gibberish.Sine(440, .2);\n"+
+			"sine1.connect(bus1);\n"+
+			"bus1.connect(bus2);\n"+
+			"bus2.connect(bus1);\n"+
+			"bus2.connect(Gibberish.MASTER);\n\n" +
+			"// this creates a stack overflow failure. damnit.";
+			
+			var input = document.getElementById("input");
+			input.innerHTML = inputString;
+			
+			codeTimeout = setTimeout(function() { 
+				var codegen = document.getElementById("output");
+				codegen.innerHTML = "INITIALIZATION:\n\n" + Gibberish.masterInit.join("\n") + "\n\n" + "CALLBACK:\n\n" + Gibberish.callback;
+			}, 250);	
+
+			Gibberish.dirty = true;
+			
 		};
 		
 		Gibberish.callback = Gibberish.generateCallback( false );

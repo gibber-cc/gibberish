@@ -31,6 +31,8 @@ define([], function() {
 			that.osc = Gibberish[that.waveform](440, that.amp);
 			
 			that.name = Gibberish.generateSymbol(that.type);
+			Gibberish.masterInit.push(that.name + " = Gibberish.make[\"Synth\"]();");
+						
 			window[that.name] = Gibberish.make["Synth"]();
 			Gibberish.defineProperties( that, ["frequency", "amp", "attack", "decay"] );
 				
@@ -88,6 +90,7 @@ define([], function() {
 			that.carrier.mod("frequency", that.modulator, "+");
 			
 			that.name = Gibberish.generateSymbol(that.type);
+			Gibberish.masterInit.push(that.name + " = Gibberish.make[\"FMSynth\"]();");
 			window[that.name] = Gibberish.make["FMSynth"]();
 			
 			(function(obj) {

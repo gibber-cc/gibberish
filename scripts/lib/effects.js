@@ -1,11 +1,11 @@
 define([], function() {
     return {
 		init: function(gibberish) {			
-			gibberish.generators.Clip = gibberish.createGenerator(["source", "amount", "amp"], "{0}({1},{2}) * {3}");
+			gibberish.generators.Clip = gibberish.createGenerator(["source", "amount", "amp"], "{0}( {1}, {2} ) * {3}");
 			gibberish.make["Clip"] = this.makeClip;
 			gibberish.Clip = this.Clip;
 			
-			gibberish.generators.Delay = gibberish.createGenerator(["source", "time", "feedback"], "{0}({1},{2},{3})");
+			gibberish.generators.Delay = gibberish.createGenerator(["source", "time", "feedback"], "{0}( {1}, {2}, {3} )");
 			gibberish.make["Delay"] = this.makeDelay;
 			gibberish.Delay = this.Delay;
 			
@@ -34,6 +34,7 @@ define([], function() {
 			}
 			
 			that.name = Gibberish.generateSymbol(that.type);
+			Gibberish.masterInit.push(that.name + " = Gibberish.make[\"Delay\"]();");
 			window[that.name] = Gibberish.make["Delay"](that.buffer, that.bufferLength);
 			that._function = window[that.name];
 			
@@ -51,9 +52,7 @@ define([], function() {
 				var _phase = phase++ % bufferLength;
 
 				var delayPos = (_phase + time) % bufferLength;				
-				
-				//if(phase % 22050 == 0) console.log(_phase, delayPos);
-				
+								
 				buffer[delayPos] = (sample + buffer[_phase]) * feedback;
 				return sample + buffer[_phase];
 			};
@@ -73,7 +72,7 @@ define([], function() {
 			Gibberish.extend(that, Gibberish.ugen);
 			
 			that.name = Gibberish.generateSymbol(that.type);
-			
+			Gibberish.masterInit.push(that.name + " = Gibberish.make[\"Clip\"]();");
 			window[that.name] = Gibberish.make["Clip"]();
 			
 			Gibberish.defineProperties( that, ["amount", "amp"] );
@@ -103,7 +102,7 @@ define([], function() {
 				amount	: 1,
 				
 				connect : function(bus) {
-					this.output = bus;
+					this.destinations.push(bus);
 					if(bus === Gibberish.MASTER) {
 						Gibberish.connect(this);
 					}else{
@@ -116,16 +115,16 @@ define([], function() {
 				connectUgen : function(variable, amount) { // man, this is hacky... but it should be called rarely
 					this["senders" + this.length++] = { type:"*", operands:[variable, amount]};
 					
-					var formula = "{0}(";
+					var formula = "{0}( ";
 					var attrArray = [];
 					
 					for(var i = 1; i <= this.length; i++) {
 						formula += "{"+i+"}";
-						if(i !== this.length) formula +="+";
+						if(i !== this.length) formula +=" + ";
 						attrArray.push("senders"+(i-1));
 					}
-					formula += ")";
-					variable.sendDestinations.push(this);
+					formula += " )";
+					variable.destinations.push(this);
 					//console.log("FORMULA : ", formula);
 					//console.log(attrArray);
 					Gibberish.generators[that.type] = Gibberish.createGenerator(attrArray, formula);
@@ -142,8 +141,9 @@ define([], function() {
 			that.name = Gibberish.generateSymbol(that.type);
 			that.type = that.name;
 			
-			Gibberish.generators[that.type] = Gibberish.createGenerator(["senders", "amount"], "{0}({1})");
+			Gibberish.generators[that.type] = Gibberish.createGenerator(["senders", "amount"], "{0}( {1} )");
 			
+			Gibberish.masterInit.push(that.name + " = Gibberish.make[\"Bus\"]();");
 			window[that.name] = Gibberish.make["Bus"]();
 			
 			Gibberish.defineProperties( that, ["senders", "dirty"]);

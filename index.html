@@ -16,11 +16,13 @@
 </head>
 <body>
 <h1>Gibberish Tests</h1>
-<select onchange="eval(this.options[this.selectedIndex].text + '()')">
+run: <select onchange="Gibberish.masterInit = []; eval(this.options[this.selectedIndex].text + '()')">
+	<option>_clear_</option>	
 	<option>sineTest</option>
 	<option>vibratoTest</option>
 	<option>delayTest</option>
 	<option>busTest</option>
+	<option>busFeedbackTest</option>	
 	<option>synthTest</option>
 	<option>FMTest</option>
 </select>

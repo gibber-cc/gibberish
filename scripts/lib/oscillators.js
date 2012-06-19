@@ -24,6 +24,7 @@ define([], function() {
 			Gibberish.extend(that, Gibberish.ugen);
 			
 			that.name = Gibberish.generateSymbol(that.type);
+			Gibberish.masterInit.push(that.name + " = Gibberish.make[\"Sine\"]();");
 			window[that.name] = Gibberish.make["Sine"]();
 			that._function = window[that.name];
 			
@@ -55,6 +56,7 @@ define([], function() {
 			Gibberish.extend(that, Gibberish.ugen);
 			
 			that.name = Gibberish.generateSymbol(that.type);
+			Gibberish.masterInit.push(that.name + " = Gibberish.make[\"Square\"]();");
 			window[that.name] = Gibberish.make["Square"]();
 			that._function = window[that.name];
 			
@@ -93,6 +95,7 @@ define([], function() {
 			Gibberish.extend(that, Gibberish.ugen);
 			
 			that.name = Gibberish.generateSymbol(that.type);
+			Gibberish.masterInit.push(that.name + " = Gibberish.make[\"Env\"]();");
 			window[that.name] = Gibberish.make["Env"]();
 			that._function = window[that.name];
 			
