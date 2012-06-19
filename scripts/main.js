@@ -62,6 +62,9 @@ requirejs(['sink/sink-light', 'gibberish', 'utils'],
 		// 		t.connect(Gibberish.MASTER);
 		
 		s = Gibberish.FMSynth();
+		s.env.attack = s.env.decay = 2500;
+		d = Gibberish.Delay(22050, .65) 
+		s.addFx( d );
 		s.connect(Gibberish.MASTER);
 		
 		//t.connect(Gibberish.MASTER);

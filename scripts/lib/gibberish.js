@@ -52,7 +52,6 @@ define(["oscillators", "effects", "synths"], function(oscillators, effects, synt
 		connect : function() {
 			for(var i = 0; i < arguments.length; i++) {
 				ugens.push(arguments[i]);
-				//Gibberish.generate(arguments[i]);
 			}
 			Gibberish.dirty = true;
 		},

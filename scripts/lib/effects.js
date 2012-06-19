@@ -5,11 +5,64 @@ define([], function() {
 			gibberish.make["Clip"] = this.makeClip;
 			gibberish.Clip = this.Clip;
 			
+			gibberish.generators.Delay = gibberish.createGenerator(["source", "time", "feedback"], "{0}({1},{2},{3})");
+			gibberish.make["Delay"] = this.makeDelay;
+			gibberish.Delay = this.Delay;
+			
+			
 			// the calls to dynamically create the bus generators are generated dynamically. that is fun to say.
 			gibberish.make["Bus"] = this.makeBus;
 			gibberish.Bus = this.Bus;
 			
 		},
+		
+		Delay : function(time, feedback) {
+			var that = {
+				type:		"Delay",
+				category:	"FX",
+				feedback:	feedback || .5,
+				time:		time || 22050,
+				buffer:		new Float32Array(88200),
+				bufferLength: 88200,
+				source:		null,
+			};
+			Gibberish.extend(that, Gibberish.ugen);
+			
+			if(that.time >= 88200) {
+				that.time = 88199;
+				console.log("MAX DELAY TIME = 88199 samples");
+			}
+			
+			that.name = Gibberish.generateSymbol(that.type);
+			window[that.name] = Gibberish.make["Delay"](that.buffer, that.bufferLength);
+			that._function = window[that.name];
+			
+			Gibberish.defineProperties( that, ["time", "feedback"] );
+	
+			return that;
+		},
+
+		makeDelay : function(_buffer, _bufferLength) {
+			var phase = 0;
+			var bufferLength = _bufferLength;
+			var buffer = _buffer;
+			
+			var output = function(sample, time, feedback) {
+				var delayPos = phase++ + time;
+				
+				if(delayPos > bufferLength) {
+					delayPos -= bufferLength;
+				}
+				if(phase > bufferLength) phase = 0;
+				
+				buffer[delayPos] = sample + (buffer[phase] * feedback);
+				//if(phase % 22050 == 0) console.log("delay", buffer[delayPos], delayPos, phase, feedback, sample, buffer[phase]);
+				return sample + buffer[phase];
+			};
+			
+			return output;
+		},
+		
 		
 		Clip : function(amount, amp) {
 			var that = {
