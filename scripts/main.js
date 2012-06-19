@@ -140,6 +140,34 @@ requirejs(['sink/sink-light', 'gibberish', 'utils'],
 			
 		};
 		
+		window.allPassTest = function() {
+			clearTimeout(timeout);
+			Gibberish.ugens.remove();
+			
+			sine = Gibberish.Sine(440, .25);
+			sine.fx.add( Gibberish.AllPass() );
+			sine.connect(Gibberish.MASTER);
+			
+			var inputString = "sine = Gibberish.Sine(440, .25);\n"+
+			"sine.fx.add( Gibberish.AllPass() );\n"+
+			"sine.connect(Gibberish.MASTER);\n";
+			
+			timeout = setInterval(function() {
+				sine.frequency = Math.round(200 + Math.random() * 800);
+			}, 500);
+			
+			var input = document.getElementById("input");
+			input.innerHTML = inputString;
+			
+			codeTimeout = setTimeout(function() { 
+				var codegen = document.getElementById("output");
+				codegen.innerHTML = "INITIALIZATION:\n\n" + Gibberish.masterInit.join("\n") + "\n\n" + "CALLBACK:\n\n" + Gibberish.callback;
+			}, 250);
+			
+			Gibberish.dirty = true;
+		};
+		
+		
 		window.synthTest = function() {
 			clearTimeout(timeout);
 			Gibberish.ugens.remove();
@@ -211,7 +239,7 @@ requirejs(['sink/sink-light', 'gibberish', 'utils'],
 			sendBus.connect(Gibberish.MASTER);
 			
 			delay = Gibberish.Delay(11050, .75);
-			sendBus.addFx(delay);
+			sendBus.fx.add(delay);
 			
 			timeout = setInterval(function() {
 				sine1.frequency = Math.round(200 + Math.random() * 800);
@@ -238,7 +266,7 @@ requirejs(['sink/sink-light', 'gibberish', 'utils'],
 			"sendBus.connect(Gibberish.MASTER);\n"+
 			"\n"+
 			"delay = Gibberish.Delay(11050, .75);\n"+
-			"sendBus.addFx(delay);\n" +
+			"sendBus.fx.add(delay);\n" +
 			"\n//note : a timeout changes pitches\n";
 			
 			var input = document.getElementById("input");
@@ -259,6 +287,7 @@ requirejs(['sink/sink-light', 'gibberish', 'utils'],
 			bus1 = Gibberish.Bus();
 			bus2 = Gibberish.Bus();
 			
+			singleSampleDelay = Gibber.Delay(1,0);
 			sine1 = Gibberish.Sine(440, .2);
 			sine1.connect(bus1);
 			bus1.connect(bus2);
@@ -284,7 +313,6 @@ requirejs(['sink/sink-light', 'gibberish', 'utils'],
 			}, 250);	
 
 			Gibberish.dirty = true;
-			
 		};
 		
 		Gibberish.callback = Gibberish.generateCallback( false );

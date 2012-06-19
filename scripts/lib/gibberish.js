@@ -208,15 +208,6 @@ define(["oscillators", "effects", "synths"], function(oscillators, effects, synt
 			this.dirty = true;
 		},
 		
-		addFx : function() {
-			console.log(this);
-			for(var i = 0; i < arguments.length; i++) {
-				var effect = arguments[i];
-				this.fx.push(effect);
-			}
-			Gibberish.dirty = true;
-		},
-		
 		generateSymbol : function(name) {
 			return name + "_" + this.id++; 
 		},
@@ -263,7 +254,6 @@ define(["oscillators", "effects", "synths"], function(oscillators, effects, synt
 			Gibberish.dirty = true;
 		},
 		
-		addFx:		that.addFx,
 		fx:			[],
 		mods:		[],
 		mod:		that.mod,
@@ -271,6 +261,7 @@ define(["oscillators", "effects", "synths"], function(oscillators, effects, synt
 		dirty:		true,
 		destinations : [],
 	};
+	// todo: how to dirty fx bus when adding an effect?
 	
 	return that;
 });

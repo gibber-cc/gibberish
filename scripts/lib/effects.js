@@ -9,12 +9,59 @@ define([], function() {
 			gibberish.make["Delay"] = this.makeDelay;
 			gibberish.Delay = this.Delay;
 			
+			gibberish.generators.Reverb = gibberish.createGenerator(["source", "time", "feedback"], "{0}( {1}, {2}, {3} )");
+			gibberish.make["Reverb"] = this.makeReverb;
+			gibberish.Reverb = this.Reverb;
 			
+			gibberish.generators.AllPass = gibberish.createGenerator(["source", "time", "feedback"], "{0}( {1}, {2}, {3} )");
+			gibberish.make["AllPass"] = this.makeAllPass;
+			gibberish.AllPass = this.AllPass;
+
 			// the calls to dynamically create the bus generators are generated dynamically. that is fun to say.
 			gibberish.make["Bus"] = this.makeBus;
 			gibberish.Bus = this.Bus;
-			
 		},
+		
+		AllPass : function(time, feedback) {
+			var that = {
+				type:		"AllPass",
+				category:	"FX",
+				feedback:	feedback || .5,
+				time:		time || 500,
+				buffer:		new Float32Array(time || 500),
+				source:		null,
+			};
+			Gibberish.extend(that, Gibberish.ugen);
+			
+			that.name = Gibberish.generateSymbol(that.type);
+			Gibberish.masterInit.push(that.name + " = Gibberish.make[\"AllPass\"]();");
+			window[that.name] = Gibberish.make["AllPass"](that.buffer, that.bufferLength);
+			that._function = window[that.name];
+			
+			Gibberish.defineProperties( that, ["time", "feedback"] );
+	
+			return that;
+		},
+
+		makeAllPass : function(_buffer, _delayTime, _feedback) {
+			var feedback = _feedback;
+			var _delayTime = _delayTime;
+			var buffer = _buffer;
+			var index = 0;
+			
+			var output = function(inputSample, time, feedback) {
+				var pos = index++ % time;
+				var bufferSample = buffer[pos];
+				
+				var out = -inputSample + bufferSample;
+				buffer[pos] = inputSample + bufferSample * feedback;
+
+				return out;
+			};
+			
+			return output;
+		},
+		
 		
 		Delay : function(time, feedback) {
 			var that = {
@@ -60,7 +107,50 @@ define([], function() {
 			return output;
 		},
 		
-		
+		Reverb : function(time, feedback) {
+			var that = {
+				type:		"Reverb",
+				category:	"FX",
+				feedback:	feedback || .5,
+				time:		time || 22050,
+				buffer:		new Float32Array(88200),
+				bufferLength: 88200,
+				source:		null,
+			};
+			Gibberish.extend(that, Gibberish.ugen);
+			
+			if(that.time >= 88200) {
+				that.time = 88199;
+				console.log("MAX DELAY TIME = 88199 samples");
+			}
+			
+			that.name = Gibberish.generateSymbol(that.type);
+			Gibberish.masterInit.push(that.name + " = Gibberish.make[\"Reverb\"]();");
+			window[that.name] = Gibberish.make["Reverb"](that.buffer, that.bufferLength);
+			that._function = window[that.name];
+			
+			Gibberish.defineProperties( that, ["time", "feedback"] );
+	
+			return that;
+		},
+
+		makeReverb : function(_buffer, _bufferLength) {
+			var phase = 0;
+			var bufferLength = _bufferLength;
+			var buffer = _buffer;
+			
+			var output = function(sample, time, feedback) {
+				var _phase = phase++ % bufferLength;
+
+				var delayPos = (_phase + time) % bufferLength;				
+								
+				buffer[delayPos] = (sample + buffer[_phase]) * feedback;
+				return sample + buffer[_phase];
+			};
+			
+			return output;
+		},
+	
 		Clip : function(amount, amp) {
 			var that = {
 				type:		"Clip",
