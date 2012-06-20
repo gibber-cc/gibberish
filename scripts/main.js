@@ -427,14 +427,6 @@ requirejs(['sink/sink-light', 'gibberish', 'utils'],
 			Gibberish.dirty = true;
 		};
 		
-		var s = Gibberish.Sine(440, .4); 	// sine wave, 440 Hz, .4 amplitude
-		var m = Gibberish.Sine(5, 15);		// sine wave, 5 Hz, 15 amplitude
-		s.mod("frequency", m);				// modulate the frequency of sine s with the output of m
-
-		s.fx.add( Gibberish.Delay(), Gibberish.Reverb() );      // add default delay and reverb fx
-		
-		s.connect(Gibberish.MASTER)			// connect ugen to master output
-		
 		Gibberish.callback = Gibberish.generateCallback( false );
 		codeTimeout = setTimeout(function() { 
 			var codegen = document.getElementById("output");

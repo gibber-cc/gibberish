@@ -2,7 +2,7 @@
 
 Gibberish is designed to be a fast audio API for browser based audio content. As with most web-based JavaScript audio libraries, it currently only runs in Chrome and Firefox (and beta versions of Safari).
 
-Gibberish is different from other JavaScript audio libraries (such as [audiolib.js][audiolib] or [Audiolet][audiolet]) in that it generates code that is heavily optimized for JIT compilation. The code that is created is arguably not human-readble, hence the name _Gibberish_. Below is an example of the input code (which you write) and the audio callback that is output (which is created by Gibberish; you should never have to even look at this). The audio callback plays a sine wave with vibrato:
+Gibberish is different from other JavaScript audio libraries (such as [audiolib.js][audiolib] or [Audiolet][audiolet]) in that it generates code that is heavily optimized for JIT compilation. The code that is created is arguably not human-readble, hence the name _Gibberish_. Below is an example of the input code (which you write) and the audio callback that is outputted (which is created by Gibberish... you should never have to even look at this). The audio callback plays a sine wave with vibrato:
 
 ##Input
 ```javascript
@@ -10,7 +10,7 @@ var s = Gibberish.Sine(440, .4); 	// sine wave, 440 Hz, .4 amplitude
 var m = Gibberish.Sine(5, 15);		// sine wave, 5 Hz, 15 amplitude
 s.mod("frequency", m);				// modulate the frequency of sine s with the output of m
 
-s.fx.add( Delay(), Reverb() );      // add default delay and reverb fx
+s.fx.add( Gibberish.Delay(), Gibberish.Reverb() );  // add default delay and reverb fx
 		
 s.connect(Gibberish.MASTER)			// connect ugen to master output
 
