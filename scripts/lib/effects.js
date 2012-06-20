@@ -67,23 +67,23 @@ define([], function() {
 		makeAllPass : function(_buffer, _feedback) {
 			console.log("ALL PASS", _buffer.length, _feedback);
 			var feedback = _feedback;
-			var time = _buffer.length;
+			var bufferLength = _buffer.length;
 			var buffer = _buffer;
-			var index = 0;
+			var index = -1;
 			
 			var output = function(inputSample) {
-				var pos = index++ % time;
-				var bufferSample = buffer[pos];
+				index = ++index % bufferLength;
+				var bufferSample = buffer[index];
 				
 				var out = -inputSample + bufferSample;
-				buffer[pos] = inputSample + bufferSample * feedback;
+				buffer[index] = inputSample + (bufferSample * feedback);
 
 				return out;
 			};
 			
 			return output;
 		},
-		// adapter from audioLib.js, in turn adapter from Freeverb source code
+		// adapted from audioLib.js, in turn adapted from Freeverb source code
 		// NOTE : this is actually a lowpass-feedback-comb filter (https://ccrma.stanford.edu/~jos/pasp/Lowpass_Feedback_Comb_Filter.html)
 		// TODO : rename accordingly?
 		Comb : function(time, feedback, damping) {
@@ -146,6 +146,103 @@ define([], function() {
 			return output;
 		},
 		
+		// adapted from audioLib.js
+		Reverb : function(roomSize, damping, wet, dry) {
+			var that = {
+				type:		"Reverb",
+				category:	"FX",
+				roomSize:	roomSize || .5,
+				damping:	typeof damping !== "undefined" ? damping : .2223,
+				wet:		typeof wet     !== "undefined" ? wet : .5,
+				dry:		typeof dry     !== "undefined" ? dry : .55,				
+				source:		null,
+				tuning:		{
+				    combCount: 		8,
+				    combTuning: 	[1116, 1188, 1277, 1356, 1422, 1491, 1557, 1617],
+
+				    allPassCount: 	4,
+				    allPassTuning: 	[556, 441, 341, 225],
+				    allPassFeedback:0.5,
+
+				    fixedGain: 		0.015,
+				    scaleDamping: 	0.9,
+
+				    scaleRoom: 		0.28,
+				    offsetRoom: 	0.7,
+
+				    stereoSpread: 	23
+				},
+				channelCount: 1,
+			};
+			Gibberish.extend(that, Gibberish.ugen);
+			that.name = Gibberish.generateSymbol(that.type);
+			
+			that.combFilters = (function() {
+				var combs	= [],
+					num		= that.tuning.combCount,
+					damp	= that.damping * that.tuning.scaleDamping,
+					feed	= that.roomSize * that.tuning.scaleRoom + that.tuning.offsetRoom,
+					sizes	= that.tuning.combTuning;
+					
+				for(var c = 0; c < that.channelCount; c++){
+					for(var i = 0; i < 7; i++){
+						combs.push( Gibberish.make["Comb"](new Float32Array(sizes[i] + c * that.tuning.stereoSpread), feed, damp) );
+					}
+				}
+				return combs;
+			})();;
+			
+			that.allPassFilters = (function() {
+				var apfs = [],
+				num		= that.tuning.allPassCount,
+				feed	= that.tuning.allPassFeedback,
+				sizes	= that.tuning.allPassTuning;
+				
+				for(var c = 0; c < that.channelCount; c++){
+					for(var i = 0; i < num; i++){
+						apfs.push( Gibberish.make["AllPass"](new Float32Array(sizes[i] + c * that.tuning.stereoSpread), feed) );
+					}
+				}
+				return apfs;
+			})();
+			
+			Gibberish.masterInit.push(that.name + " = Gibberish.make[\"Reverb\"]();");
+			window[that.name] = Gibberish.make["Reverb"](that.roomSize, that.damping, that.wet, that.dry, that.combFilters, that.allPassFilters, that.tuning);
+			that._function = window[that.name];
+
+			Gibberish.defineProperties( that, ["time", "feedback"] );
+
+			return that;
+		},
+
+		makeReverb : function(_roomSize, _damping, _wet, _dry, _combFilters, _allPassFilters, _tuning) {
+			var roomSize = _roomSize;
+			var damping  = _damping;
+			var wet		 = _wet;
+			var dry		 = _dry;
+			var tuning   = _tuning;		
+			var combFilters 		= _combFilters;
+			var allPassFilters 		= _allPassFilters;
+			var numCombFilters 		= combFilters.length;
+			var numAllPassFilters	= allPassFilters.length;			
+			var phase = 0;
+			var output = function(sample) {
+				var input = sample * tuning.fixedGain;
+				var out = 0;
+				for(var i = 0; i < numCombFilters; i++) {
+					out += combFilters[i](input);
+				}
+				
+				for(var i = 0; i < numAllPassFilters; i++) {
+					out = allPassFilters[i](out);
+				}
+
+				return out * wet + sample * dry;
+			};
+			
+			return output;
+		},
+		
 		Delay : function(time, feedback) {
 			var that = {
 				type:		"Delay",
@@ -190,104 +287,6 @@ define([], function() {
 			return output;
 		},
 		
-		// adapted from audioLib.js
-		Reverb : function(roomSize, damping, wet, dry) {
-			var that = {
-				type:		"Reverb",
-				category:	"FX",
-				roomSize:	roomSize || .8,
-				damping:	typeof damping !== "undefined" ? damping : .3,
-				wet:		typeof wet     !== "undefined" ? wet : .75,
-				dry:		typeof dry     !== "undefined" ? dry : .5,				
-				source:		null,
-				tuning:		{
-				    combCount: 		8,
-				    combTuning: 	[1116, 1188, 1277, 1356, 1422, 1491, 1557, 1617],
-
-				    allPassCount: 	4,
-				    allPassTuning: 	[556, 441, 341, 225],
-				    allPassFeedback:0.5,
-
-				    fixedGain: 		0.015,
-				    scaleDamping: 	0.9,
-
-				    scaleRoom: 		0.28,
-				    offsetRoom: 	0.7,
-
-				    stereoSpread: 	23
-				},
-				channelCount: 1,
-			};
-			Gibberish.extend(that, Gibberish.ugen);
-			that.name = Gibberish.generateSymbol(that.type);
-			
-			that.combFilters = (function() {
-				var combs	= [],
-					num		= that.tuning.combCount,
-					damp	= that.damping * that.tuning.scaleDamping,
-					feed	= that.roomSize * that.tuning.scaleRoom + that.tuning.offsetRoom,
-					sizes	= that.tuning.combTuning;
-					
-				for(var c = 0; c < that.channelCount; c++){
-					for(var i = 0; i < 7; i++){
-						combs.push( Gibberish.make["Comb"](new Float32Array(sizes[i] + c * that.tuning.stereoSpread), feed, damp) );
-					}
-				}
-				return combs;
-			})();;
-			
-			that.allPassFilters = (function() {
-				var apfs	= [],
-					num		= that.tuning.allPassCount,
-					feed	= that.tuning.allPassFeedback,
-					sizes	= that.tuning.allPassTuning;
-				
-				for(var c = 0; c < that.channelCount; c++){
-					for(var i = 0; i < num; i++){
-						apfs.push( Gibberish.make["AllPass"](new Float32Array(sizes[i] + c * that.tuning.stereoSpread), feed) );
-					}
-				}
-				return apfs;
-			})();
-			
-			Gibberish.masterInit.push(that.name + " = Gibberish.make[\"Reverb\"]();");
-			window[that.name] = Gibberish.make["Reverb"](that.roomSize, that.damping, that.wet, that.dry, that.combFilters, that.allPassFilters, that.tuning);
-			that._function = window[that.name];
-
-			Gibberish.defineProperties( that, ["time", "feedback"] );
-
-			return that;
-		},
-
-		makeReverb : function(_roomSize, _damping, _wet, _dry, _combFilters, _allPassFilters, _tuning) {
-			var roomSize = _roomSize;
-			var damping  = _damping;
-			var wet		 = _wet;
-			var dry		 = _dry;
-			var tuning   = _tuning;		
-			var combFilters 		= _combFilters;
-			var allPassFilters 		= _allPassFilters;
-			var numCombFilters 		= combFilters[0].length;
-			var numAllPassFilters	= allPassFilters[0].length;			
-			var phase = 0;
-			var output = function(sample) {
-				var input = sample * tuning.fixedGain;
-				var out = 0;
-				for(var i  =0; i < numCombFilters; i++) {
-					out += combFilters[i](input);
-				}
-				
-				for(var i  =0; i < numAllPassFilters; i++) {
-					out = allPassFilters[i](out);
-				}
-				
-				out = out * wet + sample * dry;
-				
-				return out;
-			};
-			
-			return output;
-		},
 		
 		Clip : function(amount, amp) {
 			var that = {
@@ -365,6 +364,7 @@ define([], function() {
 			};
 			
 			Gibberish.extend(that, Gibberish.ugen);
+			that.fx = effects || [];
 			
 			that.name = Gibberish.generateSymbol(that.type);
 			that.type = that.name;

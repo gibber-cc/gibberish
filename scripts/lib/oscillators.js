@@ -123,6 +123,7 @@ define([], function() {
 			};
 			output.setPhase = function(newPhase) { phase = newPhase; };
 			output.setState = function(newState) { state = newState; };
+			output.getState = function() { return state; };			
 			
 			return output;
 		},

@@ -1,7 +1,7 @@
 define([], function() {
     return {
 		init: function(gibberish) {			
-			gibberish.generators.Synth = gibberish.createGenerator(["osc", "env", "amp"], "{0}( {1}, {2} ) * {3}");
+			gibberish.generators.Synth = gibberish.createGenerator(["frequency", "attack", "decay", "amp"], "{0}( {1}, {2}, {3} ) * {4}");
 			gibberish.make["Synth"] = this.makeSynth;
 			gibberish.Synth = this.Synth;
 			
@@ -18,23 +18,25 @@ define([], function() {
 				amp:		amp || .5,				
 				attack:		attack || 22050,
 				decay:		decay  || 22050,
+				frequency:	440,
 				
-				note : function(frequency) {
-					this.osc.frequency = frequency;
+				note : function(_frequency) {
+					this.frequency = _frequency;
 					this.dirty = true;
-					this.env.start();
+					Gibberish.dirty = true;
+					if(this.env.getState() >= 1) this.env.setState(0);
 				},
 			};
 			Gibberish.extend(that, Gibberish.ugen);
 			
-			that.env = Gibberish.Env(that.attack, that.decay);
-			that.osc = Gibberish[that.waveform](440, that.amp);
+			that.env = Gibberish.make["Env"](that.attack, that.decay);
+			that.osc = Gibberish.make[that.waveform](that.frequency, that.amp);
 			
 			that.name = Gibberish.generateSymbol(that.type);
 			Gibberish.masterInit.push(that.name + " = Gibberish.make[\"Synth\"]();");
 						
-			window[that.name] = Gibberish.make["Synth"]();
-			Gibberish.defineProperties( that, ["frequency", "amp", "attack", "decay"] );
+			window[that.name] = Gibberish.make["Synth"](that.osc, that.env);
+			Gibberish.defineProperties( that, ["amp", "attack", "decay"] );
 				
 		    Object.defineProperty(that, "waveform", {
 				get: function() { return waveform; },
@@ -51,9 +53,14 @@ define([], function() {
 			return that;
 		},
 		
-		makeSynth: function() { // note, storing the increment value DOES NOT make this faster!	
-			var output = function(oscillator, envelope) {
-				return oscillator * envelope;
+		makeSynth: function(_osc, _env) { // note, storing the increment value DOES NOT make this faster!
+			var osc = _osc;			
+			var env = _env;
+			var output = function(frequency, attack, decay) {
+				
+				var val = osc(frequency) * env(attack, decay);
+				//if(phase++ % 22050 == 0) console.log("SYNTH VALUE", val, frequency);
+				return val;
 			}
 	
 			return output;

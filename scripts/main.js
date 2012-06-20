@@ -170,18 +170,21 @@ requirejs(['sink/sink-light', 'gibberish', 'utils'],
 			clearTimeout(timeout);
 			Gibberish.ugens.remove();
 			
-			sine = Gibberish.Sine(440, .25);
-			sine.fx.add( Gibberish.Reverb(.75, .05, .85, .1) );
+			sine = Gibberish.Synth();
+			sine.env.attack = 2000;
+			sine.fx.add( Gibberish.Reverb(), Gibberish.Reverb() );
 			sine.connect(Gibberish.MASTER);
 			
-			
-			var inputString = "sine = Gibberish.Sine(440, .25);\n"+
-			"sine.fx.add( Gibberish.Reverb() );\n"+
+			var inputString = "sine = Gibberish.Synth(440, .25);\n"+
+			"sine.fx.add( Gibberish.Reverb(), Gibberish.Reverb() );\n"+
 			"sine.connect(Gibberish.MASTER);\n";
 			
+			var i = 0;
+			var frequencies = [440, 660, 880, 1100, 1320, 1760];
 			timeout = setInterval(function() {
-				sine.frequency = Math.round(200 + Math.random() * 800);
-			}, 500);
+				var pos = Math.floor( Math.random() * frequencies.length );
+				sine.note(Math.round(frequencies[pos]));
+			}, 250);
 			
 			var input = document.getElementById("input");
 			input.innerHTML = inputString;
@@ -192,8 +195,60 @@ requirejs(['sink/sink-light', 'gibberish', 'utils'],
 			}, 250);
 			
 			Gibberish.dirty = true;
+		};
+		
+		window.stressTest = function() {
+			clearTimeout(timeout);
+			Gibberish.ugens.remove();
 			
+			synths = [];
+			NUM_SYNTHS = 65;
+			reverb = Gibberish.Bus();
+			reverb.fx.add(Gibberish.Reverb());
 			
+			for(var i = 0; i < NUM_SYNTHS; i++) {
+				synths[i] = Gibberish.FMSynth(.5 + Math.random(), Math.random * 10, .05, 11025, 11025);
+				synths[i].connect(reverb);
+			}
+			
+			reverb.connect( Gibberish.MASTER );
+			
+			timeout = setInterval(function() {
+				for(var i = 0; i < NUM_SYNTHS; i++) {
+					if(Math.random() > .5)
+						synths[i].note(200 + Math.round( Math.random() * 4000));
+				}
+			}, 1000);
+			
+			var inputString = "synths = [];\n"+
+			"NUM_SYNTHS = 65;\n"+
+			"reverb = Gibberish.Bus();\n"+
+			"reverb.fx.add(Gibberish.Reverb());\n"+
+			"\n"+
+			"for(var i = 0; i < NUM_SYNTHS; i++) {\n"+
+			"	synths[i] = Gibberish.FMSynth(.5 + Math.random(), Math.random * 10, .05, 11025, 11025);\n"+
+			"	synths[i].connect(reverb);\n"+
+			"}\n"+
+			"\n"+
+			"reverb.connect( Gibberish.MASTER );\n"+
+			"\n"+
+			"timeout = setInterval(function() {\n"+
+			"	for(var i = 0; i < NUM_SYNTHS; i++) {\n"+
+			"		if(Math.random() > .5)\n"+
+			"			synths[i].note(200 + Math.round( Math.random() * 4000));\n"+
+			"	}\n"+
+			"}, 1000);\n\n"+
+			"// 65 FMSynths + a reverb takes 75% of my two year old computer.";
+			
+			var input = document.getElementById("input");
+			input.innerHTML = inputString;
+			
+			codeTimeout = setTimeout(function() { 
+				var codegen = document.getElementById("output");
+				codegen.innerHTML = "INITIALIZATION:\n\n" + Gibberish.masterInit.join("\n") + "\n\n" + "CALLBACK:\n\n" + Gibberish.callback;
+			}, 250);
+			
+			Gibberish.dirty = true;
 		};
 		
 		window.combTest = function() {
@@ -234,7 +289,7 @@ requirejs(['sink/sink-light', 'gibberish', 'utils'],
 			
 			timeout = setInterval(function() { 
 				s.note( Math.round(200 + Math.random() * 800) );
-			}, 500);
+			}, 1000);
 			
 			var inputString = "s = Gibberish.Synth(\"Sine\", .25);\n"+
 			"s.connect(Gibberish.MASTER);\n"+

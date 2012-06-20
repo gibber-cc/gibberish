@@ -109,16 +109,7 @@ define(["oscillators", "effects", "synths"], function(oscillators, effects, synt
 				for(var i = 0; i < parameters.length; i++) {
 					var param = parameters[i];
 					//console.log(param);
-					if((typeof op[param] == "object")  && (op[param] instanceof Array)) {
-						//console.log("READING ARRAY ***********************************************");
-						for(var j = 0; j < op[param].length; j++) {
-							//console.log("READING ARRAY " + j  + "***********************************************");
-							//console.log(op[param][j]);
-							paramNames.push(Gibberish.codegen(op[param][j], codeDictionary));
-						}
-					}else{
-						paramNames.push(Gibberish.codegen(op[parameters[i]], codeDictionary));
-					}
+					paramNames.push(Gibberish.codegen(op[parameters[i]], codeDictionary));
 				}
 				
 				var c = String.prototype.format.apply(formula, paramNames);
