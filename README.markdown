@@ -33,19 +33,18 @@ function(globals) {
 
 	// the callback function
     function cb() {
-        function cb() {
-            var output = 0;
-            
-            var v_4 = Sine_1(5) * 15;
-            var v_3 = (440 + v_4);
-            var v_2 = Sine_0(v_3) * 0.4;
-            v_2 = Delay_5( v_2, 22050, 0.5 );
-            v_2 = Reverb_6( v_2 );
-            output += v_2;
-            
-            return output;
-        }
+        var output = 0;
+        
+        var v_4 = Sine_1(5) * 15;
+        var v_3 = (440 + v_4);
+        var v_2 = Sine_0(v_3) * 0.4;
+        v_2 = Delay_5( v_2, 22050, 0.5 );
+        v_2 = Reverb_6( v_2 );
+        output += v_2;
+        
+        return output;
     }
+    
     return cb;
 }
 ```
