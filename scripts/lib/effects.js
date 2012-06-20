@@ -9,13 +9,18 @@ define([], function() {
 			gibberish.make["Delay"] = this.makeDelay;
 			gibberish.Delay = this.Delay;
 			
-			gibberish.generators.Reverb = gibberish.createGenerator(["source", "time", "feedback"], "{0}( {1}, {2}, {3} )");
+			gibberish.generators.Reverb = gibberish.createGenerator(["source", ], "{0}( {1} )");
 			gibberish.make["Reverb"] = this.makeReverb;
 			gibberish.Reverb = this.Reverb;
 			
 			gibberish.generators.AllPass = gibberish.createGenerator(["source", "time", "feedback"], "{0}( {1}, {2}, {3} )");
 			gibberish.make["AllPass"] = this.makeAllPass;
 			gibberish.AllPass = this.AllPass;
+			
+			gibberish.generators.Comb = gibberish.createGenerator(["source", "time", "feedback"], "{0}( {1}, {2}, {3} )");
+			gibberish.make["Comb"] = this.makeComb;
+			gibberish.Comb = this.Comb;
+			
 
 			// the calls to dynamically create the bus generators are generated dynamically. that is fun to say.
 			gibberish.make["Bus"] = this.makeBus;
@@ -35,21 +40,38 @@ define([], function() {
 			
 			that.name = Gibberish.generateSymbol(that.type);
 			Gibberish.masterInit.push(that.name + " = Gibberish.make[\"AllPass\"]();");
-			window[that.name] = Gibberish.make["AllPass"](that.buffer, that.bufferLength);
+			window[that.name] = Gibberish.make["AllPass"](that.buffer, that.time, that.feedback);
 			that._function = window[that.name];
 			
-			Gibberish.defineProperties( that, ["time", "feedback"] );
+			Gibberish.defineProperties( that, ["feedback"] );
+			
+			// todo: this doesn't seem to be working... the buffer might need to be resampled.
+			(function(obj) {
+				var _time = obj.time;
+			    Object.defineProperty(that, "time", {
+					get: function() { return _time; },
+					set: function(value) {
+						if(_time !== value) {
+							_time = value;
+							obj.buffer = new Float32Array(value);
+							that.dirty = true;
+							Gibberish.dirty = true;
+						}
+					},
+				});
+			})(that);
 	
 			return that;
 		},
 
-		makeAllPass : function(_buffer, _delayTime, _feedback) {
+		makeAllPass : function(_buffer, _feedback) {
+			console.log("ALL PASS", _buffer.length, _feedback);
 			var feedback = _feedback;
-			var _delayTime = _delayTime;
+			var time = _buffer.length;
 			var buffer = _buffer;
 			var index = 0;
 			
-			var output = function(inputSample, time, feedback) {
+			var output = function(inputSample) {
 				var pos = index++ % time;
 				var bufferSample = buffer[pos];
 				
@@ -61,7 +83,68 @@ define([], function() {
 			
 			return output;
 		},
-		
+		// adapter from audioLib.js, in turn adapter from Freeverb source code
+		// NOTE : this is actually a lowpass-feedback-comb filter (https://ccrma.stanford.edu/~jos/pasp/Lowpass_Feedback_Comb_Filter.html)
+		// TODO : rename accordingly?
+		Comb : function(time, feedback, damping) {
+			var that = {
+				type:		"Comb",
+				category:	"FX",
+				feedback:	feedback || .84,
+				time:		time || 1200,
+				buffer:		new Float32Array(time || 1200),
+				damping:	damping || .2,
+				source:		null,
+			};
+			Gibberish.extend(that, Gibberish.ugen);
+			
+			that.name = Gibberish.generateSymbol(that.type);
+			Gibberish.masterInit.push(that.name + " = Gibberish.make[\"Comb\"]();");
+			window[that.name] = Gibberish.make["Comb"](that.buffer, that.feedback, that.damping);
+			that._function = window[that.name];
+			
+			Gibberish.defineProperties( that, ["feedback"] );
+			
+			// todo: this doesn't seem to be working... the buffer might need to be resampled.
+			// (function(obj) {
+			// 	var _time = obj.time;
+			//     Object.defineProperty(that, "time", {
+			// 		get: function() { return _time; },
+			// 		set: function(value) {
+			// 			if(_time !== value) {
+			// 				_time = value;
+			// 				obj.buffer = new Float32Array(value);
+			// 				that.dirty = true;
+			// 				Gibberish.dirty = true;
+			// 			}
+			// 		},
+			// 	});
+			// })(that);
+	
+			return that;
+		},
+
+		makeComb : function(_buffer, _feedback, _damping) {
+			console.log("COMB CHECK", _feedback, _damping, _buffer.length);
+			var feedback = _feedback;
+			var damping = _damping;
+			var invDamping = 1 - _damping;
+			var buffer = _buffer;
+			var time = buffer.length;
+			var index = 0;
+			var store = 0;
+			
+			var output = function(inputSample) {
+				var currentPos = ++index % time;
+				var sample = buffer[currentPos];
+				store = (sample * invDamping) + (store * damping);
+				buffer[currentPos] = inputSample + (store * feedback);
+
+				return sample;
+			};
+			
+			return output;
+		},
 		
 		Delay : function(time, feedback) {
 			var that = {
@@ -69,9 +152,9 @@ define([], function() {
 				category:	"FX",
 				feedback:	feedback || .5,
 				time:		time || 22050,
-				buffer:		new Float32Array(88200),
-				bufferLength: 88200,
 				source:		null,
+				buffer:		new Float32Array(88200),				
+				bufferLength: 88200,				
 			};
 			Gibberish.extend(that, Gibberish.ugen);
 			
@@ -107,50 +190,105 @@ define([], function() {
 			return output;
 		},
 		
-		Reverb : function(time, feedback) {
+		// adapted from audioLib.js
+		Reverb : function(roomSize, damping, wet, dry) {
 			var that = {
 				type:		"Reverb",
 				category:	"FX",
-				feedback:	feedback || .5,
-				time:		time || 22050,
-				buffer:		new Float32Array(88200),
-				bufferLength: 88200,
+				roomSize:	roomSize || .8,
+				damping:	typeof damping !== "undefined" ? damping : .3,
+				wet:		typeof wet     !== "undefined" ? wet : .75,
+				dry:		typeof dry     !== "undefined" ? dry : .5,				
 				source:		null,
+				tuning:		{
+				    combCount: 		8,
+				    combTuning: 	[1116, 1188, 1277, 1356, 1422, 1491, 1557, 1617],
+
+				    allPassCount: 	4,
+				    allPassTuning: 	[556, 441, 341, 225],
+				    allPassFeedback:0.5,
+
+				    fixedGain: 		0.015,
+				    scaleDamping: 	0.9,
+
+				    scaleRoom: 		0.28,
+				    offsetRoom: 	0.7,
+
+				    stereoSpread: 	23
+				},
+				channelCount: 1,
 			};
 			Gibberish.extend(that, Gibberish.ugen);
-			
-			if(that.time >= 88200) {
-				that.time = 88199;
-				console.log("MAX DELAY TIME = 88199 samples");
-			}
-			
 			that.name = Gibberish.generateSymbol(that.type);
-			Gibberish.masterInit.push(that.name + " = Gibberish.make[\"Reverb\"]();");
-			window[that.name] = Gibberish.make["Reverb"](that.buffer, that.bufferLength);
-			that._function = window[that.name];
 			
+			that.combFilters = (function() {
+				var combs	= [],
+					num		= that.tuning.combCount,
+					damp	= that.damping * that.tuning.scaleDamping,
+					feed	= that.roomSize * that.tuning.scaleRoom + that.tuning.offsetRoom,
+					sizes	= that.tuning.combTuning;
+					
+				for(var c = 0; c < that.channelCount; c++){
+					for(var i = 0; i < 7; i++){
+						combs.push( Gibberish.make["Comb"](new Float32Array(sizes[i] + c * that.tuning.stereoSpread), feed, damp) );
+					}
+				}
+				return combs;
+			})();;
+			
+			that.allPassFilters = (function() {
+				var apfs	= [],
+					num		= that.tuning.allPassCount,
+					feed	= that.tuning.allPassFeedback,
+					sizes	= that.tuning.allPassTuning;
+				
+				for(var c = 0; c < that.channelCount; c++){
+					for(var i = 0; i < num; i++){
+						apfs.push( Gibberish.make["AllPass"](new Float32Array(sizes[i] + c * that.tuning.stereoSpread), feed) );
+					}
+				}
+				return apfs;
+			})();
+			
+			Gibberish.masterInit.push(that.name + " = Gibberish.make[\"Reverb\"]();");
+			window[that.name] = Gibberish.make["Reverb"](that.roomSize, that.damping, that.wet, that.dry, that.combFilters, that.allPassFilters, that.tuning);
+			that._function = window[that.name];
+
 			Gibberish.defineProperties( that, ["time", "feedback"] );
-	
+
 			return that;
 		},
 
-		makeReverb : function(_buffer, _bufferLength) {
+		makeReverb : function(_roomSize, _damping, _wet, _dry, _combFilters, _allPassFilters, _tuning) {
+			var roomSize = _roomSize;
+			var damping  = _damping;
+			var wet		 = _wet;
+			var dry		 = _dry;
+			var tuning   = _tuning;		
+			var combFilters 		= _combFilters;
+			var allPassFilters 		= _allPassFilters;
+			var numCombFilters 		= combFilters[0].length;
+			var numAllPassFilters	= allPassFilters[0].length;			
 			var phase = 0;
-			var bufferLength = _bufferLength;
-			var buffer = _buffer;
-			
-			var output = function(sample, time, feedback) {
-				var _phase = phase++ % bufferLength;
-
-				var delayPos = (_phase + time) % bufferLength;				
-								
-				buffer[delayPos] = (sample + buffer[_phase]) * feedback;
-				return sample + buffer[_phase];
+			var output = function(sample) {
+				var input = sample * tuning.fixedGain;
+				var out = 0;
+				for(var i  =0; i < numCombFilters; i++) {
+					out += combFilters[i](input);
+				}
+				
+				for(var i  =0; i < numAllPassFilters; i++) {
+					out = allPassFilters[i](out);
+				}
+				
+				out = out * wet + sample * dry;
+				
+				return out;
 			};
 			
 			return output;
 		},
-	
+		
 		Clip : function(amount, amp) {
 			var that = {
 				type:		"Clip",

@@ -107,7 +107,18 @@ define(["oscillators", "effects", "synths"], function(oscillators, effects, synt
 				
 				var paramNames = [name];
 				for(var i = 0; i < parameters.length; i++) {
-					paramNames.push(Gibberish.codegen(op[parameters[i]], codeDictionary));
+					var param = parameters[i];
+					//console.log(param);
+					if((typeof op[param] == "object")  && (op[param] instanceof Array)) {
+						//console.log("READING ARRAY ***********************************************");
+						for(var j = 0; j < op[param].length; j++) {
+							//console.log("READING ARRAY " + j  + "***********************************************");
+							//console.log(op[param][j]);
+							paramNames.push(Gibberish.codegen(op[param][j], codeDictionary));
+						}
+					}else{
+						paramNames.push(Gibberish.codegen(op[parameters[i]], codeDictionary));
+					}
 				}
 				
 				var c = String.prototype.format.apply(formula, paramNames);
@@ -118,25 +129,34 @@ define(["oscillators", "effects", "synths"], function(oscillators, effects, synt
 		},
 		
 		codegen : function(op, codeDictionary) {
-			if(typeof op === "object") {
+			if(typeof op === "object" && op !== null) {
 				// var memo = this.memo[op.name];
-				// 				if(memo) {
-				// 					console.log("MEMO HOORAY! " + op.name );
-				// 					return memo;
-				// 				}
+				// 	if(memo) {
+				// 		console.log("MEMO HOORAY! " + op.name );
+				// 		return memo;
+				//  }
 				//console.log(op);
-				var gen = this.generators[op.type];
+				//console.log(op);
 				
 				var name = op.ugenVariable || this.generateSymbol("v");
 				//console.log(name);
 				//this.memo[op.name] = name;
 				//console.log("UGEN VARIABLE", name, "FOR", op.type);
 				op.ugenVariable = name;
-
-				if(op.category !== "FX") {
-					statement = "var {0} = {1}".format(name, gen(op, codeDictionary));
+				//console.log("OP : ", op);
+				if(typeof op === "object" && op instanceof Array) {
+					for(var i = 0; i < op.length; i++) {
+						var gen = this.generators[op[i].type];
+						statement = "{0} = {1}".format(op[i].source, gen(op[i], codeDictionary));
+					}
 				}else{
-					statement = "{0} = {1}".format(op.source, gen(op, codeDictionary));
+					var gen = this.generators[op.type];
+					
+					if(op.category !== "FX") {
+						statement = "var {0} = {1}".format(name, gen(op, codeDictionary));
+					}else{
+						statement = "{0} = {1}".format(op.source, gen(op, codeDictionary));
+					}
 				}
 				
 				codeDictionary.codeblock.push(statement);
@@ -159,6 +179,9 @@ define(["oscillators", "effects", "synths"], function(oscillators, effects, synt
 			if(typeof ugen.fx !== "undefined") {
 				for(var i = 0; i < ugen.fx.length; i++) {
 					var effect = ugen.fx[i];
+					if(typeof effect.support !== "undefined") {
+						effect.support(outputCode, codeDictionary);
+					}
 					effect.source = outputCode;
 					this.codegen(effect, codeDictionary);
 				}

@@ -166,6 +166,63 @@ requirejs(['sink/sink-light', 'gibberish', 'utils'],
 			
 			Gibberish.dirty = true;
 		};
+		window.reverbTest = function() {
+			clearTimeout(timeout);
+			Gibberish.ugens.remove();
+			
+			sine = Gibberish.Sine(440, .25);
+			sine.fx.add( Gibberish.Reverb(.75, .05, .85, .1) );
+			sine.connect(Gibberish.MASTER);
+			
+			
+			var inputString = "sine = Gibberish.Sine(440, .25);\n"+
+			"sine.fx.add( Gibberish.Reverb() );\n"+
+			"sine.connect(Gibberish.MASTER);\n";
+			
+			timeout = setInterval(function() {
+				sine.frequency = Math.round(200 + Math.random() * 800);
+			}, 500);
+			
+			var input = document.getElementById("input");
+			input.innerHTML = inputString;
+			
+			codeTimeout = setTimeout(function() { 
+				var codegen = document.getElementById("output");
+				codegen.innerHTML = "INITIALIZATION:\n\n" + Gibberish.masterInit.join("\n") + "\n\n" + "CALLBACK:\n\n" + Gibberish.callback;
+			}, 250);
+			
+			Gibberish.dirty = true;
+			
+			
+		};
+		
+		window.combTest = function() {
+			clearTimeout(timeout);
+			Gibberish.ugens.remove();
+			
+			sine = Gibberish.Sine(440, .25);
+			sine.fx.add( Gibberish.Comb() );
+			sine.connect(Gibberish.MASTER);
+			
+			var inputString = "sine = Gibberish.Sine(440, .25);\n"+
+			"sine.fx.add( Gibberish.Comb() );\n"+
+			"sine.connect(Gibberish.MASTER);\n";
+			
+			timeout = setInterval(function() {
+				sine.frequency = Math.round(200 + Math.random() * 800);
+			}, 500);
+			
+			var input = document.getElementById("input");
+			input.innerHTML = inputString;
+			
+			codeTimeout = setTimeout(function() { 
+				var codegen = document.getElementById("output");
+				codegen.innerHTML = "INITIALIZATION:\n\n" + Gibberish.masterInit.join("\n") + "\n\n" + "CALLBACK:\n\n" + Gibberish.callback;
+			}, 250);
+			
+			Gibberish.dirty = true;
+		};
+		
 		
 		
 		window.synthTest = function() {
