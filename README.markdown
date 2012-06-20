@@ -28,8 +28,10 @@ Reverb_6 = Gibberish.make['Reverb']();
 
 function(globals) {
 	// upvalues to push functions into registers for callback
+    var Sine_0 = globals.Sine_0;	
     var Sine_1 = globals.Sine_1;
-    var Sine_0 = globals.Sine_0;
+    var Delay_5 = globals.Delay_5;
+    var Reverb_6 = globals.Reverb_6;
 
 	// the callback function
     function cb() {
