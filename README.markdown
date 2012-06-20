@@ -1,6 +1,6 @@
 #Gibberish
 
-Gibberish is designed to be a fast audio API for browser based audio content. As with most web-based JavaScript audio libraries, it currently only runs in Chrome and Firefox (and beta versions of Safari).
+[gibberish][Gibberish] is designed to be a fast audio API for browser based audio content. As with most web-based JavaScript audio libraries, it currently only runs in Chrome and Firefox (and beta versions of Safari).
 
 Gibberish is different from other JavaScript audio libraries (such as [audiolib.js][audiolib] or [Audiolet][audiolet]) in that it generates code that is heavily optimized for JIT compilation. The code that is created is arguably not human-readble, hence the name _Gibberish_. Below is an example of the input code (which you write) and the audio callback that is outputted (which is created by Gibberish... you should never have to even look at this). The audio callback plays a sine wave with vibrato:
 
@@ -64,6 +64,7 @@ var sink = Sink( function(buffer, channelCount){
 
 Gibberish is built using [require.js][require]. The sample usage code runs the audio callback using [sink.js][sink]. Gibberish is licensed under the MIT license.
 
+[gibberish]:http://www.charlie-roberts.com/gibberish
 [audiolib]:https://github.com/jussi-kalliokoski/audiolib.js/
 [audiolet]:https://github.com/oampo/Audiolet
 [require]:http://requirejs.org/

@@ -251,6 +251,56 @@ requirejs(['sink/sink-light', 'gibberish', 'utils'],
 			Gibberish.dirty = true;
 		};
 		
+		window.reverbStressTest = function() {
+			clearTimeout(timeout);
+			Gibberish.ugens.remove();
+			
+			reverbs = [];
+			NUM_reverbs = 20;				
+			reverb = Gibberish.Bus();
+
+			for(var i = 0; i < NUM_reverbs; i++) {
+				reverb.fx.add(Gibberish.Reverb());
+			}
+
+			synth = Gibberish.FMSynth(.98, 5, 1, 11025, 11025);
+			synth.connect( reverb );
+			
+			reverb.connect( Gibberish.MASTER );
+			
+			timeout = setInterval(function() {
+				synth.note(200 + Math.round( Math.random() * 4000));
+			}, 500);
+			
+			var inputString = "reverbs = [];\n"+
+			"NUM_reverbs = 20;\n"+
+			"reverb = Gibberish.Bus();\n"+
+            "\n"+
+			"for(var i = 0; i < NUM_reverbs; i++) {\n"+
+			"	reverb.fx.add(Gibberish.Reverb());\n"+
+			"}\n"+
+            "\n"+
+			"synth = Gibberish.FMSynth(.98, 5, 1, 11025, 11025);\n"+
+			"synth.connect( reverb );\n"+
+			"\n"+
+			"reverb.connect( Gibberish.MASTER );\n"+
+			"\n"+
+			"timeout = setInterval(function() {\n"+
+			"	synth.note(200 + Math.round( Math.random() * 4000));\n"+
+			"}, 500);\n";
+			
+			var input = document.getElementById("input");
+			input.innerHTML = inputString;
+			
+			codeTimeout = setTimeout(function() { 
+				var codegen = document.getElementById("output");
+				codegen.innerHTML = "INITIALIZATION:\n\n" + Gibberish.masterInit.join("\n") + "\n\n" + "CALLBACK:\n\n" + Gibberish.callback;
+			}, 250);
+			
+			Gibberish.dirty = true;
+		};
+		
+		
 		window.combTest = function() {
 			clearTimeout(timeout);
 			Gibberish.ugens.remove();
