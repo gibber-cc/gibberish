@@ -16,7 +16,8 @@ define(["oscillators", "effects", "synths"], function(oscillators, effects, synt
 			this.extend(this.generators, binops);
 		},
 
-		generateCallback : function(debug) {
+		generateCallback : function() {
+			var debug = false;
 			this.masterUpvalues = [];
 			this.masterCodeblock = [];
 			this.memo = {};
@@ -121,34 +122,38 @@ define(["oscillators", "effects", "synths"], function(oscillators, effects, synt
 		
 		codegen : function(op, codeDictionary) {
 			if(typeof op === "object" && op !== null) {
-				// var memo = this.memo[op.name];
-				// 	if(memo) {
-				// 		console.log("MEMO HOORAY! " + op.name );
-				// 		return memo;
-				//  }
+				// var memo = this.memo[JSON.decycle(op)];
+				// if(memo) {
+				// 	//console.log("MEMO HOORAY! ", op.name, memo);
+				// 	return memo;
+				// }
 				//console.log(op);
 				//console.log(op);
 				
 				var name = op.ugenVariable || this.generateSymbol("v");
 				//console.log(name);
-				//this.memo[op.name] = name;
+				// this.memo[JSON.decycle(op)] = name;
 				//console.log("UGEN VARIABLE", name, "FOR", op.type);
 				op.ugenVariable = name;
 				//console.log("OP : ", op);
-				if(typeof op === "object" && op instanceof Array) {
-					for(var i = 0; i < op.length; i++) {
-						var gen = this.generators[op[i].type];
-						statement = "{0} = {1}".format(op[i].source, gen(op[i], codeDictionary));
-					}
-				}else{
+				// if(typeof op === "object" && op instanceof Array) {
+				// 	for(var i = 0; i < op.length; i++) {
+				// 		var gen = this.generators[op[i].type];
+				// 		statement = "{0} = {1}".format(op[i].source, gen(op[i], codeDictionary));
+				// 	}
+				// }else{
 					var gen = this.generators[op.type];
-					
-					if(op.category !== "FX") {
-						statement = "var {0} = {1}".format(name, gen(op, codeDictionary));
-					}else{
-						statement = "{0} = {1}".format(op.source, gen(op, codeDictionary));
-					}
-				}
+					if(gen) {
+						if(op.category !== "FX") {
+							statement = "var {0} = {1}".format(name, gen(op, codeDictionary));
+						}else{
+							statement = "{0} = {1}".format(op.source, gen(op, codeDictionary));
+						}
+					}// else{
+					// 						statement = "var {0} = {1}".format(name, JSON.stringify(op));
+					// 					}
+				
+					//}
 				
 				codeDictionary.codeblock.push(statement);
 		

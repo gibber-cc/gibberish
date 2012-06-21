@@ -1,7 +1,7 @@
 <html>
 <head>
 	<title>Gibberish</title>
-	<script data-main="scripts/main.js" src="scripts/require.js"></script>
+	<script data-main="scripts/main.js" src="scripts/lib/require.js"></script>
 	<style>
 	pre, h2 {
 		margin-left: 10px;
@@ -16,9 +16,11 @@
 </head>
 <body>
 <h1>Gibberish Tests</h1>
+<p style="width:50%">Gibberish is an audio engine that creates code optimized for JIT compilation. Below, the input code is what the programmer enters, the output code is what Gibberish generates for the JIT compiler. It will eventually be the audio backend for the live coding environment <a href="http://www.charlie-roberts.com/gibber">Gibber</a>.</p>
 run: <select onchange="Gibberish.masterInit = []; eval(this.options[this.selectedIndex].text + '()')">
 	<option>_clear_</option>	
 	<option>sineTest</option>
+	<option>sineStressTest</option>
 	<option>vibratoTest</option>
 	<option>delayTest</option>
 	<option>reverbTest</option>			
@@ -29,11 +31,14 @@ run: <select onchange="Gibberish.masterInit = []; eval(this.options[this.selecte
 	<option>stressTest</option>
 	<option>reverbStressTest</option>			
 </select>
-<h2 style="width:45%; position:absolute; left:0px">Input</h2>
-<h2 style="width:45%; position:absolute; left:50%">Output</h2>
+<div style="width:45%; position:absolute; left:0px">
+<h2>Input</h2>
+<pre id="input"  style="width:45%; position:absolute; left:0px"></pre>
+</div>
 
-<pre id="input"  style="width:45%; position:absolute; top:10em; left:0px"></pre>
-<pre id="output" style="width:45%; position:absolute; top:10em; left:50%"></pre>
-</pre>
+<div style="width:45%; float:right;">
+<h2>Output</h2>
+<pre id="output" style="width:45%;"></pre>
+</div>
 </body>
 </html>

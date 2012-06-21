@@ -9,7 +9,7 @@ define([], function() {
 			gibberish.make["Delay"] = this.makeDelay;
 			gibberish.Delay = this.Delay;
 			
-			gibberish.generators.Reverb = gibberish.createGenerator(["source", ], "{0}( {1} )");
+			gibberish.generators.Reverb = gibberish.createGenerator(["source", "roomSize", "damping", "wet", "dry" ], "{0}( {1},{2},{3},{4},{5} )");
 			gibberish.make["Reverb"] = this.makeReverb;
 			gibberish.Reverb = this.Reverb;
 			
@@ -21,7 +21,6 @@ define([], function() {
 			gibberish.make["Comb"] = this.makeComb;
 			gibberish.Comb = this.Comb;
 			
-
 			// the calls to dynamically create the bus generators are generated dynamically. that is fun to say.
 			gibberish.make["Bus"] = this.makeBus;
 			gibberish.Bus = this.Bus;
@@ -65,7 +64,7 @@ define([], function() {
 		},
 
 		makeAllPass : function(_buffer, _feedback) {
-			console.log("ALL PASS", _buffer.length, _feedback);
+			//console.log("ALL PASS", _buffer.length, _feedback);
 			var feedback = _feedback;
 			var bufferLength = _buffer.length;
 			var buffer = _buffer;
@@ -125,7 +124,7 @@ define([], function() {
 		},
 
 		makeComb : function(_buffer, _feedback, _damping) {
-			console.log("COMB CHECK", _feedback, _damping, _buffer.length);
+			//console.log("COMB CHECK", _feedback, _damping, _buffer.length);
 			var feedback = _feedback;
 			var damping = _damping;
 			var invDamping = 1 - _damping;
@@ -137,7 +136,7 @@ define([], function() {
 			var output = function(inputSample) {
 				var currentPos = ++index % time;
 				var sample = buffer[currentPos];
-				store = (sample * invDamping) + (store * damping);
+				store = (sample * .8) + (store * .2);
 				buffer[currentPos] = inputSample + (store * feedback);
 
 				return sample;
@@ -185,7 +184,7 @@ define([], function() {
 					sizes	= that.tuning.combTuning;
 					
 				for(var c = 0; c < that.channelCount; c++){
-					for(var i = 0; i < 7; i++){
+					for(var i = 0; i < 8; i++){
 						combs.push( Gibberish.make["Comb"](new Float32Array(sizes[i] + c * that.tuning.stereoSpread), feed, damp) );
 					}
 				}
@@ -207,7 +206,7 @@ define([], function() {
 			})();
 			
 			Gibberish.masterInit.push(that.name + " = Gibberish.make[\"Reverb\"]();");
-			window[that.name] = Gibberish.make["Reverb"](that.roomSize, that.damping, that.wet, that.dry, that.combFilters, that.allPassFilters, that.tuning);
+			window[that.name] = Gibberish.make["Reverb"](that.combFilters, that.allPassFilters, that.tuning);
 			that._function = window[that.name];
 
 			Gibberish.defineProperties( that, ["time", "feedback"] );
@@ -215,25 +214,16 @@ define([], function() {
 			return that;
 		},
 
-		makeReverb : function(_roomSize, _damping, _wet, _dry, _combFilters, _allPassFilters, _tuning) {
-			var roomSize = _roomSize;
-			var damping  = _damping;
-			var wet		 = _wet;
-			var dry		 = _dry;
-			var tuning   = _tuning;		
-			var combFilters 		= _combFilters;
-			var allPassFilters 		= _allPassFilters;
-			var numCombFilters 		= combFilters.length;
-			var numAllPassFilters	= allPassFilters.length;			
-			var phase = 0;
-			var output = function(sample) {
+		makeReverb : function(combFilters, allPassFilters, tuning) {
+			var output = function(sample, roomSize, damping, wet, dry) {
+				//if(phase++ % 500 == 0) console.log(roomSize, damping, wet, dry, input);			
 				var input = sample * tuning.fixedGain;
 				var out = 0;
-				for(var i = 0; i < numCombFilters; i++) {
+				for(var i = 0; i < 8; i++) {
 					out += combFilters[i](input);
 				}
 				
-				for(var i = 0; i < numAllPassFilters; i++) {
+				for(var i = 0; i < 4; i++) {
 					out = allPassFilters[i](out);
 				}
 

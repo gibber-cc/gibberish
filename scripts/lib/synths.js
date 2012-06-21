@@ -1,11 +1,11 @@
 define([], function() {
     return {
 		init: function(gibberish) {			
-			gibberish.generators.Synth = gibberish.createGenerator(["frequency", "attack", "decay", "amp"], "{0}( {1}, {2}, {3} ) * {4}");
+			gibberish.generators.Synth = gibberish.createGenerator(["frequency", "attack", "decay", "amp"], "{0}( {1}, {2}, {3}, {4} )");
 			gibberish.make["Synth"] = this.makeSynth;
 			gibberish.Synth = this.Synth;
 			
-			gibberish.generators.FMSynth = gibberish.createGenerator(["carrier", "env", "amp"], "{0}( {1}, {2} ) * {3}");
+			gibberish.generators.FMSynth = gibberish.createGenerator(["frequency", "cmRatio", "index", "attack", "decay", "amp"], "{0}( {1}, {2}, {3}, {4}, {5} ) * {6}");
 			gibberish.make["FMSynth"] = this.makeFMSynth;
 			gibberish.FMSynth = this.FMSynth;	
 		},
@@ -22,8 +22,6 @@ define([], function() {
 				
 				note : function(_frequency) {
 					this.frequency = _frequency;
-					this.dirty = true;
-					Gibberish.dirty = true;
 					if(this.env.getState() >= 1) this.env.setState(0);
 				},
 			};
@@ -33,17 +31,17 @@ define([], function() {
 			that.osc = Gibberish.make[that.waveform](that.frequency, that.amp);
 			
 			that.name = Gibberish.generateSymbol(that.type);
-			Gibberish.masterInit.push(that.name + " = Gibberish.make[\"Synth\"]();");
-						
-			window[that.name] = Gibberish.make["Synth"](that.osc, that.env);
-			Gibberish.defineProperties( that, ["amp", "attack", "decay"] );
+			Gibberish.masterInit.push(that.name + " = Gibberish.make[\"Synth\"]();");	
+			window[that.name] = Gibberish.make["Synth"](that.osc, that.env); // only passs ugen functions to make
+			
+			Gibberish.defineProperties( that, ["frequency", "amp", "attack", "decay"] );
 				
 		    Object.defineProperty(that, "waveform", {
 				get: function() { return waveform; },
 				set: function(value) {
 					if(waveform !== value) {
 						waveform = value;
-						that.osc = Gibberish[value](that.osc.frequency, that.amp);
+						that.osc = Gibberish.make[value]();
 						that.dirty = true;
 						Gibberish.dirty = true;
 					}
@@ -53,16 +51,12 @@ define([], function() {
 			return that;
 		},
 		
-		makeSynth: function(_osc, _env) { // note, storing the increment value DOES NOT make this faster!
-			var osc = _osc;			
-			var env = _env;
-			var output = function(frequency, attack, decay) {
-				
-				var val = osc(frequency) * env(attack, decay);
-				//if(phase++ % 22050 == 0) console.log("SYNTH VALUE", val, frequency);
+		makeSynth: function(osc, env) { // note, storing the increment value DOES NOT make this faster!
+			var phase = 0;
+			var output = function(frequency, attack, decay, amp) {
+				var val = osc(frequency, amp) * env(attack, decay);
 				return val;
 			}
-	
 			return output;
 		},
 		
@@ -79,59 +73,35 @@ define([], function() {
 				
 				note : function(frequency) {
 					this.frequency = frequency;
-					
-					this.modulator.frequency = frequency * this.cmRatio;
-					this.carrier.frequency = this.frequency;
-					this.modulator.amp = this.frequency * this.index;
-					
-					this.dirty = true;
-					this.env.start();
+					this.env.setState(0);
 				},
 			};
 			Gibberish.extend(that, Gibberish.ugen);
 			
-			that.env = Gibberish.Env(that.attack, that.decay);
-			that.carrier = Gibberish["Sine"](that.frequency, that.amp);
-			that.modulator = Gibberish["Sine"](that.frequency * that.cmRatio, that.index * that.frequency);
-			
-			that.carrier.mod("frequency", that.modulator, "+");
-			
+			that.env = Gibberish.make["Env"]();
+			that.carrier = Gibberish.make["Sine"]();
+			that.modulator = Gibberish.make["Sine"]();
+						
 			that.name = Gibberish.generateSymbol(that.type);
 			Gibberish.masterInit.push(that.name + " = Gibberish.make[\"FMSynth\"]();");
-			window[that.name] = Gibberish.make["FMSynth"]();
-			
-			(function(obj) {
-				var that = obj;
-				var _cmRatio = obj.cmRatio;
-				var _index = obj.index;
-	
-			    Object.defineProperties(that, {
-					cmRatio :  {
-						get: function() { return _cmRatio; },
-						set: function(value) {
-							_cmRatio = value;
-							that.modulator.frequency = that.frequency * _cmRatio;
-							that.modulator.dirty = true;
-							that.dirty = true;
-						},
-					},
-					index :  {
-						get: function() { return _index; },
-						set: function(value) {
-							_index = value;
-							that.modulator.amp = that.frequency * _index;
-							that.dirty = true;
-						},
-					},
-				});
-			})(that);
+			window[that.name] = Gibberish.make["FMSynth"](that.carrier, that.modulator, that.env);
+						
+			Gibberish.defineProperties( that, ["amp", "attack", "decay", "cmRatio", "index", "frequency"] );
 			
 			return that;
 		},
 		
-		makeFMSynth: function() { // note, storing the increment value DOES NOT make this faster!	
-			var output = function(oscillator, envelope) {
-				return oscillator * envelope;
+		makeFMSynth: function(_carrier, _modulator, _env) { // note, storing the increment value DOES NOT make this faster!	
+			var carrier = _carrier;
+			var modulator = _modulator;
+			var envelope = _env;
+			var phase = 0;
+			var output = function(frequency, cmRatio, index, attack, decay) {
+
+				var env = envelope(attack, decay);
+				var mod = modulator(frequency * cmRatio, frequency * index);// * env;
+				//if(phase++ % 22050 === 0) console.log("MOD AMOUNT", mod, cmRatio, index, frequency);
+				return carrier( frequency + mod, 1 ) * env; 
 			}
 	
 			return output;

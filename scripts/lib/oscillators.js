@@ -1,13 +1,17 @@
 define([], function() {
     return {
 		init: function(gibberish) {			
-			gibberish.generators.Sine = gibberish.createGenerator(["frequency", "amp"], "{0}({1}) * {2}");
+			gibberish.generators.Sine = gibberish.createGenerator(["frequency", "amp"], "{0}({1}, {2})");
 			gibberish.make["Sine"] = this.makeSine;
 			gibberish.Sine = this.Sine;
 			
 			gibberish.generators.Square = gibberish.createGenerator(["frequency", "amp"], "{0}({1}) * {2}");
 			gibberish.make["Square"] = this.makeSquare;
 			gibberish.Square = this.Square;
+			
+			gibberish.generators.Triangle = gibberish.createGenerator(["frequency", "amp"], "{0}({1}) * {2}");
+			gibberish.make["Triangle"] = this.makeTriangle;
+			gibberish.Triangle = this.Triangle;
 			
 			gibberish.generators.Env = gibberish.createGenerator(["attack",  "decay"], "{0}({1}, {2})" ),
 			gibberish.make["Env"] = this.makeEnv;
@@ -38,9 +42,10 @@ define([], function() {
 			var sin = Math.sin;
 			var pi_2 = Math.PI * 2;
 	
-			var output = function(frequency) {
+			var output = function(frequency, amp) {
 				phase += frequency / 44100;
-				return sin(phase * pi_2);
+				//while(phase > pi_2) phase -= pi_2;
+				return sin(phase * pi_2) * amp;
 			}
 	
 			return output;
@@ -79,7 +84,40 @@ define([], function() {
 			return output;
 		},
 		
+		Triangle : function(freq, amp, name) {
+			var that = { 
+				type:		"Triangle",
+				category:	"Gen",
+				frequency:	freq || 440, 
+				amp:		amp * .35 || .1,
+			};
+			Gibberish.extend(that, Gibberish.ugen);
+			
+			that.name = Gibberish.generateSymbol(that.type);
+			Gibberish.masterInit.push(that.name + " = Gibberish.make[\"Triangle\"]();");
+			window[that.name] = Gibberish.make["Triangle"]();
+			that._function = window[that.name];
+			
+			Gibberish.defineProperties( that, ["frequency", "amp"] );
+	
+			return that;
+		},
 		
+		makeTriangle: function() { // note, storing the increment value DOES NOT make this faster!
+			var cycle = 1;
+			var phase = 0;
+			var output = function(frequency) {
+				var incr = 1 / (44100 / frequency / 2);
+				phase += incr * cycle;
+
+				if(Math.abs(phase) > 1) cycle *= -1;
+				
+				return phase;
+			};
+	
+			return output;
+		},
+
 		Env : function(attack, decay) {
 			var that = { 
 				type:		"Env",
