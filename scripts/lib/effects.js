@@ -94,6 +94,7 @@ define([], function() {
 				buffer:		new Float32Array(time || 1200),
 				damping:	damping || .2,
 				source:		null,
+				toJSON:		Gibberish.NO_MEMO,
 			};
 			Gibberish.extend(that, Gibberish.ugen);
 			
@@ -171,6 +172,7 @@ define([], function() {
 
 				    stereoSpread: 	23
 				},
+				toJSON:		function() { return ""+this.type+this.roomSize+this.damping+this.wet+this.dry; },
 				channelCount: 1,
 			};
 			Gibberish.extend(that, Gibberish.ugen);
@@ -241,13 +243,14 @@ define([], function() {
 				time:		time || 22050,
 				source:		null,
 				buffer:		new Float32Array(88200),				
-				bufferLength: 88200,				
+				bufferLength: 88200,
+				toJSON:		Gibberish.NO_MEMO,
 			};
 			Gibberish.extend(that, Gibberish.ugen);
 			
 			if(that.time >= 88200) {
 				that.time = 88199;
-				console.log("MAX DELAY TIME = 88199 samples");
+				//console.log("MAX DELAY TIME = 88199 samples");
 			}
 			
 			that.name = Gibberish.generateSymbol(that.type);
@@ -285,6 +288,7 @@ define([], function() {
 				amount:		amount,
 				amp:		amp,
 				source:		null,
+				toJSON:		function() { return ""+this.type+this.amount+this.amp; }
 			};
 			Gibberish.extend(that, Gibberish.ugen);
 			
@@ -317,6 +321,7 @@ define([], function() {
 				type	: "Bus",
 				category: "Bus",
 				amount	: 1,
+				toJSON	: Gibberish.NO_MEMO,
 				
 				connect : function(bus) {
 					this.destinations.push(bus);

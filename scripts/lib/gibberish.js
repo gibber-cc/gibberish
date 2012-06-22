@@ -119,20 +119,23 @@ define(["oscillators", "effects", "synths"], function(oscillators, effects, synt
 			}
 			return generator;
 		},
-		
+		// TODO: MUST MEMOIZE THIS FUNCTION
 		codegen : function(op, codeDictionary) {
 			if(typeof op === "object" && op !== null) {
-				// var memo = this.memo[JSON.decycle(op)];
-				// if(memo) {
-				// 	//console.log("MEMO HOORAY! ", op.name, memo);
-				// 	return memo;
-				// }
 				//console.log(op);
-				//console.log(op);
+				var memo = this.memo[JSON.stringify(op)];
+				if(memo && op.category !== "FX" && op.category !== "Bus") {
+					console.log("MEMO HOORAY! ", op.name, memo);
+					return memo;
+				}
 				
 				var name = op.ugenVariable || this.generateSymbol("v");
 				//console.log(name);
-				// this.memo[JSON.decycle(op)] = name;
+				//console.log(op);
+				var str = JSON.stringify(op);
+				if(str !== "NO_MEMO") {
+					this.memo[str] = name;
+				}
 				//console.log("UGEN VARIABLE", name, "FOR", op.type);
 				op.ugenVariable = name;
 				//console.log("OP : ", op);
@@ -204,8 +207,9 @@ define(["oscillators", "effects", "synths"], function(oscillators, effects, synt
 		mod : function(name, modulator, type) {
 			var type = type || "+";
 			var m = { type:type, operands:[this[name], modulator], name:name };
+			m.toJSON = function() { return ""+type+name+this.type; }
 			this[name] = m;
-			modulator.modding = this;
+			//modulator.modding = this;
 			this.mods.push(m);
 			Gibberish.generate(this);
 			Gibberish.dirty = true;
@@ -245,6 +249,8 @@ define(["oscillators", "effects", "synths"], function(oscillators, effects, synt
 		    }
 		    return destination;
 		},
+		
+		NO_MEMO : function() { return "NO_MEMO"; }, 
 
 		id			:  0,
 		make 		: {},

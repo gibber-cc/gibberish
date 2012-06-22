@@ -32,8 +32,12 @@ define([], function() {
 			window[that.name] = Gibberish.make["Sine"]();
 			that._function = window[that.name];
 			
+			that.toJSON =function() { return ""+this.frequency+this.amp+this.type; }
+
+			
 			Gibberish.defineProperties( that, ["frequency", "amp"] );
-	
+			
+
 			return that;
 		},
 		

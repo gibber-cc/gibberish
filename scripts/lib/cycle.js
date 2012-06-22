@@ -82,6 +82,8 @@ if (typeof JSON.decycle !== 'function') {
                     }
                 }
                 return nu;
+			case 'function':
+				return "_func_";
             case 'number':
             case 'string':
             case 'boolean':

@@ -18,13 +18,13 @@ requirejs(['sink/sink-light', 'gibberish', 'utils', 'cycle'],
 			
 			Gibberish.dirty = true;
 			
-			var input = document.getElementById("input");
-			input.innerHTML = "";
-			
-			codeTimeout = setTimeout(function() { 
-				var codegen = document.getElementById("output");
-				codegen.innerHTML = "INITIALIZATION:\n\n" + Gibberish.masterInit.join("\n") + "\n\n" + "CALLBACK:\n\n" + Gibberish.callback;
-			}, 250);
+			// var input = document.getElementById("input");
+			// input.innerHTML = "";
+			// 
+			// codeTimeout = setTimeout(function() { 
+			// 	var codegen = document.getElementById("output");
+			// 	codegen.innerHTML = "INITIALIZATION:\n\n" + Gibberish.masterInit.join("\n") + "\n\n" + "CALLBACK:\n\n" + Gibberish.callback;
+			// }, 250);
 			
 		};
 		
@@ -78,14 +78,14 @@ requirejs(['sink/sink-light', 'gibberish', 'utils', 'cycle'],
 			
 			Gibberish.dirty = true;
 		};
-		
-		
+			
 		window.vibratoTest = function() {
 			clearTimeout(timeout);
 			Gibberish.ugens.remove();
 			
-			s = Gibberish.Sine(440, .25);
 			m = Gibberish.Sine(5, 15);
+			
+			s = Gibberish.Sine(440, .25);
 			
 			s.mod("frequency", m);
 			
@@ -294,6 +294,7 @@ requirejs(['sink/sink-light', 'gibberish', 'utils', 'cycle'],
 			
 			for(var i = 0; i < NUM_reverbs; i++) {
 				sine.fx.add(Gibberish.Reverb());
+				//sine.fx[i].roomSize = Math.random();
 			}
 			
 			sine.connect(Gibberish.MASTER);
