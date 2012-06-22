@@ -1,15 +1,15 @@
 define([], function() {
     return {
 		init: function(gibberish) {			
-			gibberish.generators.Sine = gibberish.createGenerator(["frequency", "amp"], "{0}({1}, {2})");
+			gibberish.generators.Sine = gibberish.createGenerator(["frequency", "amp"], "{0}( {1}, {2} )");
 			gibberish.make["Sine"] = this.makeSine;
 			gibberish.Sine = this.Sine;
 			
-			gibberish.generators.Square = gibberish.createGenerator(["frequency", "amp"], "{0}({1}) * {2}");
+			gibberish.generators.Square = gibberish.createGenerator(["frequency", "amp"], "{0}({1}, {2})");
 			gibberish.make["Square"] = this.makeSquare;
 			gibberish.Square = this.Square;
 			
-			gibberish.generators.Triangle = gibberish.createGenerator(["frequency", "amp"], "{0}({1}) * {2}");
+			gibberish.generators.Triangle = gibberish.createGenerator(["frequency", "amp"], "{0}( {1}, {2} )");
 			gibberish.make["Triangle"] = this.makeTriangle;
 			gibberish.Triangle = this.Triangle;
 			
@@ -33,11 +33,9 @@ define([], function() {
 			that._function = window[that.name];
 			
 			that.toJSON =function() { return ""+this.frequency+this.amp+this.type; }
-
 			
 			Gibberish.defineProperties( that, ["frequency", "amp"] );
 			
-
 			return that;
 		},
 		
@@ -70,14 +68,16 @@ define([], function() {
 			that._function = window[that.name];
 			
 			Gibberish.defineProperties( that, ["frequency", "amp"] );
-	
+			
+			that.toJSON =function() { return ""+this.frequency+this.amp+this.type; }
+			
 			return that;
 		},
 		
 		makeSquare: function() { // note, storing the increment value DOES NOT make this faster!
 			var cycle = 1;
 			var phase = 0;
-			var output = function(frequency) {
+			var output = function(frequency, amp) {
 				while(phase++ >= 44100 / frequency) {
 					cycle *= -1;
 					phase -= 44100;
@@ -110,13 +110,13 @@ define([], function() {
 		makeTriangle: function() { // note, storing the increment value DOES NOT make this faster!
 			var cycle = 1;
 			var phase = 0;
-			var output = function(frequency) {
+			var output = function(frequency, amp) {
 				var incr = 1 / (44100 / frequency / 2);
 				phase += incr * cycle;
 
 				if(Math.abs(phase) > 1) cycle *= -1;
 				
-				return phase;
+				return phase * amp;
 			};
 	
 			return output;

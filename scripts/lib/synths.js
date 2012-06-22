@@ -1,7 +1,7 @@
 define([], function() {
     return {
 		init: function(gibberish) {			
-			gibberish.generators.Synth = gibberish.createGenerator(["frequency", "attack", "decay", "amp"], "{0}( {1}, {2}, {3}, {4} )");
+			gibberish.generators.Synth = gibberish.createGenerator(["frequency", "amp", "attack", "decay"], "{0}( {1}, {2}, {3}, {4} )");
 			gibberish.make["Synth"] = this.makeSynth;
 			gibberish.Synth = this.Synth;
 			
@@ -53,8 +53,9 @@ define([], function() {
 		
 		makeSynth: function(osc, env) { // note, storing the increment value DOES NOT make this faster!
 			var phase = 0;
-			var output = function(frequency, attack, decay, amp) {
+			var output = function(frequency, amp, attack, decay ) {
 				var val = osc(frequency, amp) * env(attack, decay);
+				//if(phase++ % 22050 === 0) console.log(val, amp);
 				return val;
 			}
 			return output;

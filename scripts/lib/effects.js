@@ -5,6 +5,10 @@ define([], function() {
 			gibberish.make["Clip"] = this.makeClip;
 			gibberish.Clip = this.Clip;
 			
+			gibberish.generators.Filter24 = gibberish.createGenerator(["source", "cutoff", "resonance", "isLowPass"], "{0}( {1}, {2}, {3}, {4} )");
+			gibberish.make["Filter24"] = this.makeFilter24;
+			gibberish.Filter24 = this.Filter24;
+			
 			gibberish.generators.Delay = gibberish.createGenerator(["source", "time", "feedback"], "{0}( {1}, {2}, {3} )");
 			gibberish.make["Delay"] = this.makeDelay;
 			gibberish.Delay = this.Delay;
@@ -309,6 +313,54 @@ define([], function() {
 			var output = function(sample, amount) {
 				var x = sample * amount;
 				return (x / (1 + abs(x))) / (log(amount) / ln2); //TODO: get rid of log / divide
+			};
+			
+			return output;
+		},
+		
+		// adapted from Arif Ove Karlsne's 24dB ladder approximation: http://musicdsp.org/showArchiveComment.php?ArchiveID=141
+		Filter24 : function(cutoff, resonance, isLowPass) {
+			var that = {
+				type:		"Filter24",
+				category:	"FX",
+				cutoff:		cutoff,
+				resonance:	resonance,
+				isLowPass:	typeof isLowPass === "undefined" ? true : isLowPass,
+				source:		null,
+				toJSON:		function() { return ""+this.type+this.cutoff+this.resonance; }
+			};
+			Gibberish.extend(that, Gibberish.ugen);
+			
+			that.name = Gibberish.generateSymbol(that.type);
+			Gibberish.masterInit.push(that.name + " = Gibberish.make[\"Filter24\"]();");
+			window[that.name] = Gibberish.make["Filter24"]();
+			
+			Gibberish.defineProperties( that, ["cutoff", "resonance", "isLowPass"] );
+	
+			return that;
+		},
+
+		makeFilter24 : function() {
+			var pole1 = 0,
+				pole2 = 0,
+				pole3 = 0,
+				pole4 = 0;
+			
+			var output = function(sample, cutoff, resonance, isLowPass) {
+				rez = pole4 * resonance; 
+
+				if (rez > 1) {rez = 1;}
+				sample = sample - rez;
+				
+				if (cutoff < 0) cutoff = 0;
+				
+				pole1 = pole1 + ((-pole1 + sample) * cutoff);
+				pole2 = pole2 + ((-pole2 + pole1)  * cutoff);
+				pole3 = pole3 + ((-pole3 + pole2)  * cutoff);
+				pole4 = pole4 + ((-pole4 + pole3)  * cutoff);
+				
+				var out = isLowPass ? pole4 : sample - pole4;
+				return out;
 			};
 			
 			return output;

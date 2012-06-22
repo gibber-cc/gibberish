@@ -142,6 +142,45 @@ requirejs(['sink/sink-light', 'gibberish', 'utils', 'cycle'],
 			
 		};
 		
+		window.filterTest = function() {
+			clearTimeout(timeout);
+			Gibberish.ugens.remove();
+			
+			s = Gibberish.Synth("Triangle");
+			c = Gibberish.Filter24(.2, 4);
+			c.mod("cutoff", t);
+			s.fx.add( c );
+			s.connect(Gibberish.MASTER);
+			
+			timeout = setInterval(function() { 
+				s.note(Math.round(150 + Math.random() * 400));
+				c.isLowPass = Math.random() > .5;
+			}, 1000);
+			
+			var inputString =
+			"s = Gibberish.Synth(\"Triangle\");\n"+
+			"t = Gibberish.Sine(1, .15);\n"+
+			"c = Gibberish.Filter24(.2, 4);\n"+
+			"c.mod(\"cutoff\", t);\n"+
+			"s.fx.add( c );\n"+
+			"s.connect(Gibberish.MASTER);\n"+
+			"Gibberish.dirty = true;\n"+
+			"\n"+
+			"timeout = setInterval(function() { \n"+
+			"	s.note(Math.round(150 + Math.random() * 400));\n"+
+			"	c.isLowPass = Math.random() > .5;\n"+
+			"}, 1000);\n";
+			
+			var input = document.getElementById("input");
+			input.innerHTML = inputString;
+			
+			codeTimeout = setTimeout(function() { 
+				var codegen = document.getElementById("output");
+				codegen.innerHTML = "INITIALIZATION:\n\n" + Gibberish.masterInit.join("\n") + "\n\n" + "CALLBACK:\n\n" + Gibberish.callback;
+			}, 250);
+			
+		};
+		
 		window.delayTest = function() {
 			clearTimeout(timeout);
 			Gibberish.ugens.remove();
@@ -198,6 +237,7 @@ requirejs(['sink/sink-light', 'gibberish', 'utils', 'cycle'],
 			
 			Gibberish.dirty = true;
 		};
+		
 		window.reverbTest = function() {
 			clearTimeout(timeout);
 			Gibberish.ugens.remove();
@@ -321,7 +361,6 @@ requirejs(['sink/sink-light', 'gibberish', 'utils', 'cycle'],
 			Gibberish.dirty = true;
 		};
 		
-		
 		window.combTest = function() {
 			clearTimeout(timeout);
 			Gibberish.ugens.remove();
@@ -348,8 +387,6 @@ requirejs(['sink/sink-light', 'gibberish', 'utils', 'cycle'],
 			
 			Gibberish.dirty = true;
 		};
-		
-		
 		
 		window.synthTest = function() {
 			clearTimeout(timeout);
