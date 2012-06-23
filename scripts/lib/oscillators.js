@@ -121,53 +121,5 @@ define([], function() {
 	
 			return output;
 		},
-
-		Env : function(attack, decay) {
-			var that = { 
-				type:		"Env",
-				category:	"Gen",
-				attack:		attack || 10000,
-				decay:		decay || 10000,
-
-				start: function() {
-					//that._function.setPhase(0);
-					that._function.setState(0);
-				},
-			};
-			Gibberish.extend(that, Gibberish.ugen);
-			
-			that.name = Gibberish.generateSymbol(that.type);
-			Gibberish.masterInit.push(that.name + " = Gibberish.make[\"Env\"]();");
-			window[that.name] = Gibberish.make["Env"]();
-			that._function = window[that.name];
-			
-			Gibberish.defineProperties( that, ["attack", "decay"] );
-	
-			return that;
-		},
-		
-		makeEnv : function() {
-			var phase = 0;
-			var state = 0;
-			var output = function(attack,decay) {
-				var val = 0;
-				if(state === 0){
-					val = phase / attack;
-					if(++phase % attack === 0) {
-						state++;
-						phase = decay;
-					}
-				}else if(state === 1){
-					val = phase / decay;
-					if(--phase === 0) state++;;			
-				}
-				return val;
-			};
-			output.setPhase = function(newPhase) { phase = newPhase; };
-			output.setState = function(newState) { state = newState; };
-			output.getState = function() { return state; };			
-			
-			return output;
-		},
     }
 });

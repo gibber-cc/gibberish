@@ -1,10 +1,11 @@
-define(["oscillators", "effects", "synths"], function(oscillators, effects, synths) {
+define(["oscillators", "effects", "synths", "envelopes"], function(oscillators, effects, synths, envelopes) {
 	var ugens = [];
     var that = {
         init : function() { 
 			oscillators.init(this);
 			effects.init(this);
-			synths.init(this);			
+			synths.init(this);
+			envelopes.init(this);			
 			
 			var binops = {
 				"+" : this.binop_generator,

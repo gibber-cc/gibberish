@@ -28,6 +28,29 @@ requirejs(['sink/sink-light', 'gibberish', 'utils', 'cycle'],
 			
 		};
 		
+		window.test = function() {
+			clearTimeout(timeout);
+			Gibberish.ugens.remove();
+			
+			s = Gibberish.Sine(440, .25);
+			s.connect(Gibberish.MASTER);
+			
+			a = Gibberish.ADSR(44100, 44100, 88200, 176400);
+			s.mod("amp", a, "*");
+			
+			var inputString = "s = Gibberish.Sine(440, .25);\n" + "s.connect(Gibberish.MASTER);";
+			
+			var input = document.getElementById("input");
+			input.innerHTML = inputString;
+			
+			codeTimeout = setTimeout(function() { 
+				var codegen = document.getElementById("output");
+				codegen.innerHTML = "INITIALIZATION:\n\n" + Gibberish.masterInit.join("\n") + "\n\n" + "CALLBACK:\n\n" + Gibberish.callback;
+			}, 250);
+			
+			Gibberish.dirty = true;
+		};
+
 		window.sineTest = function() {
 			clearTimeout(timeout);
 			Gibberish.ugens.remove();
@@ -148,8 +171,11 @@ requirejs(['sink/sink-light', 'gibberish', 'utils', 'cycle'],
 			
 			s = Gibberish.Synth("Triangle");
 			c = Gibberish.Filter24(.2, 4);
-			c.mod("cutoff", t);
 			s.fx.add( c );
+			
+			t = Gibberish.Sine(1, .15);
+			c.mod("cutoff", t);
+			
 			s.connect(Gibberish.MASTER);
 			
 			timeout = setInterval(function() { 
