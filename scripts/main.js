@@ -32,7 +32,7 @@ requirejs(['sink/sink-light', 'gibberish', 'utils', 'cycle'],
 			clearTimeout(timeout);
 			Gibberish.ugens.remove();
 			
-			s = Gibberish.Synth2("Triangle", .75, 88200, 88200, 44100, 44100, 1, .5, .01, 3.5, .6, true);
+			s = Gibberish.PolySynth("Triangle", .15, 88200, 88200, 44100, 44100, 1, .5, .01, 3.5, .6, true);
 			s.note(110);
 			s.connect(Gibberish.MASTER);
 			console.log(s);
@@ -480,10 +480,10 @@ requirejs(['sink/sink-light', 'gibberish', 'utils', 'cycle'],
 			var input = document.getElementById("input");
 			input.innerHTML = inputString;
 			
-			codeTimeout = setTimeout(function() { 
-				var codegen = document.getElementById("output");
-				codegen.innerHTML = "INITIALIZATION:\n\n" + Gibberish.masterInit.join("\n") + "\n\n" + "CALLBACK:\n\n" + Gibberish.callback;
-			}, 250);
+			// codeTimeout = setTimeout(function() { 
+			// 	var codegen = document.getElementById("output");
+			// 	codegen.innerHTML = "INITIALIZATION:\n\n" + Gibberish.masterInit.join("\n") + "\n\n" + "CALLBACK:\n\n" + Gibberish.callback;
+			// }, 250);
 			
 			Gibberish.dirty = true;	
 		};

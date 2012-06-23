@@ -13,6 +13,9 @@ define([], function() {
 			gibberish.make["Synth2"] = this.makeSynth2;
 			gibberish.Synth2 = this.Synth2;
 			
+			gibberish.generators.PolySynth = gibberish.createGenerator(["frequency", "amp", "attack", "decay", "sustain", "release", "attackLevel", "sustainLevel", "cutoff", "resonance", "filterMult", "isLowPass"], "{0}( {1}, {2}, {3}, {4}, {5}, {6}, {7}, {8}, {9}, {10}, {11}, {12} )");
+			gibberish.make["PolySynth"] = this.makePolySynth;
+			gibberish.PolySynth = this.PolySynth;
 		},
 		
 		Synth : function(waveform, amp, attack, decay) {
@@ -176,6 +179,77 @@ define([], function() {
 			return output;
 		},
 		
+		PolySynth : function(waveform, amp, attack, decay, sustain, release, attackLevel, sustainLevel, cutoff, resonance, filterMult, isLowPass) {
+			var that = { 
+				type:			"PolySynth",
+				category:		"Gen",
+				waveform:		waveform || "Sine",
+				amp:			amp || .5,				
+				attack:			attack || 10000,
+				decay:			decay || 10000,
+				release:		release || 10000,
+				sustain: 		typeof sustain === "undefined" ? null : sustain,
+				attackLevel:  	attackLevel || 1,
+				sustainLevel: 	sustainLevel || .5,
+				cutoff:			isNaN(cutoff) ? .1 : cutoff,
+				resonance:		isNaN(resonance) ? 2.5 : resonance,
+				filterMult:		isNaN(filterMult) ? .3 : filterMult,
+				isLowPass:		true,
+				frequency:		440,
+				maxVoices:		5,
+				
+				note : function(_frequency) {
+					for(var i = 0; i < 5; i++) {
+						var synth = this.synths[i];
+						synth.frequency = _frequency;
+						if(synth.env.getState() >= 1) synth.env.setState(0);
+					}
+				},
+			};
+			
+			Gibberish.extend(that, Gibberish.ugen);
+			
+			that.synths = [];
+			that.synthFunctions = [];
+			for(var i = 0; i < 5; i++) {
+				var synth = this.Synth2(that.waveform, that.amp, that.attack, that.decay, that.sustain, that.release, that.attackLevel, that.sustainLevel, that.cutoff, that.resonance, that.filterMult, that.isLowPass);
+				that.synths.push(synth);
+				that.synthFunctions.push(window[synth.name]);
+			}
+			
+			that.name = Gibberish.generateSymbol(that.type);
+			Gibberish.masterInit.push(that.name + " = Gibberish.make[\"PolySynth\"]();");	
+			window[that.name] = Gibberish.make["PolySynth"](that.synthFunctions); // only passs ugen functions to make
+			
+			Gibberish.defineProperties( that, ["frequency", "amp", "attack","decay","sustain","release","attackLevel","sustainLevel","cutoff","resonance","filterMult", "waveform"] );
+				
+		    Object.defineProperty(that, "waveform", {
+				get: function() { return waveform; },
+				set: function(value) {
+					if(waveform !== value) {
+						waveform = value;
+						that.osc = Gibberish.make[value]();
+						that.dirty = true;
+						Gibberish.dirty = true;
+					}
+				},
+			});
+			
+			return that;
+		},
+		
+		makePolySynth: function(synths) { // note, storing the increment value DOES NOT make this faster!
+			var phase = 0;
+			var output = function(frequency, amp, attack, decay, sustain, release, attackLevel, sustainLevel, cutoff, resonance, filterMult, isLowPass) {
+				var out = 0;
+				for(var i = 0; i < synths.length; i++) {
+					var synth = synths[i];
+					out += synth(frequency + (i * 200), amp, attack, decay, sustain, release, attackLevel, sustainLevel, cutoff, resonance, filterMult, isLowPass);
+				}
+				return out;
+			}
+			return output;
+		},
 		
     }
 });

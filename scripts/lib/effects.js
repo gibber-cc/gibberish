@@ -4,32 +4,32 @@ define([], function() {
 			gibberish.generators.Clip = gibberish.createGenerator(["source", "amount", "amp"], "{0}( {1}, {2} ) * {3}");
 			gibberish.make["Clip"] = this.makeClip;
 			gibberish.Clip = this.Clip;
-			
+
 			gibberish.generators.Filter24 = gibberish.createGenerator(["source", "cutoff", "resonance", "isLowPass"], "{0}( {1}, {2}, {3}, {4} )");
 			gibberish.make["Filter24"] = this.makeFilter24;
 			gibberish.Filter24 = this.Filter24;
-			
+
 			gibberish.generators.Delay = gibberish.createGenerator(["source", "time", "feedback"], "{0}( {1}, {2}, {3} )");
 			gibberish.make["Delay"] = this.makeDelay;
 			gibberish.Delay = this.Delay;
-			
+
 			gibberish.generators.Reverb = gibberish.createGenerator(["source", "roomSize", "damping", "wet", "dry" ], "{0}( {1},{2},{3},{4},{5} )");
 			gibberish.make["Reverb"] = this.makeReverb;
 			gibberish.Reverb = this.Reverb;
-			
+
 			gibberish.generators.AllPass = gibberish.createGenerator(["source", "time", "feedback"], "{0}( {1}, {2}, {3} )");
 			gibberish.make["AllPass"] = this.makeAllPass;
 			gibberish.AllPass = this.AllPass;
-			
+
 			gibberish.generators.Comb = gibberish.createGenerator(["source", "time", "feedback"], "{0}( {1}, {2}, {3} )");
 			gibberish.make["Comb"] = this.makeComb;
 			gibberish.Comb = this.Comb;
-			
+
 			// the calls to dynamically create the bus generators are generated dynamically. that is fun to say.
 			gibberish.make["Bus"] = this.makeBus;
 			gibberish.Bus = this.Bus;
 		},
-		
+
 		AllPass : function(time, feedback) {
 			var that = {
 				type:		"AllPass",
@@ -40,14 +40,14 @@ define([], function() {
 				source:		null,
 			};
 			Gibberish.extend(that, Gibberish.ugen);
-			
+
 			that.name = Gibberish.generateSymbol(that.type);
 			Gibberish.masterInit.push(that.name + " = Gibberish.make[\"AllPass\"]();");
 			window[that.name] = Gibberish.make["AllPass"](that.buffer, that.time, that.feedback);
 			that._function = window[that.name];
-			
+
 			Gibberish.defineProperties( that, ["feedback"] );
-			
+
 			// todo: this doesn't seem to be working... the buffer might need to be resampled.
 			(function(obj) {
 				var _time = obj.time;
@@ -63,7 +63,7 @@ define([], function() {
 					},
 				});
 			})(that);
-	
+
 			return that;
 		},
 
@@ -73,17 +73,17 @@ define([], function() {
 			var bufferLength = _buffer.length;
 			var buffer = _buffer;
 			var index = -1;
-			
+
 			var output = function(inputSample) {
 				index = ++index % bufferLength;
 				var bufferSample = buffer[index];
-				
+
 				var out = -inputSample + bufferSample;
 				buffer[index] = inputSample + (bufferSample * feedback);
 
 				return out;
 			};
-			
+
 			return output;
 		},
 		// adapted from audioLib.js, in turn adapted from Freeverb source code
@@ -101,14 +101,14 @@ define([], function() {
 				toJSON:		Gibberish.NO_MEMO,
 			};
 			Gibberish.extend(that, Gibberish.ugen);
-			
+
 			that.name = Gibberish.generateSymbol(that.type);
 			Gibberish.masterInit.push(that.name + " = Gibberish.make[\"Comb\"]();");
 			window[that.name] = Gibberish.make["Comb"](that.buffer, that.feedback, that.damping);
 			that._function = window[that.name];
-			
+
 			Gibberish.defineProperties( that, ["feedback"] );
-			
+
 			// todo: this doesn't seem to be working... the buffer might need to be resampled.
 			// (function(obj) {
 			// 	var _time = obj.time;
@@ -124,7 +124,7 @@ define([], function() {
 			// 		},
 			// 	});
 			// })(that);
-	
+
 			return that;
 		},
 
@@ -137,7 +137,7 @@ define([], function() {
 			var time = buffer.length;
 			var index = 0;
 			var store = 0;
-			
+
 			var output = function(inputSample) {
 				var currentPos = ++index % time;
 				var sample = buffer[currentPos];
@@ -146,10 +146,10 @@ define([], function() {
 
 				return sample;
 			};
-			
+
 			return output;
 		},
-		
+
 		// adapted from audioLib.js
 		Reverb : function(roomSize, damping, wet, dry) {
 			var that = {
@@ -181,14 +181,14 @@ define([], function() {
 			};
 			Gibberish.extend(that, Gibberish.ugen);
 			that.name = Gibberish.generateSymbol(that.type);
-			
+
 			that.combFilters = (function() {
 				var combs	= [],
 					num		= that.tuning.combCount,
 					damp	= that.damping * that.tuning.scaleDamping,
 					feed	= that.roomSize * that.tuning.scaleRoom + that.tuning.offsetRoom,
 					sizes	= that.tuning.combTuning;
-					
+
 				for(var c = 0; c < that.channelCount; c++){
 					for(var i = 0; i < 8; i++){
 						combs.push( Gibberish.make["Comb"](new Float32Array(sizes[i] + c * that.tuning.stereoSpread), feed, damp) );
@@ -196,13 +196,13 @@ define([], function() {
 				}
 				return combs;
 			})();;
-			
+
 			that.allPassFilters = (function() {
 				var apfs = [],
 				num		= that.tuning.allPassCount,
 				feed	= that.tuning.allPassFeedback,
 				sizes	= that.tuning.allPassTuning;
-				
+
 				for(var c = 0; c < that.channelCount; c++){
 					for(var i = 0; i < num; i++){
 						apfs.push( Gibberish.make["AllPass"](new Float32Array(sizes[i] + c * that.tuning.stereoSpread), feed) );
@@ -210,7 +210,7 @@ define([], function() {
 				}
 				return apfs;
 			})();
-			
+
 			Gibberish.masterInit.push(that.name + " = Gibberish.make[\"Reverb\"]();");
 			window[that.name] = Gibberish.make["Reverb"](that.combFilters, that.allPassFilters, that.tuning);
 			that._function = window[that.name];
@@ -228,17 +228,17 @@ define([], function() {
 				for(var i = 0; i < 8; i++) {
 					out += combFilters[i](input);
 				}
-				
+
 				for(var i = 0; i < 4; i++) {
 					out = allPassFilters[i](out);
 				}
 
 				return out * wet + sample * dry;
 			};
-			
+
 			return output;
 		},
-		
+
 		Delay : function(time, feedback) {
 			var that = {
 				type:		"Delay",
@@ -251,19 +251,19 @@ define([], function() {
 				toJSON:		Gibberish.NO_MEMO,
 			};
 			Gibberish.extend(that, Gibberish.ugen);
-			
+
 			if(that.time >= 88200) {
 				that.time = 88199;
 				//console.log("MAX DELAY TIME = 88199 samples");
 			}
-			
+
 			that.name = Gibberish.generateSymbol(that.type);
 			Gibberish.masterInit.push(that.name + " = Gibberish.make[\"Delay\"]();");
 			window[that.name] = Gibberish.make["Delay"](that.buffer, that.bufferLength);
 			that._function = window[that.name];
-			
+
 			Gibberish.defineProperties( that, ["time", "feedback"] );
-	
+
 			return that;
 		},
 
@@ -271,20 +271,20 @@ define([], function() {
 			var phase = 0;
 			var bufferLength = _bufferLength;
 			var buffer = _buffer;
-			
+
 			var output = function(sample, time, feedback) {
 				var _phase = phase++ % bufferLength;
 
 				var delayPos = (_phase + time) % bufferLength;				
-								
+
 				buffer[delayPos] = (sample + buffer[_phase]) * feedback;
 				return sample + buffer[_phase];
 			};
-			
+
 			return output;
 		},
-		
-		
+
+
 		Clip : function(amount, amp) {
 			var that = {
 				type:		"Clip",
@@ -295,13 +295,13 @@ define([], function() {
 				toJSON:		function() { return ""+this.type+this.amount+this.amp; }
 			};
 			Gibberish.extend(that, Gibberish.ugen);
-			
+
 			that.name = Gibberish.generateSymbol(that.type);
 			Gibberish.masterInit.push(that.name + " = Gibberish.make[\"Clip\"]();");
 			window[that.name] = Gibberish.make["Clip"]();
-			
+
 			Gibberish.defineProperties( that, ["amount", "amp"] );
-	
+
 			return that;
 		},
 
@@ -309,15 +309,15 @@ define([], function() {
 			var abs = Math.abs;
 			var log = Math.log;
 			var ln2 = Math.LN2;
-			
+
 			var output = function(sample, amount) {
 				var x = sample * amount;
 				return (x / (1 + abs(x))) / (log(amount) / ln2); //TODO: get rid of log / divide
 			};
-			
+
 			return output;
 		},
-		
+
 		// adapted from Arif Ove Karlsne's 24dB ladder approximation: http://musicdsp.org/showArchiveComment.php?ArchiveID=141
 		Filter24 : function(cutoff, resonance, isLowPass) {
 			var that = {
@@ -330,13 +330,13 @@ define([], function() {
 				toJSON:		function() { return ""+this.type+this.cutoff+this.resonance; }
 			};
 			Gibberish.extend(that, Gibberish.ugen);
-			
+
 			that.name = Gibberish.generateSymbol(that.type);
 			Gibberish.masterInit.push(that.name + " = Gibberish.make[\"Filter24\"]();");
 			window[that.name] = Gibberish.make["Filter24"]();
-			
+
 			Gibberish.defineProperties( that, ["cutoff", "resonance", "isLowPass"] );
-	
+
 			return that;
 		},
 
@@ -345,27 +345,27 @@ define([], function() {
 				pole2 = 0,
 				pole3 = 0,
 				pole4 = 0;
-			
+
 			var output = function(sample, cutoff, resonance, isLowPass) {
 				rez = pole4 * resonance; 
 
 				if (rez > 1) {rez = 1;}
 				sample = sample - rez;
-				
+
 				if (cutoff < 0) cutoff = 0;
-				
+
 				pole1 = pole1 + ((-pole1 + sample) * cutoff);
 				pole2 = pole2 + ((-pole2 + pole1)  * cutoff);
 				pole3 = pole3 + ((-pole3 + pole2)  * cutoff);
 				pole4 = pole4 + ((-pole4 + pole3)  * cutoff);
-				
+
 				var out = isLowPass ? pole4 : sample - pole4;
 				return out;
 			};
-			
+
 			return output;
 		},
-		
+
 		Bus : function(effects) {
 			var that = {
 				senders : 0,
@@ -374,7 +374,7 @@ define([], function() {
 				category: "Bus",
 				amount	: 1,
 				toJSON	: Gibberish.NO_MEMO,
-				
+
 				connect : function(bus) {
 					this.destinations.push(bus);
 					if(bus === Gibberish.MASTER) {
@@ -385,13 +385,13 @@ define([], function() {
 					this.dirty = true;
 					Gibberish.dirty = true;
 				},
-				
+
 				connectUgen : function(variable, amount) { // man, this is hacky... but it should be called rarely
 					this["senders" + this.length++] = { type:"*", operands:[variable, amount]};
-					
+
 					var formula = "{0}( ";
 					var attrArray = [];
-					
+
 					for(var i = 1; i <= this.length; i++) {
 						formula += "{"+i+"}";
 						if(i !== this.length) formula +=" + ";
@@ -402,40 +402,40 @@ define([], function() {
 					//console.log("FORMULA : ", formula);
 					//console.log(attrArray);
 					Gibberish.generators[that.type] = Gibberish.createGenerator(attrArray, formula);
-					
+
 				},
-				
+
 				send: function(bus, amount) {
 					bus.connectUgen(this, amount);
 				},
 			};
-			
+
 			Gibberish.extend(that, Gibberish.ugen);
 			that.fx = effects || [];
-			
+
 			that.name = Gibberish.generateSymbol(that.type);
 			that.type = that.name;
-			
+
 			Gibberish.generators[that.type] = Gibberish.createGenerator(["senders", "amount"], "{0}( {1} )");
-			
+
 			Gibberish.masterInit.push(that.name + " = Gibberish.make[\"Bus\"]();");
 			window[that.name] = Gibberish.make["Bus"]();
-			
+
 			Gibberish.defineProperties( that, ["senders", "dirty"]);
 			return that;
 		},
-		
+
 		makeBus : function() { 
 			var output = function() {
 				var out = 0;
-				
+
 				for(var i = 0; i < arguments.length; i++) {
 					out += arguments[i];
 				}
-				
+
 				return out;
 			};
-			
+
 			return output;
 		},
     }
