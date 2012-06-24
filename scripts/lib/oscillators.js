@@ -107,16 +107,18 @@ define([], function() {
 			return that;
 		},
 		
-		makeTriangle: function() { // note, storing the increment value DOES NOT make this faster!
-			var cycle = 1;
+		makeTriangle: function() {
 			var phase = 0;
 			var output = function(frequency, amp) {
-				var incr = 1 / (44100 / frequency / 2);
-				phase += incr * cycle;
+			    var out = 1 - 4 * Math.abs((phase + 0.25) % 1 - 0.5);
 
-				if(Math.abs(phase) > 1) cycle *= -1;
+			    phase += frequency / 44100;
 				
-				return phase * amp;
+			    if (phase > 1) {
+			        phase %= 1;
+			    }
+				
+				return out * amp;
 			};
 	
 			return output;

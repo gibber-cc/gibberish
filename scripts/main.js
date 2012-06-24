@@ -31,14 +31,50 @@ requirejs(['sink/sink-light', 'gibberish', 'utils', 'cycle'],
 		window.test = function() {
 			clearTimeout(timeout);
 			Gibberish.ugens.remove();
-			
-			s = Gibberish.PolySynth("Triangle", .15, 88200, 88200, 44100, 44100, 1, .5, .01, 3.5, .6, true);
+
+			s = Gibberish.PolySynth({waveform: "Triangle", amp: 1, attack: 88200, decay: 88200});
 			s.note(110);
 			s.connect(Gibberish.MASTER);
-			console.log(s);
 			
-			var inputString = "s = Gibberish.Sine(220, .25);\n" + "s.connect(Gibberish.MASTER);";
+			timeout = setInterval(function() { 
+				s.note( Math.round(200 + Math.random() * 800) );
+			}, 6000);
 			
+			var inputString = "s = Gibberish.PolySynth({waveform: \"Triangle\", amp: 1, attack: 88200, decay: 88200});\n"+
+			"s.connect(Gibberish.MASTER);\n" +
+			"\n"+
+			"timeout = setInterval(function() { \n"+
+			"	s.note( Math.round(200 + Math.random() * 800) );\n"+
+			"}, 6000);\n";
+
+			var input = document.getElementById("input");
+			input.innerHTML = inputString;
+			
+			codeTimeout = setTimeout(function() { 
+				var codegen = document.getElementById("output");
+				codegen.innerHTML = "INITIALIZATION:\n\n" + Gibberish.masterInit.join("\n") + "\n\n" + "CALLBACK:\n\n" + Gibberish.callback;
+			}, 250);
+			
+			Gibberish.dirty = true;
+		}
+		window.polySynthTest = function() {
+			clearTimeout(timeout);
+			Gibberish.ugens.remove();
+
+			s = Gibberish.PolySynth({waveform: "Triangle", amp: .1, attack: 88200, decay: 88200});
+			s.connect(Gibberish.MASTER);
+			
+			timeout = setInterval(function() { 
+				s.note( Math.round(200 + Math.random() * 800) );
+			}, 6000);
+			
+			var inputString = "s = Gibberish.PolySynth({waveform: \"Triangle\", amp: .1, attack: 88200, decay: 88200});\n"+
+			"s.connect(Gibberish.MASTER);\n" +
+			"\n"+
+			"timeout = setInterval(function() { \n"+
+			"	s.note( Math.round(200 + Math.random() * 800) );\n"+
+			"}, 6000);\n";
+
 			var input = document.getElementById("input");
 			input.innerHTML = inputString;
 			
@@ -444,12 +480,15 @@ requirejs(['sink/sink-light', 'gibberish', 'utils', 'cycle'],
 			clearTimeout(timeout);
 			Gibberish.ugens.remove();
 			
-			s = Gibberish.Synth("Sine", .25);
+			s = Gibberish.Synth("Sine", .25, 44100, 44100);
 			s.connect(Gibberish.MASTER);
+			
+			t = Gibberish.Sine(.25, 100);
+			s.mod("frequency", t);
 			
 			timeout = setInterval(function() { 
 				s.note( Math.round(200 + Math.random() * 800) );
-			}, 1000);
+			}, 5000);
 			
 			var inputString = "s = Gibberish.Synth(\"Sine\", .25);\n"+
 			"s.connect(Gibberish.MASTER);\n"+
@@ -468,22 +507,53 @@ requirejs(['sink/sink-light', 'gibberish', 'utils', 'cycle'],
 			clearTimeout(timeout);
 			Gibberish.ugens.remove();
 			
-			s = Gibberish.Synth2("Triangle", .75, 88200, 88200, 44100, 44100, 1, .5, .01, 3.5, .6, true);
-			s.note(110);
+			s = Gibberish.Synth2({
+				wavform:	"Triangle",
+				amp: 		.75,
+				attack: 	88200,
+				decay:  	88200,
+				sustain:	44100,
+				release: 	44100,
+				attackLevel:	1,
+				sustainLevel: 	.5,
+				cutoff:		.1,
+				resonance:	 3,
+				filterMult: .5,
+				isLowPass:	 true,
+			});
 			s.connect(Gibberish.MASTER);
 			
-			var inputString =
-			"s = Gibberish.Synth2(\"Triangle\", .75, 88200, 88200, 44100, 44100, 1, .5, .01, 3.5, .6, true);\n"+
-			"s.note(110);\n"+
-			"s.connect(Gibberish.MASTER);\n";
+			timeout = setInterval(function() { 
+				s.note( Math.round(1000 + Math.random() * 200) );
+			}, 6000);
+
+			var inputString = "s = Gibberish.Synth2({\n"+
+			"	wavform:	\"Triangle\",\n"+
+			"	amp: 		.75,\n"+
+			"	attack: 	88200,\n"+
+			"	decay:  	88200,\n"+
+			"	sustain:	44100,\n"+
+			"	release: 	44100,\n"+
+			"	attackLevel:	1,\n"+
+			"	sustainLevel: 	.5,\n"+
+			"	cutoff:		.1,\n"+
+			"	resonance:	 3,\n"+
+			"	filterMult:	.5,\n"+
+			"	isLowPass:	 true,\n"+
+			"});\n"+
+			"s.connect(Gibberish.MASTER);\n"+
+			"\n"+
+			"timeout = setInterval(function() { \n"+
+			"	s.note( Math.round(1000 + Math.random() * 200) );\n"+
+			"}, 6000);\n";
 			
 			var input = document.getElementById("input");
 			input.innerHTML = inputString;
 			
-			// codeTimeout = setTimeout(function() { 
-			// 	var codegen = document.getElementById("output");
-			// 	codegen.innerHTML = "INITIALIZATION:\n\n" + Gibberish.masterInit.join("\n") + "\n\n" + "CALLBACK:\n\n" + Gibberish.callback;
-			// }, 250);
+			codeTimeout = setTimeout(function() { 
+				var codegen = document.getElementById("output");
+				codegen.innerHTML = "INITIALIZATION:\n\n" + Gibberish.masterInit.join("\n") + "\n\n" + "CALLBACK:\n\n" + Gibberish.callback;
+			}, 250);
 			
 			Gibberish.dirty = true;	
 		};
