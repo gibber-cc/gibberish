@@ -124,19 +124,19 @@ define(["oscillators", "effects", "synths", "envelopes"], function(oscillators, 
 		codegen : function(op, codeDictionary) {
 			if(typeof op === "object" && op !== null) {
 				//console.log(op);
-				var memo = this.memo[JSON.stringify(op)];
-				if(memo && op.category !== "FX" && op.category !== "Bus") {
-					console.log("MEMO HOORAY! ", op.name, memo);
-					return memo;
-				}
+				// var memo = this.memo[JSON.stringify(op)];
+				// if(memo && op.category !== "FX" && op.category !== "Bus") {
+				// 	console.log("MEMO HOORAY! ", op.name, memo);
+				// 	return memo;
+				// }
 				
 				var name = op.ugenVariable || this.generateSymbol("v");
 				//console.log(name);
 				//console.log(op);
-				var str = JSON.stringify(op);
-				if(str !== "NO_MEMO") {
-					this.memo[str] = name;
-				}
+				// var str = JSON.stringify(op);
+				// if(str !== "NO_MEMO") {
+				// 	this.memo[str] = name;
+				// }
 				//console.log("UGEN VARIABLE", name, "FOR", op.type);
 				op.ugenVariable = name;
 				//console.log("OP : ", op);

@@ -61,12 +61,12 @@ requirejs(['sink/sink-light', 'gibberish', 'utils', 'cycle'],
 			clearTimeout(timeout);
 			Gibberish.ugens.remove();
 
-			s = Gibberish.PolySynth({waveform: "Triangle", amp: .1, attack: 88200, decay: 88200});
+			s = Gibberish.PolySynth({waveform: "Triangle", amp: .05, attack: 10000, decay: 22050, resonance:2.5, maxVoices:10});
 			s.connect(Gibberish.MASTER);
 			
 			timeout = setInterval(function() { 
 				s.note( Math.round(200 + Math.random() * 800) );
-			}, 6000);
+			}, 100);
 			
 			var inputString = "s = Gibberish.PolySynth({waveform: \"Triangle\", amp: .1, attack: 88200, decay: 88200});\n"+
 			"s.connect(Gibberish.MASTER);\n" +
