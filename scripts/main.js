@@ -31,13 +31,20 @@ requirejs(['sink/sink-light', 'gibberish', 'utils', 'cycle'],
 		window.test = function() {
 			clearTimeout(timeout);
 			Gibberish.ugens.remove();
-
-			s = Gibberish.PolyKarplusStrong({maxVoices: 20});
+			
+			s = Gibberish.PolyFM({
+				cmRatio: 1 + Math.sqrt(2),
+				index: .2,
+				attack: 44,
+				decay: 22050,
+				maxVoices: 20,
+				amp: .075,
+			});
 			s.connect(Gibberish.MASTER);
 			
 			timeout = setInterval(function() { 
 				s.note( Math.round(200 + Math.random() * 800) );
-			}, 100);
+			}, 50);
 			
 			var inputString = "s = Gibberish.PolySynth({waveform: \"Triangle\", amp: .1, attack: 88200, decay: 88200});\n"+
 			"s.connect(Gibberish.MASTER);\n" +
@@ -56,6 +63,50 @@ requirejs(['sink/sink-light', 'gibberish', 'utils', 'cycle'],
 			
 			Gibberish.dirty = true;
 		};
+		
+		window.polyFMTest = function() {
+			clearTimeout(timeout);
+			Gibberish.ugens.remove();
+			
+			s = Gibberish.PolyFM({
+				cmRatio: 1 + Math.sqrt(2),
+				index: .2,
+				attack: 44,
+				decay: 22050,
+				maxVoices: 20,
+				amp: .075,
+			});
+			s.connect(Gibberish.MASTER);
+			
+			timeout = setInterval(function() { 
+				s.note( Math.round(200 + Math.random() * 800) );
+			}, 50);
+			
+			var inputString = "s = Gibberish.PolyFM({\n"+
+			"	cmRatio: 1 + Math.sqrt(2),\n"+
+			"	index: .2,\n"+
+			"	attack: 44,\n"+
+			"	decay: 22050,\n"+
+			"	maxVoices: 20,\n"+
+			"	amp: .075,\n"+
+			"});\n"+
+			"s.connect(Gibberish.MASTER);\n"+
+			"\n"+
+			"timeout = setInterval(function() { \n"+
+			"	s.note( Math.round(200 + Math.random() * 800) );\n"+
+			"}, 50);\n";
+			
+			var input = document.getElementById("input");
+			input.innerHTML = inputString;
+			
+			codeTimeout = setTimeout(function() { 
+				var codegen = document.getElementById("output");
+				codegen.innerHTML = "INITIALIZATION:\n\n" + Gibberish.masterInit.join("\n") + "\n\n" + "CALLBACK:\n\n" + Gibberish.callback;
+			}, 250);
+			
+			Gibberish.dirty = true;	
+		};
+		
 		window.polyKarplusStrongTest = function() {
 			clearTimeout(timeout);
 			Gibberish.ugens.remove();
@@ -120,14 +171,22 @@ requirejs(['sink/sink-light', 'gibberish', 'utils', 'cycle'],
 			clearTimeout(timeout);
 			Gibberish.ugens.remove();
 
-			s = Gibberish.PolySynth({waveform: "Triangle", amp: .1, attack: 10000, decay: 22050, resonance:2.5, maxVoices:10});
+			s = Gibberish.PolySynth({waveform: "Triangle", amp: .1, attack: 44100, decay: 44100, resonance:3.5, cutoff:.025, filterMult:.35, maxVoices:20});
 			s.connect(Gibberish.MASTER);
 			
 			timeout = setInterval(function() { 
 				s.note( Math.round(200 + Math.random() * 800) );
 			}, 100);
 			
-			var inputString = "s = Gibberish.PolySynth({waveform: \"Triangle\", amp: .1, attack: 88200, decay: 88200});\n"+
+			var inputString = "s = Gibberish.PolySynth({\n"+
+			"	waveform: \"Triangle\", \n"+
+			"	amp: .1, attack: 44100, \n"+
+			"	decay: 44100, \n"+
+			"	resonance:3.5, \n"+
+			"	cutoff:.025, \n"+
+			"	filterMult:.35, \n"+
+			"	maxVoices:20\n"+
+			"});\n"+
 			"s.connect(Gibberish.MASTER);\n" +
 			"\n"+
 			"timeout = setInterval(function() { \n"+
@@ -575,7 +634,7 @@ requirejs(['sink/sink-light', 'gibberish', 'utils', 'cycle'],
 				release: 	44100,
 				attackLevel:	1,
 				sustainLevel: 	.5,
-				cutoff:		.1,
+				cutoff:		.05,
 				resonance:	 3,
 				filterMult: .5,
 				isLowPass:	 true,
