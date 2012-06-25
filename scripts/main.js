@@ -37,14 +37,16 @@ requirejs(['sink/sink-light', 'gibberish', 'utils', 'cycle'],
 				index: .2,
 				attack: 44,
 				decay: 22050,
-				maxVoices: 20,
+				maxVoices: 1,
 				amp: .075,
 			});
+			b = Gibberish.BufferShuffler();
+			s.fx.add(b);
 			s.connect(Gibberish.MASTER);
 			
 			timeout = setInterval(function() { 
 				s.note( Math.round(200 + Math.random() * 800) );
-			}, 50);
+			}, 500);
 			
 			var inputString = "s = Gibberish.PolySynth({waveform: \"Triangle\", amp: .1, attack: 88200, decay: 88200});\n"+
 			"s.connect(Gibberish.MASTER);\n" +

@@ -24,6 +24,11 @@ define([], function() {
 			gibberish.generators.Comb = gibberish.createGenerator(["source", "time", "feedback"], "{0}( {1}, {2}, {3} )");
 			gibberish.make["Comb"] = this.makeComb;
 			gibberish.Comb = this.Comb;
+			
+			gibberish.generators.BufferShuffler = gibberish.createGenerator(["source","chance", "rate", "length"], "{0}( {1}, {2}, {3}, {4} )");
+			gibberish.make["BufferShuffler"] = this.makeBufferShuffler;
+			gibberish.BufferShuffler = this.BufferShuffler;
+			
 
 			// the calls to dynamically create the bus generators are generated dynamically. that is fun to say.
 			gibberish.make["Bus"] = this.makeBus;
@@ -365,6 +370,109 @@ define([], function() {
 
 			return output;
 		},
+		
+		BufferShuffler : function(properties) {
+			var that = {
+				type:		"BufferShuffler",
+				category:	"FX",
+				chance: 	.25,		
+				rate: 		5512,
+				length:		11025,
+				shouldRandomizeReverse : true,
+				shouldRandomizePitch :   true,
+				value : 0,
+				readIndex : 0,
+				writeIndex : -1,
+				increment : 1,
+				loopPhase : 0,
+				isCrazy : false,
+				crazyTime : 0,
+				reverse : false,
+				reverseChance : .5,
+				pitchShifting : false,
+				pitchChance : .5,
+				pitchMin : .25,
+				pitchMax : 2,
+				mix : 1,
+				phase : 0,
+				fadeCount : 0,
+				fading : false,
+				shouldPrint : false,
+			};
+			
+			Gibberish.extend(that, Gibberish.ugen);
+			if(typeof properties !== "undefined") {
+				Gibberish.extend(that, properties);
+			}
+
+			that.buffer = new Float32Array(that.length * 2);
+
+			that.name = Gibberish.generateSymbol(that.type);
+			Gibberish.masterInit.push(that.name + " = Gibberish.make[\"BufferShuffler\"]();");
+			window[that.name] = Gibberish.make["BufferShuffler"](that.buffer);
+			that._function = window[that.name];
+
+			//Gibberish.defineProperties( that, ["time", "feedback"] );
+
+			return that;
+		},
+
+		makeBufferShuffler : function(buffer) {
+			var readIndex = 0;
+			var writeIndex = 0;
+			var randomizeCheckIndex = 0;
+			var shuffleIndex = 0;
+			var isShuffling = 0;
+			var random = Math.random;
+			var bufferSize = buffer.length;
+			var fadeIndex = 0;
+			var fadeAmount = 1;
+			var isFadingWet = false;
+			var isFadingDry = false;
+			
+			var output = function(sample, chance, rate, length) {
+				buffer[writeIndex++] = sample;
+				if(writeIndex >= buffer.length) writeIndex = 0;
+				
+				//if(writeIndex % 5000 === 0) console.log(chance, rate, length, randomizeCheckIndex);
+				randomizeCheckIndex += !isShuffling;
+				
+				if(!isShuffling && randomizeCheckIndex % rate == 0 && random() < chance) {
+					isShuffling = true;
+					readIndex = writeIndex - length;
+					if(readIndex < 0) readIndex = bufferSize + readIndex;
+					fadeAmount = 1;
+					isFadingWet = true;
+					isFadingDry = false;
+				}else if(shuffleIndex++ % length === 0) {
+					isFadingWet = false;
+					isFadingDry = true;
+					fadeAmount = 1;
+				}
+				
+				var out;
+				if(!isFadingWet) {
+					if(!isFadingDry) {
+						out = isShuffling ? buffer[readIndex++ % bufferSize] : sample;
+					}else{
+						out = (buffer[readIndex++ % bufferSize] * (fadeAmount)) + (sample * (1 - fadeAmount));
+						fadeAmount -= .0015;
+						if(fadeAmount <= 0) isFadingDry = false;
+					}
+				}else{
+					//console.log(fadeAmount);					
+					out = (buffer[readIndex++ % bufferSize] * (1 - fadeAmount)) + (sample * fadeAmount);
+					fadeAmount -= .0015;					
+					if(fadeAmount <= 0) isFadingWet = false;
+					
+				}
+
+				return out;
+			};
+
+			return output;
+		},
+		
 
 		Bus : function(effects) {
 			var that = {
