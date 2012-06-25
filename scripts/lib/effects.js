@@ -427,8 +427,8 @@ define([], function() {
 			var bufferSize = buffer.length;
 			var fadeIndex = 0;
 			var fadeAmount = 1;
-			var isFadingWet = false;
-			var isFadingDry = false;
+			var isFadingWetIn = false;
+			var isFadingDryIn = false;
 			
 			var output = function(sample, chance, rate, length) {
 				buffer[writeIndex++] = sample;
@@ -442,29 +442,28 @@ define([], function() {
 					readIndex = writeIndex - length;
 					if(readIndex < 0) readIndex = bufferSize + readIndex;
 					fadeAmount = 1;
-					isFadingWet = true;
-					isFadingDry = false;
+					isFadingWetIn = true;
+					isFadingDryIn = false;
 				}else if(shuffleIndex++ % length === 0) {
-					isFadingWet = false;
-					isFadingDry = true;
+					isFadingWetIn = false;
+					isFadingDryIn = true;
 					fadeAmount = 1;
 				}
 				
 				var out;
-				if(!isFadingWet) {
-					if(!isFadingDry) {
-						out = isShuffling ? buffer[readIndex++ % bufferSize] : sample;
-					}else{
-						out = (buffer[readIndex++ % bufferSize] * (fadeAmount)) + (sample * (1 - fadeAmount));
-						fadeAmount -= .0015;
-						if(fadeAmount <= 0) isFadingDry = false;
-					}
-				}else{
-					//console.log(fadeAmount);					
+				if(isFadingWetIn) {
 					out = (buffer[readIndex++ % bufferSize] * (1 - fadeAmount)) + (sample * fadeAmount);
 					fadeAmount -= .0015;					
-					if(fadeAmount <= 0) isFadingWet = false;
-					
+					if(fadeAmount <= 0) isFadingWetIn = false;
+				}else if(isFadingDryIn) {
+					out = (buffer[readIndex++ % bufferSize] * (fadeAmount)) + (sample * (1 - fadeAmount));
+					fadeAmount -= .0015;
+					if(fadeAmount <= 0) { 
+						isFadingDryIn = false;
+						isShuffling = false;
+					}
+				}else{
+					out = isShuffling ? buffer[readIndex++ % bufferSize] : sample;
 				}
 
 				return out;

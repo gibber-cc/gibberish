@@ -18,7 +18,7 @@ define(["oscillators", "effects", "synths", "envelopes"], function(oscillators, 
 		},
 
 		generateCallback : function() {
-			var debug = false;
+			var debug = true;
 			this.masterUpvalues = [];
 			this.masterCodeblock = [];
 			this.memo = {};
@@ -123,22 +123,17 @@ define(["oscillators", "effects", "synths", "envelopes"], function(oscillators, 
 		// TODO: MUST MEMOIZE THIS FUNCTION
 		codegen : function(op, codeDictionary) {
 			if(typeof op === "object" && op !== null) {
-				//console.log(op);
-				// var memo = this.memo[JSON.stringify(op)];
-				// if(memo && op.category !== "FX" && op.category !== "Bus") {
-				// 	console.log("MEMO HOORAY! ", op.name, memo);
-				// 	return memo;
-				// }
+
+				var memo = this.memo[op.name];
+				if(memo && op.category !== "FX" && op.category !== "Bus") {
+					return memo;
+				}
 				
 				var name = op.ugenVariable || this.generateSymbol("v");
-				//console.log(name);
-				//console.log(op);
-				// var str = JSON.stringify(op);
-				// if(str !== "NO_MEMO") {
-				// 	this.memo[str] = name;
-				// }
-				//console.log("UGEN VARIABLE", name, "FOR", op.type);
+				
 				op.ugenVariable = name;
+				this.memo[op.name] = op.ugenVariable;
+				
 				//console.log("OP : ", op);
 				// if(typeof op === "object" && op instanceof Array) {
 				// 	for(var i = 0; i < op.length; i++) {
@@ -158,10 +153,7 @@ define(["oscillators", "effects", "synths", "envelopes"], function(oscillators, 
 					}// else{
 					// 						statement = "var {0} = {1}".format(name, JSON.stringify(op));
 					// 					}
-				
 					//}
-				
-		
 				return name;
 			}else{
 				return op;
