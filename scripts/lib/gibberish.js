@@ -147,19 +147,20 @@ define(["oscillators", "effects", "synths", "envelopes"], function(oscillators, 
 				// 	}
 				// }else{
 					var gen = this.generators[op.type];
+					//console.log(gen);
 					if(gen) {
 						if(op.category !== "FX") {
 							statement = "var {0} = {1}".format(name, gen(op, codeDictionary));
 						}else{
 							statement = "{0} = {1}".format(op.source, gen(op, codeDictionary));
 						}
+						codeDictionary.codeblock.push(statement);
 					}// else{
 					// 						statement = "var {0} = {1}".format(name, JSON.stringify(op));
 					// 					}
 				
 					//}
 				
-				codeDictionary.codeblock.push(statement);
 		
 				return name;
 			}else{

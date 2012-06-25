@@ -288,6 +288,5 @@ define([], function() {
 			}
 			return output;
 		},
-		
     }
 });

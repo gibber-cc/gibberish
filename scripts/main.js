@@ -32,15 +32,14 @@ requirejs(['sink/sink-light', 'gibberish', 'utils', 'cycle'],
 			clearTimeout(timeout);
 			Gibberish.ugens.remove();
 
-			s = Gibberish.PolySynth({waveform: "Triangle", amp: 1, attack: 88200, decay: 88200});
-			s.note(110);
+			s = Gibberish.PolyKarplusStrong({maxVoices: 20});
 			s.connect(Gibberish.MASTER);
 			
 			timeout = setInterval(function() { 
 				s.note( Math.round(200 + Math.random() * 800) );
-			}, 6000);
+			}, 100);
 			
-			var inputString = "s = Gibberish.PolySynth({waveform: \"Triangle\", amp: 1, attack: 88200, decay: 88200});\n"+
+			var inputString = "s = Gibberish.PolySynth({waveform: \"Triangle\", amp: .1, attack: 88200, decay: 88200});\n"+
 			"s.connect(Gibberish.MASTER);\n" +
 			"\n"+
 			"timeout = setInterval(function() { \n"+
@@ -56,12 +55,72 @@ requirejs(['sink/sink-light', 'gibberish', 'utils', 'cycle'],
 			}, 250);
 			
 			Gibberish.dirty = true;
+		};
+		window.polyKarplusStrongTest = function() {
+			clearTimeout(timeout);
+			Gibberish.ugens.remove();
+
+			s = Gibberish.PolyKarplusStrong({maxVoices: 20});
+			s.connect(Gibberish.MASTER);
+			
+			timeout = setInterval(function() { 
+				s.note( Math.round(200 + Math.random() * 800) );
+			}, 100);
+			
+			var inputString = "s = Gibberish.PolyKarplusStrong({maxVoices: 20});\n"+
+			"s.connect(Gibberish.MASTER);\n"+
+			"\n"+
+			"timeout = setInterval(function() { \n"+
+			"	s.note( Math.round(200 + Math.random() * 800) );\n"+
+			"}, 100);\n";
+
+			var input = document.getElementById("input");
+			input.innerHTML = inputString;
+			
+			codeTimeout = setTimeout(function() { 
+				var codegen = document.getElementById("output");
+				codegen.innerHTML = "INITIALIZATION:\n\n" + Gibberish.masterInit.join("\n") + "\n\n" + "CALLBACK:\n\n" + Gibberish.callback;
+			}, 250);
+			
+			Gibberish.dirty = true;
 		}
+		
+		window.karplusStrongTest = function() {
+			clearTimeout(timeout);
+			Gibberish.ugens.remove();
+
+			s = Gibberish.KarplusStrong();
+			s.note(440);
+			s.connect(Gibberish.MASTER);
+			
+			timeout = setInterval(function() { 
+				s.note( Math.round(200 + Math.random() * 800) );
+			}, 1000);
+			
+			var inputString = "s = Gibberish.KarplusStrong();\n"+
+			"s.note(440);\n"+
+			"s.connect(Gibberish.MASTER);\n"+
+			"\n"+
+			"timeout = setInterval(function() { \n"+
+			"	s.note( Math.round(200 + Math.random() * 800) );\n"+
+			"}, 1000);\n";
+
+			var input = document.getElementById("input");
+			input.innerHTML = inputString;
+			
+			codeTimeout = setTimeout(function() { 
+				var codegen = document.getElementById("output");
+				codegen.innerHTML = "INITIALIZATION:\n\n" + Gibberish.masterInit.join("\n") + "\n\n" + "CALLBACK:\n\n" + Gibberish.callback;
+			}, 250);
+			
+			Gibberish.dirty = true;
+		};
+		
 		window.polySynthTest = function() {
 			clearTimeout(timeout);
 			Gibberish.ugens.remove();
 
-			s = Gibberish.PolySynth({waveform: "Triangle", amp: .05, attack: 10000, decay: 22050, resonance:2.5, maxVoices:10});
+			s = Gibberish.PolySynth({waveform: "Triangle", amp: .1, attack: 10000, decay: 22050, resonance:2.5, maxVoices:10});
 			s.connect(Gibberish.MASTER);
 			
 			timeout = setInterval(function() { 

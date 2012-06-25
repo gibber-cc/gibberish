@@ -13,9 +13,13 @@ define([], function() {
 			gibberish.make["Triangle"] = this.makeTriangle;
 			gibberish.Triangle = this.Triangle;
 			
-			gibberish.generators.Env = gibberish.createGenerator(["attack",  "decay"], "{0}({1}, {2})" ),
-			gibberish.make["Env"] = this.makeEnv;
-			gibberish.Env = this.Env;
+			gibberish.generators.KarplusStrong = gibberish.createGenerator(["blend", "dampingValue", "amp"], "{0}( {1}, {2}, {3} )");
+			gibberish.make["KarplusStrong"] = this.makeKarplusStrong;
+			gibberish.KarplusStrong = this.KarplusStrong;
+			
+			gibberish.generators.PolyKarplusStrong = gibberish.createGenerator(["blend", "dampingValue", "amp"], "{0}( {1}, {2}, {3} )");
+			gibberish.make["PolyKarplusStrong"] = this.makePolyKarplusStrong;
+			gibberish.PolyKarplusStrong = this.PolyKarplusStrong;
 		},
 		
 		Sine : function(freq, amp, name) {
@@ -123,5 +127,166 @@ define([], function() {
 	
 			return output;
 		},
+		
+		KarplusStrong : function(properties) {
+			var that = { 
+				type:		"KarplusStrong",
+				category:	"Gen",
+				amp:		.5,
+				damping:	.0,
+				dampingValue: 0,
+				blend:		 1,
+				buffer: 	[],
+				
+				note : function(frequency) {
+					var _size = Math.floor(44100 / frequency);
+					this.buffer = []; //new Float32Array(_size);
+					
+					for(var i = 0; i < _size ; i++) {
+						this.buffer[i] = Math.random() * 2 - 1; // white noise
+					}
+					
+					this._function.setBuffer(this.buffer);
+				},
+			};
+			
+			Gibberish.extend(that, Gibberish.ugen);
+			
+			var damping = that.damping;
+			
+		    Object.defineProperty(that, "damping", {
+				get: function() {
+					return damping * 100;
+				},
+				set: function(value) {
+					damping = value / 100;
+					that.dampingValue = .5 - damping;
+					this.dirty = true;
+					Gibberish.dirty = true;
+				}
+			});
+
+			
+			if(typeof properties !== "undefined") {
+				Gibberish.extend(that, properties);
+			}
+			
+			that.dampingValue = .5 - that.damping;
+			
+			that.buffer.push(0);
+			
+			that.name = Gibberish.generateSymbol(that.type);
+			Gibberish.masterInit.push(that.name + " = Gibberish.make[\"KarplusStrong\"]();");	
+			that._function = Gibberish.make["KarplusStrong"](that.buffer);
+			window[that.name] = that._function;
+			
+			Gibberish.defineProperties( that, ["blend", "amp"] );
+			
+			return that;
+		},
+		
+		makeKarplusStrong: function(buffer) {
+			var phase = 0;
+			var rnd = Math.random;
+			var lastValue = 0;
+			var output = function(blend, damping, amp) {		
+				var val = buffer.shift();
+				//if(phase++ % 22050 === 0) console.log("VAL", val, buffer.length);
+				var rndValue = (rnd() > blend) ? -1 : 1;
+		
+				var value = rndValue * (val + lastValue) * damping;
+		
+				lastValue = value;
+		
+				buffer.push(value);
+				//if(phase++ % 22050 === 0) console.log("INSIDE", value, blend, damping, amp, val);
+				return value * amp;
+			};
+			output.setBuffer = function(buff) { buffer = buff; };
+			output.getBuffer = function() { return buffer; };			
+
+			return output;
+		},
+		
+		PolyKarplusStrong : function(properties) {
+			var that = {
+				type:			"PolyKarplusStrong",
+				category:		"Gen",
+				blend:			1,
+				damping:		0,
+				maxVoices:		10,
+				voiceCount:		0,
+				amp:			.2,
+				
+				note : function(_frequency) {
+					var synth = this.synths[this.voiceCount++];
+					if(this.voiceCount >= this.maxVoices) this.voiceCount = 0;
+					synth.note(_frequency);
+				},
+			};
+			
+			that.dampingValue = .5 - that.damping;
+			
+			if(typeof properties !== "undefined") {
+				Gibberish.extend(that, properties);
+			}
+			Gibberish.extend(that, Gibberish.ugen);
+			
+			that.synths = [];
+			that.synthFunctions = [];
+			for(var i = 0; i < that.maxVoices; i++) {
+				var props = {};
+				Gibberish.extend(props, that);
+				delete props.note; // we don't want to copy the poly note function obviously
+				delete props.type;
+				delete props.synths;
+				delete props.synthFunctions;
+				
+				props.type = "KarplusStrong";
+				
+				var synth = this.KarplusStrong(props);
+
+				that.synths.push(synth);
+
+				that.synthFunctions.push(synth._function);
+			}
+			
+			that.name = Gibberish.generateSymbol(that.type);
+			Gibberish.masterInit.push(that.name + " = Gibberish.make[\"PolyKarplusStrong\"]();");	
+			window[that.name] = Gibberish.make["PolyKarplusStrong"](that.synthFunctions); // only passs ugen functions to make
+			
+			Gibberish.defineProperties( that, ["blend", "amp"] );
+			
+		    Object.defineProperty(that, "damping", {
+				get: function() {
+					return damping * 100;
+				},
+				set: function(value) {
+					damping = value / 100;
+					that.dampingValue = .5 - damping;
+					this.dirty = true;
+					Gibberish.dirty = true;
+				}
+
+			});
+	
+			return that;
+		},
+		
+		makePolyKarplusStrong: function(_synths) {
+			var phase = 0;
+			var output = function(blend, dampingValue, amp) {
+				var out = 0;
+				var synths = _synths;
+				var numSynths = synths.length;
+				for(var i = 0; i < numSynths; i++) {
+					var synth = synths[i];
+					out += synth(blend, dampingValue, amp);
+				}
+				return out;
+			}
+			return output;
+		},
+		
     }
 });

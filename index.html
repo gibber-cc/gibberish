@@ -17,7 +17,7 @@
 <body>
 <h1>Gibberish Tests</h1>
 <p style="width:50%">Gibberish is an audio engine that creates code optimized for JIT compilation. Below, the input code is what the programmer enters, the output code is what Gibberish generates for the JIT compiler. It will eventually be the audio backend for the live coding environment <a href="http://www.charlie-roberts.com/gibber">Gibber</a>.</p>
-run: <select onchange="Gibberish.masterInit = []; eval(this.options[this.selectedIndex].text + '()')">
+run: <select onchange="Gibberish.masterInit = []; window[this.options[this.selectedIndex].text]();">
 	<option>_clear_</option>	
 	<option>sineTest</option>
 	<option>sineStressTest</option>
@@ -27,11 +27,13 @@ run: <select onchange="Gibberish.masterInit = []; eval(this.options[this.selecte
 	<option>busTest</option>
 	<!--<option>busFeedbackTest</option>-->
 	<option>synthTest</option>
-	<option>synth2Test</option>	
 	<option>ADSRTest</option>	
 	<option>filterTest</option>
-	<option>polySynthTest</option>	
+	<option>synth2Test</option>
+	<option>polySynthTest</option>		
 	<option>FMTest</option>
+	<option>karplusStrongTest</option>
+	<option>polyKarplusStrongTest</option>
 	<option>stressTest</option>
 	<option>reverbStressTest</option>
 	<option>test</option>	
