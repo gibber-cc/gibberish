@@ -103,7 +103,6 @@ define([], function() {
 				buffer:		new Float32Array(time || 1200),
 				damping:	damping || .2,
 				source:		null,
-				toJSON:		Gibberish.NO_MEMO,
 			};
 			Gibberish.extend(that, Gibberish.ugen);
 
@@ -181,7 +180,6 @@ define([], function() {
 
 				    stereoSpread: 	23
 				},
-				toJSON:		function() { return ""+this.type+this.roomSize+this.damping+this.wet+this.dry; },
 				channelCount: 1,
 			};
 			Gibberish.extend(that, Gibberish.ugen);
@@ -253,7 +251,6 @@ define([], function() {
 				source:		null,
 				buffer:		new Float32Array(88200),				
 				bufferLength: 88200,
-				toJSON:		Gibberish.NO_MEMO,
 			};
 			Gibberish.extend(that, Gibberish.ugen);
 
@@ -297,7 +294,6 @@ define([], function() {
 				amount:		amount,
 				amp:		amp,
 				source:		null,
-				toJSON:		function() { return ""+this.type+this.amount+this.amp; }
 			};
 			Gibberish.extend(that, Gibberish.ugen);
 
@@ -332,7 +328,6 @@ define([], function() {
 				resonance:	resonance,
 				isLowPass:	typeof isLowPass === "undefined" ? true : isLowPass,
 				source:		null,
-				toJSON:		function() { return ""+this.type+this.cutoff+this.resonance; }
 			};
 			Gibberish.extend(that, Gibberish.ugen);
 
@@ -376,8 +371,8 @@ define([], function() {
 				type:		"BufferShuffler",
 				category:	"FX",
 				chance: 	.25,		
-				rate: 		5512,
-				length:		11025,
+				rate: 		11025,
+				length:		22050,
 				shouldRandomizeReverse : true,
 				shouldRandomizePitch :   true,
 				value : 0,
@@ -431,34 +426,40 @@ define([], function() {
 			var isFadingDryIn = false;
 			
 			var output = function(sample, chance, rate, length) {
-				buffer[writeIndex++] = sample;
-				if(writeIndex >= buffer.length) writeIndex = 0;
-				
 				//if(writeIndex % 5000 === 0) console.log(chance, rate, length, randomizeCheckIndex);
-				randomizeCheckIndex += !isShuffling;
-				
-				if(!isShuffling && randomizeCheckIndex % rate == 0 && random() < chance) {
-					isShuffling = true;
-					readIndex = writeIndex - length;
-					if(readIndex < 0) readIndex = bufferSize + readIndex;
-					fadeAmount = 1;
-					isFadingWetIn = true;
-					isFadingDryIn = false;
-				}else if(shuffleIndex++ % length === 0) {
+				if(!isShuffling) {
+					buffer[writeIndex++] = sample;
+					writeIndex %= buffer.length;
+					randomizeCheckIndex += !isShuffling;
+					
+					if(randomizeCheckIndex % rate == 0 && random() < chance) {
+						isShuffling = true;
+						readIndex = writeIndex - length;
+						if(readIndex < 0) readIndex = bufferSize + readIndex;
+						fadeAmount = 1;
+						isFadingWetIn = true;
+						isFadingDryIn = false;
+						console.log("SHUFFLE");
+					}
+				}else if(++shuffleIndex % (length - 399) === 0) {
 					isFadingWetIn = false;
 					isFadingDryIn = true;
 					fadeAmount = 1;
+					shuffleIndex = 0;
 				}
 				
 				var out;
 				if(isFadingWetIn) {
+					//console.log("FADING WET");
+					fadeAmount -= .0025;					
 					out = (buffer[readIndex++ % bufferSize] * (1 - fadeAmount)) + (sample * fadeAmount);
-					fadeAmount -= .0015;					
-					if(fadeAmount <= 0) isFadingWetIn = false;
+					if(fadeAmount <= .0) isFadingWetIn = false;
 				}else if(isFadingDryIn) {
+					fadeAmount -= .0025;
+					//console.log("FADING DRY");
+					
 					out = (buffer[readIndex++ % bufferSize] * (fadeAmount)) + (sample * (1 - fadeAmount));
-					fadeAmount -= .0015;
-					if(fadeAmount <= 0) { 
+					if(fadeAmount <= .0) { 
 						isFadingDryIn = false;
 						isShuffling = false;
 					}
@@ -480,7 +481,6 @@ define([], function() {
 				type	: "Bus",
 				category: "Bus",
 				amount	: 1,
-				toJSON	: Gibberish.NO_MEMO,
 
 				connect : function(bus) {
 					this.destinations.push(bus);

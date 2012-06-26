@@ -31,31 +31,25 @@ requirejs(['sink/sink-light', 'gibberish', 'utils', 'cycle'],
 		window.test = function() {
 			clearTimeout(timeout);
 			Gibberish.ugens.remove();
+						
+			s = Gibberish.PolyFM({
+				cmRatio: 1 + Math.sqrt(2),
+				index: .2,
+				attack: 44,
+				decay: 5900,
+				maxVoices: 1,
+				amp: .25,
+			});
 			
-			// s = Gibberish.PolyFM({
-			// 	cmRatio: 1 + Math.sqrt(2),
-			// 	index: .2,
-			// 	attack: 44,
-			// 	decay: 22050,
-			// 	maxVoices: 1,
-			// 	amp: .075,
-			// });
-			// b = Gibberish.BufferShuffler();
-			// s.fx.add(b);
-			// s.connect(Gibberish.MASTER);
-			
-			s = Gibberish.Sine();
-			m = Gibberish.Sine(.25, .25)
-			s.mod("amp", m);
-			//s.mod("frequency", m, "*");
-			ss = Gibberish.Sine(880);
-			ss.mod("amp", m);			
+			v = [110, 220, 330, 440, 550, 660, 770, 880];
+			i = 0;
+			b = Gibberish.BufferShuffler();
+			s.fx.add(b);
 			s.connect(Gibberish.MASTER);
-			ss.connect(Gibberish.MASTER);
 			
-			// timeout = setInterval(function() { 
-			// 	s.note( Math.round(200 + Math.random() * 800) );
-			// }, 500);
+			timeout = setInterval(function() { 
+				s.note( v[i++ % v.length] );
+			}, 250);
 			
 			var inputString = "s = Gibberish.PolySynth({waveform: \"Triangle\", amp: .1, attack: 88200, decay: 88200});\n"+
 			"s.connect(Gibberish.MASTER);\n" +

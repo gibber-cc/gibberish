@@ -18,7 +18,7 @@ define(["oscillators", "effects", "synths", "envelopes"], function(oscillators, 
 		},
 
 		generateCallback : function() {
-			var debug = true;
+			var debug = false;
 			this.masterUpvalues = [];
 			this.masterCodeblock = [];
 			this.memo = {};
@@ -201,7 +201,6 @@ define(["oscillators", "effects", "synths", "envelopes"], function(oscillators, 
 		mod : function(name, modulator, type) {
 			var type = type || "+";
 			var m = { type:type, operands:[this[name], modulator], name:name };
-			m.toJSON = function() { return ""+type+name+this.type; }
 			this[name] = m;
 			//modulator.modding = this;
 			this.mods.push(m);
