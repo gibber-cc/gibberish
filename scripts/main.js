@@ -3,8 +3,8 @@ requirejs.config({
     paths: {}
 });
 
-requirejs(['sink/sink-light', 'gibberish', 'utils', 'cycle'], 
-	function   (sink,   _gibberish) {
+requirejs(['external/sink-light', 'external/audiofile', 'gibberish', 'utils', 'cycle'], 
+	function   (sink,  audiofile, _gibberish) {
 		window.Gibberish = _gibberish;
 		Gibberish.init();
 		var timeout = null;
@@ -32,31 +32,60 @@ requirejs(['sink/sink-light', 'gibberish', 'utils', 'cycle'],
 			clearTimeout(timeout);
 			Gibberish.ugens.remove();
 						
-			s = Gibberish.PolyFM({
-				cmRatio: 1 + Math.sqrt(2),
-				index: .2,
-				attack: 44,
-				decay: 5900,
-				maxVoices: 1,
-				amp: .25,
-			});
-			
-			v = [110, 220, 330, 440, 550, 660, 770, 880];
-			i = 0;
-			b = Gibberish.BufferShuffler();
-			s.fx.add(b);
+			s = Gibberish.Sampler("http://127.0.0.1/~charlie/gibberish/wilhelm.wav");
 			s.connect(Gibberish.MASTER);
+			
+			v [.5, 1, 2];
+			i = 0;
 			
 			timeout = setInterval(function() { 
 				s.note( v[i++ % v.length] );
-			}, 125);
+			}, 1500);
 			
-			var inputString = "s = Gibberish.PolySynth({waveform: \"Triangle\", amp: .1, attack: 88200, decay: 88200});\n"+
-			"s.connect(Gibberish.MASTER);\n" +
+			var inputString = "s = Gibberish.Sampler(\"http://127.0.0.1/~charlie/gibberish/wilhelm.wav\");\n"+
+			"s.connect(Gibberish.MASTER);\n"+
+			"\n"+
+			"v [.5, 1, 2];\n"+
+			"i = 0;\n"+
 			"\n"+
 			"timeout = setInterval(function() { \n"+
-			"	s.note( Math.round(200 + Math.random() * 800) );\n"+
-			"}, 6000);\n";
+			"	s.note( v[i++ % v.length] );\n"+
+			"}, 1500);\n";
+
+			var input = document.getElementById("input");
+			input.innerHTML = inputString;
+			
+			codeTimeout = setTimeout(function() { 
+				var codegen = document.getElementById("output");
+				codegen.innerHTML = "INITIALIZATION:\n\n" + Gibberish.masterInit.join("\n") + "\n\n" + "CALLBACK:\n\n" + Gibberish.callback;
+			}, 250);
+			
+			Gibberish.dirty = true;
+		};
+		
+		window.samplerTest = function() {
+			clearTimeout(timeout);
+			Gibberish.ugens.remove();
+						
+			s = Gibberish.Sampler("http://127.0.0.1/~charlie/gibberish/wilhelm.wav");
+			s.connect(Gibberish.MASTER);
+			
+			v [.5, 1, 2];
+			i = 0;
+			
+			timeout = setInterval(function() { 
+				s.note( v[i++ % v.length] );
+			}, 1500);
+			
+			var inputString = "s = Gibberish.Sampler(\"http://127.0.0.1/~charlie/gibberish/wilhelm.wav\");\n"+
+			"s.connect(Gibberish.MASTER);\n"+
+			"\n"+
+			"v [.5, 1, 2];\n"+
+			"i = 0;\n"+
+			"\n"+
+			"timeout = setInterval(function() { \n"+
+			"	s.note( v[i++ % v.length] );\n"+
+			"}, 1500);\n";
 
 			var input = document.getElementById("input");
 			input.innerHTML = inputString;

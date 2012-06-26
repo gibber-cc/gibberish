@@ -20,6 +20,10 @@ define([], function() {
 			gibberish.generators.PolyKarplusStrong = gibberish.createGenerator(["blend", "dampingValue", "amp"], "{0}( {1}, {2}, {3} )");
 			gibberish.make["PolyKarplusStrong"] = this.makePolyKarplusStrong;
 			gibberish.PolyKarplusStrong = this.PolyKarplusStrong;
+			
+			gibberish.Sampler = this.Sampler;
+			gibberish.generators.Sampler = gibberish.createGenerator(["speed"], "{0}( {1} )");
+			gibberish.make["Sampler"] = this.makeSampler;
 		},
 		
 		Sine : function(freq, amp, name) {
@@ -283,6 +287,65 @@ define([], function() {
 			}
 			return output;
 		},
+		
+		Sampler : function(pathToAudioFile) {
+			var that = {
+				type: 			"Sampler",
+				category:		"Gen",
+				audioFilePath: 	pathToAudioFile,
+				buffer : 		null,
+				bufferLength:   null,
+				speed:			1,
+				onload : 		function(decoded) { 
+					that.buffer = decoded.channels[0]; 
+					that.bufferLength = decoded.length;
+					
+					that._function = Gibberish.make["Sampler"](that.buffer); // only passs ugen functions to make
+					window[that.name] = that._function;
+					
+					Gibberish.dirty = true;
+					that.dirty = true;	
+				},
+				note: function(speed) {
+					this.speed = speed;
+					this._function.setPhase(0);
+					Gibberish.dirty = true;
+					this.dirty = true;
+				},
+			};
+			
+			// if(typeof properties !== "undefined") {
+			// 	Gibberish.extend(that, properties);
+			// }
+			Gibberish.extend(that, Gibberish.ugen);
+			
+		    var request = new AudioFileRequest(that.audioFilePath);
+		    request.onSuccess = that.onload;
+		    request.send();
+			
+			that.name = Gibberish.generateSymbol(that.type);
+			Gibberish.masterInit.push(that.name + " = Gibberish.make[\"Sampler\"]();");	
+			
+			return that;
+		},
+		
+		makeSampler : function(buffer) {
+			var phase = 0;
+			var interpolate = Gibberish.interpolate;
+			var output = function(speed) {
+				var out = 0;
+				if(buffer !== null) {
+					phase += speed;
+					out = interpolate(buffer, phase);
+					//if(phase % 22050 === 0) console.log("OUT", out, speed);
+				}
+				return out;
+			};
+			output.setPhase = function(newPhase) { phase = newPhase; };
+			
+			return output;
+		}
+		
 		
     }
 });
