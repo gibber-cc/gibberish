@@ -228,6 +228,19 @@ define(["oscillators", "effects", "synths", "envelopes"], function(oscillators, 
 			return name + "_" + this.id++; 
 		},
 		
+		// adapted from audioLib.js
+		interpolate : (function() {
+			var floor = Math.floor;	// who knows if this helps...
+			return function(arr, pos){
+				var	first	= floor(pos),
+					second	= first + 1,
+					frac	= pos - first;
+				second		= second < arr.length ? second : 0;
+				
+				return arr[first] * (1 - frac) + arr[second] * frac;
+			};
+		})(),
+		
 		// modified from http://andrewdupont.net/2009/08/28/deep-extending-objects-in-javascript/ to deep copy arrays
 		extend: function(destination, source) {
 		    for (var property in source) {

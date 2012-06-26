@@ -141,7 +141,7 @@ define([], function() {
 				index:		 	5,			
 				attack:			22050,
 				decay:			22050,
-				maxVoices:		5,
+				maxVoices:		10,
 				voiceCount:		0,
 				
 				note : function(_frequency) {

@@ -25,10 +25,9 @@ define([], function() {
 			gibberish.make["Comb"] = this.makeComb;
 			gibberish.Comb = this.Comb;
 			
-			gibberish.generators.BufferShuffler = gibberish.createGenerator(["source","chance", "rate", "length"], "{0}( {1}, {2}, {3}, {4} )");
+			gibberish.generators.BufferShuffler = gibberish.createGenerator(["source","chance", "rate", "length", "reverseChance", "pitchChance", "pitchMin", "pitchMax"], "{0}( {1}, {2}, {3}, {4}, {5}, {6}, {7}, {8} )");
 			gibberish.make["BufferShuffler"] = this.makeBufferShuffler;
 			gibberish.BufferShuffler = this.BufferShuffler;
-			
 
 			// the calls to dynamically create the bus generators are generated dynamically. that is fun to say.
 			gibberish.make["Bus"] = this.makeBus;
@@ -416,16 +415,21 @@ define([], function() {
 			var readIndex = 0;
 			var writeIndex = 0;
 			var randomizeCheckIndex = 0;
-			var shuffleIndex = 0;
+			var shuffleTimeKeeper = 0;
 			var isShuffling = 0;
 			var random = Math.random;
-			var bufferSize = buffer.length;
+			var bufferLength = buffer.length;
 			var fadeIndex = 0;
 			var fadeAmount = 1;
 			var isFadingWetIn = false;
 			var isFadingDryIn = false;
+			var reversed = false;
+			var interpolate = Gibberish.interpolate;
+			var pitchShifting = false;
+			var speed = 1;
+
 			
-			var output = function(sample, chance, rate, length) {
+			var output = function(sample, chance, rate, length, reverseChance, pitchChance, pitchMin, pitchMax) {
 				//if(writeIndex % 5000 === 0) console.log(chance, rate, length, randomizeCheckIndex);
 				if(!isShuffling) {
 					buffer[writeIndex++] = sample;
@@ -433,38 +437,53 @@ define([], function() {
 					randomizeCheckIndex += !isShuffling;
 					
 					if(randomizeCheckIndex % rate == 0 && random() < chance) {
+						reversed = random() < reverseChance;
 						isShuffling = true;
-						readIndex = writeIndex - length;
-						if(readIndex < 0) readIndex = bufferSize + readIndex;
+						if(!reversed) {
+							readIndex = writeIndex - length;
+							if(readIndex < 0) readIndex = bufferLength + readIndex;
+						}
+						pitchShifting = random() < pitchChance;
+						if(pitchShifting) {
+							speed = window.rndf(pitchMin, pitchMax);
+						}
 						fadeAmount = 1;
 						isFadingWetIn = true;
 						isFadingDryIn = false;
 						console.log("SHUFFLE");
 					}
-				}else if(++shuffleIndex % (length - 399) === 0) {
+				}else if(++shuffleTimeKeeper % (length - 400) === 0) {
 					isFadingWetIn = false;
 					isFadingDryIn = true;
 					fadeAmount = 1;
-					shuffleIndex = 0;
+					shuffleTimeKeeper = 0;
 				}
 				
-				var out;
+				var out, index;
+				readIndex += reversed ? speed * -1 : speed;
+				if(readIndex < 0) {
+					readIndex += bufferLength;
+				}else if( readIndex > bufferLength) {
+					readIndex -= bufferLength;
+				}
+				var outSample = interpolate(buffer, readIndex);
+				
 				if(isFadingWetIn) {
-					//console.log("FADING WET");
-					fadeAmount -= .0025;					
-					out = (buffer[readIndex++ % bufferSize] * (1 - fadeAmount)) + (sample * fadeAmount);
-					if(fadeAmount <= .0) isFadingWetIn = false;
+					fadeAmount -= .0025;
+					out = (outSample * (1 - fadeAmount)) + (sample * fadeAmount);
+					if(fadeAmount <= .0025) isFadingWetIn = false;
 				}else if(isFadingDryIn) {
 					fadeAmount -= .0025;
-					//console.log("FADING DRY");
-					
-					out = (buffer[readIndex++ % bufferSize] * (fadeAmount)) + (sample * (1 - fadeAmount));
-					if(fadeAmount <= .0) { 
+					out = (outSample * (fadeAmount)) + (sample * (1 - fadeAmount));
+					if(fadeAmount <= .0025) { 
 						isFadingDryIn = false;
 						isShuffling = false;
+						reversed = false;
+						speed = 1;
+						pitchShifting = 0;
 					}
 				}else{
-					out = isShuffling ? buffer[readIndex++ % bufferSize] : sample;
+					out = isShuffling ? outSample : sample;
 				}
 
 				return out;
