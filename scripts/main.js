@@ -32,24 +32,101 @@ requirejs(['external/sink-light', 'external/audiofile', 'gibberish', 'utils', 'c
 			clearTimeout(timeout);
 			Gibberish.ugens.remove();
 						
-			s = Gibberish.Sampler("http://127.0.0.1/~charlie/gibberish/wilhelm.wav");
+			s = Gibberish.Synth("Triangle");
+			s.fx.add( Gibberish.Decimator({bitDepth: 4, sampleRate:.25}) );
+			
+			t = Gibberish.Sine(.1, .249);
+			
+			s.fx[0].mod("sampleRate", t);
 			s.connect(Gibberish.MASTER);
 			
-			v [.5, 1, 2];
-			i = 0;
-			
 			timeout = setInterval(function() { 
-				s.note( v[i++ % v.length] );
-			}, 1500);
-			
-			var inputString = "s = Gibberish.Sampler(\"http://127.0.0.1/~charlie/gibberish/wilhelm.wav\");\n"+
+				s.note(Math.round(150 + Math.random() * 400));
+			}, 1000);
+
+			var inputString = "s = Gibberish.Synth(\"Triangle\");\n"+
+			"s.fx.add( Gibberish.Decimator({bitDepth: 4, sampleRate:.25}) );\n"+
+			"\n"+
+			"t = Gibberish.Sine(.1, .249);\n"+
+			"\n"+
+			"s.fx[0].mod(\"sampleRate\", t);\n"+
 			"s.connect(Gibberish.MASTER);\n"+
 			"\n"+
-			"v [.5, 1, 2];\n"+
-			"i = 0;\n"+
+			"timeout = setInterval(function() { \n"+
+			"	s.note(Math.round(150 + Math.random() * 400));\n"+
+			"}, 1000);\n";
+
+
+			var input = document.getElementById("input");
+			input.innerHTML = inputString;
+			
+			codeTimeout = setTimeout(function() { 
+				var codegen = document.getElementById("output");
+				codegen.innerHTML = "INITIALIZATION:\n\n" + Gibberish.masterInit.join("\n") + "\n\n" + "CALLBACK:\n\n" + Gibberish.callback;
+			}, 250);
+			
+			Gibberish.dirty = true;
+		};
+		
+		window.decimatorTest = function() {
+			clearTimeout(timeout);
+			Gibberish.ugens.remove();
+						
+			s = Gibberish.Synth("Triangle");
+			s.fx.add( Gibberish.Decimator({bitDepth: 4, sampleRate:.25}) );
+			
+			t = Gibberish.Sine(.1, .249);
+			
+			s.fx[0].mod("sampleRate", t);
+			s.connect(Gibberish.MASTER);
+			
+			timeout = setInterval(function() { 
+				s.note(Math.round(150 + Math.random() * 400));
+			}, 1000);
+
+			var inputString = "s = Gibberish.Synth(\"Triangle\");\n"+
+			"s.fx.add( Gibberish.Decimator({bitDepth: 4, sampleRate:.25}) );\n"+
+			"\n"+
+			"t = Gibberish.Sine(.1, .249);\n"+
+			"\n"+
+			"s.fx[0].mod(\"sampleRate\", t);\n"+
+			"s.connect(Gibberish.MASTER);\n"+
 			"\n"+
 			"timeout = setInterval(function() { \n"+
-			"	s.note( v[i++ % v.length] );\n"+
+			"	s.note(Math.round(150 + Math.random() * 400));\n"+
+			"}, 1000);\n";
+
+			var input = document.getElementById("input");
+			input.innerHTML = inputString;
+			
+			codeTimeout = setTimeout(function() { 
+				var codegen = document.getElementById("output");
+				codegen.innerHTML = "INITIALIZATION:\n\n" + Gibberish.masterInit.join("\n") + "\n\n" + "CALLBACK:\n\n" + Gibberish.callback;
+			}, 250);
+			
+			Gibberish.dirty = true;	
+		};
+		
+		window.ringModulatorTest = function() {
+			clearTimeout(timeout);
+			Gibberish.ugens.remove();
+						
+			s = Gibberish.Sine(840, .25);
+			
+			s.fx.add( Gibberish.RingModulator(300, .25) );
+			s.connect(Gibberish.MASTER);
+
+			timeout = setInterval(function() { 
+				s.frequency = 400 + Math.random() * 400;
+			}, 500);
+			
+			var inputString = "s = Gibberish.Sine(840, .25);\n"+
+			"\n"+
+			"s.fx.add( Gibberish.RingModulator(300, .25) );\n"+
+			"s.connect(Gibberish.MASTER);\n"+
+            "\n"+
+			"timeout = setInterval(function() { \n"+
+			"	s.frequency = 400 + Math.random() * 400;\n"+
 			"}, 1500);\n";
 
 			var input = document.getElementById("input");
@@ -67,20 +144,20 @@ requirejs(['external/sink-light', 'external/audiofile', 'gibberish', 'utils', 'c
 			clearTimeout(timeout);
 			Gibberish.ugens.remove();
 						
-			s = Gibberish.Sampler("http://127.0.0.1/~charlie/gibberish/wilhelm.wav");
+			s = Gibberish.Sampler("http://www.charlie-roberts.com/gibberish/wilhelm.wav");
 			s.connect(Gibberish.MASTER);
 			
-			v [.5, 1, 2];
+			v = [.5, 1, 2];
 			i = 0;
 			
 			timeout = setInterval(function() { 
 				s.note( v[i++ % v.length] );
 			}, 1500);
 			
-			var inputString = "s = Gibberish.Sampler(\"http://127.0.0.1/~charlie/gibberish/wilhelm.wav\");\n"+
+			var inputString = "s = Gibberish.Sampler(\"http://www.charlie-roberts.com/gibberish/wilhelm.wav\");\n"+
 			"s.connect(Gibberish.MASTER);\n"+
 			"\n"+
-			"v [.5, 1, 2];\n"+
+			"v = [.5, 1, 2];\n"+
 			"i = 0;\n"+
 			"\n"+
 			"timeout = setInterval(function() { \n"+
@@ -562,7 +639,7 @@ requirejs(['external/sink-light', 'external/audiofile', 'gibberish', 'utils', 'c
 			Gibberish.dirty = true;
 		};
 		
-		window.stressTest = function() {
+		window.FMStressTest = function() {
 			clearTimeout(timeout);
 			Gibberish.ugens.remove();
 			

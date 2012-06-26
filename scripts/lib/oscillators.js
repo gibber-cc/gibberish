@@ -296,6 +296,7 @@ define([], function() {
 				buffer : 		null,
 				bufferLength:   null,
 				speed:			1,
+				_function:		null,
 				onload : 		function(decoded) { 
 					that.buffer = decoded.channels[0]; 
 					that.bufferLength = decoded.length;
@@ -308,9 +309,11 @@ define([], function() {
 				},
 				note: function(speed) {
 					this.speed = speed;
-					this._function.setPhase(0);
-					Gibberish.dirty = true;
-					this.dirty = true;
+					if(this._function !== null) {
+						this._function.setPhase(0);
+						Gibberish.dirty = true;
+						this.dirty = true;
+					}
 				},
 			};
 			

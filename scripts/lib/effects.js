@@ -28,7 +28,15 @@ define([], function() {
 			gibberish.generators.BufferShuffler = gibberish.createGenerator(["source","chance", "rate", "length", "reverseChance", "pitchChance", "pitchMin", "pitchMax"], "{0}( {1}, {2}, {3}, {4}, {5}, {6}, {7}, {8} )");
 			gibberish.make["BufferShuffler"] = this.makeBufferShuffler;
 			gibberish.BufferShuffler = this.BufferShuffler;
+			
+			gibberish.generators.RingModulator = gibberish.createGenerator(["source", "frequency", "amp", "mix"], "{0}( {1}, {2}, {3}, {4} )");
+			gibberish.make["RingModulator"] = this.makeRingModulator;
+			gibberish.RingModulator = this.RingModulator;
 
+			gibberish.generators.Decimator = gibberish.createGenerator(["source", "bitDepth", "sampleRate"], "{0}( {1}, {2}, {3} )");
+			gibberish.make["Decimator"] = this.makeDecimator;
+			gibberish.Decimator = this.Decimator;
+			
 			// the calls to dynamically create the bus generators are generated dynamically. that is fun to say.
 			gibberish.make["Bus"] = this.makeBus;
 			gibberish.Bus = this.Bus;
@@ -492,7 +500,117 @@ define([], function() {
 			return output;
 		},
 		
+		RingModulator : function(amount, amp, mix) {
+			var that = {
+				type:		"RingModulator",
+				category:	"FX",
+				frequency:	440,
+				amp:		.5,
+				mix:		.5,
+				source:		null,
+			};
+			Gibberish.extend(that, Gibberish.ugen);
+			
+			that.modulation = Gibberish.make["Sine"]();
+			
+			that.name = Gibberish.generateSymbol(that.type);
+			Gibberish.masterInit.push(that.name + " = Gibberish.make[\"RingModulator\"]();");
+			window[that.name] = Gibberish.make["RingModulator"](that.modulation);
 
+			Gibberish.defineProperties( that, ["frequency", "amp", "mix"] );
+
+			return that;
+		},
+
+		makeRingModulator : function(modulation) {	
+			var phase = 0;
+			var output = function(sample, frequency, amp, mix) {
+				var x = modulation(frequency, amp);
+				var wet = x * sample;
+				var out = (wet * mix) + ( (1 - mix) * sample);
+				
+				return out;
+			};
+
+			return output;
+		},
+		
+		Decimator : function(properties) {
+			var that = {
+				type:		"Decimator",
+				category:	"FX",
+				bitDepth:	16,
+				sampleRate: 1,	// 44100 = 1
+				source:		null,
+			};
+			if(typeof properties !== "undefined") {
+				Gibberish.extend(that, properties);
+			}
+			Gibberish.extend(that, Gibberish.ugen);
+			
+			that.modulation = Gibberish.make["Sine"]();
+			
+			that.name = Gibberish.generateSymbol(that.type);
+			Gibberish.masterInit.push(that.name + " = Gibberish.make[\"Decimator\"]();");
+			window[that.name] = Gibberish.make["Decimator"](that.modulation);
+
+			Gibberish.defineProperties( that, ["frequency", "bitDepth", "sampleRate"] );
+
+			return that;
+		},
+
+		makeDecimator : function() {	
+			var counter = 0;
+			var hold = 0;
+			
+			var output = function(sample, depth, rate) {
+				counter += rate;
+				if(counter >= 1) {
+					var bitMult = 1 << (depth - 1);
+					counter -= 1;
+					hold = (sample * bitMult) / bitMult;
+				}
+				
+				return hold;
+			};
+
+			return output;
+		},
+		
+		/* Decimator http://musicdsp.org/showArchiveComment.php?ArchiveID=124
+		int bits=16;
+		float rate=0.5;
+
+		long int m=1<<(bits-1);
+		float y=0,cnt=0;
+
+		float decimate(float i)
+		{
+		cnt+=rate;
+		if (cnt>=1)
+		{
+		cnt-=1;
+		y=(long int)(i*m)/(float)m;
+		}
+		return y;
+		}
+		
+		Nothing wrong with that, but you can also do fractional-bit-depth decimations, allowing 
+		smooth degradation from high bit depth to 
+		low and back:
+		---------------------------------------
+
+		// something like this -- this is 
+		// completely off the top of my head
+		// precalculate the quantization level
+		float bits; // effective bit depth
+		float quantum = powf( 2.0f, bits );
+
+		// per sample
+		y = floorf( x * quantum ) / quantum;
+		
+		*/
+		
 		Bus : function(effects) {
 			var that = {
 				senders : 0,
