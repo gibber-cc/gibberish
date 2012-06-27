@@ -96,7 +96,7 @@ define([], function() {
 			that.env = Gibberish.make["Env"]();
 			that.carrier = Gibberish.make["Sine"]();
 			that.modulator = Gibberish.make["Sine"]();
-						
+			
 			that.name = Gibberish.generateSymbol(that.type);
 			Gibberish.masterInit.push(that.name + " = Gibberish.make[\"FMSynth\"]();");
 			that._function = Gibberish.make["FMSynth"](that.carrier, that.modulator, that.env);

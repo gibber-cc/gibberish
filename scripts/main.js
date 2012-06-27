@@ -32,19 +32,17 @@ requirejs(['external/sink-light', 'external/audiofile', 'gibberish', 'utils', 'c
 			clearTimeout(timeout);
 			Gibberish.ugens.remove();
 						
-			s = Gibberish.Synth("Triangle");
-			s.fx.add( Gibberish.Decimator({bitDepth: 6.5, sampleRate:.3}) );
+			s = Gibberish.PolySynth({waveform:"Triangle", attack: 44100, decay: 22050, sustain: 88200, release:44100});
+			s.fx.add( Gibberish.Flanger( {rate:.5, feedback:.5, amount:125} ) );
 			
-			t = Gibberish.Sine(.1, .25);
-			u = Gibberish.Sine(.1, 6);
-			
-			s.fx[0].mod("sampleRate", t);
-			s.fx[0].mod("bitDepth", u);			
 			s.connect(Gibberish.MASTER);
 			
+			s.note(440);
 			timeout = setInterval(function() { 
-				s.note(Math.round(150 + Math.random() * 400));
-			}, 1000);
+				s.note(440);
+				s.note(660);				
+				s.note(880);
+			}, 5000);
 
 			var inputString = "s = Gibberish.Synth(\"Triangle\");\n"+
 			"s.fx.add( Gibberish.Decimator({bitDepth: 4, sampleRate:.25}) );\n"+
@@ -58,7 +56,6 @@ requirejs(['external/sink-light', 'external/audiofile', 'gibberish', 'utils', 'c
 			"	s.note(Math.round(150 + Math.random() * 400));\n"+
 			"}, 1000);\n";
 
-
 			var input = document.getElementById("input");
 			input.innerHTML = inputString;
 			
@@ -70,6 +67,45 @@ requirejs(['external/sink-light', 'external/audiofile', 'gibberish', 'utils', 'c
 			Gibberish.dirty = true;
 		};
 		
+		window.flangerTest = function() {
+			clearTimeout(timeout);
+			Gibberish.ugens.remove();
+						
+			s = Gibberish.PolySynth({waveform:"Triangle", attack: 44100, decay: 22050, sustain: 88200, release:44100});
+			s.fx.add( Gibberish.Flanger( {rate:.5, feedback:.5, amount:125} ) );
+			
+			s.connect(Gibberish.MASTER);
+			
+			s.note(440); s.note(660); s.note(880);
+			timeout = setInterval(function() { 
+				s.note(440);
+				s.note(660);				
+				s.note(880);
+			}, 5000);
+
+			var inputString = "s = Gibberish.PolySynth({waveform:\"Triangle\", attack: 44100, decay: 22050, sustain: 88200, release:44100});\n"+
+			"s.fx.add( Gibberish.Flanger( {rate:.5, feedback:.5, amount:125} ) );\n"+
+			"\n"+
+			"s.connect(Gibberish.MASTER);\n"+
+			"\n"+
+			"s.note(440); s.note(660); s.note(880);\n"+
+			"timeout = setInterval(function() { \n"+
+			"	s.note(440);\n"+
+			"	s.note(660);\n"+
+			"	s.note(880);\n"+
+			"}, 5000);\n";
+
+			var input = document.getElementById("input");
+			input.innerHTML = inputString;
+			
+			codeTimeout = setTimeout(function() { 
+				var codegen = document.getElementById("output");
+				codegen.innerHTML = "INITIALIZATION:\n\n" + Gibberish.masterInit.join("\n") + "\n\n" + "CALLBACK:\n\n" + Gibberish.callback;
+			}, 250);
+			
+			Gibberish.dirty = true;
+			
+		}
 		window.decimatorTest = function() {
 			clearTimeout(timeout);
 			Gibberish.ugens.remove();

@@ -37,6 +37,11 @@ define([], function() {
 			gibberish.make["Decimator"] = this.makeDecimator;
 			gibberish.Decimator = this.Decimator;
 			
+			// sample, offset, feedback, delayModulationRate, delayModulationAmount
+			gibberish.generators.Flanger = gibberish.createGenerator(["source", "offset", "feedback", "rate", "amount"], "{0}( {1}, {2}, {3}, {4}, {5} )");
+			gibberish.make["Flanger"] = this.makeFlanger;
+			gibberish.Flanger = this.Flanger;
+			
 			// the calls to dynamically create the bus generators are generated dynamically. that is fun to say.
 			gibberish.make["Bus"] = this.makeBus;
 			gibberish.Bus = this.Bus;
@@ -579,6 +584,67 @@ define([], function() {
 				}
 				
 				return hold;
+			};
+
+			return output;
+		},
+		/*
+			delayModulationDepth  	: amp of LFO for delay length modulation
+			delayModulationRate		: speed of LFO to modulate delay length			
+			delay  					: base time offset... LFO output is added to this value to get current read position
+		*/
+		Flanger : function(properties) {
+			var that = {
+				type:		"Flanger",
+				category:	"FX",
+				feedback:	.5,
+				offset:		125,
+				amount:		125,
+				rate:		.25,
+				source:		null,
+				buffer:		new Float32Array(88200),				
+				bufferLength: 88200,
+			};
+			
+			Gibberish.extend(that, Gibberish.ugen);
+			if(typeof properties !== "undefined") {
+				Gibberish.extend(that, properties);
+			}
+			
+			that.delayModulation = Gibberish.make["Sine"]();
+			
+			that.name = Gibberish.generateSymbol(that.type);
+			Gibberish.masterInit.push(that.name + " = Gibberish.make[\"Flanger\"]();");
+			window[that.name] = Gibberish.make["Flanger"](that.buffer, that.bufferLength, that.delayModulation, that.offset);
+			that._function = window[that.name];
+
+			Gibberish.defineProperties( that, ["amount", "feedback", "offset", "rate"] );
+
+			return that;
+		},
+
+		makeFlanger : function(buffer, bufferLength, delayModulation, _offset) {
+			var phase = 0;
+			var readIndex = _offset * - 1;
+			var writeIndex = 0;
+			
+			var output = function(sample, offset, feedback, delayModulationRate, delayModulationAmount) {
+				var readPosition = readIndex++ + delayModulation(delayModulationRate, delayModulationAmount * .95);
+				
+				readIndex %= bufferLength;
+				
+				if(readPosition >= bufferLength) {
+					readPosition -= bufferLength;
+				}else if(readPosition < 0) {
+					readPosition += bufferLength;
+				}
+				
+				var delayedSample = Gibberish.interpolate(buffer, readPosition);
+				
+				buffer[writeIndex++] = sample + (delayedSample * feedback);
+				writeIndex %= bufferLength;
+
+				return sample + delayedSample;
 			};
 
 			return output;
