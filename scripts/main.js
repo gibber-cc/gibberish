@@ -32,29 +32,19 @@ requirejs(['external/sink-light', 'external/audiofile', 'gibberish', 'utils', 'c
 			clearTimeout(timeout);
 			Gibberish.ugens.remove();
 						
-			s = Gibberish.PolySynth({waveform:"Triangle", attack: 44100, decay: 22050, sustain: 88200, release:44100});
-			s.fx.add( Gibberish.Flanger( {rate:.5, feedback:.5, amount:125} ) );
+			s = Gibberish.Sine(400, .1);
+			s1 = Gibberish.Sine(800, .1);
+			s2 = Gibberish.Sine(1200, .1);
 			
-			s.connect(Gibberish.MASTER);
+			b = Gibberish.Bus();
 			
-			s.note(440);
-			timeout = setInterval(function() { 
-				s.note(440);
-				s.note(660);				
-				s.note(880);
-			}, 5000);
-
-			var inputString = "s = Gibberish.Synth(\"Triangle\");\n"+
-			"s.fx.add( Gibberish.Decimator({bitDepth: 4, sampleRate:.25}) );\n"+
-			"\n"+
-			"t = Gibberish.Sine(.1, .249);\n"+
-			"\n"+
-			"s.fx[0].mod(\"sampleRate\", t);\n"+
-			"s.connect(Gibberish.MASTER);\n"+
-			"\n"+
-			"timeout = setInterval(function() { \n"+
-			"	s.note(Math.round(150 + Math.random() * 400));\n"+
-			"}, 1000);\n";
+			s.connect(b);
+			s1.connect(b);
+			s2.connect(b);
+			
+			b.connect(Gibberish.MASTER);
+			
+			var inputString = "s = Gibberish.Synth(\"Triangle\");\n";
 
 			var input = document.getElementById("input");
 			input.innerHTML = inputString;

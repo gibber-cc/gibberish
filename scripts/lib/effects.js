@@ -670,22 +670,19 @@ define([], function() {
 				},
 
 				connectUgen : function(variable, amount) { // man, this is hacky... but it should be called rarely
-					this["senders" + this.length++] = { type:"*", operands:[variable, amount]};
-
+					this["senders" + this.length++] = { type:"*", operands:[variable, amount] };
 					var formula = "{0}( ";
 					var attrArray = [];
 
 					for(var i = 1; i <= this.length; i++) {
 						formula += "{"+i+"}";
 						if(i !== this.length) formula +=" + ";
-						attrArray.push("senders"+(i-1));
+						attrArray.push("senders" + ( i - 1 ));
 					}
 					formula += " )";
 					variable.destinations.push(this);
-					//console.log("FORMULA : ", formula);
-					//console.log(attrArray);
-					Gibberish.generators[that.type] = Gibberish.createGenerator(attrArray, formula);
-
+					
+					Gibberish.generators[this.type] = Gibberish.createGenerator(attrArray, formula);
 				},
 
 				send: function(bus, amount) {
