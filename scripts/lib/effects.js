@@ -535,6 +535,8 @@ define([], function() {
 			return output;
 		},
 		
+		
+		// adapted from code / comments at http://musicdsp.org/showArchiveComment.php?ArchiveID=124
 		Decimator : function(properties) {
 			var that = {
 				type:		"Decimator",
@@ -562,13 +564,18 @@ define([], function() {
 		makeDecimator : function() {	
 			var counter = 0;
 			var hold = 0;
+			var pow = Math.pow;
+			var phase = 0;
+			var floor = Math.floor;
 			
 			var output = function(sample, depth, rate) {
 				counter += rate;
+				
 				if(counter >= 1) {
-					var bitMult = 1 << (depth - 1);
+					var bitMult = pow( depth, 2.0 );
+					
 					counter -= 1;
-					hold = (sample * bitMult) / bitMult;
+					hold = floor( sample * bitMult )/ bitMult; 
 				}
 				
 				return hold;
@@ -576,40 +583,6 @@ define([], function() {
 
 			return output;
 		},
-		
-		/* Decimator http://musicdsp.org/showArchiveComment.php?ArchiveID=124
-		int bits=16;
-		float rate=0.5;
-
-		long int m=1<<(bits-1);
-		float y=0,cnt=0;
-
-		float decimate(float i)
-		{
-		cnt+=rate;
-		if (cnt>=1)
-		{
-		cnt-=1;
-		y=(long int)(i*m)/(float)m;
-		}
-		return y;
-		}
-		
-		Nothing wrong with that, but you can also do fractional-bit-depth decimations, allowing 
-		smooth degradation from high bit depth to 
-		low and back:
-		---------------------------------------
-
-		// something like this -- this is 
-		// completely off the top of my head
-		// precalculate the quantization level
-		float bits; // effective bit depth
-		float quantum = powf( 2.0f, bits );
-
-		// per sample
-		y = floorf( x * quantum ) / quantum;
-		
-		*/
 		
 		Bus : function(effects) {
 			var that = {

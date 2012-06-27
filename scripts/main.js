@@ -33,11 +33,13 @@ requirejs(['external/sink-light', 'external/audiofile', 'gibberish', 'utils', 'c
 			Gibberish.ugens.remove();
 						
 			s = Gibberish.Synth("Triangle");
-			s.fx.add( Gibberish.Decimator({bitDepth: 4, sampleRate:.25}) );
+			s.fx.add( Gibberish.Decimator({bitDepth: 6.5, sampleRate:.3}) );
 			
-			t = Gibberish.Sine(.1, .249);
+			t = Gibberish.Sine(.1, .25);
+			u = Gibberish.Sine(.1, 6);
 			
 			s.fx[0].mod("sampleRate", t);
+			s.fx[0].mod("bitDepth", u);			
 			s.connect(Gibberish.MASTER);
 			
 			timeout = setInterval(function() { 
@@ -73,11 +75,13 @@ requirejs(['external/sink-light', 'external/audiofile', 'gibberish', 'utils', 'c
 			Gibberish.ugens.remove();
 						
 			s = Gibberish.Synth("Triangle");
-			s.fx.add( Gibberish.Decimator({bitDepth: 4, sampleRate:.25}) );
+			s.fx.add( Gibberish.Decimator({bitDepth: 6.5, sampleRate:.3}) );
 			
-			t = Gibberish.Sine(.1, .249);
+			t = Gibberish.Sine(.1, .25);
+			u = Gibberish.Sine(.1, 6);
 			
 			s.fx[0].mod("sampleRate", t);
+			s.fx[0].mod("bitDepth", u);			
 			s.connect(Gibberish.MASTER);
 			
 			timeout = setInterval(function() { 
@@ -85,16 +89,14 @@ requirejs(['external/sink-light', 'external/audiofile', 'gibberish', 'utils', 'c
 			}, 1000);
 
 			var inputString = "s = Gibberish.Synth(\"Triangle\");\n"+
-			"s.fx.add( Gibberish.Decimator({bitDepth: 4, sampleRate:.25}) );\n"+
+			"s.fx.add( Gibberish.Decimator({bitDepth: 6.5, sampleRate:.3}) );\n"+
 			"\n"+
-			"t = Gibberish.Sine(.1, .249);\n"+
+			"t = Gibberish.Sine(.1, .25);\n"+
+			"u = Gibberish.Sine(.1, 6);\n"+
 			"\n"+
 			"s.fx[0].mod(\"sampleRate\", t);\n"+
-			"s.connect(Gibberish.MASTER);\n"+
-			"\n"+
-			"timeout = setInterval(function() { \n"+
-			"	s.note(Math.round(150 + Math.random() * 400));\n"+
-			"}, 1000);\n";
+			"s.fx[0].mod(\"bitDepth\", u);\n"+
+			"s.connect(Gibberish.MASTER);\n";
 
 			var input = document.getElementById("input");
 			input.innerHTML = inputString;
