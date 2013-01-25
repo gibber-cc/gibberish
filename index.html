@@ -25,7 +25,7 @@
 <p style="width:50%">Gibberish is an audio engine that creates code optimized for JIT compilation. Below, the input code is what the programmer enters, the output code is what Gibberish generates for the JIT compiler. It will eventually be the audio backend for the live coding environment <a href="http://www.charlie-roberts.com/gibber">Gibber</a>.</p>
 run: <select onchange="console.log('RUNNING', this.options[this.selectedIndex].text); window[this.options[this.selectedIndex].text]();">
 	<option>clear</option>	
-	<option>test</option>
+  <!-- <option>test</option> -->
 	<optgroup label="MODULATION">
 		<option>vibratoTest</option>
     <option>twoOscsOneMod</option>
@@ -35,8 +35,9 @@ run: <select onchange="console.log('RUNNING', this.options[this.selectedIndex].t
 
 	<optgroup label="EFFECTS">
     <option>distortion</option>
-		<option>filter</option>
+		<option>ladderFilter</option>
     <option>stateVariableFilter</option>
+    <option>biquadFilter</option>    
 		<option>ringModulation</option>
 		<option>decimator</option>
 		<option>delay</option>

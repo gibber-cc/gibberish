@@ -395,7 +395,7 @@ window.ringModulation = function() {
 	}, 250);
 };
 
-window.filter = function() {
+window.ladderFilter = function() {
   Gibberish.clear();
   if(typeof timeout !== 'undefined') clearTimeout(timeout);
   
@@ -436,10 +436,7 @@ window.stateVariableFilter = function() {
   if(typeof timeout !== 'undefined') clearTimeout(timeout);
   
   a = new Gibberish.FMSynth();
-  b = new Gibberish.SVF(440, 4);
-  b.input = a;
-    
-  b.connect( Gibberish.out );
+  b = new Gibberish.SVF({input:a, cutoff:440, Q:4}).connect();
   
   timeout = setInterval(function() { 
     a.note(440);
@@ -448,9 +445,8 @@ window.stateVariableFilter = function() {
   
 	var inputString = "// testing a SVF filter on a fmsynth\n"+
   "a = new Gibberish.FMSynth();\n"+
-  "b = new Gibberish.SVF(440, 4);\n"+
-  "b.input = a;\n"+
-  "  \n"+
+  "b = new Gibberish.SVF({input:a, cutoff:440, Q:4}).connect();\n"+
+  "\n"+
   "b.connect( Gibberish.out );\n"+
   "\n"+
   "timeout = setInterval(function() { \n"+
@@ -912,7 +908,7 @@ window.clear = function() {
 	}, 250);
 };
 
-window.test = function() {
+window.biquadFilter = function() {
   Gibberish.clear();
   if(typeof timeout !== 'undefined') clearTimeout(timeout);
   
@@ -927,16 +923,16 @@ window.test = function() {
     b.calculateCoefficients();
   }, 1000);
   
-	var inputString = "// testing a SVF filter on a fmsynth\n"+
+	var inputString = "// testing a biquad filter on a fmsynth. biquad coefficients must be reset manually.\n"+
   "a = new Gibberish.FMSynth();\n"+
-  "b = new Gibberish.SVF(440, 4);\n"+
-  "b.input = a;\n"+
-  "  \n"+
+  "b = new Gibberish.Biquad(a, 'LP', 440, 2);\n"+
+  " \n"+
   "b.connect( Gibberish.out );\n"+
   "\n"+
   "timeout = setInterval(function() { \n"+
   "  a.note(440);\n"+
   "  b.cutoff = 110 + Math.random() * 1500;\n"+
+  "  b.calculateCoefficients();\n"+  
   "}, 1000);";
 
 

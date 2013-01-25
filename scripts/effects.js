@@ -238,6 +238,7 @@ Gibberish.Filter24 = function() {
 };
 Gibberish.Filter24.prototype = Gibberish._effect;
 
+// might be slightly cheaper to do per sample coefficient calculation as opposed to biquad
 Gibberish.SVF = function() {
 	var d1 = [0,0], d2 = [0,0], pi= Math.PI, out = [0,0];
   
