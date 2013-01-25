@@ -1,8 +1,8 @@
 #Gibberish
 
-[Gibberish][gibberish] is designed to be a fast audio API for browser based audio content. As with most web-based JavaScript audio libraries, it currently only runs in Chrome and Firefox (and beta versions of Safari).
+[Gibberish][gibberish] is designed to be a fast audio API for browser based audio content. It currently runs in Chrome, Safari 6+ and Firefox. It is 42 KB after minification.
 
-Gibberish is different from other JavaScript audio libraries (such as [audiolib.js][audiolib] or [Audiolet][audiolet]) in that it generates code that is heavily optimized for JIT compilation. The code that is created is arguably not human-readble, hence the name _Gibberish_. Below is an example of the input code (which you write) and the audio callback that is outputted (which is created by Gibberish... you should never have to even look at this). The audio callback plays a sine wave with vibrato feeding delay and reverb effects:
+Gibberish is different from other JavaScript audio libraries (such as [audiolib.js][audiolib] or [Audiolet][audiolet]) in that it generates code that is heavily optimized for JIT compilation. The code that is generated is arguably not human-readble, hence the name _Gibberish_. Below is an example of the input code (which you write) and the audio callback that is outputted (which is created by Gibberish... you should never have to even look at this). The audio callback plays a sine wave with vibrato feeding delay and reverb effects:
 
 ##Input
 ```javascript
@@ -80,8 +80,10 @@ All synths except the monosynth also have polyphonic versions
 ### Analysis
 * Envelope Follower
 
-Gibberish is licensed under the MIT license.
+## License
+Gibberish is licensed under the MIT license. The Sampler object reads audiofiles using [audiofile][Audiofile.js].
 
 [gibberish]:http://www.charlie-roberts.com/gibberish
 [audiolib]:https://github.com/jussi-kalliokoski/audiolib.js/
 [audiolet]:https://github.com/oampo/Audiolet
+[audiofile]:https://github.com/oampo/audiofile.js/
