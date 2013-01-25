@@ -2,7 +2,7 @@
 
 [Gibberish][gibberish] is designed to be a fast audio API for browser based audio content. As with most web-based JavaScript audio libraries, it currently only runs in Chrome and Firefox (and beta versions of Safari).
 
-Gibberish is different from other JavaScript audio libraries (such as [audiolib.js][audiolib] or [Audiolet][audiolet]) in that it generates code that is heavily optimized for JIT compilation. The code that is created is arguably not human-readble, hence the name _Gibberish_. Below is an example of the input code (which you write) and the audio callback that is outputted (which is created by Gibberish... you should never have to even look at this). The audio callback plays a sine wave with vibrato feeding delay and reverb effects.:
+Gibberish is different from other JavaScript audio libraries (such as [audiolib.js][audiolib] or [Audiolet][audiolet]) in that it generates code that is heavily optimized for JIT compilation. The code that is created is arguably not human-readble, hence the name _Gibberish_. Below is an example of the input code (which you write) and the audio callback that is outputted (which is created by Gibberish... you should never have to even look at this). The audio callback plays a sine wave with vibrato feeding delay and reverb effects:
 
 ##Input
 ```javascript
@@ -40,6 +40,45 @@ Gibberish.callback = function() {
 ```
 
 As you can see, there are no calls to any objects in the generated callback, just functional, JIT-optimizable goodness.
+
+##Ugens
+Gibberish has a long list of oscillators, fx, and synthesis algorithms built in.
+
+### Oscillators
+* Sine
+* Triangle
+* Saw
+* PWM
+* Band-limited Saw
+* Band-limited PWM
+* White Noise
+* Sampler - read audiofiles and playback at various speeds
+
+### Synths
+All synths except the monosynth also have polyphonic versions
+
+* Synth - oscillator + envelope
+* Synth2 - oscillator + envelope + filter
+* Monosynth - three oscillators + filter + envelope
+* FM - two op FM synthesis
+* Karplus-Strong - Physical model of a plucked string
+
+### Effects
+* Distortion - waveshaping
+* Delay
+* Decimator - bit depth and sample rate reduction
+* Ring Modulation
+* Flanger
+* Vibrato
+* Reverb
+* Buffer Shuffler
+* Granulator
+* OnePole filter
+* State Variable Filter (12 db resonant) 
+* Ladder Filter ("Moog-style" 24db resonant)
+
+### Analysis
+* Envelope Follower
 
 Gibberish is licensed under the MIT license.
 
