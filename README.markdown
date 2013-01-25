@@ -2,7 +2,7 @@
 
 [Gibberish][gibberish] is designed to be a fast audio API for browser based audio content. As with most web-based JavaScript audio libraries, it currently only runs in Chrome and Firefox (and beta versions of Safari).
 
-Gibberish is different from other JavaScript audio libraries (such as [audiolib.js][audiolib] or [Audiolet][audiolet]) in that it generates code that is heavily optimized for JIT compilation. The code that is created is arguably not human-readble, hence the name _Gibberish_. Below is an example of the input code (which you write) and the audio callback that is outputted (which is created by Gibberish... you should never have to even look at this). The audio callback plays a sine wave with vibrato:
+Gibberish is different from other JavaScript audio libraries (such as [audiolib.js][audiolib] or [Audiolet][audiolet]) in that it generates code that is heavily optimized for JIT compilation. The code that is created is arguably not human-readble, hence the name _Gibberish_. Below is an example of the input code (which you write) and the audio callback that is outputted (which is created by Gibberish... you should never have to even look at this). The audio callback plays a sine wave with vibrato feeding delay and reverb effects.:
 
 ##Input
 ```javascript
@@ -19,52 +19,30 @@ r.connect();                        // connect reverb to default master output
 
 ##Output (with some text formatting applied)
 ```javascript
-// initialization code that creates FUNCTIONS, not objects
-Sine_1 = Gibberish.make['Sine']();
-Sine_0 = Gibberish.make['Sine']();
-Delay_5 = Gibberish.make['Delay']();
-Reverb_6 = Gibberish.make['Reverb']();
+// create upvalues for callback function. It is quicker to reference
+// upvalues than to dynamically resolve addresses of objects in a ugen graph.
 
-function(globals) {
-	// upvalues to push functions into registers for callback
-    var Sine_0 = globals.Sine_0;	
-    var Sine_1 = globals.Sine_1;
-    var Delay_5 = globals.Delay_5;
-    var Reverb_6 = globals.Reverb_6;
+var bus2_0 = Gibberish.functions.bus2_0;
+var sine_314 = Gibberish.functions.sine_314;
+var sine_311 = Gibberish.functions.sine_311;
+var Delay_317 = Gibberish.functions.Delay_317;
+var Reverb_322 = Gibberish.functions.Reverb_322;
 
-	// the callback function
-    function cb() {
-        var output = 0;
-        
-        var v_4 = Sine_1(5) * 15;
-        var v_3 = (440 + v_4);
-        var v_2 = Sine_0(v_3) * 0.4;
-        v_2 = Delay_5( v_2, 22050, 0.5 );
-        v_2 = Reverb_6( v_2 );
-        output += v_2;
-        
-        return output;
-    }
-    
-    return cb;
+Gibberish.callback = function() {
+	var v_327 = sine_314(5, 15);
+	var v_326 = sine_311(440 + v_327, 0.4);
+	var v_329 = Delay_317(v_326, 22050, 0.5, 1);
+	var v_328 = Reverb_322(v_329, 0.5, 0.55);
+	var v_4   = bus2_0(v_328, 1, 0);
+
+	return v_4;
 }
 ```
 
-As you can see, there are no calls to any objects in the callback, just functional, JIT-optimizable goodness.
+As you can see, there are no calls to any objects in the generated callback, just functional, JIT-optimizable goodness.
 
-##Use the callback (with sink.js)
-```javascript
-var sink = Sink( function(buffer, channelCount){
-    for (var i = 0; i < buffer.length; i++){
-		buffer[i] = Gibberish.callback();
-    }
-});
-```
-
-Gibberish is built using [require.js][require]. The sample usage code runs the audio callback using [sink.js][sink]. Gibberish is licensed under the MIT license.
+Gibberish is licensed under the MIT license.
 
 [gibberish]:http://www.charlie-roberts.com/gibberish
 [audiolib]:https://github.com/jussi-kalliokoski/audiolib.js/
 [audiolet]:https://github.com/oampo/Audiolet
-[require]:http://requirejs.org/
-[sink]:https://github.com/jussi-kalliokoski/sink.js/
