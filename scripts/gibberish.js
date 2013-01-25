@@ -374,7 +374,7 @@ Gibberish = {
           getCodeblock : function() { 
             if(typeof this.value !== 'number') Gibberish.codeblock.push("var " + this.symbol + " = " +this.value + ";\n"); 
           },
-          codegen : function() { return typeof this.value === 'number' ? this.value : this.symbol; },
+          codegen : function() { return typeof this.value === 'number' || typeof this.value === 'string' ? this.value : this.symbol; },
           parent : this,
           name : key,
         };

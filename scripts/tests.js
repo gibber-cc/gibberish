@@ -911,3 +911,41 @@ window.clear = function() {
 		codegen.innerHTML = Gibberish.callbackString;
 	}, 250);
 };
+
+window.test = function() {
+  Gibberish.clear();
+  if(typeof timeout !== 'undefined') clearTimeout(timeout);
+  
+  a = new Gibberish.FMSynth();
+  b = new Gibberish.Biquad(a, 'LP', 240, .5);
+    
+  b.connect( Gibberish.out );
+  
+  timeout = setInterval(function() { 
+    a.note(440);
+    b.cutoff = 110 + Math.random() * 1500;
+    b.calculateCoefficients();
+  }, 1000);
+  
+	var inputString = "// testing a SVF filter on a fmsynth\n"+
+  "a = new Gibberish.FMSynth();\n"+
+  "b = new Gibberish.SVF(440, 4);\n"+
+  "b.input = a;\n"+
+  "  \n"+
+  "b.connect( Gibberish.out );\n"+
+  "\n"+
+  "timeout = setInterval(function() { \n"+
+  "  a.note(440);\n"+
+  "  b.cutoff = 110 + Math.random() * 1500;\n"+
+  "}, 1000);";
+
+
+	var input = document.getElementById("input");
+	input.innerHTML = inputString;
+			
+	codeTimeout = setTimeout(function() { 
+		var codegen = document.getElementById("output");
+		codegen.innerHTML = Gibberish.callbackString;
+	}, 250);
+
+}
