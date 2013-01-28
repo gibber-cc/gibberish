@@ -4,6 +4,9 @@
 
 Gibberish is different from other JavaScript audio libraries (such as [audiolib.js][audiolib] or [Audiolet][audiolet]) in that it generates code that is heavily optimized for JIT compilation. The code that is generated is arguably not human-readble, hence the name _Gibberish_. Below is an example of the input code (which you write) and the audio callback that is outputted (which is created by Gibberish... you should never have to even look at this). The audio callback plays a sine wave with vibrato feeding delay and reverb effects:
 
+## Live Demo
+[http://www.charlie-roberts.com/gibberish][gibberish]
+
 ##Input
 ```javascript
 Gibberish.init();                   // convenience method to start audio callback
