@@ -130,7 +130,6 @@ Gibberish = {
     
     // we will potentially delay start of audio until touch of screen for iOS devices
     start = function() {
-      alert("start, " + bufferSize )
       document.getElementsByTagName('body')[0].removeEventListener('touchstart', start);
       Gibberish.context = new webkitAudioContext();
       Gibberish.node = Gibberish.context.createJavaScriptNode(bufferSize, 2, 2, 44100);	
