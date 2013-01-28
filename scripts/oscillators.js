@@ -4,6 +4,8 @@ Gibberish.oscillator = function() {
   this.oscillatorInit = function() {
     this.fx = new Array2; 
     this.fx.parent = this;
+    
+    return this;
   }
 };
 Gibberish.oscillator.prototype = new Gibberish.ugen();

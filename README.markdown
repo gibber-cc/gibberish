@@ -64,9 +64,9 @@ All synths except the monosynth also have polyphonic versions
 * Karplus-Strong - Physical model of a plucked string
 
 ### Effects
+* Decimator - bit depth and sample rate reduction
 * Distortion - waveshaping
 * Delay
-* Decimator - bit depth and sample rate reduction
 * Ring Modulation
 * Flanger
 * Vibrato
@@ -74,7 +74,8 @@ All synths except the monosynth also have polyphonic versions
 * Buffer Shuffler
 * Granulator
 * OnePole filter
-* State Variable Filter (12 db resonant) 
+* State Variable Filter (12 db resonant)
+* Biquad Filter (12 db resonant)
 * Ladder Filter ("Moog-style" 24db resonant)
 
 ### Analysis

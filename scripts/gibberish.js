@@ -122,16 +122,33 @@ Gibberish = {
 		return name + "_" + this.id++; 
 	},
   
-  init : function() {        
-    this.out = new this.Bus2();
-    Gibberish.dirty(this.out);
+  init : function() {
+    Gibberish.out = new Gibberish.Bus2();
+    Gibberish.dirty(Gibberish.out);
     
-    this.context = new webkitAudioContext();
-    this.node = this.context.createJavaScriptNode(2048, 2, 2, 44100);	
-    this.node.onaudioprocess = Gibberish.audioProcess;
-    this.node.connect(this.context.destination);
+    var bufferSize = typeof arguments[0] === 'undefined' ? 1024 : arguments[0];
     
-    //console.log("INITIALIZED");
+    // we will potentially delay start of audio until touch of screen for iOS devices
+    start = function() {
+      alert("start, " + bufferSize )
+      document.getElementsByTagName('body')[0].removeEventListener('touchstart', start);
+      Gibberish.context = new webkitAudioContext();
+      Gibberish.node = Gibberish.context.createJavaScriptNode(bufferSize, 2, 2, 44100);	
+      Gibberish.node.onaudioprocess = Gibberish.audioProcess;
+      Gibberish.node.connect(Gibberish.context.destination);
+    
+      if('ontouchstart' in document.documentElement){ // required to start audio under iOS 6
+        var mySource = Gibberish.context.createBufferSource();
+        mySource.connect(Gibberish.context.destination);
+        mySource.noteOn(0);
+      }
+    }
+    
+    if('ontouchstart' in document.documentElement) {
+      document.getElementsByTagName('body')[0].addEventListener('touchstart', start);
+    }else{
+      start();
+    }
     
     return this;
   },

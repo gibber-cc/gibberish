@@ -15,6 +15,7 @@ Gibberish.Sampler = function() {
     
 		file: 			null,
 		isLoaded: 	false,
+    playOnLoad :  0,
     
     properties : {
     	pitch:			  1,
@@ -40,6 +41,9 @@ Gibberish.Sampler = function() {
 			Gibberish.audioFiles[self.file] = buffer;
 			
       if(self.onload) self.onload();
+      
+      
+      if(self.playOnLoad !== 0) self.note(self.playOnLoad);
       
 			self.isLoaded = true;
 		},
@@ -98,8 +102,11 @@ Gibberish.Sampler = function() {
   		out[0] = out[1] = val;
   		return out;
   	},
-	});
-			
+	})
+  .init()
+  .oscillatorInit()  
+  .processProperties(arguments);
+
 	if(typeof arguments[0] !== "undefined") {
 		if(typeof arguments[0] === "string") {
       console.log("SETTING FILE");
@@ -113,6 +120,8 @@ Gibberish.Sampler = function() {
 			}
 		}
 	}
+  
+  console.log(this);
   		
 	/*var _end = 1;
 	Object.defineProperty(that, "end", {
@@ -141,9 +150,7 @@ Gibberish.Sampler = function() {
 		}
 	});
   */
-  this.processProperties(arguments);
-  this.oscillatorInit();
-  this.init();
+
   
 	if(typeof Gibberish.audioFiles[this.file] !== "undefined") {
 		buffer =  Gibberish.audioFiles[this.file];
