@@ -95,6 +95,24 @@ Gibberish = {
 		}
   },
   
+  audioProcess2 : function(soundData) { // firefox
+    var me = Gibberish;
+    //console.log("CALLBACK");
+    for (var i=0, size=soundData.length; i<size; i+=2) {
+      if(me.isDirty) {
+        me.createCallback();
+        me.isDirty = false;
+      }
+      
+			var val = me.callback();
+      
+			soundData[i] = val[0];
+      soundData[i+1] = val[1];
+      //if(i === 0 ) console.log(val[0]);
+			//bufferR[i] = val[1];   
+    }
+  },
+  
   clear : function() {
     this.upvalues.length = 1; // make sure to leave master bus!!!
     this.out.inputs.length = 0;
@@ -122,6 +140,53 @@ Gibberish = {
 		return name + "_" + this.id++; 
 	},
   
+  AudioDataDestination : function(sampleRate, readFn) { // for Firefox Audio Data API
+    // Initialize the audio output.
+    var audio = new Audio();
+    audio.mozSetup(2, sampleRate);
+
+    var currentWritePosition = 0;
+    var prebufferSize = sampleRate / 2; // buffer 500ms
+    var tail = null, tailPosition;
+
+    // The function called with regular interval to populate 
+    // the audio output buffer.
+    setInterval(function() {
+      var written;
+      // Check if some data was not written in previous attempts.
+      if(tail) {
+        written = audio.mozWriteAudio(tail.subarray(tailPosition));
+        currentWritePosition += written;
+        tailPosition += written;
+        if(tailPosition < tail.length) {
+          // Not all the data was written, saving the tail...
+          return; // ... and exit the function.
+        }
+        tail = null;
+      }
+
+      // XXX if curentPosition == 0, the buffer size is too small
+
+      // Check if we need add some data to the audio output.
+      var currentPosition = audio.mozCurrentSampleOffset();
+      var available = currentPosition + prebufferSize - currentWritePosition;
+      if(available > 0) {
+        // Request some sound data from the callback function.
+        var soundData = new Float32Array(available);
+        readFn(soundData);
+
+        // Writting the data.
+        written = audio.mozWriteAudio(soundData);
+        currentPosition = audio.mozCurrentSampleOffset();
+        if(written < soundData.length) {
+          // Not all the data was written, saving the tail.
+          tail = soundData;
+          tailPosition = written;
+        }
+        currentWritePosition += written;
+      }
+    }, 100);
+  },
   init : function() {
     Gibberish.out = new Gibberish.Bus2();
     Gibberish.dirty(Gibberish.out);
@@ -130,17 +195,21 @@ Gibberish = {
     
     // we will potentially delay start of audio until touch of screen for iOS devices
     start = function() {
-      alert("start, " + bufferSize )
-      document.getElementsByTagName('body')[0].removeEventListener('touchstart', start);
-      Gibberish.context = new webkitAudioContext();
-      Gibberish.node = Gibberish.context.createJavaScriptNode(bufferSize, 2, 2, 44100);	
-      Gibberish.node.onaudioprocess = Gibberish.audioProcess;
-      Gibberish.node.connect(Gibberish.context.destination);
+      
+      if(navigator.userAgent.indexOf('Firefox') === -1 ){
+        document.getElementsByTagName('body')[0].removeEventListener('touchstart', start);
+        Gibberish.context = new webkitAudioContext();
+        Gibberish.node = Gibberish.context.createJavaScriptNode(bufferSize, 2, 2, 44100);	
+        Gibberish.node.onaudioprocess = Gibberish.audioProcess;
+        Gibberish.node.connect(Gibberish.context.destination);
     
-      if('ontouchstart' in document.documentElement){ // required to start audio under iOS 6
-        var mySource = Gibberish.context.createBufferSource();
-        mySource.connect(Gibberish.context.destination);
-        mySource.noteOn(0);
+        if('ontouchstart' in document.documentElement){ // required to start audio under iOS 6
+          var mySource = Gibberish.context.createBufferSource();
+          mySource.connect(Gibberish.context.destination);
+          mySource.noteOn(0);
+        }
+      }else{
+        Gibberish.AudioDataDestination(44100, Gibberish.audioProcess2);
       }
     }
     

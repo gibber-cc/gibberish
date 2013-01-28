@@ -1,20 +1,3 @@
-// $LAB
-//   .script("scripts/utils.js").wait()
-//   .script("scripts/oscillators.js")
-//   .script("scripts/bus.js")
-//   .script("scripts/envelopes.js")
-//   .script("scripts/analysis.js")
-//   .script("scripts/effects.js")
-//   .script("scripts/synth.js").wait()    
-//   .script("scripts/fm_synth.js")
-//   .script("scripts/monosynth.js")  
-//   .script("scripts/externals/audiofile.js")
-//   .script("scripts/sampler.js")
-//   .script("scripts/proxy.js")      
-//   .script("scripts/tests.js").wait( function() { 
-//     Gibberish.init(); 
-// });
-
 Gibberish = {
   memo              : {},
   functions         : {}, // store ugen callbacks to be used as upvalues
@@ -95,6 +78,22 @@ Gibberish = {
 		}
   },
   
+  audioProcess2 : function(soundData) { // callback for firefox
+    var me = Gibberish;
+
+    for (var i=0, size=soundData.length; i<size; i+=2) {
+      if(me.isDirty) {
+        me.createCallback();
+        me.isDirty = false;
+      }
+      
+			var val = me.callback();
+      
+			soundData[i] = val[0];
+      soundData[i+1] = val[1];
+    }
+  },
+  
   clear : function() {
     this.upvalues.length = 1; // make sure to leave master bus!!!
     this.out.inputs.length = 0;
@@ -122,6 +121,54 @@ Gibberish = {
 		return name + "_" + this.id++; 
 	},
   
+  // as taken from here: https://wiki.mozilla.org/Audio_Data_API#Standardization_Note
+  // only the number of channels is changed in the audio.mozSetup() call
+  AudioDataDestination : function(sampleRate, readFn) { // for Firefox Audio Data API
+    // Initialize the audio output.
+    var audio = new Audio();
+    audio.mozSetup(2, sampleRate);
+
+    var currentWritePosition = 0;
+    var prebufferSize = sampleRate / 2; // buffer 500ms
+    var tail = null, tailPosition;
+
+    // The function called with regular interval to populate 
+    // the audio output buffer.
+    setInterval(function() {
+      var written;
+      // Check if some data was not written in previous attempts.
+      if(tail) {
+        written = audio.mozWriteAudio(tail.subarray(tailPosition));
+        currentWritePosition += written;
+        tailPosition += written;
+        if(tailPosition < tail.length) {
+          // Not all the data was written, saving the tail...
+          return; // ... and exit the function.
+        }
+        tail = null;
+      }
+
+      // Check if we need add some data to the audio output.
+      var currentPosition = audio.mozCurrentSampleOffset();
+      var available = currentPosition + prebufferSize - currentWritePosition;
+      if(available > 0) {
+        // Request some sound data from the callback function.
+        var soundData = new Float32Array(available);
+        readFn(soundData);
+
+        // Writting the data.
+        written = audio.mozWriteAudio(soundData);
+        currentPosition = audio.mozCurrentSampleOffset();
+        if(written < soundData.length) {
+          // Not all the data was written, saving the tail.
+          tail = soundData;
+          tailPosition = written;
+        }
+        currentWritePosition += written;
+      }
+    }, 100);
+  },
+  
   init : function() {
     Gibberish.out = new Gibberish.Bus2();
     Gibberish.dirty(Gibberish.out);
@@ -130,16 +177,21 @@ Gibberish = {
     
     // we will potentially delay start of audio until touch of screen for iOS devices
     start = function() {
-      document.getElementsByTagName('body')[0].removeEventListener('touchstart', start);
-      Gibberish.context = new webkitAudioContext();
-      Gibberish.node = Gibberish.context.createJavaScriptNode(bufferSize, 2, 2, 44100);	
-      Gibberish.node.onaudioprocess = Gibberish.audioProcess;
-      Gibberish.node.connect(Gibberish.context.destination);
+      
+      if(navigator.userAgent.indexOf('Firefox') === -1 ){
+        document.getElementsByTagName('body')[0].removeEventListener('touchstart', start);
+        Gibberish.context = new webkitAudioContext();
+        Gibberish.node = Gibberish.context.createJavaScriptNode(bufferSize, 2, 2, 44100);	
+        Gibberish.node.onaudioprocess = Gibberish.audioProcess;
+        Gibberish.node.connect(Gibberish.context.destination);
     
-      if('ontouchstart' in document.documentElement){ // required to start audio under iOS 6
-        var mySource = Gibberish.context.createBufferSource();
-        mySource.connect(Gibberish.context.destination);
-        mySource.noteOn(0);
+        if('ontouchstart' in document.documentElement){ // required to start audio under iOS 6
+          var mySource = Gibberish.context.createBufferSource();
+          mySource.connect(Gibberish.context.destination);
+          mySource.noteOn(0);
+        }
+      }else{
+        Gibberish.AudioDataDestination(44100, Gibberish.audioProcess2);
       }
     }
     
