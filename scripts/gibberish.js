@@ -1,3 +1,44 @@
+/**#Gibberish - Gibberish
+Gibberish is the main object used to manage the audio graph and perform codegen functions. All constructors are also inside of the Gibberish object. Gibberish can automatically generate an appropriate web audio callback for you; if you want to use this you must execute the Gibberish.init() command before creating any Gibberish ugens.
+
+## Example Usage##
+`// make a sine wave  
+Gibberish.init();  
+a = new Gibberish.Sine().connect();`
+## Constructors
+### syntax 1:
+**param** *bufferSize*: Integer. Default 1024. The size of the buffer to be calculated. Since JavaScript is single-threaded, setting exceedingly large values for this will yield to stuttering in graphics and user interface performance.
+- - - -
+**/
+/**###Gibberish.audioFiles : property  
+Array. Anytime an audiofile is loaded (normally using the Sampler ugen) the resulting sample buffer is stored in this array so that it can be immediately recalled.
+**/
+/**###Gibberish.callback : property
+String. Whenever Gibberish performs code generation the resulting callback is stored here.
+**/
+/**###Gibberish.out : property
+Object. The is the 'master' bus that everything eventually gets routed to if you're using the auto-generated calback. This bus is initialized in the call to Gibberish.init.
+**/
+/**###Gibberish.dirtied : property
+Array. A list of objects that need to be codegen'd
+**/
+/**###Gibberish.isDirty : property
+Booelan. Whether or codegen should be performed.
+**/
+/**###Gibberish.codeblock : property
+Array. During codegen, each ugen's codeblock is inserted into this array. Once all the ugens have codegen'd, the array is concatenated to form the callback.
+**/
+/**###Gibberish.upvalues : property
+Array. Each ugen's callback function is stored in this array; the contents of the array become upvalues to the master callback function when it is codegen'd.
+**/
+/**###Gibberish.debug : property
+Boolean. Default false. When true, the callbackString is printed to the console whenever a codegen is performed
+**/
+/**###Gibberish.memo : property
+Object. Used in the codegen process to make sure codegen for each ugen is only performed once.
+**/
+
+
 Gibberish = {
   memo              : {},
   functions         : {}, // store ugen callbacks to be used as upvalues
@@ -13,6 +54,9 @@ Gibberish = {
   callback          : '',
   audioFiles        : {},
   
+/**###Gibberish.createCallback : method
+Perform codegen on all dirty ugens and re-create the audio callback. This method is called automatically in the default Gibberish sample loop whenever Gibberish.isDirty is true.
+**/
   createCallback : function() {
     this.memo = {};
     this.codeblock.length = 0;
@@ -57,7 +101,11 @@ Gibberish = {
     
     eval(this.codestring);    
   },
-  
+
+/**###Gibberish.audioProcess : method
+The default audio callback used in Webkit browsers. This callback starts running as soon as Gibberish.init() is called.  
+param **Audio Event** : Object. The HTML5 audio event object.
+**/ 
   audioProcess : function(e){
     //console.log("AUDIO PROCESS");
 		var bufferL = e.outputBuffer.getChannelData(0);
@@ -77,8 +125,11 @@ Gibberish = {
 			bufferR[i] = val[1];      
 		}
   },
-  
-  audioProcess2 : function(soundData) { // callback for firefox
+/**###Gibberish.audioProcessFirefox : method
+The default audio callback used in Firefox. This callback starts running as soon as Gibberish.init() is called.  
+param **Sound Data** : Object. The buffer of audio data to be filled
+**/   
+  audioProcessFirefox : function(soundData) { // callback for firefox
     var me = Gibberish;
 
     for (var i=0, size=soundData.length; i<size; i+=2) {
@@ -93,14 +144,20 @@ Gibberish = {
       soundData[i+1] = val[1];
     }
   },
-  
+/**###Gibberish.clear : method
+Remove all objects from Gibberish graph and perform codegen... kills all running sound and CPU usage.
+**/   
   clear : function() {
     this.upvalues.length = 1; // make sure to leave master bus!!!
     this.out.inputs.length = 0;
     this.analysisUgens.length = 0;
     Gibberish.dirty(this.out);
   },
-  
+
+/**###Gibberish.dirty : method
+Tell Gibberish a ugen needs to be codegen'd and mark the entire callback as needing regeneration  
+param **Ugen** : Object. The ugen that is 'dirtied'... that has a property value changed.
+**/     
 	dirty : function(ugen) {
     if(typeof ugen !== 'undefined') {
       var found = false;
@@ -116,13 +173,23 @@ Gibberish = {
       this.isDirty = true;
     }
 	},
-  
+
+/**###Gibberish.generateSymbol : method
+Generate a unique symbol for a given ugen using its name and a unique id number.  
+param **name** : String. The name of the ugen; for example, reverb, delay etc.
+**/       
 	generateSymbol : function(name) {
 		return name + "_" + this.id++; 
 	},
   
   // as taken from here: https://wiki.mozilla.org/Audio_Data_API#Standardization_Note
   // only the number of channels is changed in the audio.mozSetup() call
+  
+/**###Gibberish.AudioDataDestination : method
+Used to generate callback for Firefox.
+param **sampleRate** : String. The sampleRate for the audio callback to run at. NOT THE BUFFER SIZE.  
+param **readFn** : Function. The audio callback to use.
+**/ 
   AudioDataDestination : function(sampleRate, readFn) { // for Firefox Audio Data API
     // Initialize the audio output.
     var audio = new Audio();
@@ -168,7 +235,9 @@ Gibberish = {
       }
     }, 100);
   },
-  
+/**###Gibberish.AudioDataDestination : method
+Create a callback and start it running. Note that in iOS audio callbacks can only be created in response to user events. Thus, in iOS this method assigns an event handler to the HTML body that creates the callback as soon as the body is touched; at that point the event handler is removed. 
+**/   
   init : function() {
     Gibberish.out = new Gibberish.Bus2();
     Gibberish.dirty(Gibberish.out);
@@ -191,7 +260,7 @@ Gibberish = {
           mySource.noteOn(0);
         }
       }else{
-        Gibberish.AudioDataDestination(44100, Gibberish.audioProcess2);
+        Gibberish.AudioDataDestination(44100, Gibberish.audioProcessFirefox);
       }
     }
     
@@ -204,7 +273,10 @@ Gibberish = {
     return this;
   },
   
-	makePanner : function() {
+/**###Gibberish.makePanner : method
+Create and return an object that can be used to pan a stereo source.
+**/ 
+  makePanner : function() {
 		var sin = Math.sin;
 		var cos = Math.cos;
 		var sqrtTwoOverTwo = Math.sqrt(2) / 2;
@@ -223,6 +295,10 @@ Gibberish = {
 		return f;
 	},
   
+/**###Gibberish.polyInit : method
+For ugens with polyphony, add metaprogramming that passes on property changes to the 'children' of the polyphonic object. Polyphonic ugens in Gibberish are just single instances that are routed into a shared bus, along with a few special methods for voice allocation etc.  
+param **Ugen** : Object. The polyphonic ugen
+**/ 
   polyInit : function(ugen) {
     ugen.mod = ugen.polyMod;
     ugen.removeMod = ugen.removePolyMod;
@@ -245,6 +321,9 @@ Gibberish = {
     }
   },
   
+/**###Gibberish.interpolate : method
+Similiar to makePanner, this method returns a function that can be used to linearly interpolate between to values.
+**/   
 	// adapted from audioLib.js
 	interpolate : (function() {
 		var floor = Math.floor;
@@ -260,6 +339,15 @@ Gibberish = {
 		};
 	})(),
   
+  export : function(key, obj) {
+    for(var _key in Gibberish[key]) {
+      console.log("exporting", _key, "from", key);
+      obj[_key] = Gibberish[key][_key];
+    }
+  },
+/**###Gibberish.ugen : method
+Creates a prototype object that is used by all ugens.
+**/    
   ugen : function() {
     Gibberish.extend(this, {
       processProperties : function(args){

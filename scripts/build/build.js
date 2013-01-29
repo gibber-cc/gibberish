@@ -33,6 +33,7 @@ concat({
         __dirname + '/../externals/audiofile.js',
         __dirname + '/../sampler.js',
         __dirname + '/../monosynth.js',
+        __dirname + '/../expression.js',        
     ],
     dest : __dirname + '/gibberish_2.0.js'
 });

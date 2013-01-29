@@ -30,6 +30,7 @@ Gibberish.Sine = function() {
     
   this.init(arguments);
   this.oscillatorInit();
+  this.processProperties(arguments);
 };
 Gibberish.Sine.prototype = Gibberish._oscillator;
 
@@ -50,6 +51,8 @@ Gibberish.Sine2 = function() {
   }
 
   this.init();
+  this.oscillatorInit();
+  this.processProperties(arguments);  
 };
 
 Gibberish.Saw = function() {
@@ -69,6 +72,7 @@ Gibberish.Saw = function() {
     
   this.init();
   this.oscillatorInit();
+  this.processProperties(arguments);  
 };
 Gibberish.Saw.prototype = Gibberish._oscillator;
 
@@ -108,7 +112,8 @@ Gibberish.Triangle = function(){
     },
   })
   .init()
-  .oscillatorInit();
+  .oscillatorInit()
+  .processProperties(arguments);  
 };
 Gibberish.Triangle.prototype = Gibberish._oscillator;
 
@@ -128,6 +133,8 @@ Gibberish.Triangle2 = function() {
   };
 
   this.init();
+  this.oscillatorInit();
+  this.processProperties(arguments);
 };
 
 // fm feedback band-limited saw ported from this paper: http://scp.web.elte.hu/papers/synthesis1.pdf
@@ -174,7 +181,7 @@ Gibberish.Saw3 = function() {
   
   this.init();
   this.oscillatorInit();
-  
+  this.processProperties(arguments);
 }
 Gibberish.Saw3.prototype = Gibberish._oscillator;
 
@@ -230,6 +237,7 @@ Gibberish.PWM = function() {
   
   this.init();
   this.oscillatorInit();
+  this.processProperties(arguments);  
 };
 Gibberish.PWM.prototype = Gibberish._oscillator;
 
@@ -249,6 +257,7 @@ Gibberish.Noise = function() {
   
   this.init();
   this.oscillatorInit();
+  this.processProperties(arguments);  
 };
 Gibberish.Noise.prototype = Gibberish._oscillator;
 
@@ -291,7 +300,8 @@ Gibberish.KarplusStrong = function() {
     },
   })
   .init()
-  .oscillatorInit();
+  .oscillatorInit()
+  .processProperties(arguments);
 };
 Gibberish.KarplusStrong.prototype = Gibberish._oscillator;
 
