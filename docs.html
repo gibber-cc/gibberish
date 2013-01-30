@@ -17,6 +17,8 @@
 		font-weight: normal;
 	}
   
+  h3 { color :#666; }
+  
   ul {
     padding:0;
     list-decoration:none;
@@ -25,7 +27,7 @@
   
   <script>
   window.displayTOC = function() {
-    $("#docs").empty();
+    $("#toc").empty();
     for (var key in Gibberish.toc) {
       var cat = Gibberish.toc[key];
       if (cat.length > 0) {
@@ -44,8 +46,8 @@
           $(li).append(a);
           $(ul).append(li);
         }
-        $("#docs").append(h2);
-        $("#docs").append(ul);
+        $("#toc").append(h2);
+        $("#toc").append(ul);
       }
     }
   };
@@ -80,7 +82,7 @@
   };
   
   $(window).on('load', function(e) {
-    $("#toc").on('click', function(e){ displayTOC(); });
+    //$("#toc").on('click', function(e){ displayTOC(); });
     
     var tags = [];
     Gibberish.toc = {};
@@ -125,11 +127,16 @@
   </script>
 </head>
 <body>
-  <div id='header'>
-    <h1>Gibberish Docs</h1>
-    <a id='toc'>TOC</a>
+  <div id='header' style="background-color:#555;" >
+    <h1 style="color:white; display:inline; margin-right:3em">Gibberish Reference</h1>
+    <a href="index.html" style="color:#fff">back to Gibberish demo</a>
+    <!--<a id='toc'>TOC</a>-->
   </div>
-  <div id='docs'>
+  <div id='content'>
+    <div id='toc' style='float:left; width:20%;'>
+    </div>
+    <div id='docs' style="float:right; width:79%; border-left:1px solid #eee">
+    </div>
   </div>
 </body>
 
