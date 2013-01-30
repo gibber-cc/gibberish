@@ -12,8 +12,8 @@ function concat(opts) {
     var fileList = opts.src;
     var distPath = opts.dest;
     var out = fileList.map(function(filePath){
-            return _fs.readFileSync(filePath, FILE_ENCODING);
-        });
+      return _fs.readFileSync(filePath, FILE_ENCODING);
+    });
     _fs.writeFileSync(distPath, out.join(EOL), FILE_ENCODING);
     console.log(' '+ distPath +' built.');
 }
@@ -24,6 +24,7 @@ concat({
         __dirname + '/../utils.js',
         __dirname + '/../proxy.js',        
         __dirname + '/../oscillators.js',
+        __dirname + '/../physical_models.js',        
         __dirname + '/../bus.js',
         __dirname + '/../envelopes.js',
         __dirname + '/../analysis.js',
@@ -33,7 +34,8 @@ concat({
         __dirname + '/../externals/audiofile.js',
         __dirname + '/../sampler.js',
         __dirname + '/../monosynth.js',
-        __dirname + '/../expression.js',        
+        __dirname + '/../expression.js',
+        __dirname + '/../documentation_output.js',
     ],
     dest : __dirname + '/gibberish_2.0.js'
 });

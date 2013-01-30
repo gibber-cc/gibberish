@@ -1,3 +1,21 @@
+/**#Gibberish.Bus - Miscellaneous
+Create a mono routing bus. A bus callback routes all it's inputs and scales them by the amplitude of the bus.  
+  
+For a stereo routing bus, see [Bus2](javascript:displayDocs('Gibberish.Bus2'\))
+
+##Example Usage##    
+`a = new Gibberish.Bus();  
+b = new Gibberish.Sine(440).connect(a);  
+c = new Gibberish.Sine(880).connect(a);  
+a.amp = .1;  
+a.connect();`
+  
+## Constructor     
+**param** *properties*: Object. A dictionary of property values (see below) to set for the bus on initialization.
+**/
+/**###Gibberish.Bus.amp : property  
+Array. Read-only. Relative volume for the sum of all ugens connected to the bus.
+**/
 Gibberish.bus = function(){
   this.type = 'bus';
   
@@ -7,7 +25,7 @@ Gibberish.bus = function(){
     this.codeblock = str;
     return str;
   };
-    
+
   this.addConnection = function() {
     var arg = { 
       value:	      arguments[0], 
@@ -90,6 +108,22 @@ Gibberish.Bus = function() {
 };
 Gibberish.Bus.prototype = Gibberish._bus;
 
+/**#Gibberish.Bus2 - Miscellaneous
+Create a stereo outing bus. A bus callback routes all it's inputs and scales them by the amplitude of the bus.
+
+##Example Usage##    
+`a = new Gibberish.Bus();  
+b = new Gibberish.Sine(440).connect(a);  
+c = new Gibberish.Sine(880).connect(a);  
+a.amp = .1;  
+a.connect();`
+  
+## Constructor     
+**param** *properties*: Object. A dictionary of property values (see below) to set for the bus on initialization.
+**/
+/**###Gibberish.Bus.amp : property  
+Array. Read-only. Relative volume for the sum of all ugens connected to the bus.
+**/
 Gibberish.Bus2 = function() {
   this.name = "bus2";
   this.type = 'bus';

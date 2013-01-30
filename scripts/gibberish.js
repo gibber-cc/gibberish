@@ -1,12 +1,11 @@
-/**#Gibberish - Gibberish
+/**#Gibberish - Miscellaneous
 Gibberish is the main object used to manage the audio graph and perform codegen functions. All constructors are also inside of the Gibberish object. Gibberish can automatically generate an appropriate web audio callback for you; if you want to use this you must execute the Gibberish.init() command before creating any Gibberish ugens.
 
 ## Example Usage##
 `// make a sine wave  
 Gibberish.init();  
 a = new Gibberish.Sine().connect();`
-## Constructors
-### syntax 1:
+## Constructor
 **param** *bufferSize*: Integer. Default 1024. The size of the buffer to be calculated. Since JavaScript is single-threaded, setting exceedingly large values for this will yield to stuttering in graphics and user interface performance.
 - - - -
 **/
@@ -61,7 +60,7 @@ Perform codegen on all dirty ugens and re-create the audio callback. This method
     this.memo = {};
     this.codeblock.length = 0;
     
-    /***** generate code for dirty ugens *****/
+    /* generate code for dirty ugens */
     for(var i = 0; i < this.dirtied.length; i++) {
       this.dirtied[i].codegen();
     }
@@ -71,13 +70,13 @@ Perform codegen on all dirty ugens and re-create the audio callback. This method
     
     this.codestring += '\nGibberish.callback = function() {\n\t';
 
-    /***** concatenate code for all ugens *****/
+    /* concatenate code for all ugens */
     this.memo = {};
     this.out.getCodeblock();
     this.codestring += this.codeblock.join("\t");
     this.codestring += "\n\t";
     
-    /***** analysis codeblock *****/
+    /* analysis codeblock */
     this.codeblock.length = 0;    
     if(this.analysisUgens.length > 0) {
       this.analysisCodeblock.length = 0;
@@ -104,6 +103,7 @@ Perform codegen on all dirty ugens and re-create the audio callback. This method
 
 /**###Gibberish.audioProcess : method
 The default audio callback used in Webkit browsers. This callback starts running as soon as Gibberish.init() is called.  
+  
 param **Audio Event** : Object. The HTML5 audio event object.
 **/ 
   audioProcess : function(e){
@@ -127,6 +127,7 @@ param **Audio Event** : Object. The HTML5 audio event object.
   },
 /**###Gibberish.audioProcessFirefox : method
 The default audio callback used in Firefox. This callback starts running as soon as Gibberish.init() is called.  
+  
 param **Sound Data** : Object. The buffer of audio data to be filled
 **/   
   audioProcessFirefox : function(soundData) { // callback for firefox
@@ -156,6 +157,7 @@ Remove all objects from Gibberish graph and perform codegen... kills all running
 
 /**###Gibberish.dirty : method
 Tell Gibberish a ugen needs to be codegen'd and mark the entire callback as needing regeneration  
+  
 param **Ugen** : Object. The ugen that is 'dirtied'... that has a property value changed.
 **/     
 	dirty : function(ugen) {
@@ -176,6 +178,7 @@ param **Ugen** : Object. The ugen that is 'dirtied'... that has a property value
 
 /**###Gibberish.generateSymbol : method
 Generate a unique symbol for a given ugen using its name and a unique id number.  
+  
 param **name** : String. The name of the ugen; for example, reverb, delay etc.
 **/       
 	generateSymbol : function(name) {
@@ -186,7 +189,8 @@ param **name** : String. The name of the ugen; for example, reverb, delay etc.
   // only the number of channels is changed in the audio.mozSetup() call
   
 /**###Gibberish.AudioDataDestination : method
-Used to generate callback for Firefox.
+Used to generate callback for Firefox.  
+  
 param **sampleRate** : String. The sampleRate for the audio callback to run at. NOT THE BUFFER SIZE.  
 param **readFn** : Function. The audio callback to use.
 **/ 
@@ -297,6 +301,7 @@ Create and return an object that can be used to pan a stereo source.
   
 /**###Gibberish.polyInit : method
 For ugens with polyphony, add metaprogramming that passes on property changes to the 'children' of the polyphonic object. Polyphonic ugens in Gibberish are just single instances that are routed into a shared bus, along with a few special methods for voice allocation etc.  
+  
 param **Ugen** : Object. The polyphonic ugen
 **/ 
   polyInit : function(ugen) {
@@ -322,7 +327,7 @@ param **Ugen** : Object. The polyphonic ugen
   },
   
 /**###Gibberish.interpolate : method
-Similiar to makePanner, this method returns a function that can be used to linearly interpolate between to values.
+Similiar to makePanner, this method returns a function that can be used to linearly interpolate between to values. The resulting function takes an array and a floating point position index and returns a value.
 **/   
 	// adapted from audioLib.js
 	interpolate : (function() {
@@ -350,6 +355,16 @@ Creates a prototype object that is used by all ugens.
 **/    
   ugen : function() {
     Gibberish.extend(this, {
+  
+/**#Ugen - Miscellaneous
+The prototype object that all ugens inherit from
+**/
+/**###Ugen.processProperties : method
+Used to assign and process arguments passed to the constructor functions of ugens.  
+  
+param **argumentList** : Array. A list of arguments (may be a single dictionary) passed to a ugen constructor.
+**/     
+
       processProperties : function(args){
         if(typeof arguments[0][0] === 'object' && typeof arguments[0][0].type === 'undefined' && !Array.isArray(arguments[0][0])) {
           var dict = arguments[0][0];
@@ -376,7 +391,9 @@ Creates a prototype object that is used by all ugens.
         }
         return this;
       },
-      
+/**###Ugen.codegen : method
+Generates output code (as a string) used inside audio callback
+**/     
       codegen : function() {
         var s = '', 
             v = null,
@@ -463,7 +480,10 @@ Creates a prototype object that is used by all ugens.
         
         return v;
       },
-      
+
+/**###Ugen.getCodeblock : method
+Retrieves codeblock for ugen previously created with codegen method.
+**/       
       getCodeblock : function() {
         if(this === null) return;
         //console.log("getting codeblock for " + this.symbol);
@@ -521,7 +541,12 @@ Creates a prototype object that is used by all ugens.
         
         return this.variable;
       },
-
+/**###Ugen.defineUgenProperty : method
+Creates getters and setters for ugen properties that automatically dirty the ugen whenever the property value is changed.  
+  
+param **key** : String. The name of a property to add getter / setters for.  
+param **value** : Any. The initival value to set the property to
+**/       
       defineUgenProperty : function(key, initValue) {
         this.properties[key] = {
           symbol: Gibberish.generateSymbol('v'),
@@ -547,10 +572,10 @@ Creates a prototype object that is used by all ugens.
           });
         })(this);
       },
-      
-      init : function(shouldPush) {
-        if(typeof shouldPush === 'undefined') shouldPush = false;
-        
+/**###Ugen.init : method
+Initialize ugen by calling defineUgenProperty for every key in the ugen's properties dictionary, generating a unique id for the ugen and various other small tasks.
+**/             
+      init : function() {
         if(!this.initalized) {
           this.symbol = Gibberish.generateSymbol(this.name);
           this.codeblock = null;
@@ -582,7 +607,13 @@ Creates a prototype object that is used by all ugens.
         
         return this;
       },
-            
+/**###Ugen.mod : method
+Modulate a property of a ugen on a per-sample basis.  
+  
+param **key** : String. The name of the property to modulate  
+param **value** : Any. The object or number value to modulate the property with  
+param **op** : String. Default "+". The operation to perform. Can be +,-,*,/,= or ++. ++ adds and returns the absolute value.
+**/            
       mod : function(name, value, op) {
         var property = this.properties[ name ];
         var mod = { ugen:value, binop:op };
@@ -590,7 +621,13 @@ Creates a prototype object that is used by all ugens.
         
         Gibberish.dirty( this );
       },
-      
+/**###Ugen.removeMod : method
+Remove a modulation from a ugen.  
+  
+param **key** : String. The name of the property to remove the modulation from  
+param **arg** : Number or Object. Optional. This determines which modulation to remove if more than one are assigned to the property. If this argument is undefined, all modulations are removed. If the argument is a number, the number represents a modulation in the order that they were applied (an array index). If the argument is an object, it removes a modulation that
+is using a matching object as the modulator.
+**/                  
       removeMod : function(name, arg) {
         if(typeof arg === 'undefined' ) {
           this.properties[name].binops.length = 0;
@@ -606,14 +643,27 @@ Creates a prototype object that is used by all ugens.
         
         Gibberish.dirty( this );
       },
-      
+
+/**###Ugen.polyMod : method
+Applies a modulation to all children of a polyphonic ugen  
+  
+param **key** : String. The name of the property to modulate  
+param **value** : Any. The object or number value to modulate the property with  
+param **op** : String. Default "+". The operation to perform. Can be +,-,*,/,= or ++. ++ adds and returns the absolute value.
+**/       
   		polyMod : function(name, modulator, type) {
   			for(var i = 0; i < this.children.length; i++) {
   				this.children[i].mod(name, modulator, type);
   			}
   			Gibberish.dirty(this);
   		},
-      
+
+/**###Ugen.removePolyMod : method
+Removes a modulation from all children of a polyphonic ugen. The arguments  
+  
+param **arg** : Number or Object. Optional. This determines which modulation to remove if more than one are assigned to the property. If this argument is undefined, all modulations are removed. If the argument is a number, the number represents a modulation in the order that they were applied (an array index). If the argument is an object, it removes a modulation that
+is using a matching object as the modulator.
+**/       
   		removePolyMod : function() {
   			var args = Array.prototype.slice.call(arguments, 0);
         
@@ -633,7 +683,11 @@ Creates a prototype object that is used by all ugens.
         //op.smooth(this, property);
         this.mod(property, op, "=");
       },
-      
+/**###Ugen.connect : method
+Connect the output of a ugen to a bus.  
+  
+param **bus** : Bus ugen. Optional. The bus to connect the ugen to. If no argument is passed the ugen is connect to Gibberish.out. Gibberish.out is automatically created when Gibberish.init() is called and can be thought of as the master stereo output for Gibberish.
+**/      
       connect : function(bus) {
         if(typeof bus === 'undefined') bus = Gibberish.out;
         
@@ -643,7 +697,12 @@ Creates a prototype object that is used by all ugens.
         }
         return this;
       },
-    
+/**###Ugen.send : method
+Send an arbitrary amount of output to a bus  
+  
+param **bus** : Bus ugen. The bus to send the ugen to.  
+param **amount** : Float. The amount of signal to send to the bus. 
+**/      
       send : function(bus, amount) {
         if(this.destinations.indexOf(bus) === -1 ){
           bus.addConnection( this, amount );
@@ -653,7 +712,11 @@ Creates a prototype object that is used by all ugens.
         }
         return this;
       },
-      
+/**###Ugen.disconnect : method
+Disconnect a ugen from a bus (or all busses). This stops all audio and signal processing for the ugen.  
+  
+param **bus** : Bus ugen. Optional. The bus to send the ugen to. If this argument is undefined the ugen will be disconnected from all busses.
+**/      
       disconnect : function(bus) {
         if(typeof bus === 'undefined') {
           for(var i = 0; i < this.destinations.length; i++) {

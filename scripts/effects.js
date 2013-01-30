@@ -4,6 +4,21 @@ Gibberish.effect = function() {
 Gibberish.effect.prototype = new Gibberish.ugen();
 Gibberish._effect = new Gibberish.effect();
 
+/**#Gibberish.Distortion - FX
+A simple waveshaping distortion that adaptively scales its gain based on the amount of distortion applied.
+  
+## Example Usage##
+`a = new Gibberish.Synth({ attack:44, decay:44100 });  
+b = new Gibberish.Distortion({ input:a, amount:30 }).connect();  
+a.note(440);  
+`  
+## Constructor   
+**param** *properties*: Object. A dictionary of property values (see below) to set for the synth on initialization.
+- - - -
+**/
+/**###Gibberish.Distortion.amount : property  
+Number. The amount of distortion to apply. This number cannot be set lower than 2.
+**/
 Gibberish.Distortion = function() {
   var abs = Math.abs, 
       log = Math.log, 
@@ -19,6 +34,7 @@ Gibberish.Distortion = function() {
     
     callback : function(input, amount) {
       var x;
+      amount = amount > 2 ? amount : 2;
       if(typeof input === 'number') {
     		x = input * amount;
     		input = (x / (1 + abs(x))) / (log(amount) / ln2); //TODO: get rid of log / divide
@@ -36,6 +52,24 @@ Gibberish.Distortion = function() {
 };
 Gibberish.Distortion.prototype = Gibberish._effect;
 
+/**#Gibberish.Delay - FX
+A simple echo effect.
+  
+## Example Usage##
+`a = new Gibberish.Synth({ attack:44, decay:44100 });  
+b = new Gibberish.Delay({ input:a, time:22050, feedback:.35 }).connect();  
+a.note(440);  
+`  
+## Constructor   
+**param** *properties*: Object. A dictionary of property values (see below) to set for the synth on initialization.
+- - - -
+**/
+/**###Gibberish.Delay.time : property  
+Number. The delay time as measured in samples
+**/
+/**###Gibberish.Delay.feedback : property  
+Number. The amount of feedback that the delay puts into its buffers.
+**/
 Gibberish.Delay = function() {
   var buffers = [],
       phase = 0;
@@ -45,7 +79,7 @@ Gibberish.Delay = function() {
   
   Gibberish.extend(this, {
   	name:"Delay",
-  	properties:{ input:0, time: 22050, feedback: .5, channels:1 },
+  	properties:{ input:0, time: 22050, feedback: .5 },
 				
   	callback : function(sample, time, feedback) {
       var channels = typeof sample === 'number' ? 1 : 2;
@@ -71,7 +105,24 @@ Gibberish.Delay = function() {
 };
 Gibberish.Delay.prototype = Gibberish._effect;
 
-// adapted from code / comments at http://musicdsp.org/showArchiveComment.php?ArchiveID=124
+/**#Gibberish.Decimator - FX
+A bit-crusher / sample rate reducer. Adapted from code / comments at http://musicdsp.org/showArchiveComment.php?ArchiveID=124
+
+## Example Usage##
+`a = new Gibberish.Synth({ attack:44, decay:44100 });  
+b = new Gibberish.Decimator({ input:a, bitDepth:4.2, sampleRate:.33 }).connect();  
+a.note(440);  
+`  
+## Constructor   
+**param** *properties*: Object. A dictionary of property values (see below) to set for the synth on initialization.
+- - - -
+**/
+/**###Gibberish.Decimator.bitDepth : property  
+Float. 0..16. The number of bits the signal is truncated to. May be a floating point number.
+**/
+/**###Gibberish.Decimator.sampleRate : property  
+Number. 0..1. The sample rate to use where 0 is 0 Hz and 1 is nyquist.
+**/
 Gibberish.Decimator = function() {
   var counter = 0,
       hold = [],
@@ -111,6 +162,27 @@ Gibberish.Decimator = function() {
 };
 Gibberish.Decimator.prototype = Gibberish._effect;
 
+/**#Gibberish.RingModulation - FX
+The name says it all. This ugen also has a mix property to control the ratio of wet to dry output.
+
+## Example Usage##
+`a = new Gibberish.Synth({ attack:44, decay:44100 });  
+b = new Gibberish.RingModulation({ input:a, frequency:1000, amp:.4, mix:1 }).connect();  
+a.note(440);  
+`  
+## Constructor   
+**param** *properties*: Object. A dictionary of property values (see below) to set for the synth on initialization.
+- - - -
+**/
+/**###Gibberish.RingModulation.frequency : property  
+Float. The frequency of the ring modulation modulator wave.
+**/
+/**###Gibberish.RingModulation.amp : property  
+Float. The amplitude of the ring modulation modulator wave.
+**/
+/**###Gibberish.RingModulation.mix : property  
+Float. 0..1. The wet/dry output ratio. A value of 1 means a completely wet signal, a value of 0 means completely dry.
+**/
 Gibberish.RingModulation = function() {
   var sin = new Gibberish.Sine().callback,
       output = [0,0];
@@ -145,6 +217,29 @@ Gibberish.RingModulation = function() {
 };
 Gibberish.RingModulation.prototype = Gibberish._effect;
 
+/**#Gibberish.OnePole - FX
+A one-pole filter for smoothing property values. This is particularly useful when the properties are being controlled interactively. You use the smooth method to apply the filter.
+
+## Example Usage##
+`a = new Gibberish.Synth({ attack:44, decay:44100 }).connect();  
+b = new Gibberish.OnePole({input:a.properties.frequency, a0:.0001, b1:.9999});  
+b.smooth('frequency', a);  
+a.note(880);  
+a.note(440);  
+`  
+## Constructor   
+**param** *properties*: Object. A dictionary of property values (see below) to set for the synth on initialization.
+- - - -
+**/
+/**###Gibberish.OnePole.input : property  
+Float. The property to smooth. You should always refer to this property through the properties dictionary of the ugen. In general it is much easier to use the smooth method of the OnePole than to set this property manually.
+**/
+/**###Gibberish.OnePole.a0 : property  
+Float. The value the input is multiplied by.
+**/
+/**###Gibberish.OnePole.b1 : property  
+Float. The value this pole of the filter is multiplied by.
+**/
 Gibberish.OnePole = function() {
   var history = 0,
       phase = 0;
@@ -165,7 +260,13 @@ Gibberish.OnePole = function() {
     
       return out;
     },
-    
+
+/**###Gibberish.OnePole.smooth : method  
+Use this to apply the filter to a property of an object.
+
+param **propertyName** String. The name of the property to smooth.  
+param **object** Object. The object containing the property to be smoothed
+**/    
     smooth : function(propName, obj) {
       this.input = obj.properties[propName];
       obj.mod(propName, this, '=');
@@ -176,7 +277,34 @@ Gibberish.OnePole = function() {
 };
 Gibberish.OnePole.prototype = Gibberish._effect;
 
-// adapted from Arif Ove Karlsne's 24dB ladder approximation: http://musicdsp.org/showArchiveComment.php?ArchiveID=141
+/**#Gibberish.Filter24 - FX
+A four pole ladder filter. Adapted from Arif Ove Karlsne's 24dB ladder approximation: http://musicdsp.org/showArchiveComment.php?ArchiveID=141.
+
+## Example Usage##
+`a = new Gibberish.Synth({ attack:44, decay:44100 });  
+b = new Gibberish.Filter24({input:a, cutoff:.2, resonance:4}).connect();  
+a.note(1760);   
+a.note(440);  
+a.isLowPass = false;  
+a.note(220);  
+a.note(1760);  
+`  
+## Constructor   
+**param** *properties*: Object. A dictionary of property values (see below) to set for the synth on initialization.
+- - - -
+**/
+/**###Gibberish.Filter24.input : property  
+Object. The ugen that should feed the filter.
+**/
+/**###Gibberish.Filter24.cutoff : property  
+Number. 0..1. The cutoff frequency for the synth's filter.
+**/
+/**###Gibberish.Filter24.resonance : property  
+Number. 0..50. Values above 4.5 are likely to produce shrieking feedback. You are warned.
+**/
+/**###Gibberish.Filter24.isLowPass : property  
+Boolean. Default true. Whether to use a low-pass or high-pass filter.
+**/
 Gibberish.Filter24 = function() {
   var poles  = [0,0,0,0],
       poles2 = [0,0,0,0],
@@ -238,7 +366,34 @@ Gibberish.Filter24 = function() {
 };
 Gibberish.Filter24.prototype = Gibberish._effect;
 
-// might be slightly cheaper to do per sample coefficient calculation as opposed to biquad
+/**#Gibberish.SVF - FX
+A two-pole state variable filter. This filter calculates coefficients on a per-sample basis, so that you can easily modulate cutoff and Q. Can switch between low-pass, high-pass, band and notch modes.
+
+## Example Usage##
+`a = new Gibberish.Synth({ attack:44, decay:44100 });  
+b = new Gibberish.SVF({input:a, cutoff:200, Q:4, mode:0});  
+a.note(1760);   
+a.note(440);  
+a.mode = 2;
+a.note(220);  
+a.note(1760);  
+`  
+## Constructor   
+**param** *properties*: Object. A dictionary of property values (see below) to set for the synth on initialization.
+- - - -
+**/
+/**###Gibberish.SVF.input : property  
+Object. The ugen that should feed the filter.
+**/
+/**###Gibberish.SVF.cutoff : property  
+Number. 0..22050. The cutoff frequency for the synth's filter. Note that unlike the Filter24, this is measured in Hz.
+**/
+/**###Gibberish.SVF.resonance : property  
+Number. 0..50. Values above 4.5 are likely to produce shrieking feedback. You are warned.
+**/
+/**###Gibberish.SVF.mode : property  
+Number. 0..3. 0 = lowpass, 1 = highpass, 2 = bandpass, 3 = notch.
+**/
 Gibberish.SVF = function() {
 	var d1 = [0,0], d2 = [0,0], pi= Math.PI, out = [0,0];
   
@@ -302,6 +457,34 @@ Gibberish.SVF = function() {
 };
 Gibberish.SVF.prototype = Gibberish._effect;
 
+/**#Gibberish.Biquad - FX
+A two-pole biquad filter. Currently, you must manually call calculateCoefficients every time mode, cutoff or Q changes; thus this filter isn't good for samplerate modulation.
+
+## Example Usage##
+`a = new Gibberish.Synth({ attack:44, decay:44100 });  
+b = new Gibberish.Biquad({input:a, cutoff:200, Q:4, mode:"LP"}).connect();  
+a.note(1760);   
+a.note(440);  
+a.mode = "HP";
+a.note(220);  
+a.note(1760);  
+`  
+## Constructor   
+**param** *properties*: Object. A dictionary of property values (see below) to set for the synth on initialization.
+- - - -
+**/
+/**###Gibberish.Biquad.input : property  
+Object. The ugen that should feed the filter.
+**/
+/**###Gibberish.Biquad.cutoff : property  
+Number. 0..22050. The cutoff frequency for the synth's filter. Note that unlike the Filter24, this is measured in Hz.
+**/
+/**###Gibberish.Biquad.Q : property  
+Number. 0..50. Values above 4.5 are likely to produce shrieking feedback. You are warned.
+**/
+/**###Gibberish.Biquad.mode : property  
+Number. 0..3. "LP" = lowpass, "HP" = highpass, "BP" = bandpass
+**/
 Gibberish.Biquad = function() {
   var x1 = [0,0],
       x2 = [0,0],
@@ -410,6 +593,38 @@ Gibberish.Biquad = function() {
 };
 Gibberish.Biquad.prototype = Gibberish._effect;
 
+/**#Gibberish.Flanger - FX
+Classic flanging effect with feedback.
+
+## Example Usage##
+`a = new Gibberish.Synth({ attack:44, decay:44100 });  
+b = new Gibberish.Flanger({input:a, rate:.5, amount:125, feedback:.5}).connect();  
+a.note(440);  
+a.feedback = 0;  
+a.note(440);  
+a.rate = 4;
+a.note(440);
+`  
+## Constructor   
+**param** *properties*: Object. A dictionary of property values (see below) to set for the synth on initialization.
+- - - -
+**/
+/**###Gibberish.Flanger.input : property  
+Object. The ugen that should feed the flagner.
+**/
+/**###Gibberish.Flanger.rate : property  
+Number. The speed at which the delay line tap position is modulated.
+**/
+/**###Gibberish.Flanger.amount : property  
+Number. The amount of time, in samples, that the delay line tap position varies by.
+**/
+/**###Gibberish.Flanger.feedback : property  
+Number. The amount of output that should be fed back into the delay line
+**/
+/**###Gibberish.Flanger.offset : property  
+Number. The base offset of the delay line tap from the current time. Large values (> 500) lead to chorusing effects.
+**/
+
 Gibberish.Flanger = function() {
 	var buffers =	        [ new Float32Array(88200), new Float32Array(88200) ],
 	    bufferLength =    88200,
@@ -461,6 +676,32 @@ Gibberish.Flanger = function() {
 };
 Gibberish.Flanger.prototype = Gibberish._effect;
 
+/**#Gibberish.Vibrato - FX
+Delay line vibrato effect.
+
+## Example Usage##
+`a = new Gibberish.Synth({ attack:44, decay:44100 });  
+b = new Gibberish.Vibrato({input:a, rate:4, amount:125 }).connect();  
+a.note(440);  
+a.rate = .5;
+a.note(440);
+`  
+## Constructor   
+**param** *properties*: Object. A dictionary of property values (see below) to set for the synth on initialization.
+- - - -
+**/
+/**###Gibberish.Vibrato.input : property  
+Object. The ugen that should feed the vibrato.
+**/
+/**###Gibberish.Vibrato.rate : property  
+Number. The speed at which the delay line tap position is modulated.
+**/
+/**###Gibberish.Vibrato.amount : property  
+Number. The size of the delay line modulation; effectively the amount of vibrato to produce, 
+**/
+/**###Gibberish.Vibrato.offset : property  
+Number. The base offset of the delay line tap from the current time.
+**/
 Gibberish.Vibrato = function() {
 	var buffers =	        [ new Float32Array(88200), new Float32Array(88200) ],
 	    bufferLength =    88200,
@@ -474,7 +715,7 @@ Gibberish.Vibrato = function() {
     name:"vibrato",
   	properties:{ input:0, rate:5, amount:.5, offset:125 },
     
-  	callback : function(sample, delayModulationRate, delayModulationAmount, offset, channels) {
+  	callback : function(sample, delayModulationRate, delayModulationAmount, offset) {
       var channels = typeof sample === 'number' ? 1 : 2;
       
   		var delayIndex = readIndex + delayModulation( delayModulationRate, delayModulationAmount * offset - 1 );
@@ -511,6 +752,46 @@ Gibberish.Vibrato = function() {
 	readIndex = this.offset * -1;
 };
 Gibberish.Vibrato.prototype = Gibberish._effect;
+
+/**#Gibberish.BufferShuffler - FX
+A buffer shuffling / stuttering effect with reversing and pitch-shifting
+
+## Example Usage##
+`a = new Gibberish.Synth({ attack:88200, decay:88200 });  
+b = new Gibberish.BufferShuffler({input:a, chance:.25, amount:125, rate:44100, pitchMin:-4, pitchMax:4 }).connect();  
+a.note(440);
+`  
+##Constructor##
+**param** *properties* : Object. A dictionary of property keys and values to assign to the Gibberish.BufferShuffler object
+- - - - 
+**/
+/**###Gibberish.BufferShuffler.chance : property
+Float. Range 0..1. Default .25. The likelihood that incoming audio will be shuffled.
+**/
+/**###Gibberish.BufferShuffler.rate : property
+Integer, in samples. Default 11025. How often Gibberish.BufferShuffler will randomly decide whether or not to shuffle.
+**/
+/**###Gibberish.BufferShuffler.length : property
+Integer, in samples. Default 22050. The length of time to play stuttered audio when stuttering occurs.
+**/
+/**###Gibberish.BufferShuffler.reverseChance : property
+Float. Range 0..1. Default .5. The likelihood that stuttered audio will be reversed
+**/
+/**###Gibberish.BufferShuffler.pitchChance : property
+Float. Range 0..1. Default .5. The likelihood that stuttered audio will be repitched.
+**/
+/**###Gibberish.BufferShuffler.pitchMin : property
+Float. Range 0..1. Default .25. The lowest playback speed used to repitch the audio
+**/
+/**###Gibberish.BufferShuffler.pitchMax : property
+Float. Range 0..1. Default 2. The highest playback speed used to repitch the audio.
+**/
+/**###Gibberish.BufferShuffler.wet : property
+Float. Range 0..1. Default 1. When shuffling, the amplitude of the wet signal
+**/
+/**###Gibberish.BufferShuffler.dry : property
+Float. Range 0..1. Default 0. When shuffling, the amplitude of the dry signal
+**/
 
 Gibberish.BufferShuffler = function() {
 	var buffers = [ new Float32Array(88200), new Float32Array(88200) ],
@@ -686,7 +967,30 @@ Gibberish.Comb = function(time) {
   
 };
 
-// adapted from audioLib.js
+/**#Gibberish.Reverb - FX
+based off audiolib.js reverb and freeverb
+ 
+## Example Usage##
+`a = new Gibberish.Synth({ attack:88200, decay:88200 });  
+b = new Gibberish.Reverb({input:a, roomSize:.5, wet:1, dry;.25}).connect();
+a.note(440);
+`  
+##Constructor
+**param** *properties* : Object. A dictionary of property keys and values to assign to the Gibberish.BufferShuffler object
+**/
+/**###Gibberish.Reverb.roomSize : property
+Float. 0..1. The size of the room being emulated.
+**/	
+/**###Gibberish.Reverb.damping : property
+Float. Attenuation of high frequencies that occurs.
+**/	
+/**###Gibberish.Reverb.wet : property
+Float. Default = .75. The amount of processed signal that is output.  
+**/	
+/**###Gibberish.Reverb.dry : property
+Float. Default = .5. The amount of dry signal that is output
+**/	
+
 Gibberish.Reverb = function() {
   var tuning =	{
 		    combCount: 		8,
@@ -757,6 +1061,54 @@ Gibberish.Reverb = function() {
 };
 Gibberish.Reverb.prototype = Gibberish._effect;
 
+/**#Gibberish.Granulator - FX
+A granulator that operates on a buffer of samples. You can get the samples from a [Sampler](javascript:displayDocs('Gibberish.Sampler'\))
+object.
+
+## Example Usage ##
+`a = new Gibberish.Sampler('resources/trumpet.wav');  
+// wait until sample is loaded to create granulator  
+a.onload = function() {  
+  b = new Gibberish.Granulator({  
+    buffer:a.getBuffer(),  
+    grainSize:1000,  
+    speedMin: -2,  
+    speedMax: 2,  
+  });  
+  b.mod('position', new Gibberish.Sine(.1, .45), '+');  
+  b.connect();  
+};`
+## Constructor
+**param** *propertiesList*: Object. At a minimum you should define the input to granulate. See the example.
+**/
+/**###Gibberish.Granulator.speed : property
+Float. The playback rate, in samples, of each grain
+**/
+/**###Gibberish.Granulator.speedMin : property
+Float. When set, the playback rate will vary on a per grain basis from (grain.speed + grain.speedMin) -> (grain.speed + grain.speedMax). This value should almost always be negative.
+**/
+/**###Gibberish.Granulator.speedMax : property
+Float. When set, the playback rate will vary on a per grain basis from (grain.speed + grain.speedMin) -> (grain.speed + grain.speedMax).
+**/
+/**###Gibberish.Granulator.grainSize : property
+Integer. The length, in samples, of each grain
+**/
+/**###Gibberish.Granulator.position : property
+Float. The center position of the grain cloud. 0 represents the start of the buffer, 1 represents the end.
+**/
+/**###Gibberish.Granulator.positionMin : property
+Float. The left boundary on the time axis of the grain cloud.
+**/
+/**###Gibberish.Granulator.positionMax : property
+Float. The right boundary on the time axis of the grain cloud.
+**/
+/**###Gibberish.Granulator.buffer : property
+Object. The input buffer to granulate.
+**/
+/**###Gibberish.Granulator.numberOfGrains : property
+Float. The number of grains in the cloud. Can currently only be set on initialization.
+**/
+
 Gibberish.Granulator = function(properties) {
 	var grains      = [];
 	    buffer      = null,
@@ -778,17 +1130,17 @@ Gibberish.Granulator = function(properties) {
 		spread:		      .5,
     
     properties : {
-  		speed: 		    1,
-  		speedMin:     -0,
-  		speedMax: 	  .0,
-  		grainSize: 	  1000,      
-  		position:	    .5,
-  		positionMin:  0,
-  		positionMax:  0,
+      speed: 		    1,
+      speedMin:     -0,
+      speedMax: 	  .0,
+      grainSize: 	  1000,      
+      position:	    .5,
+      positionMin:  0,
+      positionMax:  0,
       amp:		      .2,
-  		fade:		      .1,
-  		pan:		      0,
-  		shouldWrite:  false,
+      fade:		      .1,
+      pan:		      0,
+      shouldWrite:  false,
     },
     
     callback : function(speed, speedMin, speedMax, grainSize, positionMin, positionMax, position, amp, fade, pan, shouldWrite) {

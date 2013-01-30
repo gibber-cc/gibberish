@@ -11,6 +11,21 @@ Gibberish.oscillator = function() {
 Gibberish.oscillator.prototype = new Gibberish.ugen();
 Gibberish._oscillator = new Gibberish.oscillator();
 
+/**#Gibberish.Sine - Oscillator
+A sinewave calculated on a per-sample basis.
+
+## Example Usage##
+`// make a sine wave  
+Gibberish.init();  
+a = new Gibberish.Sine().connect();`
+- - - -
+**/
+/**###Gibberish.Sine.frequency : property  
+Number. From 20 - 20000 hz.
+**/
+/**###Gibberish.Sine.amp : property  
+Number. A linear value specifying relative amplitude, ostensibly from 0..1 but can be higher, or lower when used for modulation.
+**/
 Gibberish.Sine = function() {
   this.name = 'sine';
       
@@ -23,6 +38,12 @@ Gibberish.Sine = function() {
       sin  = Math.sin,
       phase = 0;
   
+/**###Gibberish.Sine.callback : method  
+Returns a single sample of output.  
+  
+param **frequency** Number. The frequency to be used to calculate output.  
+param **amp** Number. The amplitude to be used to calculate output.  
+**/  
   this.callback = function(frequency, amp) { 
     phase += frequency / 44100;
     return sin( phase * pi_2) * amp;
@@ -34,6 +55,24 @@ Gibberish.Sine = function() {
 };
 Gibberish.Sine.prototype = Gibberish._oscillator;
 
+/**#Gibberish.Sine2 - Oscillator
+A sinewave calculated on a per-sample basis that can be panned.
+
+## Example Usage##
+`// make a sine wave  
+Gibberish.init();  
+a = new Gibberish.Sine2(880, .5, -.25).connect();`
+- - - -
+**/
+/**###Gibberish.Sine2.frequency : property  
+Number. From 20 - 20000 hz.
+**/
+/**###Gibberish.Sine2.amp : property  
+Number. A linear value specifying relative amplitude, ostensibly from 0..1 but can be higher, or lower when used for modulation.
+**/
+/**###Gibberish.Sine2.pan : property  
+Number. -1..1. The position of the sinewave in the stereo spectrum
+**/
 Gibberish.Sine2 = function() {
   this.__proto__ = new Gibberish.Sine();
   this.name = "sine2";
@@ -43,7 +82,14 @@ Gibberish.Sine2 = function() {
   var sine = this.__proto__.callback,
       panner = Gibberish.makePanner(),
       output = [0,0];
+
+/**###Gibberish.Sine2.callback : method  
+Returns a stereo sample of output as an array.  
   
+param **frequency** Number. The frequency to be used to calculate output.  
+param **amp** Number. The amplitude to be used to calculate output.  
+param **pan** Number. The position in the stereo spectrum of the signal.
+**/  
   this.callback = function(frequency, amp, pan) {
     var out = sine(frequency, amp);
     output = panner(out, pan, output);
@@ -55,6 +101,21 @@ Gibberish.Sine2 = function() {
   this.processProperties(arguments);  
 };
 
+/**#Gibberish.Saw - Oscillator
+A non-bandlimited saw wave calculated on a per-sample basis.
+
+## Example Usage##
+`// make a saw wave  
+Gibberish.init();  
+a = new Gibberish.Saw(330, .4).connect();`
+- - - -
+**/
+/**###Gibberish.Saw.frequency : property  
+Number. From 20 - 20000 hz.
+**/
+/**###Gibberish.Saw.amp : property  
+Number. A linear value specifying relative amplitude, ostensibly from 0..1 but can be higher, or lower when used for modulation.
+**/
 Gibberish.Saw = function() {
   this.name = "saw",
   this.properties = { frequency: 440, amp: .15 };
@@ -76,6 +137,21 @@ Gibberish.Saw = function() {
 };
 Gibberish.Saw.prototype = Gibberish._oscillator;
 
+/**#Gibberish.Saw - Oscillator
+A stereo, non-bandlimited saw wave calculated on a per-sample basis.
+
+## Example Usage##
+`// make a saw wave  
+Gibberish.init();  
+a = new Gibberish.Saw2(330, .4).connect();`
+- - - -
+**/
+/**###Gibberish.Saw.frequency : property  
+Number. From 20 - 20000 hz.
+**/
+/**###Gibberish.Saw.amp : property  
+Number. A linear value specifying relative amplitude, ostensibly from 0..1 but can be higher, or lower when used for modulation.
+**/
 Gibberish.Saw2 = function() {
   this.__proto__ = new Gibberish.Saw();
   this.name = "saw2";
@@ -85,7 +161,14 @@ Gibberish.Saw2 = function() {
   var saw = this.__proto__.callback,
       panner = Gibberish.makePanner(),
       output = [0,0];
+
+/**###Gibberish.Saw2.callback : method  
+Returns a stereo sample of output as an array.  
   
+param **frequency** Number. The frequency to be used to calculate output.  
+param **amp** Number. The amplitude to be used to calculate output.  
+param **pan** Number. The position in the stereo spectrum of the signal.
+**/    
   this.callback = function(frequency, amp, pan) {
     var out = saw(frequency, amp);
     output = panner(out, pan, output);
@@ -95,6 +178,21 @@ Gibberish.Saw2 = function() {
   this.init();
 };
 
+/**#Gibberish.Triangle - Oscillator
+A triangle calculated on a per-sample basis.
+
+## Example Usage##
+`// make a triangle wave  
+Gibberish.init();  
+a = new Gibberish.Triangle({frequency:570, amp:.35}).connect();`
+- - - -
+**/
+/**###Gibberish.Triangle.frequency : property  
+Number. From 20 - 20000 hz.
+**/
+/**###Gibberish.Triangle.amp : property  
+Number. A linear value specifying relative amplitude, ostensibly from 0..1 but can be higher, or lower when used for modulation.
+**/
 Gibberish.Triangle = function(){
   var phase = 0,
       abs = Math.abs;
@@ -117,6 +215,24 @@ Gibberish.Triangle = function(){
 };
 Gibberish.Triangle.prototype = Gibberish._oscillator;
 
+/**#Gibberish.Triangle2 - Oscillator
+A triangle calculated on a per-sample basis that can be panned.
+
+## Example Usage##
+`Gibberish.init();  
+a = new Gibberish.Triangle2(880, .5, -.25).connect();`
+- - - -
+**/
+/**###Gibberish.Triangle2.frequency : property  
+Number. From 20 - 20000 hz.
+**/
+/**###Gibberish.Triangle2.amp : property  
+Number. A linear value specifying relative amplitude, ostensibly from 0..1 but can be higher, or lower when used for modulation.
+**/
+/**###Gibberish.Triangle2.pan : property  
+Number. -1..1. The position of the triangle wave in the stereo spectrum
+**/
+ 
 Gibberish.Triangle2 = function() {
   this.__proto__ = new Gibberish.Triangle();
   this.name = "triangle2";
@@ -126,7 +242,14 @@ Gibberish.Triangle2 = function() {
   var triangle = this.__proto__.callback,
       panner = Gibberish.makePanner(),
       output = [0,0];
+
+/**###Gibberish.Triangle2.callback : method  
+Returns a stereo sample of output as an array.  
   
+param **frequency** Number. The frequency to be used to calculate output.  
+param **amp** Number. The amplitude to be used to calculate output.  
+param **pan** Number. The position in the stereo spectrum of the signal.
+**/    
   this.callback = function(frequency, amp, pan) {
     var out = triangle(frequency, amp);
     return panner(out, pan, output);
@@ -137,7 +260,22 @@ Gibberish.Triangle2 = function() {
   this.processProperties(arguments);
 };
 
-// fm feedback band-limited saw ported from this paper: http://scp.web.elte.hu/papers/synthesis1.pdf
+/**#Gibberish.Saw3 - Oscillator
+A bandlimited saw wave created using FM feedback, see http://scp.web.elte.hu/papers/synthesis1.pdf.  
+  
+## Example Usage##
+`// make a saw wave  
+Gibberish.init();  
+a = new Gibberish.Saw3(330, .4).connect();`
+- - - -
+**/
+/**###Gibberish.Saw3.frequency : property  
+Number. From 20 - 20000 hz.
+**/
+/**###Gibberish.Saw3.amp : property  
+Number. A linear value specifying relative ampltiude, ostensibly from 0..1 but can be higher, or lower when used for modulation.
+**/
+
 Gibberish.Saw3 = function() {
   var osc = 0,
       phase = 0,
@@ -154,6 +292,12 @@ Gibberish.Saw3 = function() {
       frequency: 440,
       amp: .15,
     },
+/**###Gibberish.Saw3.callback : method  
+Returns a single sample of output.  
+  
+param **frequency** Number. The frequency to be used to calculate output.  
+param **amp** Number. The amplitude to be used to calculate output.  
+**/    
     callback : function(frequency, amp) {
       var w = frequency / 44100,
           n = .5 - w,
@@ -185,6 +329,24 @@ Gibberish.Saw3 = function() {
 }
 Gibberish.Saw3.prototype = Gibberish._oscillator;
 
+/**#Gibberish.PWM - Oscillator
+A bandlimited pulsewidth modulation wave created using FM feedback, see http://scp.web.elte.hu/papers/synthesis1.pdf.
+  
+## Example Usage##
+`// make a pwm wave  
+Gibberish.init();  
+a = new Gibberish.PWM(330, .4, .9).connect();`
+- - - -
+**/
+/**###Gibberish.PWM.frequency : property  
+Number. From 20 - 20000 hz.
+**/
+/**###Gibberish.PWM.amp : property  
+Number. A linear value specifying relative ampltiude, ostensibly from 0..1 but can be higher, or lower when used for modulation.
+**/
+/**###Gibberish.PWM.pulsewidth : property  
+Number. 0..1. The width of the waveform's duty cycle.
+**/
 Gibberish.PWM = function() {
   var osc = 0,
       osc2= 0,
@@ -206,7 +368,13 @@ Gibberish.PWM = function() {
       amp: .15,
       pulsewidth: .5,
     },
-    
+/**###Gibberish.PWM.callback : method  
+Returns a single sample of output.  
+  
+param **frequency** Number. The frequency to be used to calculate output.  
+param **amp** Number. The amplitude to be used to calculate output.  
+param **pulsewidth** Number. The duty cycle of the waveform
+**/    
     callback : function(frequency, amp, pulsewidth) {
       var w = frequency / 44100,
           n = .5 - w,
@@ -241,6 +409,18 @@ Gibberish.PWM = function() {
 };
 Gibberish.PWM.prototype = Gibberish._oscillator;
 
+/**#Gibberish.Noise - Oscillator
+A white noise oscillator
+
+## Example Usage##
+`// make some noise
+Gibberish.init();  
+a = new Gibberish.Noise(.4).connect();`
+- - - -
+**/
+/**###Gibberish.Noise.amp : property  
+Number. A linear value specifying relative amplitude, ostensibly from 0..1 but can be higher, or lower when used for modulation.
+**/
 Gibberish.Noise = function() {
   var rnd = Math.random;
   
@@ -251,7 +431,7 @@ Gibberish.Noise = function() {
     },
     
     callback : function(amp){ 
-      return rnd() * 2 - 1;
+      return (rnd() * 2 - 1) * amp;
     },
   });
   
@@ -260,89 +440,3 @@ Gibberish.Noise = function() {
   this.processProperties(arguments);  
 };
 Gibberish.Noise.prototype = Gibberish._oscillator;
-
-Gibberish.KarplusStrong = function() {
-  var phase   = 0,
-      buffer  = [0],
-      last    = 0,
-      rnd     = Math.random,
-      panner  = Gibberish.makePanner(),
-      out     = [0,0];
-      
-  Gibberish.extend(this, {
-    name:"karplus_strong",
-    
-    properties: { blend:1, damping:0, amp:1, channels:2, pan:0  },
-  
-    note : function(frequency) {
-      var _size = Math.floor(44100 / frequency);
-      buffer.length = 0;
-    
-      for(var i = 0; i < _size; i++) {
-        buffer[i] = Math.random() * 2 - 1; // white noise
-      }
-    },
-
-    callback : function(blend, damping, amp, channels, pan) { 
-      var val = buffer.shift();
-      var rndValue = (rnd() > blend) ? -1 : 1;
-				
-  	  damping = damping > 0 ? damping : 0;
-				
-      var value = rndValue * (val + last) * (.5 - damping / 100);
-
-      last = value;
-
-      buffer.push(value);
-				
-      value *= amp;
-      return channels === 1 ? value : panner(value, pan, out);
-    },
-  })
-  .init()
-  .oscillatorInit()
-  .processProperties(arguments);
-};
-Gibberish.KarplusStrong.prototype = Gibberish._oscillator;
-
-Gibberish.PolyKarplusStrong = function() {
-  this.__proto__ = new Gibberish.Bus2();
-  
-  Gibberish.extend(this, {
-    name:     "poly_karplus_strong",
-    maxVoices:    5,
-    voiceCount:   0,
-    
-    polyProperties : {
-  		blend:			1,
-      damping:    0,
-    },
-        
-    note : function(_frequency, amp) {
-      var synth = this.children[this.voiceCount++];
-      if(this.voiceCount >= this.maxVoices) this.voiceCount = 0;
-      synth.note(_frequency, amp);
-    },
-  });
-  
-  this.amp = 1 / this.maxVoices;
-  this.processProperties(arguments);
-  
-  this.children = [];
-  
-  this.dirty = true;
-  for(var i = 0; i < this.maxVoices; i++) {
-    var props = {
-      blend:   this.blend,
-      damping:    this.damping,
-      channels: 2,
-      amp:      1,
-    };
-    var synth = new Gibberish.KarplusStrong(props).connect(this);
-
-    this.children.push(synth);
-  }
-  
-  Gibberish.polyInit(this);
-  Gibberish._synth.oscillatorInit.call(this);
-};

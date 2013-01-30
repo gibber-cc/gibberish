@@ -1,3 +1,58 @@
+// this file is dependent on oscillators.js
+
+/**#Gibberish.Sampler - Oscillator
+Sample recording and playback.
+  
+## Example Usage##
+`Gibberish.init();  
+a = new Gibberish.Sampler({ file:'resources/snare.wav' }).connect();  
+a.note(2);  
+a.note(1);  
+a.note(-.5);  
+b = new Gibberish.Sampler().connect();  
+b.record(a, 88200); // record two seconds of a playing  
+a.note(8);  
+// wait a bit    
+b.note(1);`
+`
+## Constructor
+###syntax 1  
+**param** *filepath*: String. A path to the audiofile to be opened by the sampler.  
+###syntax 2    
+**param** *properties*: Object. A dictionary of property values (see below) to set for the sampler on initialization.
+- - - -
+**/
+/**###Gibberish.Sampler.pitch : property  
+Number. The speed that the sample is played back at. A pitch of 1 means the sample plays forward at speed it was recorded at, a pitch of -4 means the sample plays backwards at 4 times the speed it was recorded at.
+**/
+/**###Gibberish.Sampler.amp : property  
+Number. A linear value specifying relative amplitude, ostensibly from 0..1 but can be higher, or lower when used for modulation.
+**/
+/**###Gibberish.Sampler.isRecording : property  
+Boolean. Tells the sample to record into it's buffer. This is handled automatically by the object; there is no need to manually set this property.
+**/
+/**###Gibberish.Sampler.isPlaying : property  
+Number. 0..1. Tells the sample to record into it's buffer. This is handled automatically by the object; there is no need to manually set this property.
+**/
+/**###Gibberish.Sampler.input : property  
+Object. The object the sampler is tapping into and recording.
+**/
+/**###Gibberish.Sampler.length : property  
+Number. The length of the Sampler's buffer.
+**/
+/**###Gibberish.Sampler.start : property  
+Number. When the Sampler's note method is called, sample playback begins at this sample.
+**/
+/**###Gibberish.Sampler.end : property  
+Number. When the Sampler's note method is called, sample playback ends at this sample.
+**/
+/**###Gibberish.Sampler.loops : property  
+Boolean. When true, sample playback loops continuously between the start and end property values.
+**/
+/**###Gibberish.Sampler.pan : property  
+Number. -1..1. Position of the Sampler in the stereo spectrum.
+**/
+
 Gibberish.Sampler = function() {
 	var phase = 1,
 	    interpolate = Gibberish.interpolate,
@@ -29,7 +84,12 @@ Gibberish.Sampler = function() {
       loops :       0,
       pan :         0,
     },
-
+    
+/**###Gibberish.Sampler._onload : method  
+This is an event handler that is called when a sampler has finished loading an audio file  
+  
+param **buffer** Object. The decoded sampler buffers from the audio file
+**/ 
 		_onload : 		function(decoded) {
 			buffer = decoded.channels[0]; 
 			bufferLength = decoded.length;
@@ -47,7 +107,13 @@ Gibberish.Sampler = function() {
       
 			self.isLoaded = true;
 		},
-    
+
+/**###Gibberish.Sampler.note : method  
+Trigger playback of the samplers buffer
+  
+param **pitch** Number. The speed the sample is played back at.  
+param **amp** Number. Optional. The volume to use.
+**/    
 		note: function(pitch, amp) {
 			if(typeof amp === 'number') this.amp = amp;
 			this.pitch = pitch;
@@ -61,7 +127,12 @@ Gibberish.Sampler = function() {
 				}
 			}
 		},
-    
+/**###Gibberish.Sampler.record : method  
+Record the output of a Gibberish ugen for a given amount of time
+  
+param **ugen** Object. The Gibberish ugen to be recorded.
+param **recordLength** Number (in samples). How long to record for.
+**/     
 		record : function(input, recordLength) {
       this.isRecording = true;
       
@@ -75,11 +146,18 @@ Gibberish.Sampler = function() {
       })
       .record(); 
 		},
-    
+
+/**###Gibberish.Sampler.getBuffer : method  
+Returns a pointer to the Sampler's internal buffer.  
+**/
     getBuffer : function() {
       return buffer;
     },
-    
+/**###Gibberish.Sampler.callback : method  
+Return a single sample. It's a pretty lengthy method signature, they are all properties that have already been listed:  
+
+_pitch, amp, isRecording, isPlaying, input, length, start, end, loops, pan
+**/    
   	callback :function(_pitch, amp, isRecording, isPlaying, input, length, start, end, loops, pan) {
   		var val = 0;
   		phase += _pitch;				
