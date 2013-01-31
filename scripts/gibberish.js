@@ -721,9 +721,13 @@ param **bus** : Bus ugen. Optional. The bus to send the ugen to. If this argumen
         if(typeof bus === 'undefined') {
           for(var i = 0; i < this.destinations.length; i++) {
             this.destinations[i].removeConnection( this );
-            this.destiGibbenations.splice(i);
           }
+          this.destinations = [];
         }else{
+          var idx = this.destinations.indexOf(bus);
+          if(idx > -1) {
+            this.destinations.splice(idx, 1);
+          }
           bus.removeConnection( this );
         }
         return this;
