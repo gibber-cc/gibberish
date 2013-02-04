@@ -329,20 +329,16 @@ param **Ugen** : Object. The polyphonic ugen
 /**###Gibberish.interpolate : method
 Similiar to makePanner, this method returns a function that can be used to linearly interpolate between to values. The resulting function takes an array and a floating point position index and returns a value.
 **/   
-	// adapted from audioLib.js
-	interpolate : (function() {
-		var floor = Math.floor;
+	interpolate : function(arr, phase){
+		var	index	  = phase | 0, // round down
+        index2,
+				frac	  = phase - index;
     
-		return function(arr, pos){
-			var	first	  = floor(pos),
-  				second	= first + 1,
-  				frac	  = pos - first;
-          
-			second		= second < arr.length ? second : 0;
+    index = index & (arr.length - 1);
+    index2 = index + 1 > arr.length - 1 ? 0 : index + 1;
 				
-			return arr[first] * (1 - frac) + arr[second] * frac;
-		};
-	})(),
+    return arr[index] + frac * (arr[index2] - arr[index]);
+	},
   
   export : function(key, obj) {
     for(var _key in Gibberish[key]) {

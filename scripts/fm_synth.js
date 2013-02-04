@@ -69,7 +69,9 @@ param **amp** Number. Optional. The volume to use.
 	    modulator   = new Gibberish.Sine().callback,
       lag         = new Gibberish.OnePole().callback,
     	panner      = Gibberish.makePanner(),
-    	out         = [0,0];
+    	out         = [0,0],
+      phase = 0,
+      check = false;
 
   this.callback = function(frequency, cmRatio, index, attack, decay, glide, amp, channels, pan) {    
 		if(envstate() < 2) {				
@@ -77,8 +79,14 @@ param **amp** Number. Optional. The volume to use.
       frequency = lag(frequency, 1-glide, glide);
       
 			var env = envelope(attack, decay);
-			var mod = modulator(frequency * cmRatio, frequency * index, 1, 1) * env;
+			var mod = modulator(frequency * cmRatio, frequency * index) * env;
+      //if(phase++ % 22050 === 0 ) console.log(mod);
 			var val = carrier( frequency + mod, 1, 1 ) * env * amp;
+      if(isNaN(val) && !check){ 
+        console.log(frequency, mod, cmRatio, frequency * index, env, amp, val);
+        check = true;
+      }
+      //if(phase++ % 22050 === 0 ) console.log(val);
 
 			out[0] = out[1] = val;
       

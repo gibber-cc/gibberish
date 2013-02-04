@@ -329,20 +329,16 @@ param **Ugen** : Object. The polyphonic ugen
 /**###Gibberish.interpolate : method
 Similiar to makePanner, this method returns a function that can be used to linearly interpolate between to values. The resulting function takes an array and a floating point position index and returns a value.
 **/   
-	// adapted from audioLib.js
-	interpolate : (function() {
-		var floor = Math.floor;
+	interpolate : function(arr, phase){
+		var	index	  = phase | 0, // round down
+        index2,
+				frac	  = phase - index;
     
-		return function(arr, pos){
-			var	first	  = floor(pos),
-  				second	= first + 1,
-  				frac	  = pos - first;
-          
-			second		= second < arr.length ? second : 0;
+    index = index & (arr.length - 1);
+    index2 = index + 1 > arr.length - 1 ? 0 : index + 1;
 				
-			return arr[first] * (1 - frac) + arr[second] * frac;
-		};
-	})(),
+    return arr[index] + frac * (arr[index2] - arr[index]);
+	},
   
   export : function(key, obj) {
     for(var _key in Gibberish[key]) {
@@ -1005,16 +1001,24 @@ Number. A linear value specifying relative amplitude, ostensibly from 0..1 but c
 **/
 Gibberish.Sine = function() {
   this.name = 'sine';
-      
+
   this.properties = {
     frequency : arguments[0] || 440,
     amp :       arguments[1] || .5,
   };
-    
+  
   var pi_2 = Math.PI * 2, 
       sin  = Math.sin,
-      phase = 0;
+      phase = 0,
+      table = new Float32Array(1024),      
+      interpolate = Gibberish.interpolate,
+      tableFreq = 44100 / 1024;
+
+  for(var i = 1024; i--;) {
+    table[i] = sin( (i / 1024) * pi_2);
+  }
   
+  this.getTable = function() { return table; }
 /**###Gibberish.Sine.callback : method  
 Returns a single sample of output.  
   
@@ -1022,8 +1026,17 @@ param **frequency** Number. The frequency to be used to calculate output.
 param **amp** Number. The amplitude to be used to calculate output.  
 **/  
   this.callback = function(frequency, amp) { 
-    phase += frequency / 44100;
-    return sin( phase * pi_2) * amp;
+    var index, frac, index2;
+    
+    phase += frequency / tableFreq;
+    while(phase >= 1024) phase -= 1024;  
+    
+    index   = phase | 0;
+    frac    = phase - index;
+    index = index & 1023;
+    index2  = index === 1023 ? 0 : index + 1;
+        
+    return (table[index] + ( frac * (table[index2] - table[index]) ) ) * amp;
   };
     
   this.init(arguments);
@@ -3666,7 +3679,9 @@ param **amp** Number. Optional. The volume to use.
 	    modulator   = new Gibberish.Sine().callback,
       lag         = new Gibberish.OnePole().callback,
     	panner      = Gibberish.makePanner(),
-    	out         = [0,0];
+    	out         = [0,0],
+      phase = 0,
+      check = false;
 
   this.callback = function(frequency, cmRatio, index, attack, decay, glide, amp, channels, pan) {    
 		if(envstate() < 2) {				
@@ -3674,8 +3689,14 @@ param **amp** Number. Optional. The volume to use.
       frequency = lag(frequency, 1-glide, glide);
       
 			var env = envelope(attack, decay);
-			var mod = modulator(frequency * cmRatio, frequency * index, 1, 1) * env;
+			var mod = modulator(frequency * cmRatio, frequency * index) * env;
+      //if(phase++ % 22050 === 0 ) console.log(mod);
 			var val = carrier( frequency + mod, 1, 1 ) * env * amp;
+      if(isNaN(val) && !check){ 
+        console.log(frequency, mod, cmRatio, frequency * index, env, amp, val);
+        check = true;
+      }
+      //if(phase++ % 22050 === 0 ) console.log(val);
 
 			out[0] = out[1] = val;
       
@@ -4503,15 +4524,36 @@ param **amp** : Optional. Float. The volume of the note, usually between 0..1. T
 	this.processProperties(arguments);
 };
 Gibberish.MonoSynth.prototype = Gibberish._synth; 
+var _out = [], _phase = 0;
+
 Gibberish.Expressions = {
   add : function() {
     var args = Array.prototype.slice.call(arguments, 0),
-        phase = 0;
+        phase = 0,
+        isArray = Array.isArray;
   
     var me = {
       name : 'add',
       properties : {},
       callback : function(a,b) {
+        if(isArray(a)) {
+          if(typeof b === 'number') {
+            //if(phase++ % 22050 === 0) console.log(a,b)
+            _out[0] = a[0] + b;
+            _out[1] = a[1] + b;          
+            return _out;
+          }else{
+            //if(phase++ % 22050 === 0) console.log(a,b)
+            _out[0] = a[0] + b[0];
+            _out[1] = a[1] + b[1];          
+            return _out;
+          }
+        }else{
+          if(isArray(b)) {
+            _out[0] = a + b[0];
+            _out[1] = a + b[1];            
+          }
+        }
         return a + b;
       },
     };

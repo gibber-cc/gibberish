@@ -1,12 +1,33 @@
+var _out = [], _phase = 0;
+
 Gibberish.Expressions = {
   add : function() {
     var args = Array.prototype.slice.call(arguments, 0),
-        phase = 0;
+        phase = 0,
+        isArray = Array.isArray;
   
     var me = {
       name : 'add',
       properties : {},
       callback : function(a,b) {
+        if(isArray(a)) {
+          if(typeof b === 'number') {
+            //if(phase++ % 22050 === 0) console.log(a,b)
+            _out[0] = a[0] + b;
+            _out[1] = a[1] + b;          
+            return _out;
+          }else{
+            //if(phase++ % 22050 === 0) console.log(a,b)
+            _out[0] = a[0] + b[0];
+            _out[1] = a[1] + b[1];          
+            return _out;
+          }
+        }else{
+          if(isArray(b)) {
+            _out[0] = a + b[0];
+            _out[1] = a + b[1];            
+          }
+        }
         return a + b;
       },
     };
