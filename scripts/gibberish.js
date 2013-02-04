@@ -334,7 +334,7 @@ Similiar to makePanner, this method returns a function that can be used to linea
         index2,
 				frac	  = phase - index;
     
-    index = index & (arr.length - 1);
+    //index = index & (arr.length - 1);
     index2 = index + 1 > arr.length - 1 ? 0 : index + 1;
 				
     return arr[index] + frac * (arr[index2] - arr[index]);

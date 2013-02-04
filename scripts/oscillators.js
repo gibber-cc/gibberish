@@ -37,13 +37,9 @@ Gibberish.Sine = function() {
   var pi_2 = Math.PI * 2, 
       sin  = Math.sin,
       phase = 0,
-      table = new Float32Array(1024),      
-      interpolate = Gibberish.interpolate,
-      tableFreq = 44100 / 1024;
-
-  for(var i = 1024; i--;) {
-    table[i] = sin( (i / 1024) * pi_2);
-  }
+      table = new Float32Array(1024);
+      
+  for(var i = 1024; i--;) { table[i] = sin( (i / 1024) * pi_2); }
   
   this.getTable = function() { return table; }
 /**###Gibberish.Sine.callback : method  
@@ -53,8 +49,9 @@ param **frequency** Number. The frequency to be used to calculate output.
 param **amp** Number. The amplitude to be used to calculate output.  
 **/  
   this.callback = function(frequency, amp) { 
-    var index, frac, index2;
-    
+    var index, frac, index2,
+        tableFreq = 43.06640625;
+        
     phase += frequency / tableFreq;
     while(phase >= 1024) phase -= 1024;  
     
