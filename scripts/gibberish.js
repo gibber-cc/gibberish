@@ -115,13 +115,13 @@ param **Audio Event** : Object. The HTML5 audio event object.
     var me = Gibberish; // dereference for efficiency
 		for(var i = 0, _bl = e.outputBuffer.length; i < _bl; i++){
       
+      for(var j = 0; j < me.sequencers.length; j++) { me.sequencers[j].tick(); }
+      
       if(me.isDirty) {
         me.createCallback();
         me.isDirty = false;
       }
-      
-      for(var j = 0; j < me.sequencers.length; j++) { me.sequencers[j].tick(); }
-      
+
 			var val = me.callback();
       
 			bufferL[i] = val[0];
@@ -137,10 +137,13 @@ param **Sound Data** : Object. The buffer of audio data to be filled
     var me = Gibberish;
 
     for (var i=0, size=soundData.length; i<size; i+=2) {
+      
+      for(var j = 0; j < me.sequencers.length; j++) { me.sequencers[j].tick(); }
+      
       if(me.isDirty) {
         me.createCallback();
         me.isDirty = false;
-      }
+      }      
       
 			var val = me.callback();
       

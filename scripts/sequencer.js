@@ -8,13 +8,18 @@ Gibberish.Sequencer = function() {
     rateIndex   : 0,
     nextTime    : 0,
     phase       : 0,
-    isRunning   : false,
+    isRunning   : true,
     playOnce    : false,
     repeatCount : 0,
     repeatTarget: null,
     isConnected : true,
+    keysAndValues : {
+      note : [440, 880],
+      attack : [ 1000, 10000, 50],
+    },
+    counts : { },
     
-    tick        : function() {
+    tick : function() {
       if(this.isRunning) {
         if(this.phase === this.nextTime) {
           if(this.values !== null) {
@@ -30,11 +35,22 @@ Gibberish.Sequencer = function() {
               }
             }
             if(this.valuesIndex >= this.values.length) this.valuesIndex = 0;
+          }else if(this.keysAndValues !== null) {
+            for(var key in this.keysAndValues) {
+              var index = this.counts[key]++;
+              if(typeof this.target[key] === 'function') {
+                this.target[key]( this.keysAndValues[key][index] );
+              }else{
+                this.target[key] = this.keysAndValues[key][index];
+              }
+              if(this.counts[key] >= this.keysAndValues[key].length) {
+                this.counts[key] = 0;
+              }
+            }
           }
-        
+          
           this.phase = 0;
         
-          // schedule next event
           if(Array.isArray(this.rate)) {
             this.nextTime = this.rate[ this.rateIndex++ ];
             if( this.rateIndex >= this.rate.length) {
@@ -63,6 +79,7 @@ Gibberish.Sequencer = function() {
       if(!shouldKeepOffset) {
         this.phase = 0;
       }
+      console.log("START");
       this.isRunning = true;
       return this;
     },
@@ -94,4 +111,9 @@ Gibberish.Sequencer = function() {
     this[key] = arguments[0][key];
   }
   
+  for(var key in this.keysAndValues) {
+    this.counts[key] = 0;
+  }
+  
+  this.connect();
 };
