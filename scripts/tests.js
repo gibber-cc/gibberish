@@ -945,3 +945,36 @@ window.biquadFilter = function() {
 	}, 250);
 
 }
+
+window.sequencer = function() {
+  Gibberish.clear();
+  if(typeof timeout !== 'undefined') clearTimeout(timeout);
+  
+  a = new Gibberish.FMSynth().connect();
+  
+  b = new Gibberish.Sequencer({
+    target:a, key:'note',
+    values:[880,660,440,220],
+    rate:[22050, 11025, 44100],
+  }).start();
+  
+	var inputString = "// sequencers provide sample accurate timing.\n"+
+  "// here we sequence calls to the note method of our target synth option.\n"+
+  "// rate determines how quickly the sequencer advances, in samples.\n"+
+  "a = new Gibberish.FMSynth().connect();\n"+
+  "\n"+
+  "b = new Gibberish.Sequencer({\n"+
+  "  target:a, key:'note',\n"+
+  "  values:[880,660,440,220],\n"+
+  "  rate:[22050, 11025, 44100],\n"+
+  "}).start();\n";
+
+	var input = document.getElementById("input");
+	input.innerHTML = inputString;
+			
+	codeTimeout = setTimeout(function() { 
+		var codegen = document.getElementById("output");
+		codegen.innerHTML = Gibberish.callbackString;
+	}, 250);
+
+}

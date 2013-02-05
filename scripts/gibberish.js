@@ -52,6 +52,7 @@ Gibberish = {
   debug             : false,
   callback          : '',
   audioFiles        : {},
+  sequencers        : [],
   
 /**###Gibberish.createCallback : method
 Perform codegen on all dirty ugens and re-create the audio callback. This method is called automatically in the default Gibberish sample loop whenever Gibberish.isDirty is true.
@@ -118,6 +119,8 @@ param **Audio Event** : Object. The HTML5 audio event object.
         me.createCallback();
         me.isDirty = false;
       }
+      
+      for(var j = 0; j < me.sequencers.length; j++) { me.sequencers[j].tick(); }
       
 			var val = me.callback();
       
@@ -331,12 +334,9 @@ Similiar to makePanner, this method returns a function that can be used to linea
 **/   
 	interpolate : function(arr, phase){
 		var	index	  = phase | 0, // round down
-        index2,
+        index2  = index + 1 > arr.length - 1 ? 0 : index + 1;
 				frac	  = phase - index;
-    
-    //index = index & (arr.length - 1);
-    index2 = index + 1 > arr.length - 1 ? 0 : index + 1;
-				
+    				
     return arr[index] + frac * (arr[index2] - arr[index]);
 	},
   

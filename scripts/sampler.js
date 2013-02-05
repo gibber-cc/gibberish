@@ -115,12 +115,12 @@ param **pitch** Number. The speed the sample is played back at.
 param **amp** Number. Optional. The volume to use.
 **/    
 		note: function(pitch, amp) {
+			if(typeof pitch === 'number') this.pitch = pitch;
 			if(typeof amp === 'number') this.amp = amp;
-			this.pitch = pitch;
 					
 			if(this.function !== null) {
 				this.isPlaying = true;	// needed to allow playback after recording
-				if(pitch > 0) {
+				if(this.pitch > 0) {
           phase = this.start;
 				}else{
           phase = this.end;
