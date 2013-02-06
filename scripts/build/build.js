@@ -36,7 +36,7 @@ concat({
         __dirname + '/../monosynth.js',
         __dirname + '/../expression.js',
         __dirname + '/../sequencer.js',        
-        __dirname + '/../documentation_output.js',
+        //__dirname + '/../documentation_output.js',
     ],
     dest : __dirname + '/gibberish_2.0.js'
 });

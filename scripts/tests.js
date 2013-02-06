@@ -737,12 +737,11 @@ window.karplusStrong = function() {
   }).start();
 			
 	var inputString = "s = new Gibberish.KarplusStrong.connect();\n\n"+
-  "sequencer = new Gibberish.Sequencer({";
-  "  target:s, key:'note', ";
-  "  values:[ Gibberish.Rndf(200, 1000) ],";
-  "  rate:[ 44100 ],";
+  "sequencer = new Gibberish.Sequencer({\n"+
+  "  target:s, key:'note', \n"+
+  "  values:[ Gibberish.Rndf(200, 1000) ],\n"+
+  "  rate:[ 44100 ],\n"+
   "}).start();";
-
 
 	var input = document.getElementById("input");
 	input.innerHTML = inputString;
