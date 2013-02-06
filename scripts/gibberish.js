@@ -158,6 +158,7 @@ Remove all objects from Gibberish graph and perform codegen... kills all running
     this.upvalues.length = 1; // make sure to leave master bus!!!
     this.out.inputs.length = 0;
     this.analysisUgens.length = 0;
+    this.sequencers.length = 0;
     Gibberish.dirty(this.out);
   },
 
@@ -349,6 +350,7 @@ Similiar to makePanner, this method returns a function that can be used to linea
       obj[_key] = Gibberish[key][_key];
     }
   },
+
 /**###Gibberish.ugen : method
 Creates a prototype object that is used by all ugens.
 **/    

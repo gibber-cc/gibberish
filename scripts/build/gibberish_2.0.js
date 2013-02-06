@@ -158,6 +158,7 @@ Remove all objects from Gibberish graph and perform codegen... kills all running
     this.upvalues.length = 1; // make sure to leave master bus!!!
     this.out.inputs.length = 0;
     this.analysisUgens.length = 0;
+    this.sequencers.length = 0;
     Gibberish.dirty(this.out);
   },
 
@@ -349,6 +350,7 @@ Similiar to makePanner, this method returns a function that can be used to linea
       obj[_key] = Gibberish[key][_key];
     }
   },
+
 /**###Gibberish.ugen : method
 Creates a prototype object that is used by all ugens.
 **/    
@@ -906,6 +908,53 @@ Gibberish.rndf = function(min, max, number, canRepeat) {
 		}
 		return output;
 	}
+};
+  
+Gibberish.Rndf = function() {
+  var min, max, random = Math.random;
+    
+  if(arguments.length === 0) {
+    min = 0; max = 1;
+  }else if(arguments.length === 1) {
+    min = 0; max = arguments[0];
+  }else{
+    min = arguments[0]; max = arguments[1];
+  }
+    
+  return function() {
+    var value = min + random() * max;
+    return value;
+  }
+};
+
+Gibberish.rndi = function() {
+  var min, max;
+    
+  if(arguments.length === 0) {
+    min = 0; max = 1;
+  }else if(arguments.length === 1) {
+    min = 0; max = arguments[0];
+  }else{
+    min = arguments[0]; max = arguments[1];
+  }
+    
+  return Math.round( min + Math.random() * max );
+};
+Gibberish.Rndi = function() {
+  var min, max, random = Math.random, round = Math.round;
+    
+  if(arguments.length === 0) {
+    min = 0; max = 1;
+  }else if(arguments.length === 1) {
+    min = 0; max = arguments[0];
+  }else{
+    min = arguments[0]; max = arguments[1];
+  }
+    
+  return function() {
+    var value = round( min + random() * max );
+    return value;
+  }
 };
 
 Gibberish.extend = function(destination, source) {
@@ -4698,34 +4747,35 @@ Gibberish.Expressions = {
 };
 Gibberish.Sequencer = function() {  
   Gibberish.extend(this, {
-    target      : null,
-    key         : null,
-    values      : null,
-    valuesIndex : 0,
-    rate        : null,
-    rateIndex   : 0,
-    nextTime    : 0,
-    phase       : 0,
-    isRunning   : true,
-    playOnce    : false,
-    repeatCount : 0,
-    repeatTarget: null,
-    isConnected : true,
-    keysAndValues : {
-      note : [440, 880],
-      attack : [ 1000, 10000, 50],
-    },
-    counts : { },
+    target        : null,
+    key           : null,
+    values        : null,
+    valuesIndex   : 0,
+    rate          : null,
+    rateIndex     : 0,
+    nextTime      : 0,
+    phase         : 0,
+    isRunning     : false,
+    playOnce      : false,
+    repeatCount   : 0,
+    repeatTarget  : null,
+    isConnected   : true,
+    keysAndValues : null,
+    counts        : {},
     
     tick : function() {
       if(this.isRunning) {
         if(this.phase === this.nextTime) {
           if(this.values !== null) {
             if(this.target) {
+              var val = this.values[ this.valuesIndex++ ];
+              
+              if(typeof val === 'function') { val = val(); }
+              
               if(typeof this.target[this.key] === 'function') {
-                this.target[this.key]( this.values[ this.valuesIndex++ ] );
+                this.target[this.key]( val );
               }else{
-                this.target[this.key] = this.values[ this.valuesIndex++];
+                this.target[this.key] = val;
               }
             }else{
               if(typeof this.values[ this.valuesIndex ] === 'function') {
@@ -4736,15 +4786,21 @@ Gibberish.Sequencer = function() {
           }else if(this.keysAndValues !== null) {
             for(var key in this.keysAndValues) {
               var index = this.counts[key]++;
+              var val = this.keysAndValues[key][index];
+              
+              if(typeof val === 'function') { val = val(); }
+              
               if(typeof this.target[key] === 'function') {
-                this.target[key]( this.keysAndValues[key][index] );
+                this.target[key]( val );
               }else{
-                this.target[key] = this.keysAndValues[key][index];
+                this.target[key] = val;
               }
               if(this.counts[key] >= this.keysAndValues[key].length) {
                 this.counts[key] = 0;
               }
             }
+          }else if(typeof this.target[this.key] === 'function') {
+            this.target[this.key]();
           }
           
           this.phase = 0;
@@ -4777,7 +4833,7 @@ Gibberish.Sequencer = function() {
       if(!shouldKeepOffset) {
         this.phase = 0;
       }
-      console.log("START");
+      
       this.isRunning = true;
       return this;
     },
@@ -4793,8 +4849,8 @@ Gibberish.Sequencer = function() {
     },
     
     disconnect : function() {
-      var idx = Gibberish.sequencers.indexOf(this);
-      Gibberish.sequencers.splice(idx, 1);
+      var idx = Gibberish.sequencers.indexOf( this );
+      Gibberish.sequencers.splice( idx, 1 );
       this.isConnected = false;
     },
     

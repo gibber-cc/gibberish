@@ -1,33 +1,34 @@
 Gibberish.Sequencer = function() {  
   Gibberish.extend(this, {
-    target      : null,
-    key         : null,
-    values      : null,
-    valuesIndex : 0,
-    rate        : null,
-    rateIndex   : 0,
-    nextTime    : 0,
-    phase       : 0,
-    isRunning   : true,
-    playOnce    : false,
-    repeatCount : 0,
-    repeatTarget: null,
-    isConnected : true,
-    keysAndValues : {
-      note : [440, 880],
-      attack : [ 1000, 10000, 50],
-    },
-    counts : { },
+    target        : null,
+    key           : null,
+    values        : null,
+    valuesIndex   : 0,
+    rate          : null,
+    rateIndex     : 0,
+    nextTime      : 0,
+    phase         : 0,
+    isRunning     : false,
+    playOnce      : false,
+    repeatCount   : 0,
+    repeatTarget  : null,
+    isConnected   : true,
+    keysAndValues : null,
+    counts        : {},
     
     tick : function() {
       if(this.isRunning) {
         if(this.phase === this.nextTime) {
           if(this.values !== null) {
             if(this.target) {
+              var val = this.values[ this.valuesIndex++ ];
+              
+              if(typeof val === 'function') { val = val(); }
+              
               if(typeof this.target[this.key] === 'function') {
-                this.target[this.key]( this.values[ this.valuesIndex++ ] );
+                this.target[this.key]( val );
               }else{
-                this.target[this.key] = this.values[ this.valuesIndex++];
+                this.target[this.key] = val;
               }
             }else{
               if(typeof this.values[ this.valuesIndex ] === 'function') {
@@ -38,15 +39,21 @@ Gibberish.Sequencer = function() {
           }else if(this.keysAndValues !== null) {
             for(var key in this.keysAndValues) {
               var index = this.counts[key]++;
+              var val = this.keysAndValues[key][index];
+              
+              if(typeof val === 'function') { val = val(); }
+              
               if(typeof this.target[key] === 'function') {
-                this.target[key]( this.keysAndValues[key][index] );
+                this.target[key]( val );
               }else{
-                this.target[key] = this.keysAndValues[key][index];
+                this.target[key] = val;
               }
               if(this.counts[key] >= this.keysAndValues[key].length) {
                 this.counts[key] = 0;
               }
             }
+          }else if(typeof this.target[this.key] === 'function') {
+            this.target[this.key]();
           }
           
           this.phase = 0;
@@ -79,7 +86,7 @@ Gibberish.Sequencer = function() {
       if(!shouldKeepOffset) {
         this.phase = 0;
       }
-      console.log("START");
+      
       this.isRunning = true;
       return this;
     },
@@ -95,8 +102,8 @@ Gibberish.Sequencer = function() {
     },
     
     disconnect : function() {
-      var idx = Gibberish.sequencers.indexOf(this);
-      Gibberish.sequencers.splice(idx, 1);
+      var idx = Gibberish.sequencers.indexOf( this );
+      Gibberish.sequencers.splice( idx, 1 );
       this.isConnected = false;
     },
     

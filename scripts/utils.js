@@ -170,6 +170,53 @@ Gibberish.rndf = function(min, max, number, canRepeat) {
 		return output;
 	}
 };
+  
+Gibberish.Rndf = function() {
+  var min, max, random = Math.random;
+    
+  if(arguments.length === 0) {
+    min = 0; max = 1;
+  }else if(arguments.length === 1) {
+    min = 0; max = arguments[0];
+  }else{
+    min = arguments[0]; max = arguments[1];
+  }
+    
+  return function() {
+    var value = min + random() * max;
+    return value;
+  }
+};
+
+Gibberish.rndi = function() {
+  var min, max;
+    
+  if(arguments.length === 0) {
+    min = 0; max = 1;
+  }else if(arguments.length === 1) {
+    min = 0; max = arguments[0];
+  }else{
+    min = arguments[0]; max = arguments[1];
+  }
+    
+  return Math.round( min + Math.random() * max );
+};
+Gibberish.Rndi = function() {
+  var min, max, random = Math.random, round = Math.round;
+    
+  if(arguments.length === 0) {
+    min = 0; max = 1;
+  }else if(arguments.length === 1) {
+    min = 0; max = arguments[0];
+  }else{
+    min = arguments[0]; max = arguments[1];
+  }
+    
+  return function() {
+    var value = round( min + random() * max );
+    return value;
+  }
+};
 
 Gibberish.extend = function(destination, source) {
     for (var property in source) {
