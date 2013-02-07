@@ -413,8 +413,8 @@ Generates output code (as a string) used inside audio callback
 
         s += 'var ' + v + " = " + this.symbol + "(";
 
-        //console.log("CODEGEN " + this.symbol);
         for(var key in this.properties) {
+          //console.log("PROPERTY", this.name, key)
           var property = this.properties[key];
           var value = '';
           //if(this.name === "single_sample_delay") { console.log( "SSD PROP" + key ); }
@@ -4582,7 +4582,8 @@ Gibberish.Expressions = {
     var me = new Gibberish.ugen(),
         op = arguments[0],
         args = Array.prototype.slice.call(arguments, 1);
-        
+    
+    me.name = 'op';
     me.properties = {};
     for(var i = 0; i < args.length; i++) { me.properties[i] = args[i]; }
     me.init();
@@ -4590,18 +4591,18 @@ Gibberish.Expressions = {
     me.codegen = function() {
       var keys, out = "( ";
       
-      if(Gibberish.memo[this.symbol]) { return Gibberish.memo[this.symbol]; }
-            
+      if(typeof Gibberish.memo[this.symbol] !== 'undefined') { return Gibberish.memo[this.symbol]; }
+      
       keys = Object.keys(this.properties);
     
       for(var i = 0; i < keys.length; i++) {  
-        out += typeof this[i] === 'object' ? this[i].codegen() : this[i];
+        var isObject = typeof this[i] === 'object';
+        
+        out += isObject ? this[i].codegen() : this[i];
         
         if(i < keys.length - 1) { out += " " + op + " "; }
         
-        if(Gibberish.codeblock.indexOf(this[i].codeblock) === - 1) {
-          Gibberish.codeblock.push(this[i].codeblock); 
-        }
+        if( isObject) Gibberish.codeblock.push(this[i].codeblock); 
       }
       
       out += " )";
@@ -4609,6 +4610,8 @@ Gibberish.Expressions = {
       Gibberish.memo[this.symbol] = out;      
       return out;
     };
+    
+    me.getCodeblock = function() {}; // override
 
     return me;
   },

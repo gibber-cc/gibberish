@@ -413,8 +413,8 @@ Generates output code (as a string) used inside audio callback
 
         s += 'var ' + v + " = " + this.symbol + "(";
 
-        console.log("CODEGEN " + this.symbol);
         for(var key in this.properties) {
+          //console.log("PROPERTY", this.name, key)
           var property = this.properties[key];
           var value = '';
           //if(this.name === "single_sample_delay") { console.log( "SSD PROP" + key ); }
