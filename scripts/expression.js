@@ -23,11 +23,21 @@ Gibberish.Expressions = {
       for(var i = 0; i < keys.length; i++) {  
         var isObject = typeof this[i] === 'object';
         
-        out += isObject ? this[i].codegen() : this[i];
+        var shouldPush = false;
+        if(isObject) {
+          if(!Gibberish.memo[ this[i].symbol ]) {
+            shouldPush = true;
+            out += this[i].codegen();
+          }else{
+            out += Gibberish.memo[ this[i].symbol ];
+          }
+        }else{
+          out += this[i];
+        }
         
         if(i < keys.length - 1) { out += " " + op + " "; }
         
-        if( isObject) Gibberish.codeblock.push(this[i].codeblock); 
+        if( isObject && shouldPush ) Gibberish.codeblock.push(this[i].codeblock); 
       }
       
       out += " )";
