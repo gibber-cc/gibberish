@@ -413,7 +413,7 @@ Generates output code (as a string) used inside audio callback
 
         s += 'var ' + v + " = " + this.symbol + "(";
 
-        //console.log("CODEGEN " + this.symbol);
+        console.log("CODEGEN " + this.symbol);
         for(var key in this.properties) {
           var property = this.properties[key];
           var value = '';
