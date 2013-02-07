@@ -1,9 +1,8 @@
-var _out = [], _phase = 0;
-
 Gibberish.Expressions = {
   export: function() {
     Gibberish.export("Expressions", window);
   },
+  
   operator : function () {
     var me = new Gibberish.ugen(),
         op = arguments[0],
@@ -14,7 +13,7 @@ Gibberish.Expressions = {
     me.init();
     
     me.codegen = function() {
-      var keys, out = "";
+      var keys, out = "( ";
       
       if(Gibberish.memo[this.symbol]) { return Gibberish.memo[this.symbol]; }
             
@@ -30,12 +29,15 @@ Gibberish.Expressions = {
         }
       }
       
+      out += " )";
+      
       Gibberish.memo[this.symbol] = out;      
       return out;
     };
 
     return me;
   },
+  
   add : function() {
     var args = Array.prototype.slice.call(arguments, 0);
     args.unshift('+');
@@ -63,7 +65,6 @@ Gibberish.Expressions = {
     
     return Gibberish.Expressions.operator.apply(null, args);
   },
-  
   
   mod : function() {
     var args = Array.prototype.slice.call(arguments, 0);
