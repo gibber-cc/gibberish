@@ -346,7 +346,7 @@ Similiar to makePanner, this method returns a function that can be used to linea
   
   export : function(key, obj) {
     for(var _key in Gibberish[key]) {
-      console.log("exporting", _key, "from", key);
+      //console.log("exporting", _key, "from", key);
       obj[_key] = Gibberish[key][_key];
     }
   },
@@ -417,7 +417,7 @@ Generates output code (as a string) used inside audio callback
         for(var key in this.properties) {
           var property = this.properties[key];
           var value = '';
-          if(this.name === "single_sample_delay") { console.log( "SSD PROP" + key ); }
+          //if(this.name === "single_sample_delay") { console.log( "SSD PROP" + key ); }
           if( Array.isArray( property.value ) ) {
             if(property.value.length === 0) value = 0;  // primarily for busses
             

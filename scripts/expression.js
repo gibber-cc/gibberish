@@ -1,105 +1,76 @@
 var _out = [], _phase = 0;
 
 Gibberish.Expressions = {
-  add : function() {
-    var args = Array.prototype.slice.call(arguments, 0),
-        phase = 0,
-        isArray = Array.isArray;
-  
-    var me = {
-      name : 'add',
-      properties : {},
-      callback : function(a,b) {
-        if(isArray(a)) {
-          if(typeof b === 'number') {
-            //if(phase++ % 22050 === 0) console.log(a,b)
-            _out[0] = a[0] + b;
-            _out[1] = a[1] + b;          
-            return _out;
-          }else{
-            //if(phase++ % 22050 === 0) console.log(a,b)
-            _out[0] = a[0] + b[0];
-            _out[1] = a[1] + b[1];          
-            return _out;
-          }
-        }else{
-          if(isArray(b)) {
-            _out[0] = a + b[0];
-            _out[1] = a + b[1];            
-          }
-        }
-        return a + b;
-      },
-    };
-    me.__proto__ = new Gibberish.ugen();
-  
-    for(var i = 0; i < args.length; i++) {
-      me.properties[i] = args[i];
-    }
+  export: function() {
+    Gibberish.export("Expressions", window);
+  },
+  operator : function () {
+    var me = new Gibberish.ugen(),
+        op = arguments[0],
+        args = Array.prototype.slice.call(arguments, 1);
+        
+    me.properties = {};
+    for(var i = 0; i < args.length; i++) { me.properties[i] = args[i]; }
     me.init();
+    
+    me.codegen = function() {
+      var keys, out = "";
+      
+      if(Gibberish.memo[this.symbol]) { return Gibberish.memo[this.symbol]; }
+            
+      keys = Object.keys(this.properties);
+    
+      for(var i = 0; i < keys.length; i++) {  
+        out += typeof this[i] === 'object' ? this[i].codegen() : this[i];
+        
+        if(i < keys.length - 1) { out += " " + op + " "; }
+        
+        if(Gibberish.codeblock.indexOf(this[i].codeblock) === - 1) {
+          Gibberish.codeblock.push(this[i].codeblock); 
+        }
+      }
+      
+      Gibberish.memo[this.symbol] = out;      
+      return out;
+    };
 
     return me;
+  },
+  add : function() {
+    var args = Array.prototype.slice.call(arguments, 0);
+    args.unshift('+');
+    
+    return Gibberish.Expressions.operator.apply(null, args);
   },
 
   sub : function() {
-    var args = Array.prototype.slice.call(arguments, 0),
-        phase = 0;
-  
-    var me = {
-      name : 'sub',
-      properties : {},
-      callback : function(a,b) {
-        return a - b;
-      },
-    };
-    me.__proto__ = new Gibberish.ugen();
-  
-    for(var i = 0; i < args.length; i++) {
-      me.properties[i] = args[i];
-    }
-    me.init();
-
-    return me;
+    var args = Array.prototype.slice.call(arguments, 0);
+    args.unshift('-');
+    
+    return Gibberish.Expressions.operator.apply(null, args);
   },
 
   mul : function() {
-    var args = Array.prototype.slice.call(arguments, 0),
-        phase = 0;
-  
-    var me = {
-      name : 'mul',
-      properties : {},
-      callback : function(a,b) {
-        return a * b; 
-      },
-    };
-    me.__proto__ = new Gibberish.ugen();
-  
-    for(var i = 0; i < args.length; i++) {
-      me.properties[i] = args[i];
-    }
-    me.init();
-
-    return me;
+    var args = Array.prototype.slice.call(arguments, 0);
+    args.unshift('*');
+    
+    return Gibberish.Expressions.operator.apply(null, args);
   },
 
   div : function() {
-    var args = Array.prototype.slice.call(arguments, 0),
-        phase = 0;
+    var args = Array.prototype.slice.call(arguments, 0);
+    args.unshift('/');
+    
+    return Gibberish.Expressions.operator.apply(null, args);
+  },
   
-    var me = {
-      name : 'div',
-      properties : {},
-      callback : function(a,b) { return a / b; },
-    };
-    me.__proto__ = new Gibberish.ugen();
   
-    for(var i = 0; i < args.length; i++) {
-      me.properties[i] = args[i];
-    }
-    me.init();
+  mod : function() {
+    var args = Array.prototype.slice.call(arguments, 0);
+    args.unshift('%');
+    
+    return Gibberish.Expressions.operator.apply(null, args);
 
-    return me;
   },
 
   abs : function() {
@@ -113,26 +84,6 @@ Gibberish.Expressions = {
     };
     me.__proto__ = new Gibberish.ugen();
     me.properties[0] = arguments[0];
-    me.init();
-
-    return me;
-  },
-  
-  mod : function() {
-    var args = Array.prototype.slice.call(arguments, 0);
-  
-    var me = {
-      name : 'mod',
-      properties : {},
-      callback : function(a,b) {
-        return a % b;
-      },
-    };
-    me.__proto__ = new Gibberish.ugen();
-  
-    for(var i = 0; i < args.length; i++) {
-      me.properties[i] = args[i];
-    }
     me.init();
 
     return me;
@@ -168,5 +119,26 @@ Gibberish.Expressions = {
     me.init();
 
     return me;
-  }
+  },
+  
+  merge : function() {
+    var args = Array.prototype.slice.call(arguments, 0),
+        phase = 0;
+  
+    var me = {
+      name : 'merge',
+      properties : {},
+      callback : function(a) {
+        return a[0] + a[1];
+      },
+    };
+    me.__proto__ = new Gibberish.ugen();
+  
+    for(var i = 0; i < args.length; i++) {
+      me.properties[i] = args[i];
+    }
+    me.init();
+
+    return me;
+  },
 };
