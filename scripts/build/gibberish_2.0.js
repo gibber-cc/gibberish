@@ -2969,10 +2969,9 @@ Gibberish.BufferShuffler = function() {
   		readIndex += reversed ? speed * -1 : speed;
   		if(readIndex < 0) {
   			readIndex += bufferLength;
-  		}else if( readIndex > bufferLength) {
+  		}else if( readIndex >= bufferLength ) {
   			readIndex -= bufferLength;
-  		}
-					
+  		}	
   		var outSampleL = interpolate(buffers[0], readIndex);
 			
       var outL, outR, shuffle, outSampleR;			
@@ -4595,7 +4594,7 @@ Gibberish.Expressions = {
       
       keys = Object.keys(this.properties);
     
-      for(var i = 0; i < keys.length; i++) {  
+      for(var i = 0; i < keys.length; i++) {
         var isObject = typeof this[i] === 'object';
         
         var shouldPush = false;

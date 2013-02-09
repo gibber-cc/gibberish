@@ -858,10 +858,9 @@ Gibberish.BufferShuffler = function() {
   		readIndex += reversed ? speed * -1 : speed;
   		if(readIndex < 0) {
   			readIndex += bufferLength;
-  		}else if( readIndex > bufferLength) {
+  		}else if( readIndex >= bufferLength ) {
   			readIndex -= bufferLength;
-  		}
-					
+  		}	
   		var outSampleL = interpolate(buffers[0], readIndex);
 			
       var outL, outR, shuffle, outSampleR;			

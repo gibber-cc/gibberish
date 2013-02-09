@@ -20,7 +20,7 @@ Gibberish.Expressions = {
       
       keys = Object.keys(this.properties);
     
-      for(var i = 0; i < keys.length; i++) {  
+      for(var i = 0; i < keys.length; i++) {
         var isObject = typeof this[i] === 'object';
         
         var shouldPush = false;
