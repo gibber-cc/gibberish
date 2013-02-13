@@ -4,8 +4,8 @@ Gibberish.Sequencer = function() {
     key           : null,
     values        : null,
     valuesIndex   : 0,
-    rate          : null,
-    rateIndex     : 0,
+    durations     : null,
+    durationsIndex: 0,
     nextTime      : 0,
     phase         : 0,
     isRunning     : false,
@@ -58,15 +58,14 @@ Gibberish.Sequencer = function() {
           
           this.phase = 0;
         
-          if(Array.isArray(this.rate)) {
-            var next = this.rate[ this.rateIndex++ ];
+          if(Array.isArray(this.durations)) {
+            var next = this.durations[ this.durationsIndex++ ];
             this.nextTime = typeof next === 'function' ? next() : next;
-            console.log(this.nextTime);
-            if( this.rateIndex >= this.rate.length) {
-              this.rateIndex = 0;
+            if( this.durationsIndex >= this.durations.length) {
+              this.durationsIndex = 0;
             }
           }else{
-            var next = this.rate;
+            var next = this.durations;
             this.nextTime = typeof next === 'function' ? next() : next;
           }
           

@@ -19,4 +19,8 @@ Gibberish.Time = {
       return Math.round( samplesPerBeat * val );
     }
   },
+  
+  setBPM : function(val) {
+    Gibberish.Time.bpm = val;
+  },
 };
