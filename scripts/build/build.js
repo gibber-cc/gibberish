@@ -35,6 +35,7 @@ concat({
         __dirname + '/../sampler.js',
         __dirname + '/../monosynth.js',
         __dirname + '/../expression.js',
+        __dirname + '/../time.js',         
         __dirname + '/../sequencer.js',        
         //__dirname + '/../documentation_output.js',
     ],

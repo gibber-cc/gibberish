@@ -80,7 +80,9 @@ param **amp** Number. Optional. The volume to use.
       
 			var env = envelope(attack, decay);
 			var mod = modulator(frequency * cmRatio, frequency * index) * env;
+      
       //if(phase++ % 22050 === 0 ) console.log(mod);
+      
 			var val = carrier( frequency + mod, 1, 1 ) * env * amp;
       if(isNaN(val) && !check){ 
         console.log(frequency, mod, cmRatio, frequency * index, env, amp, val);

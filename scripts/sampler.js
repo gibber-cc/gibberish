@@ -73,7 +73,7 @@ Gibberish.Sampler = function() {
     playOnLoad :  0,
     
     properties : {
-    	pitch:			  1,
+    	pitch:			  0,
   		amp:			    1,
   		isRecording: 	false,
   		isPlaying : 	true,
@@ -96,6 +96,7 @@ param **buffer** Object. The decoded sampler buffers from the audio file
 					
 			self.end = bufferLength;
       self.length = phase = bufferLength;
+      self.isPlaying = true;
 					
 			console.log("LOADED ", self.file, bufferLength);
 			Gibberish.audioFiles[self.file] = buffer;
@@ -182,7 +183,7 @@ _pitch, amp, isRecording, isPlaying, input, length, start, end, loops, pan
   	},
 	})
   .init()
-  .oscillatorInit()  
+  .oscillatorInit()
   .processProperties(arguments);
 
 	if(typeof arguments[0] !== "undefined") {
@@ -199,7 +200,7 @@ _pitch, amp, isRecording, isPlaying, input, length, start, end, loops, pan
 		}
 	}
   
-  console.log(this);
+  //console.log(this);
   		
 	/*var _end = 1;
 	Object.defineProperty(that, "end", {

@@ -59,12 +59,15 @@ Gibberish.Sequencer = function() {
           this.phase = 0;
         
           if(Array.isArray(this.rate)) {
-            this.nextTime = this.rate[ this.rateIndex++ ];
+            var next = this.rate[ this.rateIndex++ ];
+            this.nextTime = typeof next === 'function' ? next() : next;
+            console.log(this.nextTime);
             if( this.rateIndex >= this.rate.length) {
               this.rateIndex = 0;
             }
           }else{
-            this.nextTime = this.rate;
+            var next = this.rate;
+            this.nextTime = typeof next === 'function' ? next() : next;
           }
           
           if(this.repeatTarget) {

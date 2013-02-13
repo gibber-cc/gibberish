@@ -1058,13 +1058,12 @@ Gibberish.Sine = function() {
     frequency : arguments[0] || 440,
     amp :       arguments[1] || .5,
   };
-  
+
   var pi_2 = Math.PI * 2, 
-      sin  = Math.sin,
       phase = 0,
       table = new Float32Array(1024);
       
-  for(var i = 1024; i--;) { table[i] = sin( (i / 1024) * pi_2); }
+  for(var i = 1024; i--;) { table[i] = Math.sin( (i / 1024) * pi_2); }
   
   this.getTable = function() { return table; }
 /**###Gibberish.Sine.callback : method  
@@ -1073,7 +1072,7 @@ Returns a single sample of output.
 param **frequency** Number. The frequency to be used to calculate output.  
 param **amp** Number. The amplitude to be used to calculate output.  
 **/  
-  this.callback = function(frequency, amp) { 
+  this.callback = function(frequency, amp, pi2) { 
     var index, frac, index2,
         tableFreq = 43.06640625;
         
@@ -1086,7 +1085,7 @@ param **amp** Number. The amplitude to be used to calculate output.
     index2  = index === 1023 ? 0 : index + 1;
         
     return (table[index] + ( frac * (table[index2] - table[index]) ) ) * amp;
-  };
+  }
     
   this.init(arguments);
   this.oscillatorInit();
@@ -3738,7 +3737,9 @@ param **amp** Number. Optional. The volume to use.
       
 			var env = envelope(attack, decay);
 			var mod = modulator(frequency * cmRatio, frequency * index) * env;
+      
       //if(phase++ % 22050 === 0 ) console.log(mod);
+      
 			var val = carrier( frequency + mod, 1, 1 ) * env * amp;
       if(isNaN(val) && !check){ 
         console.log(frequency, mod, cmRatio, frequency * index, env, amp, val);
@@ -4222,7 +4223,7 @@ Gibberish.Sampler = function() {
     playOnLoad :  0,
     
     properties : {
-    	pitch:			  1,
+    	pitch:			  0,
   		amp:			    1,
   		isRecording: 	false,
   		isPlaying : 	true,
@@ -4245,6 +4246,7 @@ param **buffer** Object. The decoded sampler buffers from the audio file
 					
 			self.end = bufferLength;
       self.length = phase = bufferLength;
+      self.isPlaying = true;
 					
 			console.log("LOADED ", self.file, bufferLength);
 			Gibberish.audioFiles[self.file] = buffer;
@@ -4331,7 +4333,7 @@ _pitch, amp, isRecording, isPlaying, input, length, start, end, loops, pan
   	},
 	})
   .init()
-  .oscillatorInit()  
+  .oscillatorInit()
   .processProperties(arguments);
 
 	if(typeof arguments[0] !== "undefined") {
@@ -4348,7 +4350,7 @@ _pitch, amp, isRecording, isPlaying, input, length, start, end, loops, pan
 		}
 	}
   
-  console.log(this);
+  //console.log(this);
   		
 	/*var _end = 1;
 	Object.defineProperty(that, "end", {
@@ -4730,6 +4732,28 @@ Gibberish.Expressions = {
     return me;
   },
 };
+Gibberish.Time = {
+  bpm: 120,
+  
+  export: function() {
+    Gibberish.export("Time", window);
+  },
+  
+  ms : function(val) {
+    return Math.round(val * 44.1);
+  },
+  
+  seconds : function(val) {
+    return Math.round(val * 44100);
+  },
+  
+  beats : function(val) {
+    return function() { 
+      var samplesPerBeat = 44100 / ( Gibberish.Time.bpm / 60 ) ;
+      return Math.round( samplesPerBeat * val );
+    }
+  },
+};
 Gibberish.Sequencer = function() {  
   Gibberish.extend(this, {
     target        : null,
@@ -4791,12 +4815,15 @@ Gibberish.Sequencer = function() {
           this.phase = 0;
         
           if(Array.isArray(this.rate)) {
-            this.nextTime = this.rate[ this.rateIndex++ ];
+            var next = this.rate[ this.rateIndex++ ];
+            this.nextTime = typeof next === 'function' ? next() : next;
+            console.log(this.nextTime);
             if( this.rateIndex >= this.rate.length) {
               this.rateIndex = 0;
             }
           }else{
-            this.nextTime = this.rate;
+            var next = this.rate;
+            this.nextTime = typeof next === 'function' ? next() : next;
           }
           
           if(this.repeatTarget) {
