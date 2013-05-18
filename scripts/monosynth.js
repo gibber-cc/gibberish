@@ -84,7 +84,8 @@ param **note or frequency** : String or Integer. You can pass a note name, such 
 param **amp** : Optional. Float. The volume of the note, usually between 0..1. The main amp property of the Synth will also affect note amplitude.
 **/				
 		note : function(_frequency, amp) {
-      if(typeof amp !== 'undefined')
+      if(typeof amp !== 'undefined') this.amp = amp;
+      
 			this.frequency = _frequency;
 					
 			if(envstate() > 0) _envelope.run();

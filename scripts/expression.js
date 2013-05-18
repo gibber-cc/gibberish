@@ -1,6 +1,6 @@
 Gibberish.Expressions = {
-  export: function() {
-    Gibberish.export("Expressions", window);
+  export: function(target) {
+    Gibberish.export("Expressions", target || window);
   },
   
   operator : function () {

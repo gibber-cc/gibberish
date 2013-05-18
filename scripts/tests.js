@@ -23,7 +23,7 @@ window.routingTest = function() {
   b = new Gibberish.Sequencer({
     target:fm, key:'note',
     values:[ function() { return 100 + Math.random() * 200; } ],
-    rate:[22050],
+    durations:[22050],
   }).start();
   
 	var inputString = "/* testing a complex routing with two feedback loops and multiple busses\n"+
@@ -58,7 +58,7 @@ window.routingTest = function() {
   "b = new Gibberish.Sequencer({\n"+
   "  target:fm, key:'note',\n"+
   "  values:[ function() { return 100 + Math.random() * 200; } ],\n"+
-  "  rate:[22050],\n"+
+  "  durations:[22050],\n"+
   "}).start();";
   
 	var input = document.getElementById("input");
@@ -178,7 +178,7 @@ window.ADSRTest = function() {
   
   b = new Gibberish.Sequencer({
     target:b, key:'run',
-    rate:[44100 * 4],
+    durations:[44100 * 4],
   }).start();
   
 	var inputString = "a = new Gibberish.Sine(440, .5);\n"+
@@ -189,7 +189,7 @@ window.ADSRTest = function() {
   "\n"+
   "b = new Gibberish.Sequencer({\n"+
   "  target:b, key:'run',\n"+
-  "  rate:[44100 * 4],\n"+
+  "  durations:[44100 * 4],\n"+
   "}).start();";
 
 	var input = document.getElementById("input");
@@ -210,7 +210,7 @@ window.distortion = function() {
   sequencer = new Gibberish.Sequencer({
     target:a, key:'frequency',
     values:[ Gibberish.Rndf(200, 1000) ],
-    rate: [ 11025 ],
+    durations: [ 11025 ],
   }).start();
   
 	var inputString = "// waveshaping test\n"+
@@ -220,7 +220,7 @@ window.distortion = function() {
   "sequencer = new Gibberish.Sequencer({\n"+
   "  target:a, key:'frequency',\n"+
   "  values:[ Gibberish.Rndf(200, 1000) ],\n"+
-  "  rate:[ 11025 ],\n"+
+  "  durations:[ 11025 ],\n"+
   "}).start();";
 
 
@@ -243,7 +243,7 @@ window.delay = function() {
   sequencer = new Gibberish.Sequencer({
     target:a, key:'note',
     values:[ Gibberish.Rndf(200, 1000) ],
-    rate:[ 44100 ],
+    durations:[ 44100 ],
   }).start();
 			
 	var inputString = "a = new Gibberish.FMSynth();\n"+
@@ -252,7 +252,7 @@ window.delay = function() {
   "sequencer = new Gibberish.Sequencer({\n"+
   "  target:a, key:'note',\n"+
   "  values:[ Gibberish.Rndf(200, 1000) ],\n"+
-  "  rate:[ 44100 ],\n"+
+  "  durations:[ 44100 ],\n"+
   "}).start();";
 
 	var input = document.getElementById("input");
@@ -273,7 +273,7 @@ window.reverb = function() {
   sequencer = new Gibberish.Sequencer({
     target:a, key:'note',
     values:[ Gibberish.Rndf(200, 1000) ],
-    rate:[ 44100 ],
+    durations:[ 44100 ],
   }).start();
 
 	var inputString = "a = new Gibberish.KarplusStrong();\n"+
@@ -282,7 +282,7 @@ window.reverb = function() {
   "sequencer = new Gibberish.Sequencer({\n"+
   "  target:a, key:'note',\n"+
   "  values:[ Gibberish.Rndf(200, 1000) ],\n"+
-  "  rate:[ 44100 ],\n"+
+  "  durations:[ 44100 ],\n"+
   "}).start();";
 
 
@@ -304,7 +304,7 @@ window.flanger = function() {
   sequencer = new Gibberish.Sequencer({
     target:a, key:'note',
     values:[ Gibberish.Rndf(200, 1000) ],
-    rate:[ 44100 ],
+    durations:[ 44100 ],
   }).start();
 	
 	var inputString = "a = new Gibberish.FMSynth();\n"+
@@ -313,7 +313,7 @@ window.flanger = function() {
   "sequencer = new Gibberish.Sequencer({\n"+
   "  target:a, key:'note',\n"+
   "  values:[ Gibberish.Rndf(200, 1000) ],\n"+
-  "  rate:[ 44100 ],\n"+
+  "  durations:[ 44100 ],\n"+
   "}).start();";
 
 	var input = document.getElementById("input");
@@ -334,7 +334,7 @@ window.vibrato = function() {
   sequencer = new Gibberish.Sequencer({
     target:s, key:'note',
     values:[ Gibberish.Rndf(150, 650)],
-    rate:[ 44100 ],
+    durations:[ 44100 ],
   }).start();
 
 	var inputString = "s = new Gibberish.KarplusStrong();\n"+
@@ -342,7 +342,7 @@ window.vibrato = function() {
   "sequencer = new Gibberish.Sequencer({\n"+
   "  target:s, key:'note',\n"+
   "  values:[ Gibberish.Rndf(150, 650)],\n"+
-  "  rate:[ 44100 ],\n"+
+  "  durations:[ 44100 ],\n"+
   "}).start();";
 
 	var input = document.getElementById("input");
@@ -363,7 +363,7 @@ window.decimator = function() {
   sequencer = new Gibberish.Sequencer({
     target:a, key:'note',
     values:[ Gibberish.Rndf(200, 1000) ],
-    rate:[ 44100 ],
+    durations:[ 44100 ],
   }).start();
 			
 	var inputString = "a = new Gibberish.FMSynth();\n"+
@@ -372,7 +372,7 @@ window.decimator = function() {
   "sequencer = new Gibberish.Sequencer({\n"+
   "  target:a, key:'note',\n"+
   "  values:[ Gibberish.Rndf(200, 1000) ],\n"+
-  "  rate:[44100],\n"+
+  "  durations:[44100],\n"+
   "}).start();";
 
 	var input = document.getElementById("input");
@@ -425,7 +425,7 @@ window.ladderFilter = function() {
         b.cutoff = Math.random() * .5;
       }
     ],
-    rate:[44100],
+    durations:[44100],
   }).start();
   
 	var inputString = "// testing a 24db filter on a fmsynth\n"+
@@ -442,7 +442,7 @@ window.ladderFilter = function() {
   "      b.cutoff = Math.random() * .5;\n"+
   "    }\n"+
   "  ],\n"+
-  "  rate:[44100],\n"+
+  "  durations:[44100],\n"+
   "}).start();";
 
 	var input = document.getElementById("input");
@@ -468,7 +468,7 @@ window.stateVariableFilter = function() {
         b.cutoff = Gibberish.rndf(150, 1000);
       }
     ],
-    rate:[44100],
+    durations:[44100],
   }).start();
   
 	var inputString = "// testing a SVF filter on a fmsynth\n"+
@@ -484,7 +484,7 @@ window.stateVariableFilter = function() {
   "      b.cutoff = Gibberish.rndf(150, 1000);\n"+
   "    }\n"+
   "  ],\n"+
-  "  rate:[44100],\n"+
+  "  durations:[44100],\n"+
   "}).start();";
 
 	var input = document.getElementById("input");
@@ -505,7 +505,7 @@ window.FMTest = function() {
   sequencer = new Gibberish.Sequencer({
     target:s, key:'note',
     values:[ Gibberish.Rndf(200, 1000) ],
-    rate:[44100],
+    durations:[44100],
   }).start();
 			
 	var inputString = "s = new Gibberish.FMSynth();\n"+
@@ -513,7 +513,7 @@ window.FMTest = function() {
   "sequencer = new Gibberish.Sequencer({\n"+
   "  target:s, key:'note',\n"+
   "  values:[ Gibberish.Rndf(200, 1000) ],\n"+
-  "  rate:[44100],\n"+
+  "  durations:[44100],\n"+
   "}).start();";
 
 	var input = document.getElementById("input");
@@ -539,7 +539,7 @@ window.polyFM = function() {
   		s.note( Gibberish.rndf(200, 1000) );
   		s.note( Gibberish.rndf(200, 1000) ); 
     } ],
-    rate:[44100],
+    durations:[44100],
   }).start();
 			
 	var inputString = "s = new Gibberish.PolyFM({ attack:20 });\n"+
@@ -553,7 +553,7 @@ window.polyFM = function() {
   "		s.note( Gibberish.rndf(200, 1000) );\n"+
   "		s.note( Gibberish.rndf(200, 1000) ); \n"+
   "  } ],\n"+
-  "  rate:[44100],\n"+
+  "  durations:[44100],\n"+
   "}).start();";
 
 	var input = document.getElementById("input");
@@ -578,7 +578,7 @@ window.synth = function() {
       note: [ Gibberish.Rndf(200, 1000) ],
       waveform : [ function() { return waves[Math.round(Math.random() * 2)]; } ],
     },
-    rate:[ 44100 ],
+    durations:[ 44100 ],
   }).start();
 			
 	var inputString = "waves = ['Saw3', 'PWM', 'Sine'];\n"+		
@@ -591,7 +591,7 @@ window.synth = function() {
   "    note: [ Gibberish.Rndf(200, 1000) ],\n"+
   "    waveform : [ function() { return waves[Math.round(Math.random() * 2)]; } ],\n"+
   "  },\n"+
-  "  rate:[ 44100 ],\n"+
+  "  durations:[ 44100 ],\n"+
   "}).start();\n";
 
 	var input = document.getElementById("input");
@@ -614,7 +614,7 @@ window.synth2 = function() {
       note:   [ Gibberish.Rndf(200, 800) ],
       cutoff: [ .2],//Gibberish.Rndf(.3, .8) ],
     },
-    rate:[ 44100 ],
+    durations:[ 44100 ],
   }).start();
 
 	var inputString = "// oscillator with envelope and a filter\n"+		
@@ -626,7 +626,7 @@ window.synth2 = function() {
   "    note:   [ Gibberish.Rndf(200, 800) ],\n"+
   "    cutoff: [ Gibberish.Rndf(.3, .8) ],\n"+
   "  }\n"+
-  "  rate:[ 44100 ],\n"+
+  "  durations:[ 44100 ],\n"+
   "}).start();";
 
 	var input = document.getElementById("input");
@@ -651,7 +651,7 @@ window.monoSynth = function() {
   sequencer = new Gibberish.Sequencer({
     target:s, key:'note',
     values: [ Gibberish.Rndf(150, 300) ],
-    rate:[ 22050 ],
+    durations:[ 22050 ],
   }).start();
 			
 	var inputString = "// monosynth... three oscillators + filter + envelope\n"+		
@@ -664,7 +664,7 @@ window.monoSynth = function() {
   "sequencer = new Gibberish.Sequencer({\n"+
   "  target:s, key:'note',\n"+
   "  values: [ Gibberish.Rndf(150, 300) ],\n"+
-  "  rate:[ 22050 ],\n"+
+  "  durations:[ 22050 ],\n"+
   "}).start();\n";
 
 	var input = document.getElementById("input");
@@ -694,7 +694,7 @@ window.polySynth = function() {
     		s.note( Gibberish.rndf(200, 1000) ); 
       }
     ],
-    rate:[ 44100 ],
+    durations:[ 44100 ],
   }).start();
 			
 	var inputString = "// a test of the polysynth with pulsewidth modulation applied\n"+
@@ -713,7 +713,7 @@ window.polySynth = function() {
   "  		s.note( Gibberish.rndf(200, 1000) ); \n"+
   "    }\n"+
   "  ],\n"+
-  "  rate:[ 44100 ],\n"+
+  "  durations:[ 44100 ],\n"+
   "}).start();";
 
 	var input = document.getElementById("input");
@@ -733,14 +733,14 @@ window.karplusStrong = function() {
   sequencer = new Gibberish.Sequencer({
     target:s, key:'note', 
     values:[ Gibberish.Rndf(200, 1000) ],
-    rate:[ 44100 ],
+    durations:[ 44100 ],
   }).start();
 			
 	var inputString = "s = new Gibberish.KarplusStrong.connect();\n\n"+
   "sequencer = new Gibberish.Sequencer({\n"+
   "  target:s, key:'note', \n"+
   "  values:[ Gibberish.Rndf(200, 1000) ],\n"+
-  "  rate:[ 44100 ],\n"+
+  "  durations:[ 44100 ],\n"+
   "}).start();";
 
 	var input = document.getElementById("input");
@@ -768,7 +768,7 @@ window.polyKarplusStrong = function() {
     		s.note( Gibberish.rndf(200, 1000) ); 
       }
     ],
-    rate:[ 44100 ],
+    durations:[ 44100 ],
   }).start();
 			
 	var inputString = "// a test of the polyphonic karplus strong\n"+
@@ -784,7 +784,7 @@ window.polyKarplusStrong = function() {
   "  		s.note( Gibberish.rndf(200, 1000) ); \n"+
   "    }\n"+
   "  ],\n"+
-  "  rate:[ 44100 ],\n"+
+  "  durations:[ 44100 ],\n"+
   "}).start();";
 
 	var input = document.getElementById("input");
@@ -812,7 +812,7 @@ window.bufferShuffler = function() {
     		s.note( Math.round(200 + Math.random() * 800) ); 
       }
     ],
-    rate:[ 44100 ],
+    durations:[ 44100 ],
   }).start();
 			
 	var inputString = "// buffer shuffling applied to plucked string chords\n"+
@@ -829,7 +829,7 @@ window.bufferShuffler = function() {
   "  		s.note( Math.round(200 + Math.random() * 800) ); \n"+
   "    }\n"+
   "  ],\n"+
-  "  rate:[ 44100 ],\n"+
+  "  durations:[ 44100 ],\n"+
   "}).start();";
 
 	var input = document.getElementById("input");
@@ -849,7 +849,7 @@ window.sampler = function() {
   sequencer = new Gibberish.Sequencer({
     target:a, key:'note',
     values:[ Gibberish.Rndf(-3, 3) ],
-    rate:[ 11025 ],
+    durations:[ 11025 ],
   }).start();
 			
 	var inputString = "// the note method for the sampler object\n"+
@@ -859,7 +859,7 @@ window.sampler = function() {
   "sequencer = new Gibberish.Sequencer({\n"+
   "  target:a, key:'note',\n"+
   "  values:[ Gibberish.Rndf(-3, 3) ],\n"+
-  "  rate:[ 11025 ]\n"+
+  "  durations:[ 11025 ]\n"+
   "}).start();";
 
 	var input = document.getElementById("input");
@@ -1007,7 +1007,7 @@ window.biquadFilter = function() {
         b.calculateCoefficients();
       }
     ],
-    rate:[ 44100 ],
+    durations:[ 44100 ],
   }).start();
   
 	var inputString = "// testing a biquad filter on a fmsynth. biquad coefficients must be reset manually.\n"+
@@ -1022,7 +1022,7 @@ window.biquadFilter = function() {
   "      b.calculateCoefficients();\n"+
   "    }\n"+
   "  ],\n"+
-  "  rate:[ 44100 ],\n"+
+  "  durations:[ 44100 ],\n"+
   "}).start();\n";
   
 	var input = document.getElementById("input");
@@ -1044,18 +1044,18 @@ window.sequencerTest = function() {
   b = new Gibberish.Sequencer({
     target:a, key:'note',
     values:[880,660,440,220],
-    rate:[22050, 11025, 44100],
+    durations:[22050, 11025, 44100],
   }).start();
   
 	var inputString = "// sequencers provide sample accurate timing.\n"+
   "// here we sequence calls to the note method of our target synth option.\n"+
-  "// rate determines how quickly the sequencer advances, in samples.\n"+
+  "// durations determines how quickly the sequencer advances, in samples.\n"+
   "a = new Gibberish.FMSynth().connect();\n"+
   "\n"+
   "b = new Gibberish.Sequencer({\n"+
   "  target:a, key:'note',\n"+
   "  values:[880,660,440,220],\n"+
-  "  rate:[22050, 11025, 44100],\n"+
+  "  durations:[22050, 11025, 44100],\n"+
   "}).start();\n";
 
 	var input = document.getElementById("input");

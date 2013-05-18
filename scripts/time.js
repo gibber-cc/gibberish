@@ -1,8 +1,8 @@
 Gibberish.Time = {
   bpm: 120,
   
-  export: function() {
-    Gibberish.export("Time", window);
+  export: function(target) {
+    Gibberish.export("Time", target || window);
   },
   
   ms : function(val) {

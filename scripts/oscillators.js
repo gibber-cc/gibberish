@@ -11,6 +11,48 @@ Gibberish.oscillator = function() {
 Gibberish.oscillator.prototype = new Gibberish.ugen();
 Gibberish._oscillator = new Gibberish.oscillator();
 
+Gibberish.Wavetable = function() {
+  var phase = 0,
+      table = null;
+  
+  this.properties = {
+    frequency : arguments[0] || 440,
+    amp :       arguments[1] || .25,
+  };
+  
+/**###Gibberish.Wavetable.setTable : method  
+Assign an array representing one cycle of a waveform to use.  
+
+param **table** Float32Array. Assign an to be used as the wavetable.
+**/     
+  this.getTable = function() { return table; }
+  this.setTable = function(_table) { table = _table; }
+
+/**###Gibberish.Wavetable.callback : method  
+Returns a single sample of output.  
+
+param **frequency** Number. The frequency to be used to calculate output.  
+param **amp** Number. The amplitude to be used to calculate output.  
+**/   
+  this.callback = function(frequency, amp) { 
+    var index, frac, index2, val1, val2,
+        tableFreq = 43.06640625;
+        
+    phase += frequency / tableFreq;
+    while(phase >= 1024) phase -= 1024;  
+    
+    index   = phase | 0;
+    frac    = phase - index;
+    index   = index & 1023;
+    index2  = index === 1023 ? 0 : index + 1;
+    val1    = table[index];
+    val2    = table[index2];
+        
+    return ( val1 + ( frac * (val2 - val1) ) ) * amp;
+  }
+}
+Gibberish.Wavetable.prototype = Gibberish._oscillator;
+
 /**#Gibberish.Sine - Oscillator
 A sinewave calculated on a per-sample basis.
 
@@ -26,47 +68,23 @@ Number. From 20 - 20000 hz.
 /**###Gibberish.Sine.amp : property  
 Number. A linear value specifying relative amplitude, ostensibly from 0..1 but can be higher, or lower when used for modulation.
 **/
+
 Gibberish.Sine = function() {
+  this.__proto__ = new Gibberish.Wavetable();
+  
   this.name = 'sine';
-
-  this.properties = {
-    frequency : arguments[0] || 440,
-    amp :       arguments[1] || .5,
-  };
-
+  
   var pi_2 = Math.PI * 2, 
-      phase = 0,
       table = new Float32Array(1024);
       
   for(var i = 1024; i--;) { table[i] = Math.sin( (i / 1024) * pi_2); }
   
-  this.getTable = function() { return table; }
-/**###Gibberish.Sine.callback : method  
-Returns a single sample of output.  
-  
-param **frequency** Number. The frequency to be used to calculate output.  
-param **amp** Number. The amplitude to be used to calculate output.  
-**/  
-  this.callback = function(frequency, amp, pi2) { 
-    var index, frac, index2,
-        tableFreq = 43.06640625;
-        
-    phase += frequency / tableFreq;
-    while(phase >= 1024) phase -= 1024;  
-    
-    index   = phase | 0;
-    frac    = phase - index;
-    index = index & 1023;
-    index2  = index === 1023 ? 0 : index + 1;
-        
-    return (table[index] + ( frac * (table[index2] - table[index]) ) ) * amp;
-  }
-    
-  this.init(arguments);
+  this.setTable( table );
+
+  this.init( arguments );
   this.oscillatorInit();
-  this.processProperties(arguments);
+  this.processProperties( arguments );
 };
-Gibberish.Sine.prototype = Gibberish._oscillator;
 
 /**#Gibberish.Sine2 - Oscillator
 A sinewave calculated on a per-sample basis that can be panned.
@@ -130,6 +148,22 @@ Number. From 20 - 20000 hz.
 Number. A linear value specifying relative amplitude, ostensibly from 0..1 but can be higher, or lower when used for modulation.
 **/
 Gibberish.Saw = function() {
+  this.__proto__ = new Gibberish.Wavetable();
+  
+  this.name = 'saw';
+  
+  var table = new Float32Array(1024);
+      
+  for(var i = 1024; i--;) { table[i] = (((i / 1024) / 2 + 0.25) % 0.5 - 0.25) * 4; }
+  
+  this.setTable( table );
+
+  this.init( arguments );
+  this.oscillatorInit();
+  this.processProperties( arguments );
+};
+
+/*Gibberish.Saw = function() {
   this.name = "saw",
   this.properties = { frequency: 440, amp: .15 };
 
@@ -148,7 +182,7 @@ Gibberish.Saw = function() {
   this.oscillatorInit();
   this.processProperties(arguments);  
 };
-Gibberish.Saw.prototype = Gibberish._oscillator;
+Gibberish.Saw.prototype = Gibberish._oscillator;*/
 
 /**#Gibberish.Saw - Oscillator
 A stereo, non-bandlimited saw wave calculated on a per-sample basis.
@@ -206,9 +240,25 @@ Number. From 20 - 20000 hz.
 /**###Gibberish.Triangle.amp : property  
 Number. A linear value specifying relative amplitude, ostensibly from 0..1 but can be higher, or lower when used for modulation.
 **/
-Gibberish.Triangle = function(){
-  var phase = 0,
+
+Gibberish.Triangle = function() {
+  this.__proto__ = new Gibberish.Wavetable();
+  
+  this.name = 'triangle';
+  
+  var table = new Float32Array(1024),
       abs = Math.abs;
+      
+  for(var i = 1024; i--;) { table[i] = 1 - 4 * abs(( (i / 1024) + 0.25) % 1 - 0.5); }
+  
+  this.setTable( table );
+
+  this.init( arguments );
+  this.oscillatorInit();
+  this.processProperties( arguments );
+};
+/*Gibberish.Triangle = function(){
+  var phase = 0,
   
   Gibberish.extend(this, {
     name: "triangle",
@@ -227,7 +277,7 @@ Gibberish.Triangle = function(){
   .processProperties(arguments);  
 };
 Gibberish.Triangle.prototype = Gibberish._oscillator;
-
+*/
 /**#Gibberish.Triangle2 - Oscillator
 A triangle calculated on a per-sample basis that can be panned.
 

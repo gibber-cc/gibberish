@@ -1,3 +1,34 @@
+/**#Gibberish.Sequencer - Miscellaneous
+A sample-accurate sequencer that can sequence changes to properties, method calls or anonymous function calls.
+  
+## Example Usage##
+`Gibberish.init();  
+a = new Gibberish.Synth({ attack:44, decay:44100 }).connect();  
+b = new Gibberish.Sequencer({ target:a, key:'note', durations:[11025, 22050], values:[440, 880] }).start()
+`  
+## Constructor   
+**param** *properties*: Object. A dictionary of property values (see below) to set for the sequencer on initialization.
+- - - -
+**/
+/**###Gibberish.Sequencer.target : property  
+Object. An object for the sequencer to control. May be null if you are sequencing anonymous functions.
+**/
+/**###Gibberish.Sequencer.key : property  
+String. The name of the method or property you would like to sequnce on the Sequencer's target object.
+**/
+/**###Gibberish.Sequencer.durations : property  
+Array. The number of samples between each advancement of the Sequencer. Once the Sequencer arrives at the end of this list, it loops back to the beginning
+**/
+/**###Gibberish.Sequencer.keysAndValues : property  
+Object. A dictionary holding a set of values to be sequenced. The keys of the dictionary determine which methods and properties to sequence on the Sequencer's target object and
+each key has an array of values representing the sequence for that key.
+  
+`Gibberish.init();  
+a = new Gibberish.Synth({ attack:44, decay:44100 }).connect();  
+b = new Gibberish.Sequencer({ target:a, durations:[11025, 22050], keysAndValues:{ 'note':[440,880], 'amp':[.2,.4] } }).start()
+`
+**/
+
 Gibberish.Sequencer = function() {  
   Gibberish.extend(this, {
     target        : null,
@@ -83,7 +114,12 @@ Gibberish.Sequencer = function() {
         this.phase++;
       }
     },
-    
+
+/**###Gibberish.Sequencer.start : method  
+Start the sequencer running.
+
+param **shouldKeepOffset** boolean, default false. If true, the phase of the sequencer will not be reset when calling the start method.
+**/     
     start : function(shouldKeepOffset) {
       if(!shouldKeepOffset) {
         this.phase = 0;
@@ -92,23 +128,37 @@ Gibberish.Sequencer = function() {
       this.isRunning = true;
       return this;
     },
-    
+
+/**###Gibberish.Sequencer.stop : method  
+Stop the sequencer.
+**/     
     stop: function() {
       this.isRunning = false;
       return this;
     },
     
+/**###Gibberish.Sequencer.repeat : method  
+Play the sequencer a certain number of times and then stop it.
+
+param **timesToRepeat** number. The number of times to repeat the sequence.
+**/        
     repeat : function(times) {
       this.repeatTarget = times;
       return this;
     },
-    
+
+/**###Gibberish.Sequencer.disconnect : method  
+Each sequencer object has a tick method that is called once per sample. Use the disconnect method to stop the tick method from being called.
+**/     
     disconnect : function() {
       var idx = Gibberish.sequencers.indexOf( this );
       Gibberish.sequencers.splice( idx, 1 );
       this.isConnected = false;
     },
-    
+/**###Gibberish.Sequencer.connect : method  
+Each sequencer object has a tick method that is called once per sample. Use the connect method to start calling the tick method. Note that the connect
+method is called automatically when the sequencer is first created; you should only need to call it again if you call the disconnect method at some point.
+**/    
     connect : function() {
       if( Gibberish.sequencers.indexOf( this ) === -1 ) {
         Gibberish.sequencers.push( this );
