@@ -112,10 +112,11 @@ Gibberish.Bus.prototype = Gibberish._bus;
 Create a stereo outing bus. A bus callback routes all it's inputs and scales them by the amplitude of the bus.
 
 ##Example Usage##    
-`a = new Gibberish.Bus();  
+`a = new Gibberish.Bus2();  
 b = new Gibberish.Sine(440).connect(a);  
 c = new Gibberish.Sine(880).connect(a);  
-a.amp = .1;  
+  
+d = new Gibberish.Sequencer({ target:a, key:'pan', values:[-.75,.75], durations:[ 22050 ] }).start();
 a.connect();`
   
 ## Constructor     

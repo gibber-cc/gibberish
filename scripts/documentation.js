@@ -15,6 +15,8 @@ var filenames = [
   "gibberish.js",
   "bus.js",
   "sequencer.js",
+  "time.js",
+  "binops.js",
 ];
 
 for (var i = 0; i < filenames.length; i++) {

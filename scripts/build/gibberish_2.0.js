@@ -1754,10 +1754,11 @@ Gibberish.Bus.prototype = Gibberish._bus;
 Create a stereo outing bus. A bus callback routes all it's inputs and scales them by the amplitude of the bus.
 
 ##Example Usage##    
-`a = new Gibberish.Bus();  
+`a = new Gibberish.Bus2();  
 b = new Gibberish.Sine(440).connect(a);  
 c = new Gibberish.Sine(880).connect(a);  
-a.amp = .1;  
+  
+d = new Gibberish.Sequencer({ target:a, key:'pan', values:[-.75,.75], durations:[ 22050 ] }).start();
 a.connect();`
   
 ## Constructor     
@@ -4625,9 +4626,28 @@ param **amp** : Optional. Float. The volume of the note, usually between 0..1. T
 	this.processProperties(arguments);
 };
 Gibberish.MonoSynth.prototype = Gibberish._synth; 
-Gibberish.Expressions = {
-  export: function() {
-    Gibberish.export("Expressions", window);
+/**#Gibberish.Binops - Miscellaneous
+These objects create binary operations - mathematical operations taking two arguments - and create signal processing functions using them. They are primarily used for
+modulation purposes. You can export the constructors for easier use similar to the [Time](javascript:displayDocs('Gibberish.Time'\)) constructors.
+
+Add, Sub, Mul and Div can actually take as many arguments as you wish. For example, Add(1,2,3,4) will return an object that outputs 10. You can stack multiple oscillators this way as well.
+
+##Example Usage   
+`// This example creates a tremolo effect via amplitude modulation  
+Gibberish.Binops.export(); // now all constructors are also part of the window object  
+mod = new Gibberish.Sine(4, .25);  
+sin = new Gibberish.Sine( 440, add( .5, mod ) ).connect();  
+`
+**/
+
+Gibberish.Binops = {
+/**###Gibberish.Binops.export : method  
+Use this to export the constructor methods of Gibberish.Binops so that you can tersely refer to them.
+
+param **target** object, default window. The object to export the Gibberish.Binops constructors into.
+**/  
+  export: function(target) {
+    Gibberish.export("Binops", target || window);
   },
   
   operator : function () {
@@ -4678,43 +4698,61 @@ Gibberish.Expressions = {
     return me;
   },
   
-  add : function() {
+/**###Gibberish.Binops.Add : method  
+Create an object that sums all arguments at audio rate. The arguments may be unit generators, numbers, or any mix of the two.
+**/
+  Add : function() {
     var args = Array.prototype.slice.call(arguments, 0);
     args.unshift('+');
     
-    return Gibberish.Expressions.operator.apply(null, args);
+    return Gibberish.Binops.operator.apply(null, args);
   },
 
-  sub : function() {
+/**###Gibberish.Binops.Sub : method  
+Create an object that starts with the first argument and subtracts all subsequent arguments at audio rate. The arguments may be unit generators, numbers, or any mix of the two.
+**/
+  Sub : function() {
     var args = Array.prototype.slice.call(arguments, 0);
     args.unshift('-');
     
-    return Gibberish.Expressions.operator.apply(null, args);
+    return Gibberish.Binops.operator.apply(null, args);
   },
 
-  mul : function() {
+/**###Gibberish.Binops.Mul : method  
+Create an object that calculates the product of all arguments at audio rate. The arguments may be unit generators, numbers, or any mix of the two.
+**/
+  Mul : function() {
     var args = Array.prototype.slice.call(arguments, 0);
     args.unshift('*');
     
-    return Gibberish.Expressions.operator.apply(null, args);
+    return Gibberish.Binops.operator.apply(null, args);
   },
 
-  div : function() {
+/**###Gibberish.Binops.Div : method  
+Create an object that takes the first argument and divides it by all subsequent arguments at audio rate. The arguments may be unit generators, numbers, or any mix of the two.
+**/
+  Div : function() {
     var args = Array.prototype.slice.call(arguments, 0);
     args.unshift('/');
     
-    return Gibberish.Expressions.operator.apply(null, args);
+    return Gibberish.Binops.operator.apply(null, args);
   },
-  
-  mod : function() {
+
+/**###Gibberish.Binops.Mod : method  
+Create an object that takes the divides the first argument by the second and returns the remainder at audio rate. The arguments may be unit generators, numbers, or any mix of the two.
+**/  
+  Mod : function() {
     var args = Array.prototype.slice.call(arguments, 0);
     args.unshift('%');
     
-    return Gibberish.Expressions.operator.apply(null, args);
+    return Gibberish.Binops.operator.apply(null, args);
 
   },
 
-  abs : function() {
+/**###Gibberish.Binops.Abs : method  
+Create an object that returns the absolute value of the (single) argument. The argument may be a unit generator or number.
+**/  
+  Abs : function() {
     var args = Array.prototype.slice.call(arguments, 0),
         _abs = Math.abs;
   
@@ -4729,8 +4767,10 @@ Gibberish.Expressions = {
 
     return me;
   },
-  
-  sqrt : function() {
+/**###Gibberish.Binops.Sqrt : method  
+Create an object that returns the square root of the (single) argument. The argument may be a unit generator or number.
+**/    
+  Sqrt : function() {
     var args = Array.prototype.slice.call(arguments, 0)
         _sqrt = Math.sqrt;
   
@@ -4745,8 +4785,11 @@ Gibberish.Expressions = {
 
     return me;
   },
-  
-  pow : function() {
+
+/**###Gibberish.Binops.Pow : method  
+Create an object that returns the first argument raised to the power of the second argument. The arguments may be a unit generators or numbers.
+**/      
+  Pow : function() {
     var args = Array.prototype.slice.call(arguments, 0);
       
     var me = {
@@ -4762,7 +4805,7 @@ Gibberish.Expressions = {
     return me;
   },
   
-  merge : function() {
+  Merge : function() {
     var args = Array.prototype.slice.call(arguments, 0),
         phase = 0;
   
@@ -4783,6 +4826,46 @@ Gibberish.Expressions = {
     return me;
   },
 };
+/**#Gibberish.Time - Miscellaneous
+This object is used to simplify timing in Gibberish. It contains an export function to place its methods in another object (like window)
+so that you can code more tersely. The methods of the Time object translate ms, seconds and beats into samples. The default bpm is 120.
+
+##Example Usage   
+`Gibberish.Time.export(); // now all methods are also part of the window object
+a = new Gibberish.Sine(440).connect();  
+b = new Gibberish.Sequencer({ target:a, key:'frequency', durations:[ seconds(1), ms(500), beats( .5 ) ], values:[220,440,880] }).start()  
+`
+**/
+
+/**###Gibberish.Time.bpm : property  
+Number. Default 120. The beats per minute setting used whenever a call to the beats method is made.
+**/
+
+/**###Gibberish.Time.export : method  
+Use this to export the methods of Gibberish.Time so that you can tersely refer to them.
+
+param **target** object, default window. The object to export the Gibberish.Time methods into.
+**/  
+
+/**###Gibberish.Time.ms : method  
+Convert the parameter from milliseconds to samples.
+
+param **ms** number. The number of milliseconds to convert.
+**/  
+
+/**###Gibberish.Time.seconds : method  
+Convert the parameter from seconds to samples.
+
+param **seconds** number. The number of seconds to convert.
+**/  
+
+/**###Gibberish.Time.beats : method  
+Return a function that converts the parameter from beats to samples. This method uses the bpm property of the Gibberish.Time object to determine the duration of a sample.
+You can use the function returned by this method in a Sequencer; if Gibberish.Time.bpm is changed before the function is executed the function will use the updated value.
+
+param **seconds** number. The number of seconds to convert.
+**/  
+
 Gibberish.Time = {
   bpm: 120,
   
@@ -4803,10 +4886,6 @@ Gibberish.Time = {
       var samplesPerBeat = 44100 / ( Gibberish.Time.bpm / 60 ) ;
       return Math.round( samplesPerBeat * val );
     }
-  },
-  
-  setBPM : function(val) {
-    Gibberish.Time.bpm = val;
   },
 };
 /**#Gibberish.Sequencer - Miscellaneous
