@@ -367,7 +367,7 @@ param **argumentList** : Array. A list of arguments (may be a single dictionary)
 **/     
 
       processProperties : function(args){
-        if(typeof arguments[0][0] === 'object' && typeof arguments[0][0].type === 'undefined' && !Array.isArray(arguments[0][0])) {
+        if(typeof arguments[0][0] === 'object' && typeof arguments[0][0].type === 'undefined' && !Array.isArray(arguments[0][0]) && arguments[0][0].name !== 'op') {
           var dict = arguments[0][0];
           for(var key in dict) {
             if(typeof dict[key] !== 'undefined') {
@@ -382,11 +382,13 @@ param **argumentList** : Array. A list of arguments (may be a single dictionary)
           var i = 0;
           for(var key in this.properties) {
             if(typeof this.properties[key] === 'object' && typeof this.properties[key].binops !== 'undefined') {
-              if(typeof arguments[0][i] !== 'undefined')
+              if(typeof arguments[0][i] !== 'undefined'){
                 this.properties[key].value = arguments[0][i++];
+              }
             }else{
-              if(typeof arguments[0][i] !== 'undefined')
+              if(typeof arguments[0][i] !== 'undefined') {
                 this.properties[key] = arguments[0][i++];
+              }
             }
           }
         }

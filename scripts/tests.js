@@ -1,3 +1,4 @@
+Gibberish.Binops.export();
 window.routingTest = function() {
   Gibberish.clear();
   
@@ -73,24 +74,19 @@ window.routingTest = function() {
 window.vibratoTest = function() {
   Gibberish.clear();
   
-  a = new Gibberish.Sine(991, .5);
-  b = new Gibberish.Sine(4, 0);
-  c = new Gibberish.Sine(.1, 50);
+  mod1 = new Gibberish.Sine(4, 0);
+  mod2 = new Gibberish.Sine(.1, 50);  
+  mod1.amp = mod2;
   
-  b.mod('amp', c, "+");
-  b.mod('amp', 50, "+");
-
-  a.mod('frequency', b,  "+");
-
-  a.connect( Gibberish.out ); 
+  sin = new Gibberish.Sine({ amp:.5 }).connect();
+  sin.frequency = Add(mod1, 440)
     
 	var inputString = "// vibrato that changes depth over time \n"+
   "a = new Gibberish.Sine(991, .5);\n"+
-  "b = new Gibberish.Sine(4, 0);\n"+
+  "b = new Gibberish.Sine(4, 50);\n"+
   "c = new Gibberish.Sine(.1, 50);\n"+
   "\n"+
   "b.mod('amp', c, '+');\n"+
-  "b.mod('amp', 50, '+');\n"+
   "\n"+
   "a.mod('frequency', b, '+');\n"+
   "\n"+
