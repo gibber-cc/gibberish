@@ -16,8 +16,8 @@ Gibberish.Wavetable = function() {
       table = null;
   
   this.properties = {
-    frequency : arguments[0] || 440,
-    amp :       arguments[1] || .25,
+    frequency : 440,
+    amp :       .25,
   };
   
 /**###Gibberish.Wavetable.setTable : method  

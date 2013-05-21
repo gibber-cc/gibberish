@@ -1,4 +1,6 @@
 Gibberish.Binops.export();
+Gibberish.Time.export();
+
 window.routingTest = function() {
   Gibberish.clear();
   
@@ -78,20 +80,14 @@ window.vibratoTest = function() {
   mod2 = new Gibberish.Sine(.1, 50);  
   mod1.amp = mod2;
   
-  sin = new Gibberish.Sine({ amp:.5 }).connect();
-  sin.frequency = Add(mod1, 440)
+  sin = new Gibberish.Sine( Add(mod1, 440), .25 ).connect();
     
-	var inputString = "// vibrato that changes depth over time \n"+
-  "a = new Gibberish.Sine(991, .5);\n"+
-  "b = new Gibberish.Sine(4, 50);\n"+
-  "c = new Gibberish.Sine(.1, 50);\n"+
+	var inputString = "// vibrato that changes depth over time \n\n"+
+  "mod1 = new Gibberish.Sine(4, 0)\n"+
+  "mod2 = new Gibberish.Sine(.1, 50); \n"+
+  "mod1.amp = mod2\n"+
   "\n"+
-  "b.mod('amp', c, '+');\n"+
-  "\n"+
-  "a.mod('frequency', b, '+');\n"+
-  "\n"+
-  "a.connect( Gibberish.out );\n"+
-  "\n";
+  "sin = new Gibberish.Sine( Add(mod1, 440), .25 ).connect()\n";
 
 	var input = document.getElementById("input");
 	input.innerHTML = inputString;
@@ -105,20 +101,12 @@ window.vibratoTest = function() {
 window.lineTest = function() {
   Gibberish.clear();
   
-  a = new Gibberish.Sine(991, .5);
-  b = new Gibberish.Line(0, 1, 88200, true);
-
-  a.mod('amp', b,  "=");
-
-  a.connect( Gibberish.out ); 
+  line = new Gibberish.Line(0, 1, 88200, true);
+  a = new Gibberish.Sine(991, line).connect();
     
-	var inputString = "// ramping amplitude and looping the ramp\n"+
-  "a = new Gibberish.Sine(991, .5);\n"+
-  "b = new Gibberish.Line(0, 1, 88200, true);\n"+
-  "\n"+
-  "a.mod('amp', b,  '=');\n"+
-  "\n"+
-  "a.connect( Gibberish.out ); \n";
+	var inputString = "// ramping amplitude and looping the ramp\n\n"+
+  "line = new Gibberish.Line(0, 1, 88200, true);\n"+
+  "a = new Gibberish.Sine(991, line).connect();\n";
 
 	var input = document.getElementById("input");
 	input.innerHTML = inputString;
@@ -132,28 +120,16 @@ window.lineTest = function() {
 window.twoOscsOneMod = function() {
   Gibberish.clear();
   
-  a = new Gibberish.Sine(440, .5);
-  b = new Gibberish.Sine(880, .25);
-  c = new Gibberish.Sine(4, 20);
-  
-  a.mod('frequency', c, "+");
-  b.mod('frequency', c, "+");
-
-  a.connect( Gibberish.out ); 
-  b.connect( Gibberish.out );   
+  mod = new Gibberish.Sine(4, 20);
+  a = new Gibberish.Sine( Add(440, mod), .5).connect();
+  b = new Gibberish.Sine( Add(880, mod), .25).connect();
     
-	var inputString = "// a simple test to ensure that one moulation source affecting two\n"+
-  "// oscillators is only codegenerated once and run once per sample.\n"+
-  "a = new Gibberish.Sine(440, .5);\n"+
-  "b = new Gibberish.Sine(880, .25);\n"+
-  "c = new Gibberish.Sine(4, 20);\n"+
-  "\n"+
-  "a.mod('frequency', c, '+');\n"+
-  "b.mod('frequency', c, '+'');\n"+
-  "\n"+
-  "a.connect( Gibberish.out ); \n"+
-  "b.connect( Gibberish.out );\n";
-
+	var inputString = "// a simple test to ensure that one modulation source affecting two\n"+
+  "// ugens is memoized and only run once per sample.\n\n"+
+  "mod = new Gibberish.Sine(4, 20);\n"+
+  "a = new Gibberish.Sine( Add(440, mod), .5).connect();\n"+
+  "b = new Gibberish.Sine( Add(880, mod), .25).connect();\n";
+ 
 	var input = document.getElementById("input");
 	input.innerHTML = inputString;
 			
@@ -166,27 +142,24 @@ window.twoOscsOneMod = function() {
 window.ADSRTest = function() {
   Gibberish.clear();
   
-  a = new Gibberish.Sine(440, .5);
-  b = new Gibberish.ADSR(22050, 22050, 88200, 22050, 1, .75);
-  a.mod('amp', b, '*');
+  adsr = new Gibberish.ADSR(22050, 22050, 88200, 22050, 1, .75);
   
-  a.connect( Gibberish.out );
-  
+  a = new Gibberish.Sine( 440, Mul(.5, adsr) ).connect();
+    
   b = new Gibberish.Sequencer({
-    target:b, key:'run',
-    durations:[44100 * 4],
+    target:adsr, key:'run',
+    durations:[ seconds(4) ],
   }).start();
   
-	var inputString = "a = new Gibberish.Sine(440, .5);\n"+
-  "b = new Gibberish.ADSR(22050, 22050, 88200, 22050, 1, .75);\n"+
-  "a.mod('amp', b, '*');\n"+
+	var inputString = "// test of ADSR envelope.\n\n"+
+  "adsr = new Gibberish.ADSR(22050, 22050, 88200, 22050, 1, .75);\n"+
   "\n"+
-  "a.connect( Gibberish.out );\n"+
+  "a = new Gibberish.Sine( 440, Mul(.5, adsr) ).connect();\n"+
   "\n"+
   "b = new Gibberish.Sequencer({\n"+
-  "  target:b, key:'run',\n"+
-  "  durations:[44100 * 4],\n"+
-  "}).start();";
+  "  target:adsr, key:'run',\n"+
+  "  durations:[ seconds(4) ],\n"+
+  "}).start();\n";
 
 	var input = document.getElementById("input");
 	input.innerHTML = inputString;
@@ -383,19 +356,23 @@ window.decimator = function() {
 window.ringModulation = function() {
   Gibberish.clear();
   
-  a = new Gibberish.Saw3();
-  b = new Gibberish.RingModulation({input:a, frequency:1016, amp:1, mix:1});
-  
-  b.mod('frequency', new Gibberish.Sine(.05, 500), '+')  
-  
-  b.connect( Gibberish.out );
-  
-	var inputString = "// ring modulation test\n"+
-  "a = new Gibberish.Saw3();\n"+
-  "b = new Gibberish.RingModulation({input:a, frequency:1016, amp:1, mix:1});\n"+
-  "\n"+
-  "b.mod('frequency', new Gibberish.Sine(.05, 500), '+');";
+  a = new Gibberish.Saw3()
+  b = new Gibberish.RingModulation({
+    input:a, 
+    frequency: Add( 1016, new Gibberish.Sine(.05, 500) ),
+    amp:1,
+    mix:1
+  }).connect()
 
+	var inputString = "// ring modulation test\n\n"+
+  "a = new Gibberish.Saw3()\n\n"+
+  "b = new Gibberish.RingModulation({\n"+
+  "  input:a, \n"+
+  "  frequency: Add( 1016, new Gibberish.Sine(.05, 500) ),\n"+
+  "  amp:1,\n"+
+  "  mix:1\n"+
+  "}).connect()\n";
+  
 	var input = document.getElementById("input");
 	input.innerHTML = inputString;
 			
@@ -409,10 +386,7 @@ window.ladderFilter = function() {
   Gibberish.clear();
   
   a = new Gibberish.FMSynth();
-  b = new Gibberish.Filter24(.2, 4);
-  b.input = a;
-    
-  b.connect( Gibberish.out );
+  b = new Gibberish.Filter24({ input:a, cutoff:.2, resonance:4 }).connect();
   
   sequencer = new Gibberish.Sequencer({
     values:[ 
@@ -426,12 +400,9 @@ window.ladderFilter = function() {
   
 	var inputString = "// testing a 24db filter on a fmsynth\n"+
   "a = new Gibberish.FMSynth();\n"+
-  "b = new Gibberish.Filter24(.2, 4);\n"+
-  "b.input = a;\n"+
-  "  \n"+
-  "b.connect( Gibberish.out );\n"+
+  "b = new Gibberish.Filter24({ input:a, cutoff:.2, resonance:4 }).connect();\n"+
   "\n"+
-  "b = new Gibberish.Sequencer({\n"+
+  "sequencer = new Gibberish.Sequencer({\n"+
   "  values:[ \n"+
   "    function() { \n"+
   "      a.note(440);\n"+
@@ -439,7 +410,7 @@ window.ladderFilter = function() {
   "    }\n"+
   "  ],\n"+
   "  durations:[44100],\n"+
-  "}).start();";
+  "}).start();\n";
 
 	var input = document.getElementById("input");
 	input.innerHTML = inputString;
@@ -495,8 +466,7 @@ window.stateVariableFilter = function() {
 window.FMTest = function() {
   Gibberish.clear();
 			
-	s = new Gibberish.FMSynth();
-	s.connect( Gibberish.out );
+	s = new Gibberish.FMSynth().connect();
 	
   sequencer = new Gibberish.Sequencer({
     target:s, key:'note',
@@ -504,8 +474,7 @@ window.FMTest = function() {
     durations:[44100],
   }).start();
 			
-	var inputString = "s = new Gibberish.FMSynth();\n"+
-	"s.connect( Gibberish.out );\n"+
+	var inputString = "s = new Gibberish.FMSynth().connect();\n"+
   "sequencer = new Gibberish.Sequencer({\n"+
   "  target:s, key:'note',\n"+
   "  values:[ Gibberish.Rndf(200, 1000) ],\n"+
@@ -524,8 +493,7 @@ window.FMTest = function() {
 window.polyFM = function() {
   Gibberish.clear();
   			
-	s = new Gibberish.PolyFM({ attack:20 });
-	s.connect( Gibberish.out );
+	s = new Gibberish.PolyFM({ attack:20 }).connect();
 	
   sequencer = new Gibberish.Sequencer({
     values:[ function() {
@@ -538,9 +506,7 @@ window.polyFM = function() {
     durations:[44100],
   }).start();
 			
-	var inputString = "s = new Gibberish.PolyFM({ attack:20 });\n"+
-	"s.connect( Gibberish.out );\n"+
-	"\n"+
+	var inputString = "s = new Gibberish.PolyFM({ attack:20 }).connect();\n\n"+
   "sequencer = new Gibberish.Sequencer({\n"+
   "  values:[ function() {\n"+
   "		s.note( Gibberish.rndf(200, 1000) );\n"+
@@ -565,27 +531,25 @@ window.synth = function() {
   Gibberish.clear();
 
   waves = ["Saw3", "PWM", "Sine"];		
-	s = new Gibberish.Synth();
-	s.connect( Gibberish.out );
+	s = new Gibberish.Synth().connect();
 	
   sequencer = new Gibberish.Sequencer({
     target:s,
     keysAndValues: {
       note: [ Gibberish.Rndf(200, 1000) ],
-      waveform : [ function() { return waves[Math.round(Math.random() * 2)]; } ],
+      waveform : [ function() { return waves[ Gibberish.rndi( 0, 2 ) ]; } ],
     },
     durations:[ 44100 ],
   }).start();
 			
 	var inputString = "waves = ['Saw3', 'PWM', 'Sine'];\n"+		
-	"s = new Gibberish.Synth();\n"+
-	"s.connect( Gibberish.out );\n"+
+	"s = new Gibberish.Synth().connect();\n"+
 	"		\n"+
   "sequencer = new Gibberish.Sequencer({\n"+
   "  target:s,\n"+
   "  keysAndValues: {\n"+
   "    note: [ Gibberish.Rndf(200, 1000) ],\n"+
-  "    waveform : [ function() { return waves[Math.round(Math.random() * 2)]; } ],\n"+
+  "    waveform : [ function() { return waves[ Gibberish.rndi( 0, 2 ) ]; } ],\n"+
   "  },\n"+
   "  durations:[ 44100 ],\n"+
   "}).start();\n";
@@ -608,7 +572,7 @@ window.synth2 = function() {
     target:s,
     keysAndValues:{
       note:   [ Gibberish.Rndf(200, 800) ],
-      cutoff: [ .2],//Gibberish.Rndf(.3, .8) ],
+      cutoff: [ Gibberish.Rndf(.3, .6) ],
     },
     durations:[ 44100 ],
   }).start();
@@ -620,7 +584,7 @@ window.synth2 = function() {
   "  target:s,\n"+
   "  keysAndValues:{\n"+
   "    note:   [ Gibberish.Rndf(200, 800) ],\n"+
-  "    cutoff: [ Gibberish.Rndf(.3, .8) ],\n"+
+  "    cutoff: [ Gibberish.Rndf(.3, .6) ],\n"+
   "  }\n"+
   "  durations:[ 44100 ],\n"+
   "}).start();";
@@ -675,11 +639,12 @@ window.monoSynth = function() {
 window.polySynth = function() {
   Gibberish.clear();
   	
-	s = new Gibberish.PolySynth({ attack:20, decay:88200 });
-	s.connect( Gibberish.out );
-	
-  s.mod('pulsewidth', new Gibberish.Sine(.1, .45), '+');
-  
+	s = new Gibberish.PolySynth({ 
+    attack: 20,
+    decay: 88200,
+    pulsewidth: Add( .5, new Gibberish.Sine(.1, .45) ),
+  }).connect();
+	  
   sequencer = new Gibberish.Sequencer({
     values: [ 
       function() {
@@ -694,11 +659,12 @@ window.polySynth = function() {
   }).start();
 			
 	var inputString = "// a test of the polysynth with pulsewidth modulation applied\n"+
-  "s = new Gibberish.PolySynth({ attack:20, decay:88200 });\n"+
-	"s.connect( Gibberish.out );\n"+
-	"\n"+
-  "s.mod('pulsewidth', new Gibberish.Sine(.1, .45), '+');\n"+
-  "		\n"+
+	"s = new Gibberish.PolySynth({ \n"+
+  "  attack: 20,\n"+
+  "  decay: 88200,\n"+
+  "  pulsewidth: Add( .5, new Gibberish.Sine(.1, .45) ),\n"+
+  "}).connect();\n"+
+  "\n"+
   "sequencer = new Gibberish.Sequencer({\n"+
   "  values: [ \n"+
   "    function() {\n"+
@@ -907,20 +873,12 @@ window.feedbackTest = function() {
 window.bandLimitedPWM = function() {
   Gibberish.clear();
   
-  a = new Gibberish.PWM();
-  b = new Gibberish.Sine(.1, .49);
-  
-  a.mod('pulsewidth', b, "+");
-
-  a.connect( Gibberish.out ); 
+  a = new Gibberish.PWM({ pulsewidth: Add( .5, new Gibberish.Sine(.1, .49) ) }).connect();
     
-	var inputString = "// a bandlimited PWM oscillator built using FM feedback\n"+
-  "a = new Gibberish.PWM();\n"+
-  "b = new Gibberish.Sine(.1, .49);\n"+
-  "\n"+
-  "a.mod('pulsewidth', b, '+');\n"+
-  "\n"+
-  "a.connect( Gibberish.out );";
+	var inputString = "// a bandlimited PWM oscillator built using FM feedback\n\n"+
+  "a = new Gibberish.PWM({ \n"+
+  "  pulsewidth: Add( .5, new Gibberish.Sine(.1, .49) ) \n"+
+  "}).connect();\n";
 
 	var input = document.getElementById("input");
 	input.innerHTML = inputString;

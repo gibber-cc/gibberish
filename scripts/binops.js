@@ -30,7 +30,7 @@ param **target** object, default window. The object to export the Gibberish.Bino
     me.name = 'op';
     me.properties = {};
     for(var i = 0; i < args.length; i++) { me.properties[i] = args[i]; }
-    me.init();
+    me.init.apply( me, args );
     
     me.codegen = function() {
       var keys, out = "( ";
@@ -38,7 +38,7 @@ param **target** object, default window. The object to export the Gibberish.Bino
       if(typeof Gibberish.memo[this.symbol] !== 'undefined') { return Gibberish.memo[this.symbol]; }
       
       keys = Object.keys(this.properties);
-    
+
       for(var i = 0; i < keys.length; i++) {
         var isObject = typeof this[i] === 'object';
         
@@ -56,16 +56,20 @@ param **target** object, default window. The object to export the Gibberish.Bino
         
         if(i < keys.length - 1) { out += " " + op + " "; }
         
-        if( isObject && shouldPush ) Gibberish.codeblock.push(this[i].codeblock); 
+        //if( isObject && shouldPush ) Gibberish.codeblock.push(this[i].codeblock); 
       }
       
       out += " )";
       
-      Gibberish.memo[this.symbol] = out;      
+      this.codeblock = '';
+      Gibberish.memo[this.symbol] = out;
+      
       return out;
     };
     
-    me.getCodeblock = function() {}; // override
+    //me.getCodeblock = function() {}; // override
+    
+    me.processProperties.apply( me, args );
 
     return me;
   },

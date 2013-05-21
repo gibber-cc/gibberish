@@ -90,7 +90,7 @@ Perform codegen on all dirty ugens and re-create the audio callback. This method
         this.analysisCodeblock.push ( this.analysisUgens[i].analysisCodegen() );
       }
       this.codestring += this.analysisCodeblock.join('\n\t');
-      this.codestring += '\n\n\t';
+      this.codestring += '\n\t';
     }
 
     this.codestring += 'return ' + this.out.variable +';\n';
@@ -396,14 +396,15 @@ param **argumentList** : Array. A list of arguments (may be a single dictionary)
       },
 /**###Ugen.codegen : method
 Generates output code (as a string) used inside audio callback
-**/     
+**/   
+      // bus > sine > add > sine > !sine!
       codegen : function() {
         var s = '', 
             v = null,
             initialized = false;
         
         if(Gibberish.memo[this.symbol]) {
-          //  console.log("MEMO" + this.symbol);
+          console.log("MEMO" + this.symbol);
           return Gibberish.memo[this.symbol];
         }else{
           // we generate the symbol and use it to create our codeblock, but only if the ugen doesn't already have a variable assigned. 
@@ -434,9 +435,13 @@ Generates output code (as a string) used inside audio callback
             }
             
           }else if( typeof property.value === 'object' ) {
-            //console.log("CODEGEN FOR OBJECT THAT IS A PROPERTY VALUE");
+            //console.log( "CODEGEN FOR OBJECT THAT IS A PROPERTY VALUE", key );
             value = property.value !== null ? property.value.codegen() : 'null';
-          }else{
+          }else if( property.name !== 'undefined'){
+            //console.log("OBJECT AS PROPERTY", key, property)
+            //value = property.codegen();
+            //}else {
+            //console.log("NO CODEGEN", this.name, property.name, property.value);
             value = property.value;
           }
         
@@ -511,12 +516,24 @@ Retrieves codeblock for ugen previously created with codegen method.
                       obj.getCodeblock();
                 }
               }
-
+              //console.log(0, key)
             }else if( typeof property.value === 'object' ) {
                 if(property.value !== null) {
                   property.value.getCodeblock();
+                  //console.log(1, key, property.value.name)
+                }else{
+                  //console.log(4, key, property.value.name)
                 }
+                //console.log(2, key, property.value.name)
+            } else {
+              if(typeof property === 'object') {
+                //property.codegen();
+                //property.getCodeblock();
+                //console.log(property);
+                //console.log(3, key, property.value.name)
+              }
             }
+            
 
             if(property.binops) {
               for(var j = 0; j < property.binops.length; j++) {
@@ -533,14 +550,9 @@ Retrieves codeblock for ugen previously created with codegen method.
         if(this.type === 'analysis') {
           Gibberish.codeblock.unshift(this.codeblock);
         }else{
-          Gibberish.codeblock.push(this.codeblock);
+          if(this.codeblock !== '')
+            Gibberish.codeblock.push(this.codeblock);
         }
-        
-        // if(typeof this.fx !== 'undefined') {
-        //   for(var i = 0; i < this.fx.length; i++) {
-        //     this.fx[i].getCodeblock();
-        //   }
-        // }
         
         return this.variable;
       },
@@ -556,9 +568,16 @@ param **value** : Any. The initival value to set the property to
           value:  initValue,
           binops: [],
           getCodeblock : function() { 
-            if(typeof this.value !== 'number') Gibberish.codeblock.push("var " + this.symbol + " = " +this.value + ";\n"); 
+            if(typeof this.value !== 'number') Gibberish.codeblock.push("var " + this.symbol + " = " + this.value + ";\n"); 
           },
-          codegen : function() { return typeof this.value === 'number' || typeof this.value === 'string' ? this.value : this.symbol; },
+          codegen : function() { 
+            if( typeof this.value === 'number' || typeof this.value === 'string') { 
+              return this.value;
+            }else{
+              this.value.codegen(); 
+              return this.value.symbol;
+            }
+          },
           parent : this,
           name : key,
         };
@@ -1043,8 +1062,8 @@ Gibberish.Wavetable = function() {
       table = null;
   
   this.properties = {
-    frequency : arguments[0] || 440,
-    amp :       arguments[1] || .25,
+    frequency : 440,
+    amp :       .25,
   };
   
 /**###Gibberish.Wavetable.setTable : method  
@@ -4660,7 +4679,7 @@ param **target** object, default window. The object to export the Gibberish.Bino
     me.name = 'op';
     me.properties = {};
     for(var i = 0; i < args.length; i++) { me.properties[i] = args[i]; }
-    me.init();
+    me.init.apply( me, args );
     
     me.codegen = function() {
       var keys, out = "( ";
@@ -4668,7 +4687,7 @@ param **target** object, default window. The object to export the Gibberish.Bino
       if(typeof Gibberish.memo[this.symbol] !== 'undefined') { return Gibberish.memo[this.symbol]; }
       
       keys = Object.keys(this.properties);
-    
+
       for(var i = 0; i < keys.length; i++) {
         var isObject = typeof this[i] === 'object';
         
@@ -4686,16 +4705,20 @@ param **target** object, default window. The object to export the Gibberish.Bino
         
         if(i < keys.length - 1) { out += " " + op + " "; }
         
-        if( isObject && shouldPush ) Gibberish.codeblock.push(this[i].codeblock); 
+        //if( isObject && shouldPush ) Gibberish.codeblock.push(this[i].codeblock); 
       }
       
       out += " )";
       
-      Gibberish.memo[this.symbol] = out;      
+      this.codeblock = '';
+      Gibberish.memo[this.symbol] = out;
+      
       return out;
     };
     
-    me.getCodeblock = function() {}; // override
+    //me.getCodeblock = function() {}; // override
+    
+    me.processProperties.apply( me, args );
 
     return me;
   },
