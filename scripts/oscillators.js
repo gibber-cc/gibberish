@@ -23,7 +23,7 @@ Gibberish.Wavetable = function() {
 /**###Gibberish.Wavetable.setTable : method  
 Assign an array representing one cycle of a waveform to use.  
 
-param **table** Float32Array. Assign an to be used as the wavetable.
+param **table** Float32Array. Assign an array to be used as the wavetable.
 **/     
   this.getTable = function() { return table; }
   this.setTable = function(_table) { table = _table; }

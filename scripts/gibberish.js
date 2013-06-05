@@ -251,6 +251,8 @@ Create a callback and start it running. Note that in iOS audio callbacks can onl
 **/   
   init : function() {
     Gibberish.out = new Gibberish.Bus2();
+    Gibberish.out.codegen(); // make sure bus is first upvalue so that clearing works correctly
+    Gibberish.out.getCodeBlock(); // make sure bus is first upvalue
     Gibberish.dirty(Gibberish.out);
     
     var bufferSize = typeof arguments[0] === 'undefined' ? 1024 : arguments[0];
@@ -397,14 +399,13 @@ param **argumentList** : Array. A list of arguments (may be a single dictionary)
 /**###Ugen.codegen : method
 Generates output code (as a string) used inside audio callback
 **/   
-      // bus > sine > add > sine > !sine!
       codegen : function() {
         var s = '', 
             v = null,
             initialized = false;
         
         if(Gibberish.memo[this.symbol]) {
-          console.log("MEMO" + this.symbol);
+          //console.log("MEMO" + this.symbol);
           return Gibberish.memo[this.symbol];
         }else{
           // we generate the symbol and use it to create our codeblock, but only if the ugen doesn't already have a variable assigned. 
@@ -417,7 +418,6 @@ Generates output code (as a string) used inside audio callback
         s += 'var ' + v + " = " + this.symbol + "(";
 
         for(var key in this.properties) {
-          //console.log("PROPERTY", this.name, key)
           var property = this.properties[key];
           var value = '';
           //if(this.name === "single_sample_delay") { console.log( "SSD PROP" + key ); }
@@ -438,10 +438,6 @@ Generates output code (as a string) used inside audio callback
             //console.log( "CODEGEN FOR OBJECT THAT IS A PROPERTY VALUE", key );
             value = property.value !== null ? property.value.codegen() : 'null';
           }else if( property.name !== 'undefined'){
-            //console.log("OBJECT AS PROPERTY", key, property)
-            //value = property.codegen();
-            //}else {
-            //console.log("NO CODEGEN", this.name, property.name, property.value);
             value = property.value;
           }
         
@@ -457,7 +453,6 @@ Generates output code (as a string) used inside audio callback
                   val = op.ugen !== null ? op.ugen.codegen() : 'null';
               }
               
-              //console.log("Key : " + key + ", Value : " + val);
               if(op.binop === "=") {
                 s = s.replace(value, "");
                 s += val;
@@ -516,24 +511,11 @@ Retrieves codeblock for ugen previously created with codegen method.
                       obj.getCodeblock();
                 }
               }
-              //console.log(0, key)
             }else if( typeof property.value === 'object' ) {
-                if(property.value !== null) {
-                  property.value.getCodeblock();
-                  //console.log(1, key, property.value.name)
-                }else{
-                  //console.log(4, key, property.value.name)
-                }
-                //console.log(2, key, property.value.name)
-            } else {
-              if(typeof property === 'object') {
-                //property.codegen();
-                //property.getCodeblock();
-                //console.log(property);
-                //console.log(3, key, property.value.name)
+              if(property.value !== null) {
+                property.value.getCodeblock();
               }
             }
-            
 
             if(property.binops) {
               for(var j = 0; j < property.binops.length; j++) {

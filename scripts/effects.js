@@ -1132,7 +1132,7 @@ Gibberish.Granulator = function(properties) {
       speed: 		    1,
       speedMin:     -0,
       speedMax: 	  .0,
-      grainSize: 	  1000,      
+      grainSize: 	  1000,
       position:	    .5,
       positionMin:  0,
       positionMax:  0,
