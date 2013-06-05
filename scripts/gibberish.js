@@ -252,7 +252,7 @@ Create a callback and start it running. Note that in iOS audio callbacks can onl
   init : function() {
     Gibberish.out = new Gibberish.Bus2();
     Gibberish.out.codegen(); // make sure bus is first upvalue so that clearing works correctly
-    Gibberish.out.getCodeBlock(); // make sure bus is first upvalue
+    Gibberish.out.getCodeblock(); // make sure bus is first upvalue
     Gibberish.dirty(Gibberish.out);
     
     var bufferSize = typeof arguments[0] === 'undefined' ? 1024 : arguments[0];
