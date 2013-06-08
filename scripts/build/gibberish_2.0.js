@@ -69,7 +69,7 @@ Perform codegen on all dirty ugens and re-create the audio callback. This method
     
     this.codestring = this.upvalues.join("");
     
-    this.codestring += '\nGibberish.callback = function() {\n\t';
+    this.codestring += '\nGibberish.callback = function(input) {\n\t';
 
     /* concatenate code for all ugens */
     this.memo = {};
@@ -111,18 +111,21 @@ param **Audio Event** : Object. The HTML5 audio event object.
     //console.log("AUDIO PROCESS");
 		var bufferL = e.outputBuffer.getChannelData(0);
 		var bufferR = e.outputBuffer.getChannelData(1);	
+		var input = e.inputBuffer.getChannelData(0);
 		
     var me = Gibberish; // dereference for efficiency
+    var sequencers = me.sequencers
+    
 		for(var i = 0, _bl = e.outputBuffer.length; i < _bl; i++){
       
-      for(var j = 0; j < me.sequencers.length; j++) { me.sequencers[j].tick(); }
+      for(var j = 0; j < sequencers.length; j++) { sequencers[j].tick(); }
       
       if(me.isDirty) {
         me.createCallback();
         me.isDirty = false;
       }
 
-			var val = me.callback();
+			var val = me.callback( input[i] );
       
 			bufferL[i] = val[0];
 			bufferR[i] = val[1];      
@@ -4307,7 +4310,6 @@ param **buffer** Object. The decoded sampler buffers from the audio file
 			
       if(self.onload) self.onload();
       
-      
       if(self.playOnLoad !== 0) self.note(self.playOnLoad);
       
 			self.isLoaded = true;
@@ -5143,3 +5145,62 @@ method is called automatically when the sequencer is first created; you should o
   
   this.connect();
 };
+var _hasInput = false; // wait until requested to ask for permissions so annoying popup doesn't appear automatically
+
+function createInput() {
+  navigator.webkitGetUserMedia(
+		{audio:true}, 
+		function (stream) {
+      console.log("CONNECTING INPUT");
+	    Gibberish.mediaStreamSource = Gibberish.context.createMediaStreamSource( stream );
+	    Gibberish.mediaStreamSource.connect( Gibberish.node );
+			_hasInput = true;
+		}
+	)
+}
+/**#Gibberish.Input - Oscillator
+Accept input from computer's line-in or microphone input. Use headphones and beware feedback! Reading the audio input is currently only supported by Google Chrome.
+
+## Example Usage##
+`
+Gibberish.init();  
+a = new Gibberish.Input()  
+b = new Gibberish.Delay( a ).connect()  
+- - - -
+**/
+/**###Gibberish.Input.amp : property  
+Number. A gain multiplier for the input
+**/
+
+Gibberish.Input = function() {
+  var out = [], phase = 0;
+  
+	if(!_hasInput) { 
+		createInput(); 
+	}
+  
+  this.type = this.name = 'input'
+  
+  this.fx = new Array2() 
+  this.fx.parent = this
+  
+  this.properties = {
+    input : 'input',
+    amp : .5,  
+    channels : 1,
+  }
+  
+  this.callback = function(input, amp, channels) {
+    if(channels === 1) {
+      out = input * amp;
+    }else {
+      out[0] = input[0] * amp;
+      out[1] = input[1] * amp;      
+    }
+    return out;
+  }
+  
+  this.init( arguments )
+  this.processProperties( arguments )
+};
+Gibberish.Input.prototype = new Gibberish.ugen();

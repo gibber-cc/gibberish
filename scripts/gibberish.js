@@ -69,7 +69,7 @@ Perform codegen on all dirty ugens and re-create the audio callback. This method
     
     this.codestring = this.upvalues.join("");
     
-    this.codestring += '\nGibberish.callback = function() {\n\t';
+    this.codestring += '\nGibberish.callback = function(input) {\n\t';
 
     /* concatenate code for all ugens */
     this.memo = {};
@@ -111,18 +111,21 @@ param **Audio Event** : Object. The HTML5 audio event object.
     //console.log("AUDIO PROCESS");
 		var bufferL = e.outputBuffer.getChannelData(0);
 		var bufferR = e.outputBuffer.getChannelData(1);	
+		var input = e.inputBuffer.getChannelData(0);
 		
     var me = Gibberish; // dereference for efficiency
+    var sequencers = me.sequencers
+    
 		for(var i = 0, _bl = e.outputBuffer.length; i < _bl; i++){
       
-      for(var j = 0; j < me.sequencers.length; j++) { me.sequencers[j].tick(); }
+      for(var j = 0; j < sequencers.length; j++) { sequencers[j].tick(); }
       
       if(me.isDirty) {
         me.createCallback();
         me.isDirty = false;
       }
 
-			var val = me.callback();
+			var val = me.callback( input[i] );
       
 			bufferL[i] = val[0];
 			bufferR[i] = val[1];      

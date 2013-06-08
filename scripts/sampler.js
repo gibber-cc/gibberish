@@ -103,7 +103,6 @@ param **buffer** Object. The decoded sampler buffers from the audio file
 			
       if(self.onload) self.onload();
       
-      
       if(self.playOnLoad !== 0) self.note(self.playOnLoad);
       
 			self.isLoaded = true;

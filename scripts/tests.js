@@ -117,6 +117,26 @@ window.lineTest = function() {
 	}, 250);
 };
 
+window.input = function() {
+  Gibberish.clear();
+  
+  a = new Gibberish.Input();
+  b = new Gibberish.Delay( a ).connect();
+    
+	var inputString = "// read mic input and run through delay\n\n"+
+  'a = new Gibberish.Input();\n'+
+  'b = new Gibberish.Delay( a ).connect();';
+  
+
+	var input = document.getElementById("input");
+	input.innerHTML = inputString;
+			
+	codeTimeout = setTimeout(function() { 
+		var codegen = document.getElementById("output");
+		codegen.innerHTML = Gibberish.callbackString;
+	}, 250);
+}
+
 window.twoOscsOneMod = function() {
   Gibberish.clear();
   
