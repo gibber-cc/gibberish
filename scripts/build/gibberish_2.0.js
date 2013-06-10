@@ -2245,7 +2245,7 @@ Gibberish.Delay = function() {
   buffers.push( new Float32Array(88200) );
   
   Gibberish.extend(this, {
-  	name:"Delay",
+  	name:"delay",
   	properties:{ input:0, time: 22050, feedback: .5 },
 				
   	callback : function(sample, time, feedback) {
@@ -2297,7 +2297,7 @@ Gibberish.Decimator = function() {
       floor = Math.floor;
       
   Gibberish.extend(this, {
-  	name:"Decimator",
+  	name:"decimator",
   	properties:{ input:0, bitDepth: 16, sampleRate: 1 },
 				
   	callback : function(sample, depth, rate) {
@@ -3466,8 +3466,14 @@ param **frequency** Number. The frequency for the oscillator.
 param **amp** Number. Optional. The volume to use.  
 **/    
 	this.note = function(frequency, amp) {
-		this.frequency = frequency;
-    _frequency = frequency;
+		if(typeof this.frequency !== 'object'){
+      this.frequency = frequency;
+      _frequency = frequency;
+    }else{
+      this.frequency[0] = frequency;
+      _frequency = frequency;
+      Gibberish.dirty(this);
+    }
 					
 		if(typeof amp !== 'undefined') this.amp = amp;
 					
@@ -3546,6 +3552,7 @@ Gibberish.PolySynth = function() {
     voiceCount:   0,
     
     polyProperties : {
+      frequency: 0,
   		glide:			0,
       attack: 22050,
       decay:  22050,
@@ -3661,8 +3668,14 @@ param **frequency** Number. The frequency for the oscillator.
 param **amp** Number. Optional. The volume to use.  
 **/      
 	this.note = function(frequency, amp) {
-		this.frequency = frequency;
-    _frequency = frequency;
+		if(typeof this.frequency !== 'object'){
+      this.frequency = frequency;
+      _frequency = frequency;
+    }else{
+      this.frequency[0] = frequency;
+      _frequency = frequency;
+      Gibberish.dirty(this);
+    }
 					
 		if(typeof amp !== 'undefined') this.amp = amp;
 					
@@ -3712,6 +3725,83 @@ param **amp** Number. Optional. The volume to use.
 	this.processProperties(arguments);
 };
 Gibberish.Synth2.prototype = Gibberish._synth;
+
+/**#Gibberish.PolySynth2 - Synth
+A polyphonic version of [Synth2](javascript:displayDocs('Gibberish.Synth2'\)). There are two additional properties for the polyphonic version of the synth. The polyphonic version consists of multiple Synths being fed into a single [Bus](javascript:displayDocs('Gibberish.Bus'\)) object.
+  
+## Example Usage ##
+`Gibberish.init();  
+a = new Gibberish.PolySynth2({ attack:88200, decay:88200, maxVoices:10 }).connect();  
+a.note(880);  
+a.note(1320); 
+a.note(1760);  
+`  
+## Constructor   
+One important property to pass to the constructor is the maxVoices property, which defaults to 5. This controls how many voices are allocated to the synth and cannot be changed after initialization.  
+  
+**param** *properties*: Object. A dictionary of property values (see below) to set for the synth on initialization.
+- - - -
+**/
+/**###Gibberish.PolySynth2.children : property  
+Array. Read-only. An array holding all of the child FMSynth objects.
+**/
+/**###Gibberish.PolySynth2.maxVoices : property  
+Number. The number of voices of polyphony the synth has. May only be set in initialization properties passed to constrcutor.
+**/
+
+Gibberish.PolySynth2 = function() {
+  this.__proto__ = new Gibberish.Bus2();
+  
+  Gibberish.extend(this, {
+    name:     "polysynth2",
+    maxVoices:    5,
+    voiceCount:   0,
+    
+    polyProperties : {
+      frequency: 0,
+  		glide:			0,
+      attack: 22050,
+      decay:  22050,
+      pulsewidth:.5,
+      waveform:"PWM",
+    },
+
+/**###Gibberish.PolySynth2.note : method  
+Generate an enveloped note at the provided frequency using a simple voice allocation system where if all children are active, the one active the longest cancels its current note and begins playing a new one.    
+  
+param **frequency** Number. The frequency for the oscillator. 
+param **amp** Number. Optional. The volume to use.  
+**/  
+    note : function(_frequency, amp) {
+      var synth = this.children[this.voiceCount++];
+      if(this.voiceCount >= this.maxVoices) this.voiceCount = 0;
+      synth.note(_frequency, amp);
+    },
+  });
+  
+  this.amp = 1 / this.maxVoices;
+  this.processProperties(arguments);
+  
+  this.children = [];
+  
+  this.dirty = true;
+  for(var i = 0; i < this.maxVoices; i++) {
+    var props = {
+      attack:   this.attack,
+      decay:    this.decay,
+      pulsewidth: this.pulsewidth,
+      channels: 2,
+      amp:      1,
+    };
+    var synth = new Gibberish.Synth2(props);
+    synth.connect(this);
+
+    this.children.push(synth);
+  }
+  
+  Gibberish.polyInit(this);
+  Gibberish._synth.oscillatorInit.call(this);
+};
 /**#Gibberish.FMSynth - Synth
 Classic 2-op FM synthesis with an attached attack / decay envelope.
   
@@ -3764,12 +3854,18 @@ Gibberish.FMSynth = function(properties) {
 /**###Gibberish.FMSynth.note : method  
 Generate an enveloped note at the provided frequency  
   
-param **frequency** Number. The frequency for the carrier oscillator. The modulator frequency will be calculated automatically from this value in conjunction with the synth's  
+param **frequency** Number. The frequency for the carrier oscillator. The modulator frequency will be calculated automatically from this value in conjunction with the synth's carrier to modulation ratio  
 param **amp** Number. Optional. The volume to use.  
 **/
 	this.note = function(frequency, amp) {
-		this.frequency = frequency;
-    _frequency = frequency;
+    if(typeof this.frequency !== 'object') {
+  		this.frequency = frequency;
+      _frequency = frequency;
+    }else{
+      this.frequency[0] = frequency;
+      _frequency = frequency;
+      Gibberish.dirty(this);
+    }
 					
 		if(typeof amp !== 'undefined') this.amp = amp;
 					
@@ -3794,15 +3890,8 @@ param **amp** Number. Optional. The volume to use.
       
 			var env = envelope(attack, decay);
 			var mod = modulator(frequency * cmRatio, frequency * index) * env;
-      
-      //if(phase++ % 22050 === 0 ) console.log(mod);
-      
-			var val = carrier( frequency + mod, 1, 1 ) * env * amp;
-      if(isNaN(val) && !check){ 
-        console.log(frequency, mod, cmRatio, frequency * index, env, amp, val);
-        check = true;
-      }
-      //if(phase++ % 22050 === 0 ) console.log(val);
+            
+			var val = carrier( frequency + mod, 1 ) * env * amp;
 
 			out[0] = out[1] = val;
       
@@ -3839,6 +3928,8 @@ Array. Read-only. An array holding all of the child FMSynth objects.
 /**###Gibberish.PolyFM.maxVoices : property  
 Number. The number of voices of polyphony the synth has. May only be set in initialization properties passed to constrcutor.
 **/
+
+
 Gibberish.PolyFM = function() {
   this.__proto__ = new Gibberish.Bus2();
   
@@ -3849,7 +3940,8 @@ Gibberish.PolyFM = function() {
     children: [],
     
     polyProperties : {
-  		glide:			0,
+      frequency: 0,
+  		glide:		 0,
       attack: 22050,
       decay:  22050,
       index:  5,
@@ -4280,7 +4372,7 @@ Gibberish.Sampler = function() {
     playOnLoad :  0,
     
     properties : {
-    	pitch:			  0,
+    	pitch:			  1,
   		amp:			    1,
   		isRecording: 	false,
   		isPlaying : 	true,
@@ -4392,12 +4484,21 @@ param **pitch** Number. The speed the sample is played back at.
 param **amp** Number. Optional. The volume to use.
 **/    
 		note: function(pitch, amp) {
-			if(typeof pitch === 'number') this.pitch = pitch;
+      if(typeof this.pitch === 'number'){
+        this.pitch = pitch;
+      }else if(typeof this.pitch === 'object'){
+        this.pitch[0] = pitch;
+        Gibberish.dirty(this);
+      }
+      
 			if(typeof amp === 'number') this.amp = amp;
 					
 			if(this.function !== null) {
 				this.isPlaying = true;	// needed to allow playback after recording
-				if(this.pitch > 0) {
+        
+        var __pitch = typeof this.pitch === 'number' ? this.pitch : this.pitch[0];  // account for modulations
+
+        if(__pitch > 0) {
           phase = this.start;
 				}else{
           phase = this.end;
@@ -4623,7 +4724,12 @@ param **amp** : Optional. Float. The volume of the note, usually between 0..1. T
 		note : function(_frequency, amp) {
       if(typeof amp !== 'undefined') this.amp = amp;
       
-			this.frequency = _frequency;
+  		if(typeof this.frequency !== 'object'){
+        this.frequency = _frequency;
+      }else{
+        this.frequency[0] = _frequency;
+        Gibberish.dirty(this);
+      }
 					
 			if(envstate() > 0) _envelope.run();
 		},

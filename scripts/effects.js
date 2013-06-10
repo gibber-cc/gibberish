@@ -78,7 +78,7 @@ Gibberish.Delay = function() {
   buffers.push( new Float32Array(88200) );
   
   Gibberish.extend(this, {
-  	name:"Delay",
+  	name:"delay",
   	properties:{ input:0, time: 22050, feedback: .5 },
 				
   	callback : function(sample, time, feedback) {
@@ -130,7 +130,7 @@ Gibberish.Decimator = function() {
       floor = Math.floor;
       
   Gibberish.extend(this, {
-  	name:"Decimator",
+  	name:"decimator",
   	properties:{ input:0, bitDepth: 16, sampleRate: 1 },
 				
   	callback : function(sample, depth, rate) {

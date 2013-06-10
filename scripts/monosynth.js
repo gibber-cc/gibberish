@@ -86,7 +86,12 @@ param **amp** : Optional. Float. The volume of the note, usually between 0..1. T
 		note : function(_frequency, amp) {
       if(typeof amp !== 'undefined') this.amp = amp;
       
-			this.frequency = _frequency;
+  		if(typeof this.frequency !== 'object'){
+        this.frequency = _frequency;
+      }else{
+        this.frequency[0] = _frequency;
+        Gibberish.dirty(this);
+      }
 					
 			if(envstate() > 0) _envelope.run();
 		},

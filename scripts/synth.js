@@ -70,8 +70,14 @@ param **frequency** Number. The frequency for the oscillator.
 param **amp** Number. Optional. The volume to use.  
 **/    
 	this.note = function(frequency, amp) {
-		this.frequency = frequency;
-    _frequency = frequency;
+		if(typeof this.frequency !== 'object'){
+      this.frequency = frequency;
+      _frequency = frequency;
+    }else{
+      this.frequency[0] = frequency;
+      _frequency = frequency;
+      Gibberish.dirty(this);
+    }
 					
 		if(typeof amp !== 'undefined') this.amp = amp;
 					
@@ -150,6 +156,7 @@ Gibberish.PolySynth = function() {
     voiceCount:   0,
     
     polyProperties : {
+      frequency: 0,
   		glide:			0,
       attack: 22050,
       decay:  22050,
@@ -265,8 +272,14 @@ param **frequency** Number. The frequency for the oscillator.
 param **amp** Number. Optional. The volume to use.  
 **/      
 	this.note = function(frequency, amp) {
-		this.frequency = frequency;
-    _frequency = frequency;
+		if(typeof this.frequency !== 'object'){
+      this.frequency = frequency;
+      _frequency = frequency;
+    }else{
+      this.frequency[0] = frequency;
+      _frequency = frequency;
+      Gibberish.dirty(this);
+    }
 					
 		if(typeof amp !== 'undefined') this.amp = amp;
 					
@@ -316,3 +329,80 @@ param **amp** Number. Optional. The volume to use.
 	this.processProperties(arguments);
 };
 Gibberish.Synth2.prototype = Gibberish._synth;
+
+/**#Gibberish.PolySynth2 - Synth
+A polyphonic version of [Synth2](javascript:displayDocs('Gibberish.Synth2'\)). There are two additional properties for the polyphonic version of the synth. The polyphonic version consists of multiple Synths being fed into a single [Bus](javascript:displayDocs('Gibberish.Bus'\)) object.
+  
+## Example Usage ##
+`Gibberish.init();  
+a = new Gibberish.PolySynth2({ attack:88200, decay:88200, maxVoices:10 }).connect();  
+a.note(880);  
+a.note(1320); 
+a.note(1760);  
+`  
+## Constructor   
+One important property to pass to the constructor is the maxVoices property, which defaults to 5. This controls how many voices are allocated to the synth and cannot be changed after initialization.  
+  
+**param** *properties*: Object. A dictionary of property values (see below) to set for the synth on initialization.
+- - - -
+**/
+/**###Gibberish.PolySynth2.children : property  
+Array. Read-only. An array holding all of the child FMSynth objects.
+**/
+/**###Gibberish.PolySynth2.maxVoices : property  
+Number. The number of voices of polyphony the synth has. May only be set in initialization properties passed to constrcutor.
+**/
+
+Gibberish.PolySynth2 = function() {
+  this.__proto__ = new Gibberish.Bus2();
+  
+  Gibberish.extend(this, {
+    name:     "polysynth2",
+    maxVoices:    5,
+    voiceCount:   0,
+    
+    polyProperties : {
+      frequency: 0,
+  		glide:			0,
+      attack: 22050,
+      decay:  22050,
+      pulsewidth:.5,
+      waveform:"PWM",
+    },
+
+/**###Gibberish.PolySynth2.note : method  
+Generate an enveloped note at the provided frequency using a simple voice allocation system where if all children are active, the one active the longest cancels its current note and begins playing a new one.    
+  
+param **frequency** Number. The frequency for the oscillator. 
+param **amp** Number. Optional. The volume to use.  
+**/  
+    note : function(_frequency, amp) {
+      var synth = this.children[this.voiceCount++];
+      if(this.voiceCount >= this.maxVoices) this.voiceCount = 0;
+      synth.note(_frequency, amp);
+    },
+  });
+  
+  this.amp = 1 / this.maxVoices;
+  this.processProperties(arguments);
+  
+  this.children = [];
+  
+  this.dirty = true;
+  for(var i = 0; i < this.maxVoices; i++) {
+    var props = {
+      attack:   this.attack,
+      decay:    this.decay,
+      pulsewidth: this.pulsewidth,
+      channels: 2,
+      amp:      1,
+    };
+    var synth = new Gibberish.Synth2(props);
+    synth.connect(this);
+
+    this.children.push(synth);
+  }
+  
+  Gibberish.polyInit(this);
+  Gibberish._synth.oscillatorInit.call(this);
+};

@@ -73,7 +73,7 @@ Gibberish.Sampler = function() {
     playOnLoad :  0,
     
     properties : {
-    	pitch:			  0,
+    	pitch:			  1,
   		amp:			    1,
   		isRecording: 	false,
   		isPlaying : 	true,
@@ -185,12 +185,21 @@ param **pitch** Number. The speed the sample is played back at.
 param **amp** Number. Optional. The volume to use.
 **/    
 		note: function(pitch, amp) {
-			if(typeof pitch === 'number') this.pitch = pitch;
+      if(typeof this.pitch === 'number'){
+        this.pitch = pitch;
+      }else if(typeof this.pitch === 'object'){
+        this.pitch[0] = pitch;
+        Gibberish.dirty(this);
+      }
+      
 			if(typeof amp === 'number') this.amp = amp;
 					
 			if(this.function !== null) {
 				this.isPlaying = true;	// needed to allow playback after recording
-				if(this.pitch > 0) {
+        
+        var __pitch = typeof this.pitch === 'number' ? this.pitch : this.pitch[0];  // account for modulations
+
+        if(__pitch > 0) {
           phase = this.start;
 				}else{
           phase = this.end;

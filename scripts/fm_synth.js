@@ -50,12 +50,18 @@ Gibberish.FMSynth = function(properties) {
 /**###Gibberish.FMSynth.note : method  
 Generate an enveloped note at the provided frequency  
   
-param **frequency** Number. The frequency for the carrier oscillator. The modulator frequency will be calculated automatically from this value in conjunction with the synth's  
+param **frequency** Number. The frequency for the carrier oscillator. The modulator frequency will be calculated automatically from this value in conjunction with the synth's carrier to modulation ratio  
 param **amp** Number. Optional. The volume to use.  
 **/
 	this.note = function(frequency, amp) {
-		this.frequency = frequency;
-    _frequency = frequency;
+    if(typeof this.frequency !== 'object') {
+  		this.frequency = frequency;
+      _frequency = frequency;
+    }else{
+      this.frequency[0] = frequency;
+      _frequency = frequency;
+      Gibberish.dirty(this);
+    }
 					
 		if(typeof amp !== 'undefined') this.amp = amp;
 					
@@ -80,15 +86,8 @@ param **amp** Number. Optional. The volume to use.
       
 			var env = envelope(attack, decay);
 			var mod = modulator(frequency * cmRatio, frequency * index) * env;
-      
-      //if(phase++ % 22050 === 0 ) console.log(mod);
-      
-			var val = carrier( frequency + mod, 1, 1 ) * env * amp;
-      if(isNaN(val) && !check){ 
-        console.log(frequency, mod, cmRatio, frequency * index, env, amp, val);
-        check = true;
-      }
-      //if(phase++ % 22050 === 0 ) console.log(val);
+            
+			var val = carrier( frequency + mod, 1 ) * env * amp;
 
 			out[0] = out[1] = val;
       
@@ -125,6 +124,8 @@ Array. Read-only. An array holding all of the child FMSynth objects.
 /**###Gibberish.PolyFM.maxVoices : property  
 Number. The number of voices of polyphony the synth has. May only be set in initialization properties passed to constrcutor.
 **/
+
+
 Gibberish.PolyFM = function() {
   this.__proto__ = new Gibberish.Bus2();
   
@@ -135,7 +136,8 @@ Gibberish.PolyFM = function() {
     children: [],
     
     polyProperties : {
-  		glide:			0,
+      frequency: 0,
+  		glide:		 0,
       attack: 22050,
       decay:  22050,
       index:  5,
