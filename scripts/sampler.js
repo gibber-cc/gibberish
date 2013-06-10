@@ -268,7 +268,7 @@ _pitch, amp, isRecording, isPlaying, input, length, start, end, loops, pan
 		if(typeof arguments[0] === "string") {
       console.log("SETTING FILE");
 			this.file = arguments[0];
-      delete arguments[0];
+      this.pitch = 0;
 			//this.isPlaying = true;
 		}else if(typeof arguments[0] === "object") {
 			if(arguments[0].file) {
