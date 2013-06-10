@@ -1045,48 +1045,52 @@ window.sequencerTest = function() {
 window.tr808_emulation = function() {
   Gibberish.clear();
   
-  a = new Gibberish.Kick().connect()
+  a = new Gibberish.Kick({ decay:20 }).connect()
   b = new Gibberish.Sequencer({
     target:a, key:'note',
-    values:[60,80,100,120],
+    values:[80],
     durations:[22050]
   }).start()
-
-  c = new Gibberish.Snare().connect()
-  d = new Gibberish.Sequencer({
-    target:c, key:'note',
-    values:[Gibberish.Rndf(-.05,.05)],
-    durations:[44100]
-  }).start()
+  
+  Gibberish.future( function() {
+    c = new Gibberish.Snare({ snappy: 1.5 }).connect()
+    d = new Gibberish.Sequencer({
+      target:c, key:'note',
+      values:[Gibberish.Rndf(-.05,.05)],
+      durations:[44100]
+    }).start()
+  }, 22050);
   
   e = new Gibberish.Hat({ amp:.2 }).connect()
   f = new Gibberish.Sequencer({
     target:e, key:'note',
-    values:[],
-    durations:[5512]
+    values:[ function() { return Math.random() > .8 ? 15000 : 5000 } ],
+    durations:[5512, 5513]
   }).start()
   
 	var inputString = "// simple test for kick / snare / hat roland tr-808 emulation\n"+
   "// tuning for kick is in hz, for snare is in multiple of base frequency\n"+
-  "a = new Gibberish.Kick().connect()\n"+
+  "a = new Gibberish.Kick({ decay: 20 }).connect()\n"+
   "b = new Gibberish.Sequencer({\n"+
   "  target:a, key:'note',\n"+
-  "  values:[60,70,80,90],\n"+
+  "  values:[80],\n"+
   "  durations:[22050]\n"+
   "}).start()\n"+
   "\n"+
-  "c = new Gibberish.Snare().connect()\n"+
-  "d = new Gibberish.Sequencer({\n"+
-  "  target:c, key:'note',\n"+
-  "  values:[Gibberish.Rndf(-.1,.1)],\n"+
-  "  durations:[44100]\n"+
-  "}).start()"
+  "Gibberish.future( function() {\n"+
+  "  c = new Gibberish.Snare({ snappy: 1.5 }).connect()\n"+
+  "  d = new Gibberish.Sequencer({\n"+
+  "    target:c, key:'note',\n"+
+  "    values:[Gibberish.Rndf(-.05,.05)],\n"+
+  "    durations:[44100]\n"+
+  "  }).start()\n"+
+  "}, 22050);\n"+
   "\n"+  
   "e = new Gibberish.Hat({ amp:.2 }).connect()\n"+
   "f = new Gibberish.Sequencer({\n"+
   "  target:e, key:'note',\n"+
-  "  values:[],\n"+
-  "  durations:[5512]\n"+
+  "  values:[ function() { return Math.random() > .8 ? 15000 : 5000 } ],\n"+
+  "  durations:[5512, 5513]\n"+
   "}).start()";
 
 	var input = document.getElementById("input");

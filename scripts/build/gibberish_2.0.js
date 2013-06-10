@@ -1001,6 +1001,19 @@ String.prototype.format = function(i, safe, arg) {
 
     return format;
 }();
+
+Gibberish.future = function(func, time) { 
+  var seq = new Gibberish.Sequencer({
+    values:[
+      function(){},
+      function() {
+        func();
+        seq.stop();
+      }
+    ],
+    durations:[ time ]
+  }).start()
+}
 Gibberish.Proxy = function() {
   var value = 0;
       
@@ -5355,8 +5368,8 @@ Gibberish.Input = function() {
 Gibberish.Input.prototype = new Gibberish.ugen();
 Gibberish.Kick = function() {
   var trigger = false,
-    	bpf = new Gibberish.SVF({ channels:1 }).callback,
-    	lpf = new Gibberish.SVF({ channels:1 }).callback;
+    	bpf = new Gibberish.SVF().callback,
+    	lpf = new Gibberish.SVF().callback;
       
   Gibberish.extend(this, {
   	name:		"kick",
@@ -5385,10 +5398,10 @@ Gibberish.Kick = function() {
   	},
 
   	note : function(p, d, t, amp) {
-  		if(p) this.pitch = p;					
-  		if(d) this.decay = d; 
-  		if(t) this.tone = t
-  		if(amp) this.amp = amp;
+  		if(typeof p === 'number') this.pitch = p;
+  		if(typeof d === 'number') this.decay = d;
+  		if(typeof t === 'number') this.tone = t;
+  		if(typeof amp === 'number') this.amp = amp;
 		
       trigger = true;
   	},
@@ -5478,7 +5491,7 @@ Gibberish.Hat = function() {
       eg2    = _eg2.callback;        
   
   Gibberish.extend(this, {
-  	name: "Hat",
+  	name: "hat",
   	properties : { amp: 1, pitch: 325, bpfFreq:9000, bpfRez:55, hpfFreq:.85, hpfRez:3, decay:2000, decay2:3000 },
 	
   	callback : function(amp, pitch, bpfFreq, bpfRez, hpfFreq, hpfRez, decay, decay2) {
@@ -5508,7 +5521,7 @@ Gibberish.Hat = function() {
   		return val;
   	},
 	
-  	note : function(_decay, _decay2) {
+  	note : function(_decay2, _decay) {
   		_eg.trigger()
   		_eg2.trigger()
   		if(_decay)

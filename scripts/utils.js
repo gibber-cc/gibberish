@@ -256,3 +256,16 @@ String.prototype.format = function(i, safe, arg) {
 
     return format;
 }();
+
+Gibberish.future = function(func, time) { 
+  var seq = new Gibberish.Sequencer({
+    values:[
+      function(){},
+      function() {
+        func();
+        seq.stop();
+      }
+    ],
+    durations:[ time ]
+  }).start()
+}
