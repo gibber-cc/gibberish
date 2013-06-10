@@ -38,6 +38,7 @@ concat({
         __dirname + '/../time.js',         
         __dirname + '/../sequencer.js',        
         __dirname + '/../input.js',         
+        __dirname + '/../drums.js',           
         //__dirname + '/../documentation_output.js',
     ],
     dest : __dirname + '/gibberish_2.0.js'

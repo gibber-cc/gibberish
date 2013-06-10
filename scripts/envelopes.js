@@ -4,6 +4,30 @@ Gibberish.envelope = function() {
 Gibberish.envelope.prototype = new Gibberish.ugen();
 Gibberish._envelope = new Gibberish.envelope();
 
+Gibberish.ExponentialDecay = function(){
+	var pow = Math.pow,
+      value = 0,
+      phase = 0;
+      
+  Gibberish.extend(this, {
+  	name:"ExponentialDecay",
+  	properties: { decay:.5, length:11050 },
+
+  	callback: function( decay, length ) {
+  		value = pow( decay, phase );
+  		phase += 1 / length;
+
+  		return value;
+  	},
+    
+    trigger : function() {
+      phase = typeof arguments[0] === 'number' ? arguments[0] : 0;
+    },
+  })
+  .init()
+};
+Gibberish.ExponentialDecay.prototype = Gibberish._envelope;
+
 Gibberish.Line = function(start, end, time, loops) {
 	var that = { 
 		name:		'line',

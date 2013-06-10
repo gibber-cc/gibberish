@@ -94,7 +94,7 @@ Gibberish.Bus = function() {
       var amp = arguments[length]; // use arguments to accommodate arbitray number of inputs without using array
       
       for(var i = 0; i < length; i++) {
-        out += args[i];
+        out += arguments[i];
       }
       out *= amp;
       

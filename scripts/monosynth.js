@@ -78,7 +78,7 @@ Gibberish.MonoSynth = function() {
       channels:   1,
     },
     
-		waveform:		"Saw",
+		waveform:		"Saw3",
 /**###Gibberish.Mono.note : method
 param **note or frequency** : String or Integer. You can pass a note name, such as "A#4", or a frequency value, such as 440.
 param **amp** : Optional. Float. The volume of the note, usually between 0..1. The main amp property of the Synth will also affect note amplitude.
