@@ -1041,3 +1041,45 @@ window.sequencerTest = function() {
 	}, 250);
 
 }
+
+window.tr808_emulation = function() {
+  Gibberish.clear();
+  
+  a = new Gibberish.Kick().connect()
+  b = new Gibberish.Sequencer({
+    target:a, key:'note',
+    values:[60,70,80,90],
+    durations:[22050]
+  }).start()
+
+  c = new Gibberish.Snare().connect()
+  d = new Gibberish.Sequencer({
+    target:c, key:'note',
+    values:[Gibberish.Rndf(-.1,.1)],
+    durations:[44100]
+  }).start()
+  
+	var inputString = "// simple test for kick / snare roland tr-808 emulation\n"+
+  "// tuning for kick is in hz, for snare is in multiple of base frequency\n"+
+  "a = new Gibberish.Kick().connect()\n"+
+  "b = new Gibberish.Sequencer({\n"+
+  "  target:a, key:'note',\n"+
+  "  values:[60,70,80,90],\n"+
+  "  durations:[22050]\n"+
+  "}).start()\n"+
+  "\n"+
+  "c = new Gibberish.Snare().connect()\n"+
+  "d = new Gibberish.Sequencer({\n"+
+  "  target:c, key:'note',\n"+
+  "  values:[Gibberish.Rndf(-.1,.1)],\n"+
+  "  durations:[44100]\n"+
+  "}).start()";
+
+	var input = document.getElementById("input");
+	input.innerHTML = inputString;
+			
+	codeTimeout = setTimeout(function() { 
+		var codegen = document.getElementById("output");
+		codegen.innerHTML = Gibberish.callbackString;
+	}, 250);
+}
