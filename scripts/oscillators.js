@@ -132,6 +132,25 @@ param **pan** Number. The position in the stereo spectrum of the signal.
   this.processProperties(arguments);  
 };
 
+Gibberish.Square = function() {
+  this.__proto__ = new Gibberish.Wavetable();
+  
+  this.name = 'square';
+  
+  var pi_2 = Math.PI * 2, 
+      table = new Float32Array(1024);
+      
+  for(var i = 1024; i--;) { 
+    table[i] = i / 1024 > .5 ? 1 : -1;
+  }
+  
+  this.setTable( table );
+
+  this.init( arguments );
+  this.oscillatorInit();
+  this.processProperties( arguments );
+};
+
 /**#Gibberish.Saw - Oscillator
 A non-bandlimited saw wave calculated on a per-sample basis.
 

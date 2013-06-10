@@ -1048,18 +1048,25 @@ window.tr808_emulation = function() {
   a = new Gibberish.Kick().connect()
   b = new Gibberish.Sequencer({
     target:a, key:'note',
-    values:[60,70,80,90],
+    values:[60,80,100,120],
     durations:[22050]
   }).start()
 
   c = new Gibberish.Snare().connect()
   d = new Gibberish.Sequencer({
     target:c, key:'note',
-    values:[Gibberish.Rndf(-.1,.1)],
+    values:[Gibberish.Rndf(-.05,.05)],
     durations:[44100]
   }).start()
   
-	var inputString = "// simple test for kick / snare roland tr-808 emulation\n"+
+  e = new Gibberish.Hat({ amp:.2 }).connect()
+  f = new Gibberish.Sequencer({
+    target:e, key:'note',
+    values:[],
+    durations:[5512]
+  }).start()
+  
+	var inputString = "// simple test for kick / snare / hat roland tr-808 emulation\n"+
   "// tuning for kick is in hz, for snare is in multiple of base frequency\n"+
   "a = new Gibberish.Kick().connect()\n"+
   "b = new Gibberish.Sequencer({\n"+
@@ -1073,6 +1080,13 @@ window.tr808_emulation = function() {
   "  target:c, key:'note',\n"+
   "  values:[Gibberish.Rndf(-.1,.1)],\n"+
   "  durations:[44100]\n"+
+  "}).start()"
+  "\n"+  
+  "e = new Gibberish.Hat({ amp:.2 }).connect()\n"+
+  "f = new Gibberish.Sequencer({\n"+
+  "  target:e, key:'note',\n"+
+  "  values:[],\n"+
+  "  durations:[5512]\n"+
   "}).start()";
 
 	var input = document.getElementById("input");
