@@ -1,21 +1,14 @@
 Gibberish.Kick = function() {
   var trigger = false,
     	bpf = new Gibberish.SVF().callback,
-    	lpf = new Gibberish.SVF().callback;
+    	lpf = new Gibberish.SVF().callback,
+      _decay = .2,
+      _tone = .8;
       
   Gibberish.extend(this, {
   	name:		"kick",
-    properties:	{ pitch:60, decay:50, tone: 500, amp:2 },
+    properties:	{ pitch:55, __decay:20, __tone: 1000, amp:2 },
 	
-  	setters : {
-  		decay: function(val, f) {
-  			f(val * 100);
-  		},
-  		tone: function(val, f) {
-  			f(220 + val * 800);
-  		},
-  	},
-
   	callback: function(pitch, decay, tone, amp) {					
   		out = trigger ? 60 : 0;
 			
@@ -39,10 +32,75 @@ Gibberish.Kick = function() {
   	},
   })
   .init()
-  .oscillatorInit()
-  .processProperties(arguments);
+  .oscillatorInit();
+  
+  Object.defineProperties(this, {
+    decay :{
+      get: function() { return _decay; },
+      set: function(val) { _decay = val; this.__decay = _decay * 100; }
+    },
+    tone :{
+      get: function() { return _tone; },
+      set: function(val) { _tone = val; this.__tone = 220 + val * 1400;  }
+    },
+  });
+  
+  this.processProperties(arguments);
 };
 Gibberish.Kick.prototype = Gibberish._oscillator;
+
+// congas are bridged t-oscillators like kick without the low-pass filter
+Gibberish.Conga = function() {
+  var trigger = false,
+    	bpf = new Gibberish.SVF().callback
+    	lpf = new Gibberish.SVF().callback,
+      _decay = 50;
+      
+      
+  Gibberish.extend(this, {
+  	name:		"conga",
+    properties:	{ pitch:190, decay:50, amp:2 },
+	
+  	setters : {
+  		decay: function(val, f) {
+  			f(val * 100);
+  		},
+  	},
+
+  	callback: function(pitch, decay, amp) {					
+  		out = trigger ? 60 : 0;
+			
+  		out = bpf( out, pitch, decay, 2, 1 );
+  		//out = lpf( out, tone, .5, 0, 1 );
+		  
+  		out *= amp;
+		
+  		trigger = false;
+		
+  		return out;
+  	},
+
+  	note : function(p, d, t, amp) {
+  		if(typeof p === 'number') this.pitch = p;
+  		if(typeof d === 'number') this.decay = d;
+  		if(typeof t === 'number') this.tone = t;
+  		if(typeof amp === 'number') this.amp = amp;
+		
+      trigger = true;
+  	},
+  })
+  .init()
+  .oscillatorInit();
+  
+  Object.defineProperty(this, 'decay', {
+    get: function() { return _decay; },
+    set: function(val) { _decay = val * 100; }
+  });
+    
+  this.processProperties(arguments);
+}
+Gibberish.Conga.prototype = Gibberish._oscillator;
+
 
 Gibberish.Snare = function() {
   var bpf1      = new Gibberish.SVF().callback,
@@ -68,6 +126,10 @@ Gibberish.Snare = function() {
   			out = ( rnd() * 2 - 1 ) * env ;
   			out = noiseHPF( out, cutoff + tune * 1000, .5, 1, 1 );
   			out *= snappy;
+        
+        // rectify as per instructions found here: http://ericarcher.net/devices/tr808-clone/
+        out = out > 0 ? out : 0;
+        
   			envOut = env;
 			
   			p1 = bpf1( envOut, 180 * (tune + 1), 15, 2, 1 );
@@ -113,7 +175,8 @@ Gibberish.Hat = function() {
       s4 = _s4.callback,
       s5 = _s5.callback,
       s6 = _s6.callback,                              
-      _bpf = new Gibberish.SVF({ mode: 2 }),
+      //_bpf = new Gibberish.Biquad({ mode:'BP' }),
+      _bpf = new Gibberish.SVF({ mode:2 }),
       bpf   = _bpf.callback,
       _hpf  = new Gibberish.Filter24(),
       hpf   = _hpf.callback,
@@ -124,36 +187,34 @@ Gibberish.Hat = function() {
   
   Gibberish.extend(this, {
   	name: "hat",
-  	properties : { amp: 1, pitch: 325, bpfFreq:9000, bpfRez:55, hpfFreq:.85, hpfRez:3, decay:2000, decay2:3000 },
+  	properties : { amp: 1, pitch: 325, bpfFreq:7000, bpfRez:2, hpfFreq:.975, hpfRez:0, decay:3500, decay2:3000 },
 	
   	callback : function(amp, pitch, bpfFreq, bpfRez, hpfFreq, hpfRez, decay, decay2) {
-  		var val, low, high;
-  		val = s1( pitch, 2, 1, 0 );
-  		val += s2( pitch * 1.4471, 2, 1, 0 );
-  		val += s3( pitch * 1.6170, 1.5, 1, 0 );
-  		val += s4( pitch * 1.9265, 1.25, 1, 0 );
+  		var val;
+      
+  		val =  s1( pitch, 1, .5, 0 );
+  		val += s2( pitch * 1.4471, .75, 1, 0 );
+  		val += s3( pitch * 1.6170, 1, 1, 0 );
+  		val += s4( pitch * 1.9265, 1, 1, 0 );
   		val += s5( pitch * 2.5028, 1, 1, 0 );
   		val += s6( pitch * 2.6637, .75, 1, 0 );
 		
-  		low  = bpf(  val, bpfFreq, bpfRez, 2, 1 );
-  		high = bpf(  val, 1550, .5, 2, 1 );
-  		//high = [ low[0] ];
-		
-  		low  *= eg(.001, decay);
-  		high *= eg2( .001, decay2);
+      val  = bpf(  val, bpfFreq, bpfRez, 2, 1 );
+      		
+  		val  *= eg(.001, decay);
+      
+      // rectify as per instructions found here: http://ericarcher.net/devices/tr808-clone/
+      // val = val > 0 ? val : 0;
+        		
   		//sample, cutoff, resonance, isLowPass, channels
-  		low 	= hpf(high, hpfFreq, hpfRez, 0, 1 );
-  		//sample, cutoff, resonance, isLowPass, channels
-  		//high	= hpf24.call( high ); //, .8, 1, 0, 1 );
-  		//if(val[0] > .985) val[0] = .985;
-  		//if(val[0] < -.985) val[0] = -.985;
-  		val 	= low + high;					
+  		val 	= hpf(val, hpfFreq, hpfRez, 0, 1 );
+  
   		val *= amp;
-		
+		  
   		return val;
   	},
 	
-  	note : function(_decay2, _decay) {
+  	note : function(_decay, _decay2) {
   		_eg.trigger()
   		_eg2.trigger()
   		if(_decay)
@@ -166,6 +227,9 @@ Gibberish.Hat = function() {
   .init()
   .oscillatorInit()
   .processProperties(arguments);
+  
+  this.bpf = _bpf;
+  this.hpf = _hpf;
   
   _eg.trigger(1);
   _eg2.trigger(1);

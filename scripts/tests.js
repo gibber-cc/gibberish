@@ -1045,10 +1045,9 @@ window.sequencerTest = function() {
 window.tr808_emulation = function() {
   Gibberish.clear();
   
-  a = new Gibberish.Kick({ decay:20 }).connect()
+  a = new Gibberish.Kick({ decay:.2 }).connect()
   b = new Gibberish.Sequencer({
     target:a, key:'note',
-    values:[80],
     durations:[22050]
   }).start()
   
@@ -1061,7 +1060,7 @@ window.tr808_emulation = function() {
     }).start()
   }, 22050);
   
-  e = new Gibberish.Hat({ amp:.2 }).connect()
+  e = new Gibberish.Hat({ amp: 1.5 }).connect()
   f = new Gibberish.Sequencer({
     target:e, key:'note',
     values:[ function() { return Math.random() > .8 ? 15000 : 5000 } ],
@@ -1069,11 +1068,9 @@ window.tr808_emulation = function() {
   }).start()
   
 	var inputString = "// simple test for kick / snare / hat roland tr-808 emulation\n"+
-  "// tuning for kick is in hz, for snare is in multiple of base frequency\n"+
-  "a = new Gibberish.Kick({ decay: 20 }).connect()\n"+
+  "a = new Gibberish.Kick({ decay: .2 }).connect()\n"+
   "b = new Gibberish.Sequencer({\n"+
   "  target:a, key:'note',\n"+
-  "  values:[80],\n"+
   "  durations:[22050]\n"+
   "}).start()\n"+
   "\n"+
@@ -1086,7 +1083,7 @@ window.tr808_emulation = function() {
   "  }).start()\n"+
   "}, 22050);\n"+
   "\n"+  
-  "e = new Gibberish.Hat({ amp:.2 }).connect()\n"+
+  "e = new Gibberish.Hat({ amp:1.25 }).connect()\n"+
   "f = new Gibberish.Sequencer({\n"+
   "  target:e, key:'note',\n"+
   "  values:[ function() { return Math.random() > .8 ? 15000 : 5000 } ],\n"+

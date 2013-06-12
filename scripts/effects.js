@@ -486,92 +486,99 @@ Number. 0..50. Values above 4.5 are likely to produce shrieking feedback. You ar
 Number. 0..3. "LP" = lowpass, "HP" = highpass, "BP" = bandpass
 **/
 Gibberish.Biquad = function() {
-  var x1 = [0,0],
-      x2 = [0,0],
-      y1 = [0,0],
-      y2 = [0,0],
-      out = [0,0];
+  var _x1 = [0,0],
+      _x2 = [0,0],
+      _y1 = [0,0],
+      _y2 = [0,0],
+      x1 = x2 = y1 = y2 = 0,
+      out = [0,0],
+	    b0 = 0.001639,
+	    b1 = 0.003278,
+	    b2 = 0.001639,
+	    a1 = -1.955777,
+	    a2 = 0.960601,
+      _mode = "LP",
+    	_cutoff = 2000,
+      _Q = .5,
+      _phase = 0;
       
 	Gibberish.extend(this, {
 		name: "biquad",
-    mode : "LP",
-  	cutoff : 2000,
-    Q : .5,
-    
+
 	  properties: {
       input: null,
-							
-	    b0: 0.001639,
-	    b1: 0.003278,
-	    b2: 0.001639,
-	    a1: -1.955777,
-	    a2: 0.960601,
 	  },
 
 	  calculateCoefficients: function() {
-      switch (this.mode) {
+      switch (_mode) {
 	      case "LP":
-           var w0 = 2 * Math.PI * this.cutoff / 44100,
+           var w0 = 2 * Math.PI * _cutoff / 44100,
                sinw0 = Math.sin(w0),
                cosw0 = Math.cos(w0),
-               alpha = sinw0 / (2 * this.Q),
-               b0 = (1 - cosw0) / 2,
-               b1 = 1 - cosw0,
-               b2 = b0,
-               a0 = 1 + alpha,
-               a1 = -2 * cosw0,
-               a2 = 1 - alpha;
+               alpha = sinw0 / (2 * _Q);
+           b0 = (1 - cosw0) / 2,
+           b1 = 1 - cosw0,
+           b2 = b0,
+           a0 = 1 + alpha,
+           a1 = -2 * cosw0,
+           a2 = 1 - alpha;
            break;
 	       case "HP":
-           var w0 = 2 * Math.PI * this.cutoff / 44100,
+           var w0 = 2 * Math.PI * _cutoff / 44100,
                sinw0 = Math.sin(w0),
                cosw0 = Math.cos(w0),
-               alpha = sinw0 / (2 * this.Q),
-               b0 = (1 + cosw0) / 2,
-               b1 = -(1 + cosw0),
-               b2 = b0,
-               a0 = 1 + alpha,
-               a1 = -2 * cosw0,
-               a2 = 1 - alpha;
+               alpha = sinw0 / (2 * _Q);
+           b0 = (1 + cosw0) / 2,
+           b1 = -(1 + cosw0),
+           b2 = b0,
+           a0 = 1 + alpha,
+           a1 = -2 * cosw0,
+           a2 = 1 - alpha;
            break;
 	       case "BP":
-           var w0 = 2 * Math.PI * this.cutoff / 44100,
+           var w0 = 2 * Math.PI * _cutoff / 44100,
                sinw0 = Math.sin(w0),
                cosw0 = Math.cos(w0),
-               toSinh = Math.log(2) / 2 * this.Q * w0 / sinw0,
-               alpha = sinw0 * (Math.exp(toSinh) - Math.exp(-toSinh)) / 2,
-               b0 = alpha,
-               b1 = 0,
-               b2 = -alpha,
-               a0 = 1 + alpha,
-               a1 = -2 * cosw0,
-               a2 = 1 - alpha;
+               toSinh = Math.log(2) / 2 * _Q * w0 / sinw0,
+               alpha = sinw0 * (Math.exp(toSinh) - Math.exp(-toSinh)) / 2;
+           b0 = alpha,
+           b1 = 0,
+           b2 = -alpha,
+           a0 = 1 + alpha,
+           a1 = -2 * cosw0,
+           a2 = 1 - alpha;
            break;
 	       default:
            return;
        }
 
-       this.b0 = b0 / a0;
-       this.b1 = b1 / a0;
-       this.b2 = b2 / a0;
-       this.a1 = a1 / a0;
-       this.a2 = a2 / a0;
+       b0 = b0 / a0;
+       b1 = b1 / a0;
+       b2 = b2 / a0;
+       a1 = a1 / a0;
+       a2 = a2 / a0;
+       
     },
-    call : function(x) {
-      return this.function(x, this.b0, this.b1, this.b2, this.a1, this.a2);
-    },
-    callback: function(x, b0, b1, b2, a1, a2) {
+
+    callback: function( x ) {
       var channels = typeof x === 'number' ? 1 : 2,
           outL = 0,
           outR = 0,
           inL = channels === 1 ? x : x[0];
       
-      outL = b0 * inL + b1 * x1[0] + b2 * x2[0] - a1 * y1[0] - a2 * y2[0];
-      x2[0] = x1[0];
-      x1[0] = x[0];
-      y2[0] = y1[0];
-      y1[0] = outL;
+      //outL = b0 * inL + b1 * x1[0] + b2 * x2[0] - a1 * y1[0] - a2 * y2[0];
+      outL = b0 * inL + b1 * x1 + b2 * x2 - a1 * y1 - a2 * y2;
       
+      // x2[0] = x1[0];
+      // x1[0] = x[0];
+      // y2[0] = y1[0];
+      // y1[0] = outL;
+      
+      x2 = x1;
+      x1 = x;
+      y2 = y1;
+      y1 = outL;
+            
       if(channels === 2) {
         inR = x[1];
         outR = b0 * inR + b1 * x1[1] + b2 * x2[1] - a1 * y1[1] - a2 * y2[1];
@@ -586,8 +593,24 @@ Gibberish.Biquad = function() {
       return channels === 1 ? outL : out;
     },
 	})
-  .init()
-  .processProperties(arguments);
+  .init();
+
+  Object.defineProperties(this, {
+    mode : {
+      get: function() { return _mode; },
+      set: function(v) { _mode = v; this.calculateCoefficients(); }
+    },
+    cutoff : {
+      get: function() { return _cutoff; },
+      set: function(v) { _cutoff = v; this.calculateCoefficients(); }
+    },
+    Q : {
+      get: function() { return _Q; },
+      set: function(v) { _Q = v; this.calculateCoefficients(); }
+    },
+  })
+  
+  this.processProperties(arguments);
   
   this.calculateCoefficients();
 };

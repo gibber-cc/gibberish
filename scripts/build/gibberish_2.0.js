@@ -2709,92 +2709,99 @@ Number. 0..50. Values above 4.5 are likely to produce shrieking feedback. You ar
 Number. 0..3. "LP" = lowpass, "HP" = highpass, "BP" = bandpass
 **/
 Gibberish.Biquad = function() {
-  var x1 = [0,0],
-      x2 = [0,0],
-      y1 = [0,0],
-      y2 = [0,0],
-      out = [0,0];
+  var _x1 = [0,0],
+      _x2 = [0,0],
+      _y1 = [0,0],
+      _y2 = [0,0],
+      x1 = x2 = y1 = y2 = 0,
+      out = [0,0],
+	    b0 = 0.001639,
+	    b1 = 0.003278,
+	    b2 = 0.001639,
+	    a1 = -1.955777,
+	    a2 = 0.960601,
+      _mode = "LP",
+    	_cutoff = 2000,
+      _Q = .5,
+      _phase = 0;
       
 	Gibberish.extend(this, {
 		name: "biquad",
-    mode : "LP",
-  	cutoff : 2000,
-    Q : .5,
-    
+
 	  properties: {
       input: null,
-							
-	    b0: 0.001639,
-	    b1: 0.003278,
-	    b2: 0.001639,
-	    a1: -1.955777,
-	    a2: 0.960601,
 	  },
 
 	  calculateCoefficients: function() {
-      switch (this.mode) {
+      switch (_mode) {
 	      case "LP":
-           var w0 = 2 * Math.PI * this.cutoff / 44100,
+           var w0 = 2 * Math.PI * _cutoff / 44100,
                sinw0 = Math.sin(w0),
                cosw0 = Math.cos(w0),
-               alpha = sinw0 / (2 * this.Q),
-               b0 = (1 - cosw0) / 2,
-               b1 = 1 - cosw0,
-               b2 = b0,
-               a0 = 1 + alpha,
-               a1 = -2 * cosw0,
-               a2 = 1 - alpha;
+               alpha = sinw0 / (2 * _Q);
+           b0 = (1 - cosw0) / 2,
+           b1 = 1 - cosw0,
+           b2 = b0,
+           a0 = 1 + alpha,
+           a1 = -2 * cosw0,
+           a2 = 1 - alpha;
            break;
 	       case "HP":
-           var w0 = 2 * Math.PI * this.cutoff / 44100,
+           var w0 = 2 * Math.PI * _cutoff / 44100,
                sinw0 = Math.sin(w0),
                cosw0 = Math.cos(w0),
-               alpha = sinw0 / (2 * this.Q),
-               b0 = (1 + cosw0) / 2,
-               b1 = -(1 + cosw0),
-               b2 = b0,
-               a0 = 1 + alpha,
-               a1 = -2 * cosw0,
-               a2 = 1 - alpha;
+               alpha = sinw0 / (2 * _Q);
+           b0 = (1 + cosw0) / 2,
+           b1 = -(1 + cosw0),
+           b2 = b0,
+           a0 = 1 + alpha,
+           a1 = -2 * cosw0,
+           a2 = 1 - alpha;
            break;
 	       case "BP":
-           var w0 = 2 * Math.PI * this.cutoff / 44100,
+           var w0 = 2 * Math.PI * _cutoff / 44100,
                sinw0 = Math.sin(w0),
                cosw0 = Math.cos(w0),
-               toSinh = Math.log(2) / 2 * this.Q * w0 / sinw0,
-               alpha = sinw0 * (Math.exp(toSinh) - Math.exp(-toSinh)) / 2,
-               b0 = alpha,
-               b1 = 0,
-               b2 = -alpha,
-               a0 = 1 + alpha,
-               a1 = -2 * cosw0,
-               a2 = 1 - alpha;
+               toSinh = Math.log(2) / 2 * _Q * w0 / sinw0,
+               alpha = sinw0 * (Math.exp(toSinh) - Math.exp(-toSinh)) / 2;
+           b0 = alpha,
+           b1 = 0,
+           b2 = -alpha,
+           a0 = 1 + alpha,
+           a1 = -2 * cosw0,
+           a2 = 1 - alpha;
            break;
 	       default:
            return;
        }
 
-       this.b0 = b0 / a0;
-       this.b1 = b1 / a0;
-       this.b2 = b2 / a0;
-       this.a1 = a1 / a0;
-       this.a2 = a2 / a0;
+       b0 = b0 / a0;
+       b1 = b1 / a0;
+       b2 = b2 / a0;
+       a1 = a1 / a0;
+       a2 = a2 / a0;
+       
     },
-    call : function(x) {
-      return this.function(x, this.b0, this.b1, this.b2, this.a1, this.a2);
-    },
-    callback: function(x, b0, b1, b2, a1, a2) {
+
+    callback: function( x ) {
       var channels = typeof x === 'number' ? 1 : 2,
           outL = 0,
           outR = 0,
           inL = channels === 1 ? x : x[0];
       
-      outL = b0 * inL + b1 * x1[0] + b2 * x2[0] - a1 * y1[0] - a2 * y2[0];
-      x2[0] = x1[0];
-      x1[0] = x[0];
-      y2[0] = y1[0];
-      y1[0] = outL;
+      //outL = b0 * inL + b1 * x1[0] + b2 * x2[0] - a1 * y1[0] - a2 * y2[0];
+      outL = b0 * inL + b1 * x1 + b2 * x2 - a1 * y1 - a2 * y2;
       
+      // x2[0] = x1[0];
+      // x1[0] = x[0];
+      // y2[0] = y1[0];
+      // y1[0] = outL;
+      
+      x2 = x1;
+      x1 = x;
+      y2 = y1;
+      y1 = outL;
+            
       if(channels === 2) {
         inR = x[1];
         outR = b0 * inR + b1 * x1[1] + b2 * x2[1] - a1 * y1[1] - a2 * y2[1];
@@ -2809,8 +2816,24 @@ Gibberish.Biquad = function() {
       return channels === 1 ? outL : out;
     },
 	})
-  .init()
-  .processProperties(arguments);
+  .init();
+
+  Object.defineProperties(this, {
+    mode : {
+      get: function() { return _mode; },
+      set: function(v) { _mode = v; this.calculateCoefficients(); }
+    },
+    cutoff : {
+      get: function() { return _cutoff; },
+      set: function(v) { _cutoff = v; this.calculateCoefficients(); }
+    },
+    Q : {
+      get: function() { return _Q; },
+      set: function(v) { _Q = v; this.calculateCoefficients(); }
+    },
+  })
+  
+  this.processProperties(arguments);
   
   this.calculateCoefficients();
 };
@@ -5369,21 +5392,14 @@ Gibberish.Input.prototype = new Gibberish.ugen();
 Gibberish.Kick = function() {
   var trigger = false,
     	bpf = new Gibberish.SVF().callback,
-    	lpf = new Gibberish.SVF().callback;
+    	lpf = new Gibberish.SVF().callback,
+      _decay = .2,
+      _tone = .8;
       
   Gibberish.extend(this, {
   	name:		"kick",
-    properties:	{ pitch:60, decay:50, tone: 500, amp:2 },
+    properties:	{ pitch:55, __decay:20, __tone: 1000, amp:2 },
 	
-  	setters : {
-  		decay: function(val, f) {
-  			f(val * 100);
-  		},
-  		tone: function(val, f) {
-  			f(220 + val * 800);
-  		},
-  	},
-
   	callback: function(pitch, decay, tone, amp) {					
   		out = trigger ? 60 : 0;
 			
@@ -5407,10 +5423,75 @@ Gibberish.Kick = function() {
   	},
   })
   .init()
-  .oscillatorInit()
-  .processProperties(arguments);
+  .oscillatorInit();
+  
+  Object.defineProperties(this, {
+    decay :{
+      get: function() { return _decay; },
+      set: function(val) { _decay = val; this.__decay = _decay * 100; }
+    },
+    tone :{
+      get: function() { return _tone; },
+      set: function(val) { _tone = val; this.__tone = 220 + val * 1400;  }
+    },
+  });
+  
+  this.processProperties(arguments);
 };
 Gibberish.Kick.prototype = Gibberish._oscillator;
+
+// congas are bridged t-oscillators like kick without the low-pass filter
+Gibberish.Conga = function() {
+  var trigger = false,
+    	bpf = new Gibberish.SVF().callback
+    	lpf = new Gibberish.SVF().callback,
+      _decay = 50;
+      
+      
+  Gibberish.extend(this, {
+  	name:		"conga",
+    properties:	{ pitch:190, decay:50, amp:2 },
+	
+  	setters : {
+  		decay: function(val, f) {
+  			f(val * 100);
+  		},
+  	},
+
+  	callback: function(pitch, decay, amp) {					
+  		out = trigger ? 60 : 0;
+			
+  		out = bpf( out, pitch, decay, 2, 1 );
+  		//out = lpf( out, tone, .5, 0, 1 );
+		  
+  		out *= amp;
+		
+  		trigger = false;
+		
+  		return out;
+  	},
+
+  	note : function(p, d, t, amp) {
+  		if(typeof p === 'number') this.pitch = p;
+  		if(typeof d === 'number') this.decay = d;
+  		if(typeof t === 'number') this.tone = t;
+  		if(typeof amp === 'number') this.amp = amp;
+		
+      trigger = true;
+  	},
+  })
+  .init()
+  .oscillatorInit();
+  
+  Object.defineProperty(this, 'decay', {
+    get: function() { return _decay; },
+    set: function(val) { _decay = val * 100; }
+  });
+    
+  this.processProperties(arguments);
+}
+Gibberish.Conga.prototype = Gibberish._oscillator;
+
 
 Gibberish.Snare = function() {
   var bpf1      = new Gibberish.SVF().callback,
@@ -5436,6 +5517,10 @@ Gibberish.Snare = function() {
   			out = ( rnd() * 2 - 1 ) * env ;
   			out = noiseHPF( out, cutoff + tune * 1000, .5, 1, 1 );
   			out *= snappy;
+        
+        // rectify as per instructions found here: http://ericarcher.net/devices/tr808-clone/
+        out = out > 0 ? out : 0;
+        
   			envOut = env;
 			
   			p1 = bpf1( envOut, 180 * (tune + 1), 15, 2, 1 );
@@ -5481,7 +5566,8 @@ Gibberish.Hat = function() {
       s4 = _s4.callback,
       s5 = _s5.callback,
       s6 = _s6.callback,                              
-      _bpf = new Gibberish.SVF({ mode: 2 }),
+      //_bpf = new Gibberish.Biquad({ mode:'BP' }),
+      _bpf = new Gibberish.SVF({ mode:2 }),
       bpf   = _bpf.callback,
       _hpf  = new Gibberish.Filter24(),
       hpf   = _hpf.callback,
@@ -5492,36 +5578,34 @@ Gibberish.Hat = function() {
   
   Gibberish.extend(this, {
   	name: "hat",
-  	properties : { amp: 1, pitch: 325, bpfFreq:9000, bpfRez:55, hpfFreq:.85, hpfRez:3, decay:2000, decay2:3000 },
+  	properties : { amp: 1, pitch: 325, bpfFreq:7000, bpfRez:2, hpfFreq:.975, hpfRez:0, decay:3500, decay2:3000 },
 	
   	callback : function(amp, pitch, bpfFreq, bpfRez, hpfFreq, hpfRez, decay, decay2) {
-  		var val, low, high;
-  		val = s1( pitch, 2, 1, 0 );
-  		val += s2( pitch * 1.4471, 2, 1, 0 );
-  		val += s3( pitch * 1.6170, 1.5, 1, 0 );
-  		val += s4( pitch * 1.9265, 1.25, 1, 0 );
+  		var val;
+      
+  		val =  s1( pitch, 1, .5, 0 );
+  		val += s2( pitch * 1.4471, .75, 1, 0 );
+  		val += s3( pitch * 1.6170, 1, 1, 0 );
+  		val += s4( pitch * 1.9265, 1, 1, 0 );
   		val += s5( pitch * 2.5028, 1, 1, 0 );
   		val += s6( pitch * 2.6637, .75, 1, 0 );
 		
-  		low  = bpf(  val, bpfFreq, bpfRez, 2, 1 );
-  		high = bpf(  val, 1550, .5, 2, 1 );
-  		//high = [ low[0] ];
-		
-  		low  *= eg(.001, decay);
-  		high *= eg2( .001, decay2);
+      val  = bpf(  val, bpfFreq, bpfRez, 2, 1 );
+      		
+  		val  *= eg(.001, decay);
+      
+      // rectify as per instructions found here: http://ericarcher.net/devices/tr808-clone/
+      // val = val > 0 ? val : 0;
+        		
   		//sample, cutoff, resonance, isLowPass, channels
-  		low 	= hpf(high, hpfFreq, hpfRez, 0, 1 );
-  		//sample, cutoff, resonance, isLowPass, channels
-  		//high	= hpf24.call( high ); //, .8, 1, 0, 1 );
-  		//if(val[0] > .985) val[0] = .985;
-  		//if(val[0] < -.985) val[0] = -.985;
-  		val 	= low + high;					
+  		val 	= hpf(val, hpfFreq, hpfRez, 0, 1 );
+  
   		val *= amp;
-		
+		  
   		return val;
   	},
 	
-  	note : function(_decay2, _decay) {
+  	note : function(_decay, _decay2) {
   		_eg.trigger()
   		_eg2.trigger()
   		if(_decay)
@@ -5534,6 +5618,9 @@ Gibberish.Hat = function() {
   .init()
   .oscillatorInit()
   .processProperties(arguments);
+  
+  this.bpf = _bpf;
+  this.hpf = _hpf;
   
   _eg.trigger(1);
   _eg2.trigger(1);
