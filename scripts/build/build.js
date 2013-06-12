@@ -43,3 +43,6 @@ concat({
     ],
     dest : __dirname + '/gibberish_2.0.js'
 });
+
+//uglifyjs gibberish_2.0.js -o gibberish_2.0.min.js -c -m
+

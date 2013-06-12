@@ -10,7 +10,7 @@ Gibberish.Kick = function() {
     properties:	{ pitch:50, __decay:20, __tone: 1000, amp:2 },
 	
   	callback: function(pitch, decay, tone, amp) {					
-  		out = trigger ? 60 : 0;
+  		var out = trigger ? 60 : 0;
 			
   		out = bpf( out, pitch, decay, 2, 1 );
   		out = lpf( out, tone, .5, 0, 1 );
@@ -60,7 +60,7 @@ Gibberish.Conga = function() {
     properties:	{ pitch:190, /*__decay:50,*/ amp:2 },
 	
   	callback: function(pitch, /*decay,*/ amp) {					
-  		out = trigger ? 60 : 0;
+  		var out = trigger ? 60 : 0;
 			
   		out = bpf( out, pitch, 50, 2, 1 );
 		
@@ -92,6 +92,59 @@ Gibberish.Conga = function() {
 }
 Gibberish.Conga.prototype = Gibberish._oscillator;
 
+// tom is tbridge with lpf'd noise
+Gibberish.Tom = function() {
+  var trigger = false,
+    	bpf = new Gibberish.SVF().callback,
+    	lpf = new Gibberish.SVF().callback,
+      _eg = new Gibberish.ExponentialDecay(),
+      eg  = _eg.callback,
+      rnd = Math.random,
+      _decay = .2,
+      _tone = .8;
+      
+  Gibberish.extend(this, {
+  	name:		"tom",
+    properties:	{ pitch:80, amp:.5 },
+	
+  	callback: function(pitch, amp) {					
+  		var out = trigger ? 60 : 0,
+          noise;
+			
+  		out = bpf( out, pitch, 30, 2, 1 );
+      
+      noise = rnd() * 16 - 8
+		  noise = noise > 0 ? noise : 0;
+      
+      noise *= eg(.05, 11025);
+      
+  		noise = lpf( noise, 120, .5, 0, 1 );
+      
+      out += noise;
+  		out *= amp;
+		
+  		trigger = false;
+		
+  		return out;
+  	},
+
+  	note : function(p, amp) {
+  		if(typeof p === 'number') this.pitch = p;
+  		if(typeof amp === 'number') this.amp = amp;
+		  
+      _eg.trigger();
+      trigger = true;
+  	},
+  })
+  .init()
+  .oscillatorInit();
+  
+  _eg.trigger(1)
+  
+  this.processProperties(arguments);
+}
+Gibberish.Tom.prototype = Gibberish._oscillator;
+
 
 Gibberish.Snare = function() {
   var bpf1      = new Gibberish.SVF().callback,
@@ -109,7 +162,7 @@ Gibberish.Snare = function() {
   	properties: { cutoff:1000, decay:11025, tune:0, snappy:.5, amp:1 },
 
   	callback: function(cutoff, decay, tune, snappy, amp) {
-  		var p1, p2, noise = 0, env = 0;
+  		var p1, p2, noise = 0, env = 0, out = 0;
 
   		env = eg(.0025, decay);
 		
@@ -129,8 +182,6 @@ Gibberish.Snare = function() {
   			out += p1; 
   			out += p2 * .8;
   			out *= amp;
-  		}else{
-  		  out = 0;
   		}
 
   		return out;
