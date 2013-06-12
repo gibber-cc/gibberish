@@ -108,8 +108,8 @@ Gibberish.ADSR = function(attack, decay, sustain, release, attackLevel, sustainL
     properties: {
   		attack:		isNaN(attack) ? 10000 : attack,
   		decay:		isNaN(decay) ? 10000 : decay,
+  		sustain: 	isNaN(sustain) ? 22050 : sustain,
   		release:	isNaN(release) ? 10000 : release,
-  		sustain: 	typeof sustain === "undefined" ? 88200 : sustain,
   		attackLevel:  attackLevel || 1,
   		sustainLevel: sustainLevel || .5,
     },
@@ -164,3 +164,60 @@ Gibberish.ADSR = function(attack, decay, sustain, release, attackLevel, sustainL
 	return this;
 };
 Gibberish.ADSR.prototype = Gibberish._envelope;
+
+Gibberish.ADR = function(attack, decay, release, attackLevel, releaseLevel) {
+	var that = { 
+    name:   "adr",
+		type:		"envelope",
+    
+    properties: {
+  		attack:		isNaN(attack) ? 11025 : attack,
+  		decay:		isNaN(decay) ? 11025 : decay,
+  		release:	isNaN(release) ? 22050 : release,
+  		attackLevel:  attackLevel || 1,
+  		releaseLevel: releaseLevel || .2,
+    },
+
+		run: function() {
+			this.setPhase(0);
+			this.setState(0);
+		},
+	};
+	Gibberish.extend(this, that);
+	
+	var phase = 0;
+	var state = 0;
+  
+	this.callback = function(attack,decay,release,attackLevel,releaseLevel) {
+		var val = 0;
+		if(state === 0){
+			val = phase / attack * attackLevel;
+			if(++phase / attack === 1) {
+				state++;
+				phase = decay;
+			}
+		}else if(state === 1) {
+			val = (phase / decay) * (attackLevel - releaseLevel) + releaseLevel;
+			if(--phase <= 0) {
+					state += 1;
+					phase = release;
+			}
+		}else if(state === 2){
+      phase--;
+      
+			val = (phase / release) * releaseLevel;
+			if(phase <= 0) {
+        state++;
+      }
+		}
+		return val;
+	};
+	this.setPhase = function(newPhase) { phase = newPhase; };
+	this.setState = function(newState) { state = newState; phase = 0; };
+	this.getState = function() { return state; };		
+	
+  this.init();
+  
+	return this;
+};
+Gibberish.ADR.prototype = Gibberish._envelope;

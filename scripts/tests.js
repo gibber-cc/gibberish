@@ -162,7 +162,7 @@ window.twoOscsOneMod = function() {
 window.ADSRTest = function() {
   Gibberish.clear();
   
-  adsr = new Gibberish.ADSR(22050, 22050, 88200, 22050, 1, .75);
+  adsr = new Gibberish.ADSR(22050, 22050, 88200, 22050, 1, .35);
   
   a = new Gibberish.Sine( 440, Mul(.5, adsr) ).connect();
     
@@ -172,7 +172,7 @@ window.ADSRTest = function() {
   }).start();
   
 	var inputString = "// test of ADSR envelope.\n\n"+
-  "adsr = new Gibberish.ADSR(22050, 22050, 88200, 22050, 1, .75);\n"+
+  "adsr = new Gibberish.ADSR(22050, 22050, 88200, 22050, 1, .35);\n"+
   "\n"+
   "a = new Gibberish.Sine( 440, Mul(.5, adsr) ).connect();\n"+
   "\n"+
@@ -1088,6 +1088,16 @@ window.tr808_emulation = function() {
     } ],
   }).start()
   
+  m = new Gibberish.Cowbell({ amp:.5 })
+  n = new Gibberish.Delay({ input: m, feedback:.9, time:5512 })
+  nn = new Gibberish.Filter24({ input:n, isLowPass:false }).connect()
+  nn.cutoff = Add(.4, new Gibberish.Sine(.2, .125))  
+  
+  o = new Gibberish.Sequencer({
+    target:m, key:'note',
+    durations:[44100 * 8],
+  }).start()
+  
 	var inputString = "// test for kick / snare / hat / conga roland tr-808 emulation\n"+
   "a = new Gibberish.Kick({ decay:.2 }).connect()\n"+
   "b = new Gibberish.Sequencer({\n"+
@@ -1130,7 +1140,17 @@ window.tr808_emulation = function() {
   "    } \n"+
   "    return chosenDur; \n"+
   "  } ],\n"+
-  "}).start()\n";
+  "}).start()\n"+
+  "\n"+  
+  "m = new Gibberish.Cowbell({ amp:.5 })\n"+
+  "n = new Gibberish.Delay({ input: m, feedback:.9, time:5512 })\n"+
+  "nn = new Gibberish.Filter24({ input:n, isLowPass:false }).connect()\n"+
+  "nn.cutoff = Add(.3, new Gibberish.Sine(.4, .125))  \n"+
+  "\n"+
+  "o = new Gibberish.Sequencer({\n"+
+  "  target:m, key:'note',\n"+
+  "  durations:[44100 * 8],\n"+
+  "}).start()";
 
 
 	var input = document.getElementById("input");

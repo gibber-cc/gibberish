@@ -1949,8 +1949,8 @@ Gibberish.ADSR = function(attack, decay, sustain, release, attackLevel, sustainL
     properties: {
   		attack:		isNaN(attack) ? 10000 : attack,
   		decay:		isNaN(decay) ? 10000 : decay,
+  		sustain: 	isNaN(sustain) ? 22050 : sustain,
   		release:	isNaN(release) ? 10000 : release,
-  		sustain: 	typeof sustain === "undefined" ? 88200 : sustain,
   		attackLevel:  attackLevel || 1,
   		sustainLevel: sustainLevel || .5,
     },
@@ -2005,6 +2005,63 @@ Gibberish.ADSR = function(attack, decay, sustain, release, attackLevel, sustainL
 	return this;
 };
 Gibberish.ADSR.prototype = Gibberish._envelope;
+
+Gibberish.ADR = function(attack, decay, release, attackLevel, releaseLevel) {
+	var that = { 
+    name:   "adr",
+		type:		"envelope",
+    
+    properties: {
+  		attack:		isNaN(attack) ? 11025 : attack,
+  		decay:		isNaN(decay) ? 11025 : decay,
+  		release:	isNaN(release) ? 22050 : release,
+  		attackLevel:  attackLevel || 1,
+  		releaseLevel: releaseLevel || .2,
+    },
+
+		run: function() {
+			this.setPhase(0);
+			this.setState(0);
+		},
+	};
+	Gibberish.extend(this, that);
+	
+	var phase = 0;
+	var state = 0;
+  
+	this.callback = function(attack,decay,release,attackLevel,releaseLevel) {
+		var val = 0;
+		if(state === 0){
+			val = phase / attack * attackLevel;
+			if(++phase / attack === 1) {
+				state++;
+				phase = decay;
+			}
+		}else if(state === 1) {
+			val = (phase / decay) * (attackLevel - releaseLevel) + releaseLevel;
+			if(--phase <= 0) {
+					state += 1;
+					phase = release;
+			}
+		}else if(state === 2){
+      phase--;
+      
+			val = (phase / release) * releaseLevel;
+			if(phase <= 0) {
+        state++;
+      }
+		}
+		return val;
+	};
+	this.setPhase = function(newPhase) { phase = newPhase; };
+	this.setState = function(newState) { state = newState; phase = 0; };
+	this.getState = function() { return state; };		
+	
+  this.init();
+  
+	return this;
+};
+Gibberish.ADR.prototype = Gibberish._envelope;
 /*
 Analysis ugens have two callbacks, one to perform the analysis and one to output the results.
 This allows the analysis to occur at the end of the callback while the outback can occur at
@@ -5536,6 +5593,59 @@ Gibberish.Tom = function() {
 }
 Gibberish.Tom.prototype = Gibberish._oscillator;
 
+// http://www.soundonsound.com/sos/Sep02/articles/synthsecrets09.asp
+Gibberish.Cowbell = function() {
+  var _s1 = new Gibberish.Square(),
+      _s2 = new Gibberish.Square(),
+      s1 = _s1.callback,
+      s2 = _s2.callback,                              
+
+      _bpf = new Gibberish.SVF({ mode:2 }),
+      bpf   = _bpf.callback,
+      //_eg = new Gibberish.ADR(10, 200, 22050, 1, .1);
+      _eg   = new Gibberish.ExponentialDecay( .0025, 10500 ),
+      eg    = _eg.callback;
+  
+  Gibberish.extend(this, {
+  	name: "cowbell",
+  	properties : { amp: 1, pitch: 560, bpfFreq:1000, bpfRez:3, decay:22050, decayCoeff:.0001 },
+	
+  	callback : function(amp, pitch, bpfFreq, bpfRez, decay, decayCoeff) {
+  		var val;
+      
+  		val =  s1( pitch, 1, 1, 0 );
+  		val += s2( 845, 1, 1, 0 );
+		
+      val  = bpf(  val, bpfFreq, bpfRez, 2, 1 );
+      		
+  		//val *= eg(44, 110, decay, 1, .125)
+      val *= eg(decayCoeff, decay);
+      
+      // rectify as per instructions found here: http://ericarcher.net/devices/tr808-clone/
+      // val = val > 0 ? val : 0;
+  
+  		val *= amp;
+		  
+  		return val;
+  	},
+	
+  	note : function(_decay, _decay2) {
+  		//_eg.run()
+      _eg.trigger()
+  		if(_decay)
+  			this.decay = _decay;
+  	}
+  })
+  .init()
+  .oscillatorInit()
+  .processProperties(arguments);
+  
+  this.bpf = _bpf;
+  this.eg = _eg;
+  
+  _eg.trigger(1);
+};
+Gibberish.Cowbell.prototype = Gibberish._oscillator;
 
 Gibberish.Snare = function() {
   var bpf1      = new Gibberish.SVF().callback,

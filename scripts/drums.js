@@ -145,6 +145,59 @@ Gibberish.Tom = function() {
 }
 Gibberish.Tom.prototype = Gibberish._oscillator;
 
+// http://www.soundonsound.com/sos/Sep02/articles/synthsecrets09.asp
+Gibberish.Cowbell = function() {
+  var _s1 = new Gibberish.Square(),
+      _s2 = new Gibberish.Square(),
+      s1 = _s1.callback,
+      s2 = _s2.callback,                              
+
+      _bpf = new Gibberish.SVF({ mode:2 }),
+      bpf   = _bpf.callback,
+      //_eg = new Gibberish.ADR(10, 200, 22050, 1, .1);
+      _eg   = new Gibberish.ExponentialDecay( .0025, 10500 ),
+      eg    = _eg.callback;
+  
+  Gibberish.extend(this, {
+  	name: "cowbell",
+  	properties : { amp: 1, pitch: 560, bpfFreq:1000, bpfRez:3, decay:22050, decayCoeff:.0001 },
+	
+  	callback : function(amp, pitch, bpfFreq, bpfRez, decay, decayCoeff) {
+  		var val;
+      
+  		val =  s1( pitch, 1, 1, 0 );
+  		val += s2( 845, 1, 1, 0 );
+		
+      val  = bpf(  val, bpfFreq, bpfRez, 2, 1 );
+      		
+  		//val *= eg(44, 110, decay, 1, .125)
+      val *= eg(decayCoeff, decay);
+      
+      // rectify as per instructions found here: http://ericarcher.net/devices/tr808-clone/
+      // val = val > 0 ? val : 0;
+  
+  		val *= amp;
+		  
+  		return val;
+  	},
+	
+  	note : function(_decay, _decay2) {
+  		//_eg.run()
+      _eg.trigger()
+  		if(_decay)
+  			this.decay = _decay;
+  	}
+  })
+  .init()
+  .oscillatorInit()
+  .processProperties(arguments);
+  
+  this.bpf = _bpf;
+  this.eg = _eg;
+  
+  _eg.trigger(1);
+};
+Gibberish.Cowbell.prototype = Gibberish._oscillator;
 
 Gibberish.Snare = function() {
   var bpf1      = new Gibberish.SVF().callback,
