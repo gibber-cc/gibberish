@@ -1015,20 +1015,20 @@ Float. Default = .5. The amount of dry signal that is output
 
 Gibberish.Reverb = function() {
   var tuning =	{
-		    combCount: 		8,
-		    combTuning: 	[1116, 1188, 1277, 1356, 1422, 1491, 1557, 1617],
-
-		    allPassCount: 	4,
-		    allPassTuning: 	[556, 441, 341, 225],
-		    allPassFeedback:0.5,
-
-		    fixedGain: 		0.015,
-		    scaleDamping: 	0.9,
-
-		    scaleRoom: 		0.28,
-		    offsetRoom: 	0.7,
-
-		    stereoSpread: 	23
+		    combCount: 		    8,
+		    combTuning: 	    [1116, 1188, 1277, 1356, 1422, 1491, 1557, 1617],
+                          
+		    allPassCount: 	  4,
+		    allPassTuning: 	  [556, 441, 341, 225],
+		    allPassFeedback:  0.5,
+                          
+		    fixedGain: 		    0.015,
+		    scaleDamping: 	  0.9,
+                          
+		    scaleRoom: 		    0.28,
+		    offsetRoom: 	    0.7,
+                          
+		    stereoSpread: 	  23
 		},
     combs = [],
     apfs  = [],
@@ -1036,7 +1036,7 @@ Gibberish.Reverb = function() {
     phase  = 0;
     
 	Gibberish.extend(this, {
-		name:		"Reverb",
+		name:		"reverb",
     
 		roomSize:	.5,
 		damping:	.2223,

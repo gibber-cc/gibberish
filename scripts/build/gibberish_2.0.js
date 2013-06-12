@@ -3238,20 +3238,20 @@ Float. Default = .5. The amount of dry signal that is output
 
 Gibberish.Reverb = function() {
   var tuning =	{
-		    combCount: 		8,
-		    combTuning: 	[1116, 1188, 1277, 1356, 1422, 1491, 1557, 1617],
-
-		    allPassCount: 	4,
-		    allPassTuning: 	[556, 441, 341, 225],
-		    allPassFeedback:0.5,
-
-		    fixedGain: 		0.015,
-		    scaleDamping: 	0.9,
-
-		    scaleRoom: 		0.28,
-		    offsetRoom: 	0.7,
-
-		    stereoSpread: 	23
+		    combCount: 		    8,
+		    combTuning: 	    [1116, 1188, 1277, 1356, 1422, 1491, 1557, 1617],
+                          
+		    allPassCount: 	  4,
+		    allPassTuning: 	  [556, 441, 341, 225],
+		    allPassFeedback:  0.5,
+                          
+		    fixedGain: 		    0.015,
+		    scaleDamping: 	  0.9,
+                          
+		    scaleRoom: 		    0.28,
+		    offsetRoom: 	    0.7,
+                          
+		    stereoSpread: 	  23
 		},
     combs = [],
     apfs  = [],
@@ -3259,7 +3259,7 @@ Gibberish.Reverb = function() {
     phase  = 0;
     
 	Gibberish.extend(this, {
-		name:		"Reverb",
+		name:		"reverb",
     
 		roomSize:	.5,
 		damping:	.2223,
@@ -5398,7 +5398,7 @@ Gibberish.Kick = function() {
       
   Gibberish.extend(this, {
   	name:		"kick",
-    properties:	{ pitch:55, __decay:20, __tone: 1000, amp:2 },
+    properties:	{ pitch:50, __decay:20, __tone: 1000, amp:2 },
 	
   	callback: function(pitch, decay, tone, amp) {					
   		out = trigger ? 60 : 0;
@@ -5428,11 +5428,11 @@ Gibberish.Kick = function() {
   Object.defineProperties(this, {
     decay :{
       get: function() { return _decay; },
-      set: function(val) { _decay = val; this.__decay = _decay * 100; }
+      set: function(val) { _decay = val > 1 ? 1 : val; this.__decay = _decay * 100; }
     },
     tone :{
       get: function() { return _tone; },
-      set: function(val) { _tone = val; this.__tone = 220 + val * 1400;  }
+      set: function(val) { _tone = val > 1 ? 1 : val; this.__tone = 220 + val * 1400;  }
     },
   });
   
@@ -5443,27 +5443,18 @@ Gibberish.Kick.prototype = Gibberish._oscillator;
 // congas are bridged t-oscillators like kick without the low-pass filter
 Gibberish.Conga = function() {
   var trigger = false,
-    	bpf = new Gibberish.SVF().callback
-    	lpf = new Gibberish.SVF().callback,
-      _decay = 50;
-      
+    	bpf = new Gibberish.SVF().callback,
+      _decay = .5;
       
   Gibberish.extend(this, {
   	name:		"conga",
-    properties:	{ pitch:190, decay:50, amp:2 },
+    properties:	{ pitch:190, __decay:50, amp:2 },
 	
-  	setters : {
-  		decay: function(val, f) {
-  			f(val * 100);
-  		},
-  	},
-
   	callback: function(pitch, decay, amp) {					
   		out = trigger ? 60 : 0;
 			
   		out = bpf( out, pitch, decay, 2, 1 );
-  		//out = lpf( out, tone, .5, 0, 1 );
-		  
+		
   		out *= amp;
 		
   		trigger = false;
@@ -5483,11 +5474,13 @@ Gibberish.Conga = function() {
   .init()
   .oscillatorInit();
   
-  Object.defineProperty(this, 'decay', {
-    get: function() { return _decay; },
-    set: function(val) { _decay = val * 100; }
+  Object.defineProperties(this, {
+    decay :{
+      get: function() { return _decay; },
+      set: function(val) { _decay = val > 1 ? 1 : val; this.__decay = _decay * 100; }
+    }
   });
-    
+  
   this.processProperties(arguments);
 }
 Gibberish.Conga.prototype = Gibberish._oscillator;

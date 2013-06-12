@@ -1067,8 +1067,29 @@ window.tr808_emulation = function() {
     durations:[5512, 5513]
   }).start()
   
-	var inputString = "// simple test for kick / snare / hat roland tr-808 emulation\n"+
-  "a = new Gibberish.Kick({ decay: .2 }).connect()\n"+
+  g = new Gibberish.Conga({ amp:.5, pitch:200 })
+  i = new Gibberish.Reverb({ input:g, wet:.2 }).connect()
+  
+  var pitches = [200,230,260]
+  var chosenDur = 0;
+  var durations = [5512, 11025, 11025, 22025, 44100];
+  
+  l = new Gibberish.Sequencer({
+    values:[ function() { 
+      g.note( pitches[ Gibberish.rndi(0,2) ] )
+    }],
+    durations:[ function() {
+      if(chosenDur === 5512 ) {
+        chosenDur = 5513
+      }else{
+        chosenDur = durations[ Gibberish.rndi(0,4) ];
+      } 
+      return chosenDur; 
+    } ],
+  }).start()
+  
+	var inputString = "// test for kick / snare / hat / conga roland tr-808 emulation\n"+
+  "a = new Gibberish.Kick({ decay:.2 }).connect()\n"+
   "b = new Gibberish.Sequencer({\n"+
   "  target:a, key:'note',\n"+
   "  durations:[22050]\n"+
@@ -1082,13 +1103,35 @@ window.tr808_emulation = function() {
   "    durations:[44100]\n"+
   "  }).start()\n"+
   "}, 22050);\n"+
-  "\n"+  
-  "e = new Gibberish.Hat({ amp:1.25 }).connect()\n"+
+  "\n"+
+  "e = new Gibberish.Hat({ amp: 1.5 }).connect()\n"+
   "f = new Gibberish.Sequencer({\n"+
   "  target:e, key:'note',\n"+
   "  values:[ function() { return Math.random() > .8 ? 15000 : 5000 } ],\n"+
   "  durations:[5512, 5513]\n"+
-  "}).start()";
+  "}).start()\n"+
+  "\n"+
+  "g = new Gibberish.Conga({ amp:.5, pitch:200 })\n"+
+  "i = new Gibberish.Reverb({ input:g, wet:.2 }).connect()\n"+
+  "\n"+
+  "var pitches = [200,230,260]\n"+
+  "var chosenDur = 0;\n"+
+  "var durations = [5512, 11025, 11025, 22025, 44100];\n"+
+  "\n"+
+  "l = new Gibberish.Sequencer({\n"+
+  "  values:[ function() { \n"+
+  "    g.note( pitches[ Gibberish.rndi(0,2) ] )\n"+
+  "  }],\n"+
+  "  durations:[ function() {\n"+
+  "    if(chosenDur === 5512 ) {\n"+
+  "      chosenDur = 5513\n"+
+  "    }else{\n"+
+  "      chosenDur = durations[ Gibberish.rndi(0,4) ];\n"+
+  "    } \n"+
+  "    return chosenDur; \n"+
+  "  } ],\n"+
+  "}).start()\n";
+
 
 	var input = document.getElementById("input");
 	input.innerHTML = inputString;
