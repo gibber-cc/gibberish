@@ -1076,7 +1076,7 @@ window.tr808_emulation = function() {
   
   l = new Gibberish.Sequencer({
     values:[ function() { 
-      g.note( pitches[ Gibberish.rndi(0,2) ] )
+      g.note( pitches[ Gibberish.rndi(0,2) ], Gibberish.rndf(.25,.6) )
     }],
     durations:[ function() {
       if(chosenDur === 5512 ) {

@@ -57,12 +57,12 @@ Gibberish.Conga = function() {
       
   Gibberish.extend(this, {
   	name:		"conga",
-    properties:	{ pitch:190, __decay:50, amp:2 },
+    properties:	{ pitch:190, /*__decay:50,*/ amp:2 },
 	
-  	callback: function(pitch, decay, amp) {					
+  	callback: function(pitch, /*decay,*/ amp) {					
   		out = trigger ? 60 : 0;
 			
-  		out = bpf( out, pitch, decay, 2, 1 );
+  		out = bpf( out, pitch, 50, 2, 1 );
 		
   		out *= amp;
 		
@@ -71,10 +71,8 @@ Gibberish.Conga = function() {
   		return out;
   	},
 
-  	note : function(p, d, t, amp) {
+  	note : function(p, amp) {
   		if(typeof p === 'number') this.pitch = p;
-  		if(typeof d === 'number') this.decay = d;
-  		if(typeof t === 'number') this.tone = t;
   		if(typeof amp === 'number') this.amp = amp;
 		
       trigger = true;
@@ -82,14 +80,14 @@ Gibberish.Conga = function() {
   })
   .init()
   .oscillatorInit();
-  
-  Object.defineProperties(this, {
-    decay :{
-      get: function() { return _decay; },
-      set: function(val) { _decay = val > 1 ? 1 : val; this.__decay = _decay * 100; }
-    }
-  });
-  
+
+  // Object.defineProperties(this, {
+  //   decay :{
+  //     get: function() { return _decay; },
+  //     set: function(val) { _decay = val > 1 ? 1 : val; this.__decay = _decay * 100; }
+  //   }
+  // });
+  // 
   this.processProperties(arguments);
 }
 Gibberish.Conga.prototype = Gibberish._oscillator;
