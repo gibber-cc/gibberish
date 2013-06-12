@@ -1072,7 +1072,7 @@ window.tr808_emulation = function() {
   
   var pitches = [200,230,260]
   var chosenDur = 0;
-  var durations = [5512, 11025, 11025, 22025, 44100];
+  var durations = [5512, 11025, 11025, 22050, 44100];
   
   l = new Gibberish.Sequencer({
     values:[ function() { 
@@ -1126,7 +1126,7 @@ window.tr808_emulation = function() {
   "\n"+
   "var pitches = [200,230,260]\n"+
   "var chosenDur = 0;\n"+
-  "var durations = [5512, 11025, 11025, 22025, 44100];\n"+
+  "var durations = [5512, 11025, 11025, 22050, 44100];\n"+
   "\n"+
   "l = new Gibberish.Sequencer({\n"+
   "  values:[ function() { \n"+
