@@ -138,7 +138,7 @@ param **Sound Data** : Object. The buffer of audio data to be filled
 **/   
   audioProcessFirefox : function(soundData) { // callback for firefox
     var me = Gibberish;
-
+    
     for (var i=0, size=soundData.length; i<size; i+=2) {
       
       for(var j = 0; j < me.sequencers.length; j++) { me.sequencers[j].tick(); }
@@ -276,7 +276,14 @@ Create a callback and start it running. Note that in iOS audio callbacks can onl
           mySource.noteOn(0);
         }
       }else{
-        Gibberish.AudioDataDestination(44100, Gibberish.audioProcessFirefox);
+        /*if(typeof AudioContext === 'function') { // use web audio api for firefox 23 and higher
+          Gibberish.context = new AudioContext();
+          Gibberish.node = Gibberish.context.createScriptProcessor(bufferSize, 2, 2, 44100);	
+          Gibberish.node.onaudioprocess = Gibberish.audioProcess;
+          Gibberish.node.connect(Gibberish.context.destination);
+        }else{ // use audio data api*/
+          Gibberish.AudioDataDestination(44100, Gibberish.audioProcessFirefox);
+        //}
       }
     }
     
@@ -1097,6 +1104,38 @@ param **amp** Number. The amplitude to be used to calculate output.
 }
 Gibberish.Wavetable.prototype = Gibberish._oscillator;
 
+Gibberish.asmSine = function (stdlib, foreign, heap) {
+    "use asm";
+
+    var sin = stdlib.Math.sin;
+    var pi = 3.14159;
+    //var out = new stdlib.Float32Array(heap);
+    var phase = 0.0;
+
+    function gen (freq, amp) {
+        freq = +freq;
+        amp  = +amp;
+        
+        phase = +(phase + +(+(freq / 44100.0) * pi * 2.0));
+        
+        return +(+sin(phase) * amp);
+    } 
+
+    return gen;
+};
+
+Gibberish.asmSine2 = function () {    
+    this.properties = { frequency:440.0, amp:.5 }
+    this.name = 'sine'
+    
+    this.callback = Gibberish.asmSine({ Math:Math });
+    
+    this.init();
+    this.oscillatorInit();
+    
+    return  this;
+}
+Gibberish.asmSine2.prototype = Gibberish._oscillator;
 /**#Gibberish.Sine - Oscillator
 A sinewave calculated on a per-sample basis.
 
@@ -5540,6 +5579,51 @@ Gibberish.Conga = function() {
 }
 Gibberish.Conga.prototype = Gibberish._oscillator;
 
+// clave are also bridged t-oscillators like kick without the low-pass filter
+Gibberish.Clave = function() {
+  var trigger = false,
+    	_bpf = new Gibberish.SVF(),
+      bpf = _bpf.callback,
+      _decay = .5;
+      
+  Gibberish.extend(this, {
+  	name:		"clave",
+    properties:	{ pitch:2500, /*__decay:50,*/ amp:1 },
+	
+  	callback: function(pitch, /*decay,*/ amp) {					
+  		var out = trigger ? 2 : 0;
+			
+  		out = bpf( out, pitch, 5, 2, 1 );
+		
+  		out *= amp;
+		
+  		trigger = false;
+		
+  		return out;
+  	},
+
+  	note : function(p, amp) {
+  		if(typeof p === 'number') this.pitch = p;
+  		if(typeof amp === 'number') this.amp = amp;
+		
+      trigger = true;
+  	},
+  })
+  .init()
+  .oscillatorInit();
+  
+  this.bpf = _bpf;
+  // Object.defineProperties(this, {
+  //   decay :{
+  //     get: function() { return _decay; },
+  //     set: function(val) { _decay = val > 1 ? 1 : val; this.__decay = _decay * 100; }
+  //   }
+  // });
+  // 
+  this.processProperties(arguments);
+}
+Gibberish.Clave.prototype = Gibberish._oscillator;
+
 // tom is tbridge with lpf'd noise
 Gibberish.Tom = function() {
   var trigger = false,
@@ -5602,7 +5686,7 @@ Gibberish.Cowbell = function() {
 
       _bpf = new Gibberish.SVF({ mode:2 }),
       bpf   = _bpf.callback,
-      //_eg = new Gibberish.ADR(10, 200, 22050, 1, .1);
+
       _eg   = new Gibberish.ExponentialDecay( .0025, 10500 ),
       eg    = _eg.callback;
   
@@ -5618,11 +5702,7 @@ Gibberish.Cowbell = function() {
 		
       val  = bpf(  val, bpfFreq, bpfRez, 2, 1 );
       		
-  		//val *= eg(44, 110, decay, 1, .125)
       val *= eg(decayCoeff, decay);
-      
-      // rectify as per instructions found here: http://ericarcher.net/devices/tr808-clone/
-      // val = val > 0 ? val : 0;
   
   		val *= amp;
 		  
@@ -5630,7 +5710,6 @@ Gibberish.Cowbell = function() {
   	},
 	
   	note : function(_decay, _decay2) {
-  		//_eg.run()
       _eg.trigger()
   		if(_decay)
   			this.decay = _decay;

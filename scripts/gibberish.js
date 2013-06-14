@@ -138,7 +138,7 @@ param **Sound Data** : Object. The buffer of audio data to be filled
 **/   
   audioProcessFirefox : function(soundData) { // callback for firefox
     var me = Gibberish;
-
+    
     for (var i=0, size=soundData.length; i<size; i+=2) {
       
       for(var j = 0; j < me.sequencers.length; j++) { me.sequencers[j].tick(); }
@@ -276,7 +276,14 @@ Create a callback and start it running. Note that in iOS audio callbacks can onl
           mySource.noteOn(0);
         }
       }else{
-        Gibberish.AudioDataDestination(44100, Gibberish.audioProcessFirefox);
+        /*if(typeof AudioContext === 'function') { // use web audio api for firefox 23 and higher
+          Gibberish.context = new AudioContext();
+          Gibberish.node = Gibberish.context.createScriptProcessor(bufferSize, 2, 2, 44100);	
+          Gibberish.node.onaudioprocess = Gibberish.audioProcess;
+          Gibberish.node.connect(Gibberish.context.destination);
+        }else{ // use audio data api*/
+          Gibberish.AudioDataDestination(44100, Gibberish.audioProcessFirefox);
+        //}
       }
     }
     

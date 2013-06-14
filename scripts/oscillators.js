@@ -53,6 +53,38 @@ param **amp** Number. The amplitude to be used to calculate output.
 }
 Gibberish.Wavetable.prototype = Gibberish._oscillator;
 
+Gibberish.asmSine = function (stdlib, foreign, heap) {
+    "use asm";
+
+    var sin = stdlib.Math.sin;
+    var pi = 3.14159;
+    //var out = new stdlib.Float32Array(heap);
+    var phase = 0.0;
+
+    function gen (freq, amp) {
+        freq = +freq;
+        amp  = +amp;
+        
+        phase = +(phase + +(+(freq / 44100.0) * pi * 2.0));
+        
+        return +(+sin(phase) * amp);
+    } 
+
+    return gen;
+};
+
+Gibberish.asmSine2 = function () {    
+    this.properties = { frequency:440.0, amp:.5 }
+    this.name = 'sine'
+    
+    this.callback = Gibberish.asmSine({ Math:Math });
+    
+    this.init();
+    this.oscillatorInit();
+    
+    return  this;
+}
+Gibberish.asmSine2.prototype = Gibberish._oscillator;
 /**#Gibberish.Sine - Oscillator
 A sinewave calculated on a per-sample basis.
 
