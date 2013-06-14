@@ -46,16 +46,16 @@ Gibberish.Time = {
   },
   
   ms : function(val) {
-    return Math.round(val * 44.1);
+    return Math.round(val * Gibberish.context.sampleRate / 1000);
   },
   
   seconds : function(val) {
-    return Math.round(val * 44100);
+    return Math.round(val * Gibberish.context.sampleRate);
   },
   
   beats : function(val) {
     return function() { 
-      var samplesPerBeat = 44100 / ( Gibberish.Time.bpm / 60 ) ;
+      var samplesPerBeat = Gibberish.context.sampleRate / ( Gibberish.Time.bpm / 60 ) ;
       return Math.round( samplesPerBeat * val );
     }
   },

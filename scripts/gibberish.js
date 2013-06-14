@@ -266,7 +266,7 @@ Create a callback and start it running. Note that in iOS audio callbacks can onl
       if(navigator.userAgent.indexOf('Firefox') === -1 ){
         document.getElementsByTagName('body')[0].removeEventListener('touchstart', start);
         Gibberish.context = new webkitAudioContext();
-        Gibberish.node = Gibberish.context.createJavaScriptNode(bufferSize, 2, 2, 44100);	
+        Gibberish.node = Gibberish.context.createJavaScriptNode(bufferSize, 2, 2, Gibberish.context.sampleRate);	
         Gibberish.node.onaudioprocess = Gibberish.audioProcess;
         Gibberish.node.connect(Gibberish.context.destination);
     

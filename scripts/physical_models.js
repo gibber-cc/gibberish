@@ -31,6 +31,7 @@ Gibberish.KarplusStrong = function() {
       last    = 0,
       rnd     = Math.random,
       panner  = Gibberish.makePanner(),
+      sr      = Gibberish.context.sampleRate,
       out     = [0,0];
       
   Gibberish.extend(this, {
@@ -39,7 +40,7 @@ Gibberish.KarplusStrong = function() {
     properties: { blend:1, damping:0, amp:1, channels:2, pan:0  },
   
     note : function(frequency) {
-      var _size = Math.floor(44100 / frequency);
+      var _size = Math.floor(sr / frequency);
       buffer.length = 0;
     
       for(var i = 0; i < _size; i++) {

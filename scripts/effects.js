@@ -399,13 +399,13 @@ Gibberish.SVF = function() {
   
   Gibberish.extend( this, {
   	name:"SVF",
-  	properties : { input:0, cutoff:440, Q:2, mode:0 },
+  	properties : { input:0, cutoff:440, Q:2, mode:0, sr: Gibberish.context.sampleRate },
 				
-  	callback: function(sample, frequency, Q, mode) {
+  	callback: function(sample, frequency, Q, mode, sr) {
       var channels = typeof sample === 'number' ? 1 : 2;
       var output1 = channels === 1 ? sample : sample[0];
       
-  		var f1 = 2 * pi * frequency / 44100;
+  		var f1 = 2 * pi * frequency / sr;
   		Q = 1 / Q;
 					
 			var l = d2[0] + f1 * d1[0];
@@ -500,6 +500,7 @@ Gibberish.Biquad = function() {
       _mode = "LP",
     	_cutoff = 2000,
       _Q = .5,
+      sr = Gibberish.context.sampleRate,
       _phase = 0;
       
 	Gibberish.extend(this, {
@@ -512,7 +513,7 @@ Gibberish.Biquad = function() {
 	  calculateCoefficients: function() {
       switch (_mode) {
 	      case "LP":
-           var w0 = 2 * Math.PI * _cutoff / 44100,
+           var w0 = 2 * Math.PI * _cutoff / sr,
                sinw0 = Math.sin(w0),
                cosw0 = Math.cos(w0),
                alpha = sinw0 / (2 * _Q);
@@ -524,7 +525,7 @@ Gibberish.Biquad = function() {
            a2 = 1 - alpha;
            break;
 	       case "HP":
-           var w0 = 2 * Math.PI * _cutoff / 44100,
+           var w0 = 2 * Math.PI * _cutoff / sr,
                sinw0 = Math.sin(w0),
                cosw0 = Math.cos(w0),
                alpha = sinw0 / (2 * _Q);
@@ -536,7 +537,7 @@ Gibberish.Biquad = function() {
            a2 = 1 - alpha;
            break;
 	       case "BP":
-           var w0 = 2 * Math.PI * _cutoff / 44100,
+           var w0 = 2 * Math.PI * _cutoff / sr,
                sinw0 = Math.sin(w0),
                cosw0 = Math.cos(w0),
                toSinh = Math.log(2) / 2 * _Q * w0 / sinw0,

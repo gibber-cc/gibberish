@@ -35,7 +35,7 @@ Gibberish.Line = function(start, end, time, loops) {
     properties : {
   		start:	start || 0,
   		end:		isNaN(end) ? 1 : end,
-  		time:		time || 44100,
+  		time:		time || Gibberish.context.sampleRate,
   		loops:	loops || false,
     }
 	};

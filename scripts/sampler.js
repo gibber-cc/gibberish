@@ -120,7 +120,7 @@ param **buffer** Object. The decoded sampler buffers from the audio file
       var _buffer = this.getBuffer(),
           wavBuffer = new ArrayBuffer(44 + _buffer.length * 2),
           view = new DataView(wavBuffer),
-          sampleRate = 44100;
+          sampleRate = Gibberish.context.sampleRate;
       
       function writeString(view, offset, string){
         for (var i = 0; i < string.length; i++){

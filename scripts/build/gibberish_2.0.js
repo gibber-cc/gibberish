@@ -266,7 +266,7 @@ Create a callback and start it running. Note that in iOS audio callbacks can onl
       if(navigator.userAgent.indexOf('Firefox') === -1 ){
         document.getElementsByTagName('body')[0].removeEventListener('touchstart', start);
         Gibberish.context = new webkitAudioContext();
-        Gibberish.node = Gibberish.context.createJavaScriptNode(bufferSize, 2, 2, 44100);	
+        Gibberish.node = Gibberish.context.createJavaScriptNode(bufferSize, 2, 2, Gibberish.context.sampleRate);	
         Gibberish.node.onaudioprocess = Gibberish.audioProcess;
         Gibberish.node.connect(Gibberish.context.destination);
     
@@ -1112,11 +1112,12 @@ Gibberish.asmSine = function (stdlib, foreign, heap) {
     //var out = new stdlib.Float32Array(heap);
     var phase = 0.0;
 
-    function gen (freq, amp) {
+    function gen (freq, amp, sr) {
         freq = +freq;
         amp  = +amp;
+        sr = +sr;
         
-        phase = +(phase + +(+(freq / 44100.0) * pi * 2.0));
+        phase = +(phase + +(+(freq / sr) * pi * 2.0));
         
         return +(+sin(phase) * amp);
     } 
@@ -1125,7 +1126,7 @@ Gibberish.asmSine = function (stdlib, foreign, heap) {
 };
 
 Gibberish.asmSine2 = function () {    
-    this.properties = { frequency:440.0, amp:.5 }
+    this.properties = { frequency:440.0, amp:.5, sr: Gibberish.context.sampleRate }
     this.name = 'sine'
     
     this.callback = Gibberish.asmSine({ Math:Math });
@@ -1265,28 +1266,7 @@ Gibberish.Saw = function() {
   this.processProperties( arguments );
 };
 
-/*Gibberish.Saw = function() {
-  this.name = "saw",
-  this.properties = { frequency: 440, amp: .15 };
-
-  var phase = 0;
-  // from audiolet https://github.com/oampo/Audiolet/blob/master/src/dsp/Saw.js
-  this.callback = function(frequency, amp) {
-    var out = ((phase / 2 + 0.25) % 0.5 - 0.25) * 4;
-	  out *= amp;
-    phase += frequency / 44100;
-    phase = phase > 1 ? phase % 1 : phase;
-
-    return out;
-  };
-    
-  this.init();
-  this.oscillatorInit();
-  this.processProperties(arguments);  
-};
-Gibberish.Saw.prototype = Gibberish._oscillator;*/
-
-/**#Gibberish.Saw - Oscillator
+/**#Gibberish.Saw2 - Oscillator
 A stereo, non-bandlimited saw wave calculated on a per-sample basis.
 
 ## Example Usage##
@@ -1359,27 +1339,7 @@ Gibberish.Triangle = function() {
   this.oscillatorInit();
   this.processProperties( arguments );
 };
-/*Gibberish.Triangle = function(){
-  var phase = 0,
-  
-  Gibberish.extend(this, {
-    name: "triangle",
-    properties: { frequency: 440, amp: .15 },
 
-    callback: function(frequency, amp, channels, pan ) {
-	    var out = 1 - 4 * abs((phase + 0.25) % 1 - 0.5);
-  		out *= amp;
-	    phase += frequency / 44100;
-	    phase = phase > 1 ? phase % 1 : phase;
-  		return out;
-    },
-  })
-  .init()
-  .oscillatorInit()
-  .processProperties(arguments);  
-};
-Gibberish.Triangle.prototype = Gibberish._oscillator;
-*/
 /**#Gibberish.Triangle2 - Oscillator
 A triangle calculated on a per-sample basis that can be panned.
 
@@ -1456,6 +1416,7 @@ Gibberish.Saw3 = function() {
     properties : {
       frequency: 440,
       amp: .15,
+      sr: Gibberish.context.sampleRate,
     },
 /**###Gibberish.Saw3.callback : method  
 Returns a single sample of output.  
@@ -1463,8 +1424,8 @@ Returns a single sample of output.
 param **frequency** Number. The frequency to be used to calculate output.  
 param **amp** Number. The amplitude to be used to calculate output.  
 **/    
-    callback : function(frequency, amp) {
-      var w = frequency / 44100,
+    callback : function(frequency, amp, sr) {
+      var w = frequency / sr,
           n = .5 - w,
           scaling = scale * n * n * n * n,
           DC = .376 - w * .752,
@@ -1532,6 +1493,7 @@ Gibberish.PWM = function() {
       frequency: 440,
       amp: .15,
       pulsewidth: .5,
+      sr: Gibberish.context.sampleRate,
     },
 /**###Gibberish.PWM.callback : method  
 Returns a single sample of output.  
@@ -1540,8 +1502,8 @@ param **frequency** Number. The frequency to be used to calculate output.
 param **amp** Number. The amplitude to be used to calculate output.  
 param **pulsewidth** Number. The duty cycle of the waveform
 **/    
-    callback : function(frequency, amp, pulsewidth) {
-      var w = frequency / 44100,
+    callback : function(frequency, amp, pulsewidth, sr) {
+      var w = frequency / sr,
           n = .5 - w,
           scaling = scale * n * n * n * n,
           DC = .376 - w * .752,
@@ -1638,6 +1600,7 @@ Gibberish.KarplusStrong = function() {
       last    = 0,
       rnd     = Math.random,
       panner  = Gibberish.makePanner(),
+      sr      = Gibberish.context.sampleRate,
       out     = [0,0];
       
   Gibberish.extend(this, {
@@ -1646,7 +1609,7 @@ Gibberish.KarplusStrong = function() {
     properties: { blend:1, damping:0, amp:1, channels:2, pan:0  },
   
     note : function(frequency) {
-      var _size = Math.floor(44100 / frequency);
+      var _size = Math.floor(sr / frequency);
       buffer.length = 0;
     
       for(var i = 0; i < _size; i++) {
@@ -1915,7 +1878,7 @@ Gibberish.Line = function(start, end, time, loops) {
     properties : {
   		start:	start || 0,
   		end:		isNaN(end) ? 1 : end,
-  		time:		time || 44100,
+  		time:		time || Gibberish.context.sampleRate,
   		loops:	loops || false,
     }
 	};
@@ -2718,13 +2681,13 @@ Gibberish.SVF = function() {
   
   Gibberish.extend( this, {
   	name:"SVF",
-  	properties : { input:0, cutoff:440, Q:2, mode:0 },
+  	properties : { input:0, cutoff:440, Q:2, mode:0, sr: Gibberish.context.sampleRate },
 				
-  	callback: function(sample, frequency, Q, mode) {
+  	callback: function(sample, frequency, Q, mode, sr) {
       var channels = typeof sample === 'number' ? 1 : 2;
       var output1 = channels === 1 ? sample : sample[0];
       
-  		var f1 = 2 * pi * frequency / 44100;
+  		var f1 = 2 * pi * frequency / sr;
   		Q = 1 / Q;
 					
 			var l = d2[0] + f1 * d1[0];
@@ -2819,6 +2782,7 @@ Gibberish.Biquad = function() {
       _mode = "LP",
     	_cutoff = 2000,
       _Q = .5,
+      sr = Gibberish.context.sampleRate,
       _phase = 0;
       
 	Gibberish.extend(this, {
@@ -2831,7 +2795,7 @@ Gibberish.Biquad = function() {
 	  calculateCoefficients: function() {
       switch (_mode) {
 	      case "LP":
-           var w0 = 2 * Math.PI * _cutoff / 44100,
+           var w0 = 2 * Math.PI * _cutoff / sr,
                sinw0 = Math.sin(w0),
                cosw0 = Math.cos(w0),
                alpha = sinw0 / (2 * _Q);
@@ -2843,7 +2807,7 @@ Gibberish.Biquad = function() {
            a2 = 1 - alpha;
            break;
 	       case "HP":
-           var w0 = 2 * Math.PI * _cutoff / 44100,
+           var w0 = 2 * Math.PI * _cutoff / sr,
                sinw0 = Math.sin(w0),
                cosw0 = Math.cos(w0),
                alpha = sinw0 / (2 * _Q);
@@ -2855,7 +2819,7 @@ Gibberish.Biquad = function() {
            a2 = 1 - alpha;
            break;
 	       case "BP":
-           var w0 = 2 * Math.PI * _cutoff / 44100,
+           var w0 = 2 * Math.PI * _cutoff / sr,
                sinw0 = Math.sin(w0),
                cosw0 = Math.cos(w0),
                toSinh = Math.log(2) / 2 * _Q * w0 / sinw0,
@@ -4594,7 +4558,7 @@ param **buffer** Object. The decoded sampler buffers from the audio file
       var _buffer = this.getBuffer(),
           wavBuffer = new ArrayBuffer(44 + _buffer.length * 2),
           view = new DataView(wavBuffer),
-          sampleRate = 44100;
+          sampleRate = Gibberish.context.sampleRate;
       
       function writeString(view, offset, string){
         for (var i = 0; i < string.length; i++){
@@ -5234,16 +5198,16 @@ Gibberish.Time = {
   },
   
   ms : function(val) {
-    return Math.round(val * 44.1);
+    return Math.round(val * Gibberish.context.sampleRate / 1000);
   },
   
   seconds : function(val) {
-    return Math.round(val * 44100);
+    return Math.round(val * Gibberish.context.sampleRate);
   },
   
   beats : function(val) {
     return function() { 
-      var samplesPerBeat = 44100 / ( Gibberish.Time.bpm / 60 ) ;
+      var samplesPerBeat = Gibberish.context.sampleRate / ( Gibberish.Time.bpm / 60 ) ;
       return Math.round( samplesPerBeat * val );
     }
   },
