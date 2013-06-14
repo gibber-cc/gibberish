@@ -115,7 +115,7 @@ param **Audio Event** : Object. The HTML5 audio event object.
 		
     var me = Gibberish; // dereference for efficiency
     var sequencers = me.sequencers
-    console.log(e.outputBuffer.length)
+
 		for(var i = 0, _bl = e.outputBuffer.length; i < _bl; i++){
       
       for(var j = 0; j < sequencers.length; j++) { sequencers[j].tick(); }
