@@ -62,6 +62,7 @@ Gibberish.Synth = function(properties) {
     amp:		  .25,
     channels: 2,
 	  pan:		  0,
+    sr:       Gibberish.context.sampleRate
   };
 /**###Gibberish.Synth.note : method  
 Generate an enveloped note at the provided frequency  
@@ -93,13 +94,13 @@ param **amp** Number. Optional. The volume to use.
     	panner      = Gibberish.makePanner(),
     	out         = [0,0];
 
-  this.callback = function(frequency, pulsewidth, attack, decay, glide, amp, channels, pan) {
+  this.callback = function(frequency, pulsewidth, attack, decay, glide, amp, channels, pan, sr) {
     glide = glide >= 1 ? .99999 : glide;
     frequency = lag(frequency, 1-glide, glide);
     
 		if(envstate() < 2) {				
 			var env = envelope(attack, decay);
-			var val = osc( frequency, 1, pulsewidth ) * env * amp;
+			var val = osc( frequency, 1, pulsewidth, sr ) * env * amp;
 
 			out[0] = out[1] = val;
       

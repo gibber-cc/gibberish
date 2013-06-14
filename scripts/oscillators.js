@@ -358,7 +358,8 @@ Gibberish.Saw3 = function() {
       history = 0,
       sin = Math.sin,
       scale = 11;
-      pi_2 = Math.PI * 2;
+      pi_2 = Math.PI * 2,
+      sr = Gibberish.context.sampleRate;
       
   Gibberish.extend(this, {
     name: 'saw',
@@ -373,7 +374,7 @@ Returns a single sample of output.
 param **frequency** Number. The frequency to be used to calculate output.  
 param **amp** Number. The amplitude to be used to calculate output.  
 **/    
-    callback : function(frequency, amp, sr) {
+    callback : function(frequency, amp) {
       var w = frequency / sr,
           n = .5 - w,
           scaling = scale * n * n * n * n,

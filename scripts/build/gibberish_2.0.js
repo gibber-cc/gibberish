@@ -1409,7 +1409,8 @@ Gibberish.Saw3 = function() {
       history = 0,
       sin = Math.sin,
       scale = 11;
-      pi_2 = Math.PI * 2;
+      pi_2 = Math.PI * 2,
+      sr = Gibberish.context.sampleRate;
       
   Gibberish.extend(this, {
     name: 'saw',
@@ -1424,7 +1425,7 @@ Returns a single sample of output.
 param **frequency** Number. The frequency to be used to calculate output.  
 param **amp** Number. The amplitude to be used to calculate output.  
 **/    
-    callback : function(frequency, amp, sr) {
+    callback : function(frequency, amp) {
       var w = frequency / sr,
           n = .5 - w,
           scaling = scale * n * n * n * n,
@@ -3597,6 +3598,7 @@ Gibberish.Synth = function(properties) {
     amp:		  .25,
     channels: 2,
 	  pan:		  0,
+    sr:       Gibberish.context.sampleRate
   };
 /**###Gibberish.Synth.note : method  
 Generate an enveloped note at the provided frequency  
@@ -3628,13 +3630,13 @@ param **amp** Number. Optional. The volume to use.
     	panner      = Gibberish.makePanner(),
     	out         = [0,0];
 
-  this.callback = function(frequency, pulsewidth, attack, decay, glide, amp, channels, pan) {
+  this.callback = function(frequency, pulsewidth, attack, decay, glide, amp, channels, pan, sr) {
     glide = glide >= 1 ? .99999 : glide;
     frequency = lag(frequency, 1-glide, glide);
     
 		if(envstate() < 2) {				
 			var env = envelope(attack, decay);
-			var val = osc( frequency, 1, pulsewidth ) * env * amp;
+			var val = osc( frequency, 1, pulsewidth, sr ) * env * amp;
 
 			out[0] = out[1] = val;
       
@@ -5458,13 +5460,13 @@ Gibberish.Kick = function() {
       
   Gibberish.extend(this, {
   	name:		"kick",
-    properties:	{ pitch:50, __decay:20, __tone: 1000, amp:2 },
+    properties:	{ pitch:50, __decay:20, __tone: 1000, amp:2, sr: Gibberish.context.sampleRate },
 	
-  	callback: function(pitch, decay, tone, amp) {					
+  	callback: function(pitch, decay, tone, amp, sr) {					
   		var out = trigger ? 60 : 0;
 			
-  		out = bpf( out, pitch, decay, 2, 1 );
-  		out = lpf( out, tone, .5, 0, 1 );
+  		out = bpf( out, pitch, decay, 2, sr );
+  		out = lpf( out, tone, .5, 0, sr );
 		
   		out *= amp;
 		
@@ -5508,12 +5510,12 @@ Gibberish.Conga = function() {
       
   Gibberish.extend(this, {
   	name:		"conga",
-    properties:	{ pitch:190, /*__decay:50,*/ amp:2 },
+    properties:	{ pitch:190, /*__decay:50,*/ amp:2, sr:Gibberish.context.sampleRate },
 	
-  	callback: function(pitch, /*decay,*/ amp) {					
+  	callback: function(pitch, /*decay,*/ amp, sr) {					
   		var out = trigger ? 60 : 0;
 			
-  		out = bpf( out, pitch, 50, 2, 1 );
+  		out = bpf( out, pitch, 50, 2, sr );
 		
   		out *= amp;
 		
@@ -5552,12 +5554,12 @@ Gibberish.Clave = function() {
       
   Gibberish.extend(this, {
   	name:		"clave",
-    properties:	{ pitch:2500, /*__decay:50,*/ amp:1 },
+    properties:	{ pitch:2500, /*__decay:50,*/ amp:1, sr:Gibberish.context.sampleRate },
 	
-  	callback: function(pitch, /*decay,*/ amp) {					
+  	callback: function(pitch, /*decay,*/ amp, sr) {					
   		var out = trigger ? 2 : 0;
 			
-  		out = bpf( out, pitch, 5, 2, 1 );
+  		out = bpf( out, pitch, 5, 2, sr );
 		
   		out *= amp;
 		
@@ -5601,20 +5603,20 @@ Gibberish.Tom = function() {
       
   Gibberish.extend(this, {
   	name:		"tom",
-    properties:	{ pitch:80, amp:.5 },
+    properties:	{ pitch:80, amp:.5, sr:Gibberish.context.sampleRate },
 	
-  	callback: function(pitch, amp) {					
+  	callback: function(pitch, amp, sr) {					
   		var out = trigger ? 60 : 0,
           noise;
 			
-  		out = bpf( out, pitch, 30, 2, 1 );
+  		out = bpf( out, pitch, 30, 2, sr );
       
       noise = rnd() * 16 - 8
 		  noise = noise > 0 ? noise : 0;
       
       noise *= eg(.05, 11025);
       
-  		noise = lpf( noise, 120, .5, 0, 1 );
+  		noise = lpf( noise, 120, .5, 0, sr );
       
       out += noise;
   		out *= amp;
@@ -5656,15 +5658,15 @@ Gibberish.Cowbell = function() {
   
   Gibberish.extend(this, {
   	name: "cowbell",
-  	properties : { amp: 1, pitch: 560, bpfFreq:1000, bpfRez:3, decay:22050, decayCoeff:.0001 },
+  	properties : { amp: 1, pitch: 560, bpfFreq:1000, bpfRez:3, decay:22050, decayCoeff:.0001, sr:Gibberish.context.sampleRate },
 	
-  	callback : function(amp, pitch, bpfFreq, bpfRez, decay, decayCoeff) {
+  	callback : function(amp, pitch, bpfFreq, bpfRez, decay, decayCoeff, sr) {
   		var val;
       
   		val =  s1( pitch, 1, 1, 0 );
   		val += s2( 845, 1, 1, 0 );
 		
-      val  = bpf(  val, bpfFreq, bpfRez, 2, 1 );
+      val  = bpf(  val, bpfFreq, bpfRez, 2, sr );
       		
       val *= eg(decayCoeff, decay);
   
@@ -5703,16 +5705,16 @@ Gibberish.Snare = function() {
       
   Gibberish.extend(this, {
   	name: "snare",
-  	properties: { cutoff:1000, decay:11025, tune:0, snappy:.5, amp:1 },
+  	properties: { cutoff:1000, decay:11025, tune:0, snappy:.5, amp:1, sr:Gibberish.context.sampleRate },
 
-  	callback: function(cutoff, decay, tune, snappy, amp) {
+  	callback: function(cutoff, decay, tune, snappy, amp, sr) {
   		var p1, p2, noise = 0, env = 0, out = 0;
 
   		env = eg(.0025, decay);
 		
   		if(env > .005) {	
   			out = ( rnd() * 2 - 1 ) * env ;
-  			out = noiseHPF( out, cutoff + tune * 1000, .5, 1, 1 );
+  			out = noiseHPF( out, cutoff + tune * 1000, .5, 1, sr );
   			out *= snappy;
         
         // rectify as per instructions found here: http://ericarcher.net/devices/tr808-clone/
@@ -5720,8 +5722,8 @@ Gibberish.Snare = function() {
         
   			envOut = env;
 			
-  			p1 = bpf1( envOut, 180 * (tune + 1), 15, 2, 1 );
-  			p2 = bpf2( envOut, 330 * (tune + 1), 15, 2, 1 );
+  			p1 = bpf1( envOut, 180 * (tune + 1), 15, 2, sr );
+  			p2 = bpf2( envOut, 330 * (tune + 1), 15, 2, sr );
 		
   			out += p1; 
   			out += p2 * .8;
@@ -5773,9 +5775,9 @@ Gibberish.Hat = function() {
   
   Gibberish.extend(this, {
   	name: "hat",
-  	properties : { amp: 1, pitch: 325, bpfFreq:7000, bpfRez:2, hpfFreq:.975, hpfRez:0, decay:3500, decay2:3000 },
+  	properties : { amp: 1, pitch: 325, bpfFreq:7000, bpfRez:2, hpfFreq:.975, hpfRez:0, decay:3500, decay2:3000, sr:Gibberish.context.sampleRate },
 	
-  	callback : function(amp, pitch, bpfFreq, bpfRez, hpfFreq, hpfRez, decay, decay2) {
+  	callback : function(amp, pitch, bpfFreq, bpfRez, hpfFreq, hpfRez, decay, decay2, sr) {
   		var val;
       
   		val =  s1( pitch, 1, .5, 0 );
@@ -5785,7 +5787,7 @@ Gibberish.Hat = function() {
   		val += s5( pitch * 2.5028, 1, 1, 0 );
   		val += s6( pitch * 2.6637, .75, 1, 0 );
 		
-      val  = bpf(  val, bpfFreq, bpfRez, 2, 1 );
+      val  = bpf(  val, bpfFreq, bpfRez, 2, sr );
       		
   		val  *= eg(.001, decay);
       
