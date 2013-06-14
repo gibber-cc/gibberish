@@ -115,7 +115,7 @@ param **Audio Event** : Object. The HTML5 audio event object.
 		
     var me = Gibberish; // dereference for efficiency
     var sequencers = me.sequencers
-    
+    console.log(e.outputBuffer.length)
 		for(var i = 0, _bl = e.outputBuffer.length; i < _bl; i++){
       
       for(var j = 0; j < sequencers.length; j++) { sequencers[j].tick(); }
@@ -276,14 +276,15 @@ Create a callback and start it running. Note that in iOS audio callbacks can onl
           mySource.noteOn(0);
         }
       }else{
-        /*if(typeof AudioContext === 'function') { // use web audio api for firefox 23 and higher
+        if(typeof AudioContext === 'function') { // use web audio api for firefox 24 and higher
           Gibberish.context = new AudioContext();
-          Gibberish.node = Gibberish.context.createScriptProcessor(bufferSize, 2, 2, 44100);	
+          Gibberish.node = Gibberish.context.createScriptProcessor(bufferSize, 2, 2, Gibberish.context.sampleRate);	
           Gibberish.node.onaudioprocess = Gibberish.audioProcess;
           Gibberish.node.connect(Gibberish.context.destination);
         }else{ // use audio data api*/
           Gibberish.AudioDataDestination(44100, Gibberish.audioProcessFirefox);
-        //}
+          Gibberish.context = { sampleRate: 44100 } // needed hack to determine samplerate in ugens
+        }
       }
     }
     
@@ -1064,7 +1065,8 @@ Gibberish._oscillator = new Gibberish.oscillator();
 
 Gibberish.Wavetable = function() {
   var phase = 0,
-      table = null;
+      table = null,
+      tableFreq = Gibberish.context.sampleRate / 1024;
   
   this.properties = {
     frequency : 440,
@@ -1086,9 +1088,8 @@ param **frequency** Number. The frequency to be used to calculate output.
 param **amp** Number. The amplitude to be used to calculate output.  
 **/   
   this.callback = function(frequency, amp) { 
-    var index, frac, index2, val1, val2,
-        tableFreq = 43.06640625;
-        
+    var index, frac, index2, val1, val2;
+            
     phase += frequency / tableFreq;
     while(phase >= 1024) phase -= 1024;  
     

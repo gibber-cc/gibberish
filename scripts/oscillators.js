@@ -13,7 +13,8 @@ Gibberish._oscillator = new Gibberish.oscillator();
 
 Gibberish.Wavetable = function() {
   var phase = 0,
-      table = null;
+      table = null,
+      tableFreq = Gibberish.context.sampleRate / 1024;
   
   this.properties = {
     frequency : 440,
@@ -35,9 +36,8 @@ param **frequency** Number. The frequency to be used to calculate output.
 param **amp** Number. The amplitude to be used to calculate output.  
 **/   
   this.callback = function(frequency, amp) { 
-    var index, frac, index2, val1, val2,
-        tableFreq = 43.06640625;
-        
+    var index, frac, index2, val1, val2;
+            
     phase += frequency / tableFreq;
     while(phase >= 1024) phase -= 1024;  
     
