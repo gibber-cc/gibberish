@@ -115,7 +115,7 @@ param **Audio Event** : Object. The HTML5 audio event object.
 		
     var me = Gibberish; // dereference for efficiency
     var sequencers = me.sequencers
-    console.log(e.outputBuffer.length)
+
 		for(var i = 0, _bl = e.outputBuffer.length; i < _bl; i++){
       
       for(var j = 0; j < sequencers.length; j++) { sequencers[j].tick(); }
@@ -440,7 +440,11 @@ Generates output code (as a string) used inside audio callback
               if( typeof member === 'object' ) {
             		value += member !== null ? member.codegen() : 'null';
               }else{
-              	value += member;
+                if(typeof property.value === 'function') {
+                  value += property.value();
+                }else{
+                  value += property.value;
+                }
               }
               value += i < property.value.length - 1 ? ', ' : '';
             }
@@ -449,7 +453,11 @@ Generates output code (as a string) used inside audio callback
             //console.log( "CODEGEN FOR OBJECT THAT IS A PROPERTY VALUE", key );
             value = property.value !== null ? property.value.codegen() : 'null';
           }else if( property.name !== 'undefined'){
-            value = property.value;
+            if(typeof property.value === 'function') {
+              value = property.value();
+            }else{
+              value = property.value;
+            }
           }
         
           s += value;

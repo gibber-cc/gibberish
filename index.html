@@ -32,6 +32,12 @@
     generates for the JIT compiler. It is the audio backend for the live coding environment <a href="http://www.charlie-roberts.com/gibber">Gibber</a>.
     Gibberish works with Chrome, Firefox, Safari(desktop) 6+ (use webkit nightly for best results) and Safari(mobile) under iOS 6+.
   </p>
+  <p>All examples assume the following three lines are run first:<br>
+<pre>Gibberish.init()
+Gibberish.Time.export()
+Gibberish.Binops.export()
+</pre>
+</p>
   run: <select onchange="console.log('RUNNING', this.options[this.selectedIndex].text); window[this.options[this.selectedIndex].text]();">
   	<option>clear</option>	
     <!-- <option>test</option> -->
@@ -79,12 +85,12 @@
 </div>
 
 
-<div style="width:45%; float:left; left:0px">
+<div style="width:45%; float:left; left:0px; ">
 <h2>Input</h2>
-<pre style="width:45%; left:0px" id="input"></pre>
+<pre style="width:45%; left:0px;" id="input"></pre>
 </div>
 
-<div style="width:45%; float:right;">
+<div style="width:45%; float:right; ">
 <h2>Output</h2>
 <pre id="output" style="width:45%;"></pre>
 </div>
