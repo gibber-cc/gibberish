@@ -276,15 +276,15 @@ Create a callback and start it running. Note that in iOS audio callbacks can onl
           mySource.noteOn(0);
         }
       }else{
-        if(typeof AudioContext === 'function') { // use web audio api for firefox 24 and higher
+        /*if(typeof AudioContext === 'function') { // use web audio api for firefox 24 and higher
           Gibberish.context = new AudioContext();
-          Gibberish.node = Gibberish.context.createScriptProcessor(bufferSize, 2, 2, Gibberish.context.sampleRate);	
+          Gibberish.node = Gibberish.context.createScriptProcessor(1024, 2, 2, Gibberish.context.sampleRate);	
           Gibberish.node.onaudioprocess = Gibberish.audioProcess;
           Gibberish.node.connect(Gibberish.context.destination);
         }else{ // use audio data api*/
           Gibberish.AudioDataDestination(44100, Gibberish.audioProcessFirefox);
           Gibberish.context = { sampleRate: 44100 } // needed hack to determine samplerate in ugens
-        }
+          //}
       }
     }
     
@@ -459,13 +459,26 @@ Generates output code (as a string) used inside audio callback
               value = property.value;
             }
           }
-        
-          s += value;
-        
-          if(property.binops) {
+                  
+          /*
+          		var v_12 = sine_9(0.2, 50);
+          		var v_16 = sine_13(5, 10);
+          		var v_8 = sine_5((440 + v_12) + v_16), 0.25);
+              var v_4 = bus2_0(v_8, 1, 0);
+          */
+          
+          //s+=value
+          
+          if(property.binops.length != 0) {
+            for( var k = 0; k < property.binops.length; k++) {
+              s += '('
+            }
             for(var j = 0; j < property.binops.length; j++) {
+              //if( j!== 0) s += "("
               var op = property.binops[j],
-                  val; 
+                  val;
+                  
+                  console.log(op)
               if( typeof op.ugen === 'number') {
                   val = op.ugen;
               }else{
@@ -479,10 +492,18 @@ Generates output code (as a string) used inside audio callback
                 Gibberish.upvalues.push('var abs = Math.abs\n;');
                 s += ' + abs(' + val + ')';
               }else{
-                s += " " + op.binop + " " + val;
+                if( j === 0) s+= value
+                s += " " + op.binop + " " + val + ")";
               }
+              
+              //s += ")"
             }
+            //s+= ")"
+          }else{
+            s += value
           }
+          
+          
       
           s += ", ";
         }

@@ -276,15 +276,15 @@ Create a callback and start it running. Note that in iOS audio callbacks can onl
           mySource.noteOn(0);
         }
       }else{
-        if(typeof AudioContext === 'function') { // use web audio api for firefox 24 and higher
+        /*if(typeof AudioContext === 'function') { // use web audio api for firefox 24 and higher
           Gibberish.context = new AudioContext();
-          Gibberish.node = Gibberish.context.createScriptProcessor(bufferSize, 2, 2, Gibberish.context.sampleRate);	
+          Gibberish.node = Gibberish.context.createScriptProcessor(1024, 2, 2, Gibberish.context.sampleRate);	
           Gibberish.node.onaudioprocess = Gibberish.audioProcess;
           Gibberish.node.connect(Gibberish.context.destination);
         }else{ // use audio data api*/
           Gibberish.AudioDataDestination(44100, Gibberish.audioProcessFirefox);
           Gibberish.context = { sampleRate: 44100 } // needed hack to determine samplerate in ugens
-        }
+          //}
       }
     }
     
@@ -459,13 +459,26 @@ Generates output code (as a string) used inside audio callback
               value = property.value;
             }
           }
-        
-          s += value;
-        
-          if(property.binops) {
+                  
+          /*
+          		var v_12 = sine_9(0.2, 50);
+          		var v_16 = sine_13(5, 10);
+          		var v_8 = sine_5((440 + v_12) + v_16), 0.25);
+              var v_4 = bus2_0(v_8, 1, 0);
+          */
+          
+          //s+=value
+          
+          if(property.binops.length != 0) {
+            for( var k = 0; k < property.binops.length; k++) {
+              s += '('
+            }
             for(var j = 0; j < property.binops.length; j++) {
+              //if( j!== 0) s += "("
               var op = property.binops[j],
-                  val; 
+                  val;
+                  
+                  console.log(op)
               if( typeof op.ugen === 'number') {
                   val = op.ugen;
               }else{
@@ -479,10 +492,18 @@ Generates output code (as a string) used inside audio callback
                 Gibberish.upvalues.push('var abs = Math.abs\n;');
                 s += ' + abs(' + val + ')';
               }else{
-                s += " " + op.binop + " " + val;
+                if( j === 0) s+= value
+                s += " " + op.binop + " " + val + ")";
               }
+              
+              //s += ")"
             }
+            //s+= ")"
+          }else{
+            s += value
           }
+          
+          
       
           s += ", ";
         }
@@ -1117,31 +1138,108 @@ Gibberish.asmSine = function (stdlib, foreign, heap) {
     "use asm";
 
     var sin = stdlib.Math.sin;
-    var pi = 3.14159;
-    //var out = new stdlib.Float32Array(heap);
     var phase = 0.0;
+    var out = new stdlib.Float32Array(heap);
+    var floor = stdlib.Math.floor;
+    var tableFreq = 0.0;
+    
+    function init() {
+      var i = 1024;
+      var j = 1024.0;
+      var test = 0.0;
+      for (;  i = (i - 1) | 0; ) {
+        j = j - 1.0;
+        out[i >> 2] = +(sin( +(j / 1024.0) * 6.2848));
+      }  
+      tableFreq = 44100.0 / 1024.0;
+    }
+    
+    function gen(freq, amp, sr) {
+      freq = +freq;
+      amp = +amp;
+      sr = +sr;
+      
+      var index = 0.0,
+          index1 = 0,
+          index2 = 0,
+          frac = 0.0,
+          val1 = 0.0,
+          val2 = 0.0;
+      
+      phase = +(phase + freq / tableFreq);
+      if(phase >= 1024.0) phase = +(phase - 1024.0);  
+          
+      index = floor(phase);
+      frac = phase - index;
+      
+      index1 = (~~index);
+      if((index1 | 0) == (1024 | 0)) {
+        index2 = 0
+      } else { 
+        index2 = (index1 + 1) | 0;
+      }
+      
+      val1 = +out[ index1 >> 2 ];
+      val2 = +out[ index2 >> 2 ];
+          
+      return +((val1 + (frac * (val2 - val1))) * amp);
+    }
+    
+    function get(idx) {
+      idx = idx|0;
+      return +out[idx >> 2];
+    }
 
-    function gen (freq, amp, sr) {
-        freq = +freq;
-        amp  = +amp;
-        sr = +sr;
-        
-        phase = +(phase + +(+(freq / sr) * pi * 2.0));
-        
-        return +(+sin(phase) * amp);
-    } 
-
-    return gen;
+    return {
+      init:init,
+      gen: gen,
+      get: get,
+    }
 };
+
+/*
+    phase += frequency / tableFreq;
+    while(phase >= 1024) phase -= 1024;  
+    
+    index   = phase | 0;
+    frac    = phase - index;
+    index   = index & 1023;
+    index2  = index === 1023 ? 0 : index + 1;
+    val1    = table[index];
+    val2    = table[index2];
+        
+    return ( val1 + ( frac * (val2 - val1) ) ) * amp;
+*/
+
+
+
+
+
+/*function gen (freq, amp, sr) {
+    freq = +freq;
+    amp  = +amp;
+    sr = +sr;
+    
+    phase = +(phase + +(+(freq / sr) * 3.14159 * 2.0));
+    
+    return +(+sin(phase) * amp);
+}*/
+//var pi_2 = (3.14159 * 2.0);
+
 
 Gibberish.asmSine2 = function () {    
     this.properties = { frequency:440.0, amp:.5, sr: Gibberish.context.sampleRate }
     this.name = 'sine'
+    var buf = new ArrayBuffer(4096);
+    var asm = Gibberish.asmSine(window, null, buf);
+    asm.init();
     
-    this.callback = Gibberish.asmSine({ Math:Math });
-    
+    this.getTable = function() { return buf; }
+    this.get = asm.get;
+    this.callback = asm.gen;
     this.init();
     this.oscillatorInit();
+    this.processProperties( arguments );
     
     return  this;
 }
@@ -1502,7 +1600,7 @@ Gibberish.PWM = function() {
     properties : {
       frequency: 440,
       amp: .15,
-      pulsewidth: .5,
+      pulsewidth: .05,
       sr: Gibberish.context.sampleRate,
     },
 /**###Gibberish.PWM.callback : method  
@@ -4988,7 +5086,10 @@ param **target** object, default window. The object to export the Gibberish.Bino
     
     me.name = 'op';
     me.properties = {};
-    for(var i = 0; i < args.length; i++) { me.properties[i] = args[i]; }
+    for(var i = 0; i < args.length; i++) { 
+      console.log( "ARGS", i, args[i] )
+      me.properties[i] = args[i]; 
+    }
     me.init.apply( me, args );
     
     me.codegen = function() {
@@ -5028,7 +5129,7 @@ param **target** object, default window. The object to export the Gibberish.Bino
     
     //me.getCodeblock = function() {}; // override
     
-    me.processProperties.apply( me, args );
+    //me.processProperties.apply( me, args );
 
     return me;
   },

@@ -29,7 +29,10 @@ param **target** object, default window. The object to export the Gibberish.Bino
     
     me.name = 'op';
     me.properties = {};
-    for(var i = 0; i < args.length; i++) { me.properties[i] = args[i]; }
+    for(var i = 0; i < args.length; i++) { 
+      console.log( "ARGS", i, args[i] )
+      me.properties[i] = args[i]; 
+    }
     me.init.apply( me, args );
     
     me.codegen = function() {
@@ -69,7 +72,7 @@ param **target** object, default window. The object to export the Gibberish.Bino
     
     //me.getCodeblock = function() {}; // override
     
-    me.processProperties.apply( me, args );
+    //me.processProperties.apply( me, args );
 
     return me;
   },
