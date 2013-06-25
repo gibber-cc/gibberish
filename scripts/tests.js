@@ -822,7 +822,6 @@ window.bufferShuffler = function() {
 		codegen.innerHTML = Gibberish.callbackString;
 	}, 250);
 };
-
 window.sampler = function() {
   Gibberish.clear();
 
@@ -843,6 +842,53 @@ window.sampler = function() {
   "  values:[ Gibberish.Rndf(-3, 3) ],\n"+
   "  durations:[ ms(250) ]\n"+
   "}).start();";
+
+	var input = document.getElementById("input");
+	input.innerHTML = inputString;
+			
+	codeTimeout = setTimeout(function() { 
+		var codegen = document.getElementById("output");
+		codegen.innerHTML = Gibberish.callbackString;
+	}, 250);
+}
+
+window['time_modulation(Reich)'] = function() {
+  Gibberish.clear();
+
+	a = new Gibberish.Synth({ attack:44, decay:5512, pan:-.75 }).connect();
+	b = new Gibberish.Synth({ attack:44, decay:5512, pan:.75  }).connect();  
+
+  sequencer_a = new Gibberish.Sequencer({
+    target:a, key:'note',
+    values:[ 880 ],
+    durations:[ ms(250) ],
+  }).start();
+
+  sequencer_b = new Gibberish.Sequencer({
+    target:b, key:'note',
+    values:[ 440 ],
+    durations:[ ms(250) ],
+    rate: Add( 1, new Gibberish.Sine(.0001, .1))
+  }).start();
+  			
+	var inputString = "// two sequencers, one with rate modulation, that\n"+
+  "// gradually go in and out of phase with each other\n"+
+  "\n"+  
+	"a = new Gibberish.Synth({ attack:44, decay:5512, pan:-.75 }).connect()\n"+
+	"b = new Gibberish.Synth({ attack:44, decay:5512, pan:.75  }).connect(); \n"+
+  "\n"+
+  "sequencer_a = new Gibberish.Sequencer(\n"+
+  "  target:a, key:'note'\n"+
+  "  values:[ 880 ]\n"+
+  "  durations:[ ms(250) ]\n"+
+  "}).start()\n"+
+  "\n"+
+  "sequencer_b = new Gibberish.Sequencer(\n"+
+  "  target:b, key:'note'\n"+
+  "  values:[ 440 ]\n"+
+  "  durations:[ ms(250) ]\n"+
+  "  rate: Add( 1, new Gibberish.Sine(.0001, .1)\n"+
+  "}).start()"
 
 	var input = document.getElementById("input");
 	input.innerHTML = inputString;

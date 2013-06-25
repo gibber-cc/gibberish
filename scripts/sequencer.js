@@ -46,9 +46,10 @@ Gibberish.Sequencer = function() {
     isConnected   : true,
     keysAndValues : null,
     counts        : {},
-    rate          : 1,
+    properties    : { rate: 1 },
+    name          : 'seq',
     
-    tick : function() {
+    callback : function(rate) {
       if(this.isRunning) {
         if(this.phase >= this.nextTime) {
           if(this.values !== null) {
@@ -112,7 +113,7 @@ Gibberish.Sequencer = function() {
           return;
         }
       
-        this.phase += this.rate;
+        this.phase += rate; //this.rate;
       }
     },
 
@@ -176,4 +177,9 @@ method is called automatically when the sequencer is first created; you should o
   }
   
   this.connect();
+  
+  this.init( arguments );
+  this.oscillatorInit();
+  this.processProperties( arguments );
 };
+Gibberish.Sequencer.prototype = Gibberish._oscillator

@@ -73,6 +73,14 @@ Perform codegen on all dirty ugens and re-create the audio callback. This method
 
     /* concatenate code for all ugens */
     this.memo = {};
+    
+    for(var j = 0; j < this.sequencers.length; j++) {
+      //console.log("getting codeblock", j)
+      this.sequencers[j].getCodeblock();
+    }
+    
+    //console.log(this.codeblock)
+    
     this.out.getCodeblock();
     this.codestring += this.codeblock.join("\t");
     this.codestring += "\n\t";
@@ -118,7 +126,7 @@ param **Audio Event** : Object. The HTML5 audio event object.
 
 		for(var i = 0, _bl = e.outputBuffer.length; i < _bl; i++){
       
-      for(var j = 0; j < sequencers.length; j++) { sequencers[j].tick(); }
+      //for(var j = 0; j < sequencers.length; j++) { sequencers[j].tick(); }
       
       if(me.isDirty) {
         me.createCallback();
@@ -557,8 +565,9 @@ Retrieves codeblock for ugen previously created with codegen method.
         if(this.type === 'analysis') {
           Gibberish.codeblock.unshift(this.codeblock);
         }else{
-          if(this.codeblock !== '')
+          if(this.codeblock !== '') {
             Gibberish.codeblock.push(this.codeblock);
+          }
         }
         
         return this.variable;

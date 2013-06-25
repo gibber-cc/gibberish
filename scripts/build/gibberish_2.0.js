@@ -73,6 +73,14 @@ Perform codegen on all dirty ugens and re-create the audio callback. This method
 
     /* concatenate code for all ugens */
     this.memo = {};
+    
+    for(var j = 0; j < this.sequencers.length; j++) {
+      //console.log("getting codeblock", j)
+      this.sequencers[j].getCodeblock();
+    }
+    
+    //console.log(this.codeblock)
+    
     this.out.getCodeblock();
     this.codestring += this.codeblock.join("\t");
     this.codestring += "\n\t";
@@ -118,7 +126,7 @@ param **Audio Event** : Object. The HTML5 audio event object.
 
 		for(var i = 0, _bl = e.outputBuffer.length; i < _bl; i++){
       
-      for(var j = 0; j < sequencers.length; j++) { sequencers[j].tick(); }
+      //for(var j = 0; j < sequencers.length; j++) { sequencers[j].tick(); }
       
       if(me.isDirty) {
         me.createCallback();
@@ -557,8 +565,9 @@ Retrieves codeblock for ugen previously created with codegen method.
         if(this.type === 'analysis') {
           Gibberish.codeblock.unshift(this.codeblock);
         }else{
-          if(this.codeblock !== '')
+          if(this.codeblock !== '') {
             Gibberish.codeblock.push(this.codeblock);
+          }
         }
         
         return this.variable;
@@ -1751,18 +1760,6 @@ Gibberish.PolyKarplusStrong = function() {
       synth.note(_frequency, amp);
     },
     
-    callback : function() {
-      var out = 0;
-      var length = arguments.length - 1;
-      var amp = arguments[length]; // use arguments to accommodate arbitray number of inputs without using array
-      
-      for(var i = 0; i < length; i++) {
-        out += arguments[i];
-      }
-      out *= amp;
-      
-      return out;
-    },
   });
   
   this.amp = 1 / this.maxVoices;
@@ -1782,12 +1779,6 @@ Gibberish.PolyKarplusStrong = function() {
     this.children.push(synth);
   }
   
-  /*var _amp = this.amp;
-  var a = this
-  Object.defineProperty( this, 'amp', {
-    get: function() { return _amp },
-    set: function(val) { console.log("AMMMMP"); _amp = val; Gibberish.dirty( a ) }
-  })*/
   this.initialized = false
   Gibberish.polyInit(this);
   Gibberish._synth.oscillatorInit.call(this);
@@ -5096,7 +5087,6 @@ param **target** object, default window. The object to export the Gibberish.Bino
     me.name = 'op';
     me.properties = {};
     for(var i = 0; i < args.length; i++) { 
-      console.log( "ARGS", i, args[i] )
       me.properties[i] = args[i]; 
     }
     me.init.apply( me, args );
@@ -5364,7 +5354,10 @@ b = new Gibberish.Sequencer({ target:a, durations:[11025, 22050], keysAndValues:
 `
 **/
 
-Gibberish.Sequencer = function() {  
+Gibberish.Sequencer = function() {
+  var that,
+      phase = 0;
+  
   Gibberish.extend(this, {
     target        : null,
     key           : null,
@@ -5373,84 +5366,83 @@ Gibberish.Sequencer = function() {
     durations     : null,
     durationsIndex: 0,
     nextTime      : 0,
-    phase         : 0,
-    isRunning     : false,
     playOnce      : false,
     repeatCount   : 0,
     repeatTarget  : null,
     isConnected   : true,
     keysAndValues : null,
     counts        : {},
-    rate          : 1,
+    properties    : { rate: 1, isRunning:false, nextTime:0 },
+    name          : 'seq',
     
-    tick : function() {
-      if(this.isRunning) {
-        if(this.phase >= this.nextTime) {
-          if(this.values !== null) {
-            if(this.target) {
-              var val = this.values[ this.valuesIndex++ ];
+    callback : function(rate, isRunning, nextTime) {
+      if(isRunning) {
+        if(phase >= nextTime) {
+          if(that.values !== null) {
+            if(that.target) {
+              var val = that.values[ that.valuesIndex++ ];
               
               if(typeof val === 'function') { val = val(); }
               
-              if(typeof this.target[this.key] === 'function') {
-                this.target[this.key]( val );
+              if(typeof that.target[that.key] === 'function') {
+                that.target[that.key]( val );
               }else{
-                this.target[this.key] = val;
+                that.target[that.key] = val;
               }
             }else{
-              if(typeof this.values[ this.valuesIndex ] === 'function') {
-                this.values[ this.valuesIndex++ ]();
+              if(typeof that.values[ that.valuesIndex ] === 'function') {
+                that.values[ that.valuesIndex++ ]();
               }
             }
-            if(this.valuesIndex >= this.values.length) this.valuesIndex = 0;
-          }else if(this.keysAndValues !== null) {
-            for(var key in this.keysAndValues) {
-              var index = this.counts[key]++;
-              var val = this.keysAndValues[key][index];
+            if(that.valuesIndex >= that.values.length) that.valuesIndex = 0;
+          }else if(that.keysAndValues !== null) {
+            for(var key in that.keysAndValues) {
+              var index = that.counts[key]++;
+              var val = that.keysAndValues[key][index];
               
               if(typeof val === 'function') { val = val(); }
               
-              if(typeof this.target[key] === 'function') {
-                this.target[key]( val );
+              if(typeof that.target[key] === 'function') {
+                that.target[key]( val );
               }else{
-                this.target[key] = val;
+                that.target[key] = val;
               }
-              if(this.counts[key] >= this.keysAndValues[key].length) {
-                this.counts[key] = 0;
+              if(that.counts[key] >= that.keysAndValues[key].length) {
+                that.counts[key] = 0;
               }
             }
-          }else if(typeof this.target[this.key] === 'function') {
-            this.target[this.key]();
+          }else if(typeof that.target[that.key] === 'function') {
+            that.target[that.key]();
           }
           
-          this.phase -= this.nextTime;
+          phase -= nextTime;
         
-          if(Array.isArray(this.durations)) {
-            var next = this.durations[ this.durationsIndex++ ];
-            this.nextTime = typeof next === 'function' ? next() : next;
-            if( this.durationsIndex >= this.durations.length) {
-              this.durationsIndex = 0;
+          if(Array.isArray(that.durations)) {
+            var next = that.durations[ that.durationsIndex++ ];
+            that.nextTime = typeof next === 'function' ? next() : next;
+            if( that.durationsIndex >= that.durations.length) {
+              that.durationsIndex = 0;
             }
           }else{
-            var next = this.durations;
-            this.nextTime = typeof next === 'function' ? next() : next;
+            var next = that.durations;
+            that.nextTime = typeof next === 'function' ? next() : next;
           }
           
-          if(this.repeatTarget) {
-            this.repeatCount++;
-            if(this.repeatCount === this.repeatTarget) {
-              this.isRunning = false;
-              this.repeatCount = 0;
+          if(that.repeatTarget) {
+            that.repeatCount++;
+            if(that.repeatCount === that.repeatTarget) {
+              that.isRunning = false;
+              that.repeatCount = 0;
             }
           }
           
           return;
         }
       
-        this.phase += this.rate;
+        phase += rate; //that.rate;
       }
     },
-
+    
 /**###Gibberish.Sequencer.start : method  
 Start the sequencer running.
 
@@ -5458,7 +5450,7 @@ param **shouldKeepOffset** boolean, default false. If true, the phase of the seq
 **/     
     start : function(shouldKeepOffset) {
       if(!shouldKeepOffset) {
-        this.phase = 0;
+        phase = 0;
       }
       
       this.isRunning = true;
@@ -5511,7 +5503,14 @@ method is called automatically when the sequencer is first created; you should o
   }
   
   this.connect();
+  
+  this.init( arguments );
+  this.oscillatorInit();
+  this.processProperties( arguments );
+  
+  that = this
 };
+Gibberish.Sequencer.prototype = Gibberish._oscillator
 var _hasInput = false; // wait until requested to ask for permissions so annoying popup doesn't appear automatically
 
 function createInput() {
