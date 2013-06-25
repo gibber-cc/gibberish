@@ -223,7 +223,9 @@ param **recordLength** Number (in samples). How long to record for.
         phase = self.end;
         self.isRecording = false;
       })
-      .record(); 
+      .record();
+      
+      return this;
 		},
 
 /**###Gibberish.Sampler.getBuffer : method  

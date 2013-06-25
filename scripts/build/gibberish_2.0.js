@@ -459,26 +459,15 @@ Generates output code (as a string) used inside audio callback
               value = property.value;
             }
           }
-                  
-          /*
-          		var v_12 = sine_9(0.2, 50);
-          		var v_16 = sine_13(5, 10);
-          		var v_8 = sine_5((440 + v_12) + v_16), 0.25);
-              var v_4 = bus2_0(v_8, 1, 0);
-          */
-          
-          //s+=value
-          
+
           if(property.binops.length != 0) {
             for( var k = 0; k < property.binops.length; k++) {
-              s += '('
+              s += '(' // all leading parenthesis...
             }
             for(var j = 0; j < property.binops.length; j++) {
-              //if( j!== 0) s += "("
               var op = property.binops[j],
                   val;
                   
-                  console.log(op)
               if( typeof op.ugen === 'number') {
                   val = op.ugen;
               }else{
@@ -496,15 +485,11 @@ Generates output code (as a string) used inside audio callback
                 s += " " + op.binop + " " + val + ")";
               }
               
-              //s += ")"
             }
-            //s+= ")"
           }else{
             s += value
           }
-          
-          
-      
+
           s += ", ";
         }
         
@@ -1765,6 +1750,19 @@ Gibberish.PolyKarplusStrong = function() {
       if(this.voiceCount >= this.maxVoices) this.voiceCount = 0;
       synth.note(_frequency, amp);
     },
+    
+    callback : function() {
+      var out = 0;
+      var length = arguments.length - 1;
+      var amp = arguments[length]; // use arguments to accommodate arbitray number of inputs without using array
+      
+      for(var i = 0; i < length; i++) {
+        out += arguments[i];
+      }
+      out *= amp;
+      
+      return out;
+    },
   });
   
   this.amp = 1 / this.maxVoices;
@@ -1772,11 +1770,10 @@ Gibberish.PolyKarplusStrong = function() {
   
   this.children = [];
   
-  this.dirty = true;
   for(var i = 0; i < this.maxVoices; i++) {
     var props = {
       blend:   this.blend,
-      damping:    this.damping,
+      damping: this.damping,
       channels: 2,
       amp:      1,
     };
@@ -1785,8 +1782,16 @@ Gibberish.PolyKarplusStrong = function() {
     this.children.push(synth);
   }
   
+  /*var _amp = this.amp;
+  var a = this
+  Object.defineProperty( this, 'amp', {
+    get: function() { return _amp },
+    set: function(val) { console.log("AMMMMP"); _amp = val; Gibberish.dirty( a ) }
+  })*/
+  this.initialized = false
   Gibberish.polyInit(this);
   Gibberish._synth.oscillatorInit.call(this);
+  Gibberish.dirty( this )
 };
 /**#Gibberish.Bus - Miscellaneous
 Create a mono routing bus. A bus callback routes all it's inputs and scales them by the amplitude of the bus.  
@@ -1875,7 +1880,7 @@ Gibberish.Bus = function() {
         
     properties : {
       inputs :  [],
-      amp :     arguments[1] || 1,
+      amp :     1,
     },
 
     callback : function() {
@@ -1893,6 +1898,7 @@ Gibberish.Bus = function() {
   });
 
   this.init();
+  this.processProperties(arguments);
   
   return this;
 };
@@ -1916,12 +1922,12 @@ a.connect();`
 Array. Read-only. Relative volume for the sum of all ugens connected to the bus.
 **/
 Gibberish.Bus2 = function() {
-  this.name = "bus2";
+  this.name = 'bus2';
   this.type = 'bus';
   
   this.properties = {
     inputs :  [],
-    amp :     arguments[1] || 1,
+    amp :     1,
     pan :     0,
   };
   
@@ -1945,8 +1951,9 @@ Gibberish.Bus2 = function() {
     return panner(output, pan, output);
   };
   
-  this.initialized = false;
-  this.init();
+  //this.initialized = false;
+  this.init( arguments );
+  this.processProperties( arguments );
 };
 Gibberish.Bus2.prototype = Gibberish._bus;
 Gibberish.envelope = function() {
@@ -4770,7 +4777,9 @@ param **recordLength** Number (in samples). How long to record for.
         phase = self.end;
         self.isRecording = false;
       })
-      .record(); 
+      .record();
+      
+      return this;
 		},
 
 /**###Gibberish.Sampler.getBuffer : method  
@@ -4884,7 +4893,7 @@ _pitch, amp, isRecording, isPlaying, input, length, start, end, loops, pan
 	}
 };
 Gibberish.Sampler.prototype = Gibberish._oscillator;
-/**#Gibberish.Mono - Synth
+/**#Gibberish.MonoSynth - Synth
 A three oscillator monosynth for bass and lead lines. You can set the octave and tuning offsets for oscillators 2 & 3. There is a 24db filter and an envelope controlling
 both the amplitude and filter cutoff.
 ## Example Usage##
@@ -4903,40 +4912,40 @@ t.note("C3");  `
 ## Constructors
   param **arguments** : Object. A dictionary of property values to set upon initialization. See the properties section and the example usage section for details.
 **/
-/**###Gibberish.Mono.waveform : property
+/**###Gibberish.MonoSynth.waveform : property
 String. The primary oscillator to be used. Can currently be 'Sine', 'Square', 'Noise', 'Triangle' or 'Saw'. 
 **/
-/**###Gibberish.Mono.attack : property
+/**###Gibberish.MonoSynth.attack : property
 Integer. The length, in samples, of the attack of the amplitude envelope.
 **/
-/**###Gibberish.Mono.decay : property
+/**###Gibberish.MonoSynth.decay : property
 Integer. The length, in samples, of the decay of the amplitude envelope.
 **/
-/**###Gibberish.Mono.amp : property
+/**###Gibberish.MonoSynth.amp : property
 Float. The peak amplitude of the synth, usually between 0..1
 **/
-/**###Gibberish.Mono.cutoff : property
+/**###Gibberish.MonoSynth.cutoff : property
 Float. The frequency cutoff for the synth's filter. Range is 0..1.
 **/
-/**###Gibberish.Mono.filterMult : property
+/**###Gibberish.MonoSynth.filterMult : property
 Float. As the envelope on the synth progress, the filter cutoff will also change by this amount * the envelope amount.
 **/
-/**###Gibberish.Mono.resonance : property
+/**###Gibberish.MonoSynth.resonance : property
 Float. The emphasis placed on the filters cutoff frequency. 0..50, however, GOING OVER 5 IS DANGEROUS TO YOUR EARS (ok, maybe 6 is all right...)
 **/
-/**###Gibberish.Mono.octave2 : property
+/**###Gibberish.MonoSynth.octave2 : property
 Integer. The octave difference between oscillator 1 and oscillator 2. Can be positive (higher osc2) or negative (lower osc 2) or 0 (same octave).
 **/
-/**###Gibberish.Mono.detune2 : property
+/**###Gibberish.MonoSynth.detune2 : property
 Float. The amount, from -1..1, the oscillator 2 is detuned. A value of -.5 means osc2 is half an octave lower than osc1. A value of .01 means osc2 is .01 octaves higher than osc1.
 **/
-/**###Gibberish.Mono.octave3 : property
+/**###Gibberish.MonoSynth.octave3 : property
 Integer. The octave difference between oscillator 1 and oscillator 3. Can be positive (higher osc3) or negative (lower osc 3) or 0 (same octave).
 **/
-/**###Gibberish.Mono.detune3 : property
+/**###Gibberish.MonoSynth.detune3 : property
 Float. The amount, from -1..1, the oscillator 3 is detuned. A value of -.5 means osc3 is half an octave lower than osc1. A value of .01 means osc3 is .01 octaves higher than osc1.
 **/
-/**###Gibberish.Mono.glide : property
+/**###Gibberish.MonoSynth.glide : property
 Integer. The length in time, in samples, to slide in pitch from one note to the next.
 **/
 Gibberish.MonoSynth = function() {  
@@ -4965,7 +4974,7 @@ Gibberish.MonoSynth = function() {
     },
     
 		waveform:		"Saw3",
-/**###Gibberish.Mono.note : method
+/**###Gibberish.MonoSynth.note : method
 param **note or frequency** : String or Integer. You can pass a note name, such as "A#4", or a frequency value, such as 440.
 param **amp** : Optional. Float. The volume of the note, usually between 0..1. The main amp property of the Synth will also affect note amplitude.
 **/				
@@ -5372,10 +5381,11 @@ Gibberish.Sequencer = function() {
     isConnected   : true,
     keysAndValues : null,
     counts        : {},
+    rate          : 1,
     
     tick : function() {
       if(this.isRunning) {
-        if(this.phase === this.nextTime) {
+        if(this.phase >= this.nextTime) {
           if(this.values !== null) {
             if(this.target) {
               var val = this.values[ this.valuesIndex++ ];
@@ -5413,7 +5423,7 @@ Gibberish.Sequencer = function() {
             this.target[this.key]();
           }
           
-          this.phase = 0;
+          this.phase -= this.nextTime;
         
           if(Array.isArray(this.durations)) {
             var next = this.durations[ this.durationsIndex++ ];
@@ -5437,7 +5447,7 @@ Gibberish.Sequencer = function() {
           return;
         }
       
-        this.phase++;
+        this.phase += this.rate;
       }
     },
 

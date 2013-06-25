@@ -88,6 +88,7 @@ Gibberish.PolyKarplusStrong = function() {
       if(this.voiceCount >= this.maxVoices) this.voiceCount = 0;
       synth.note(_frequency, amp);
     },
+    
   });
   
   this.amp = 1 / this.maxVoices;
@@ -95,11 +96,10 @@ Gibberish.PolyKarplusStrong = function() {
   
   this.children = [];
   
-  this.dirty = true;
   for(var i = 0; i < this.maxVoices; i++) {
     var props = {
       blend:   this.blend,
-      damping:    this.damping,
+      damping: this.damping,
       channels: 2,
       amp:      1,
     };
@@ -108,6 +108,8 @@ Gibberish.PolyKarplusStrong = function() {
     this.children.push(synth);
   }
   
+  this.initialized = false
   Gibberish.polyInit(this);
   Gibberish._synth.oscillatorInit.call(this);
+  Gibberish.dirty( this )
 };

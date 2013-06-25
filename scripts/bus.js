@@ -85,7 +85,7 @@ Gibberish.Bus = function() {
         
     properties : {
       inputs :  [],
-      amp :     arguments[1] || 1,
+      amp :     1,
     },
 
     callback : function() {
@@ -103,6 +103,7 @@ Gibberish.Bus = function() {
   });
 
   this.init();
+  this.processProperties(arguments);
   
   return this;
 };
@@ -126,12 +127,12 @@ a.connect();`
 Array. Read-only. Relative volume for the sum of all ugens connected to the bus.
 **/
 Gibberish.Bus2 = function() {
-  this.name = "bus2";
+  this.name = 'bus2';
   this.type = 'bus';
   
   this.properties = {
     inputs :  [],
-    amp :     arguments[1] || 1,
+    amp :     1,
     pan :     0,
   };
   
@@ -155,7 +156,8 @@ Gibberish.Bus2 = function() {
     return panner(output, pan, output);
   };
   
-  this.initialized = false;
-  this.init();
+  //this.initialized = false;
+  this.init( arguments );
+  this.processProperties( arguments );
 };
 Gibberish.Bus2.prototype = Gibberish._bus;

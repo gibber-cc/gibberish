@@ -46,10 +46,11 @@ Gibberish.Sequencer = function() {
     isConnected   : true,
     keysAndValues : null,
     counts        : {},
+    rate          : 1,
     
     tick : function() {
       if(this.isRunning) {
-        if(this.phase === this.nextTime) {
+        if(this.phase >= this.nextTime) {
           if(this.values !== null) {
             if(this.target) {
               var val = this.values[ this.valuesIndex++ ];
@@ -87,7 +88,7 @@ Gibberish.Sequencer = function() {
             this.target[this.key]();
           }
           
-          this.phase = 0;
+          this.phase -= this.nextTime;
         
           if(Array.isArray(this.durations)) {
             var next = this.durations[ this.durationsIndex++ ];
@@ -111,7 +112,7 @@ Gibberish.Sequencer = function() {
           return;
         }
       
-        this.phase++;
+        this.phase += this.rate;
       }
     },
 

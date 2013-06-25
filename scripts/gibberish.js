@@ -459,26 +459,15 @@ Generates output code (as a string) used inside audio callback
               value = property.value;
             }
           }
-                  
-          /*
-          		var v_12 = sine_9(0.2, 50);
-          		var v_16 = sine_13(5, 10);
-          		var v_8 = sine_5((440 + v_12) + v_16), 0.25);
-              var v_4 = bus2_0(v_8, 1, 0);
-          */
-          
-          //s+=value
-          
+
           if(property.binops.length != 0) {
             for( var k = 0; k < property.binops.length; k++) {
-              s += '('
+              s += '(' // all leading parenthesis...
             }
             for(var j = 0; j < property.binops.length; j++) {
-              //if( j!== 0) s += "("
               var op = property.binops[j],
                   val;
                   
-                  console.log(op)
               if( typeof op.ugen === 'number') {
                   val = op.ugen;
               }else{
@@ -496,15 +485,11 @@ Generates output code (as a string) used inside audio callback
                 s += " " + op.binop + " " + val + ")";
               }
               
-              //s += ")"
             }
-            //s+= ")"
           }else{
             s += value
           }
-          
-          
-      
+
           s += ", ";
         }
         

@@ -1,4 +1,4 @@
-/**#Gibberish.Mono - Synth
+/**#Gibberish.MonoSynth - Synth
 A three oscillator monosynth for bass and lead lines. You can set the octave and tuning offsets for oscillators 2 & 3. There is a 24db filter and an envelope controlling
 both the amplitude and filter cutoff.
 ## Example Usage##
@@ -17,40 +17,40 @@ t.note("C3");  `
 ## Constructors
   param **arguments** : Object. A dictionary of property values to set upon initialization. See the properties section and the example usage section for details.
 **/
-/**###Gibberish.Mono.waveform : property
+/**###Gibberish.MonoSynth.waveform : property
 String. The primary oscillator to be used. Can currently be 'Sine', 'Square', 'Noise', 'Triangle' or 'Saw'. 
 **/
-/**###Gibberish.Mono.attack : property
+/**###Gibberish.MonoSynth.attack : property
 Integer. The length, in samples, of the attack of the amplitude envelope.
 **/
-/**###Gibberish.Mono.decay : property
+/**###Gibberish.MonoSynth.decay : property
 Integer. The length, in samples, of the decay of the amplitude envelope.
 **/
-/**###Gibberish.Mono.amp : property
+/**###Gibberish.MonoSynth.amp : property
 Float. The peak amplitude of the synth, usually between 0..1
 **/
-/**###Gibberish.Mono.cutoff : property
+/**###Gibberish.MonoSynth.cutoff : property
 Float. The frequency cutoff for the synth's filter. Range is 0..1.
 **/
-/**###Gibberish.Mono.filterMult : property
+/**###Gibberish.MonoSynth.filterMult : property
 Float. As the envelope on the synth progress, the filter cutoff will also change by this amount * the envelope amount.
 **/
-/**###Gibberish.Mono.resonance : property
+/**###Gibberish.MonoSynth.resonance : property
 Float. The emphasis placed on the filters cutoff frequency. 0..50, however, GOING OVER 5 IS DANGEROUS TO YOUR EARS (ok, maybe 6 is all right...)
 **/
-/**###Gibberish.Mono.octave2 : property
+/**###Gibberish.MonoSynth.octave2 : property
 Integer. The octave difference between oscillator 1 and oscillator 2. Can be positive (higher osc2) or negative (lower osc 2) or 0 (same octave).
 **/
-/**###Gibberish.Mono.detune2 : property
+/**###Gibberish.MonoSynth.detune2 : property
 Float. The amount, from -1..1, the oscillator 2 is detuned. A value of -.5 means osc2 is half an octave lower than osc1. A value of .01 means osc2 is .01 octaves higher than osc1.
 **/
-/**###Gibberish.Mono.octave3 : property
+/**###Gibberish.MonoSynth.octave3 : property
 Integer. The octave difference between oscillator 1 and oscillator 3. Can be positive (higher osc3) or negative (lower osc 3) or 0 (same octave).
 **/
-/**###Gibberish.Mono.detune3 : property
+/**###Gibberish.MonoSynth.detune3 : property
 Float. The amount, from -1..1, the oscillator 3 is detuned. A value of -.5 means osc3 is half an octave lower than osc1. A value of .01 means osc3 is .01 octaves higher than osc1.
 **/
-/**###Gibberish.Mono.glide : property
+/**###Gibberish.MonoSynth.glide : property
 Integer. The length in time, in samples, to slide in pitch from one note to the next.
 **/
 Gibberish.MonoSynth = function() {  
@@ -79,7 +79,7 @@ Gibberish.MonoSynth = function() {
     },
     
 		waveform:		"Saw3",
-/**###Gibberish.Mono.note : method
+/**###Gibberish.MonoSynth.note : method
 param **note or frequency** : String or Integer. You can pass a note name, such as "A#4", or a frequency value, such as 440.
 param **amp** : Optional. Float. The volume of the note, usually between 0..1. The main amp property of the Synth will also affect note amplitude.
 **/				
