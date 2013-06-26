@@ -5311,17 +5311,17 @@ Gibberish.Time = {
   },
   
   ms : function(val) {
-    return Math.round(val * Gibberish.context.sampleRate / 1000);
+    return val * Gibberish.context.sampleRate / 1000;
   },
   
   seconds : function(val) {
-    return Math.round(val * Gibberish.context.sampleRate);
+    return val * Gibberish.context.sampleRate;
   },
   
   beats : function(val) {
     return function() { 
       var samplesPerBeat = Gibberish.context.sampleRate / ( Gibberish.Time.bpm / 60 ) ;
-      return Math.round( samplesPerBeat * val );
+      return samplesPerBeat * val ;
     }
   },
 };
