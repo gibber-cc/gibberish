@@ -30,7 +30,7 @@ b = new Gibberish.Sequencer({ target:a, durations:[11025, 22050], keysAndValues:
 **/
 
 Gibberish.Sequencer = function() {
-  var that,
+  var that = this,
       phase = 0;
   
   Gibberish.extend(this, {
@@ -116,6 +116,7 @@ Gibberish.Sequencer = function() {
       
         phase += rate; //that.rate;
       }
+      return 0;
     },
     
 /**###Gibberish.Sequencer.start : method  
@@ -153,36 +154,35 @@ param **timesToRepeat** number. The number of times to repeat the sequence.
 /**###Gibberish.Sequencer.disconnect : method  
 Each sequencer object has a tick method that is called once per sample. Use the disconnect method to stop the tick method from being called.
 **/     
-    disconnect : function() {
+    /*disconnect : function() {
       var idx = Gibberish.sequencers.indexOf( this );
       Gibberish.sequencers.splice( idx, 1 );
       this.isConnected = false;
-    },
+    },*/
 /**###Gibberish.Sequencer.connect : method  
 Each sequencer object has a tick method that is called once per sample. Use the connect method to start calling the tick method. Note that the connect
 method is called automatically when the sequencer is first created; you should only need to call it again if you call the disconnect method at some point.
 **/    
-    connect : function() {
+    /*connect : function() {
       if( Gibberish.sequencers.indexOf( this ) === -1 ) {
         Gibberish.sequencers.push( this );
       }
-    },
+      Gibberish.dirty( this )
+    },*/
   });
   
-  for(var key in arguments[0]) {
+  /*for(var key in arguments[0]) {
     this[key] = arguments[0][key];
-  }
+  }*/
   
   for(var key in this.keysAndValues) {
     this.counts[key] = 0;
   }
   
-  this.connect();
-  
   this.init( arguments );
-  this.oscillatorInit();
   this.processProperties( arguments );
+  this.oscillatorInit();
   
-  that = this
+  this.connect();
 };
 Gibberish.Sequencer.prototype = Gibberish._oscillator

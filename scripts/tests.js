@@ -855,12 +855,12 @@ window.sampler = function() {
 window['time_modulation(Reich)'] = function() {
   Gibberish.clear();
 
-	a = new Gibberish.Synth({ attack:44, decay:5512, pan:-.75 }).connect();
-	b = new Gibberish.Synth({ attack:44, decay:5512, pan:.75  }).connect();  
+	a = new Gibberish.Synth({ waveform:'Sine', attack:44, decay:5512, pan:-.75 }).connect();
+	b = new Gibberish.Synth({ waveform:'Sine', attack:44, decay:5512, pan:.75  }).connect();  
 
   sequencer_a = new Gibberish.Sequencer({
     target:a, key:'note',
-    values:[ 880 ],
+    values:[ 660 ],
     durations:[ ms(250) ],
   }).start();
 
@@ -868,7 +868,7 @@ window['time_modulation(Reich)'] = function() {
     target:b, key:'note',
     values:[ 440 ],
     durations:[ ms(250) ],
-    rate: Add( 1, new Gibberish.Sine(.0001, .1))
+    rate: Add( 1, new Gibberish.Sine(.001, .1))
   }).start();
   			
 	var inputString = "// two sequencers, one with rate modulation, that\n"+
@@ -879,7 +879,7 @@ window['time_modulation(Reich)'] = function() {
   "\n"+
   "sequencer_a = new Gibberish.Sequencer(\n"+
   "  target:a, key:'note'\n"+
-  "  values:[ 880 ]\n"+
+  "  values:[ 660 ]\n"+
   "  durations:[ ms(250) ]\n"+
   "}).start()\n"+
   "\n"+
@@ -887,7 +887,7 @@ window['time_modulation(Reich)'] = function() {
   "  target:b, key:'note'\n"+
   "  values:[ 440 ]\n"+
   "  durations:[ ms(250) ]\n"+
-  "  rate: Add( 1, new Gibberish.Sine(.0001, .1)\n"+
+  "  rate: Add( 1, new Gibberish.Sine(.001, .1) )\n"+
   "}).start()"
 
 	var input = document.getElementById("input");

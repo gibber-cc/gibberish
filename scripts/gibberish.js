@@ -58,7 +58,9 @@ Gibberish = {
 Perform codegen on all dirty ugens and re-create the audio callback. This method is called automatically in the default Gibberish sample loop whenever Gibberish.isDirty is true.
 **/
   createCallback : function() {
+    //console.log('callback', this.sequencers)
     this.memo = {};
+    
     this.codeblock.length = 0;
     
     /* generate code for dirty ugens */
@@ -365,6 +367,22 @@ Similiar to makePanner, this method returns a function that can be used to linea
     return arr[index] + frac * (arr[index2] - arr[index]);
 	},
   
+  pushUnique : function(item, array) {
+		var obj = item;
+		var shouldAdd = true;
+    
+		for(var j = 0; j < array.length; j++) {
+			if(obj === array[j]) {
+				shouldAdd = false;
+				break;
+			}
+		}
+    
+		if(shouldAdd) {
+			array.push(obj);
+		}
+  },
+  
   export : function(key, obj) {
     for(var _key in Gibberish[key]) {
       //console.log("exporting", _key, "from", key);
@@ -507,7 +525,7 @@ Generates output code (as a string) used inside audio callback
         s += ");\n";
         
         if(this.codeblock === null) {
-          Gibberish.upvalues.pushUnique( 'var ' + this.symbol + ' = Gibberish.functions.' + this.symbol + ';\n');
+          Gibberish.pushUnique( 'var ' + this.symbol + ' = Gibberish.functions.' + this.symbol + ';\n', Gibberish.upvalues );
         }
         
         this.codeblock = s;

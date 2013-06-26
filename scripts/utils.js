@@ -108,22 +108,6 @@ Array2.prototype.add = function() {
 		
 };
 	
-Array.prototype.pushUnique = function() {
-	for(var i = 0; i < arguments.length; i++) {
-		var obj = arguments[i];
-		var shouldAdd = true;
-		for(var j = 0; j < this.length; j++) {
-			if(obj === this[j]) {
-				shouldAdd = false;
-				break;
-			}
-		}
-		if(shouldAdd) {
-			this.push(obj);
-		}
-	}
-};
-
 var rnd = Math.random;
 Gibberish.rndf = function(min, max, number, canRepeat) {
 	canRepeat = typeof canRepeat === "undefined" ? true : canRepeat;

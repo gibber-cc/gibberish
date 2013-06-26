@@ -58,7 +58,9 @@ Gibberish = {
 Perform codegen on all dirty ugens and re-create the audio callback. This method is called automatically in the default Gibberish sample loop whenever Gibberish.isDirty is true.
 **/
   createCallback : function() {
+    //console.log('callback', this.sequencers)
     this.memo = {};
+    
     this.codeblock.length = 0;
     
     /* generate code for dirty ugens */
@@ -365,6 +367,22 @@ Similiar to makePanner, this method returns a function that can be used to linea
     return arr[index] + frac * (arr[index2] - arr[index]);
 	},
   
+  pushUnique : function(item, array) {
+		var obj = item;
+		var shouldAdd = true;
+    
+		for(var j = 0; j < array.length; j++) {
+			if(obj === array[j]) {
+				shouldAdd = false;
+				break;
+			}
+		}
+    
+		if(shouldAdd) {
+			array.push(obj);
+		}
+  },
+  
   export : function(key, obj) {
     for(var _key in Gibberish[key]) {
       //console.log("exporting", _key, "from", key);
@@ -507,7 +525,7 @@ Generates output code (as a string) used inside audio callback
         s += ");\n";
         
         if(this.codeblock === null) {
-          Gibberish.upvalues.pushUnique( 'var ' + this.symbol + ' = Gibberish.functions.' + this.symbol + ';\n');
+          Gibberish.pushUnique( 'var ' + this.symbol + ' = Gibberish.functions.' + this.symbol + ';\n', Gibberish.upvalues );
         }
         
         this.codeblock = s;
@@ -884,22 +902,6 @@ Array2.prototype.add = function() {
 		
 };
 	
-Array.prototype.pushUnique = function() {
-	for(var i = 0; i < arguments.length; i++) {
-		var obj = arguments[i];
-		var shouldAdd = true;
-		for(var j = 0; j < this.length; j++) {
-			if(obj === this[j]) {
-				shouldAdd = false;
-				break;
-			}
-		}
-		if(shouldAdd) {
-			this.push(obj);
-		}
-	}
-};
-
 var rnd = Math.random;
 Gibberish.rndf = function(min, max, number, canRepeat) {
 	canRepeat = typeof canRepeat === "undefined" ? true : canRepeat;
@@ -5355,7 +5357,7 @@ b = new Gibberish.Sequencer({ target:a, durations:[11025, 22050], keysAndValues:
 **/
 
 Gibberish.Sequencer = function() {
-  var that,
+  var that = this,
       phase = 0;
   
   Gibberish.extend(this, {
@@ -5441,6 +5443,7 @@ Gibberish.Sequencer = function() {
       
         phase += rate; //that.rate;
       }
+      return 0;
     },
     
 /**###Gibberish.Sequencer.start : method  
@@ -5478,37 +5481,36 @@ param **timesToRepeat** number. The number of times to repeat the sequence.
 /**###Gibberish.Sequencer.disconnect : method  
 Each sequencer object has a tick method that is called once per sample. Use the disconnect method to stop the tick method from being called.
 **/     
-    disconnect : function() {
+    /*disconnect : function() {
       var idx = Gibberish.sequencers.indexOf( this );
       Gibberish.sequencers.splice( idx, 1 );
       this.isConnected = false;
-    },
+    },*/
 /**###Gibberish.Sequencer.connect : method  
 Each sequencer object has a tick method that is called once per sample. Use the connect method to start calling the tick method. Note that the connect
 method is called automatically when the sequencer is first created; you should only need to call it again if you call the disconnect method at some point.
 **/    
-    connect : function() {
+    /*connect : function() {
       if( Gibberish.sequencers.indexOf( this ) === -1 ) {
         Gibberish.sequencers.push( this );
       }
-    },
+      Gibberish.dirty( this )
+    },*/
   });
   
-  for(var key in arguments[0]) {
+  /*for(var key in arguments[0]) {
     this[key] = arguments[0][key];
-  }
+  }*/
   
   for(var key in this.keysAndValues) {
     this.counts[key] = 0;
   }
   
-  this.connect();
-  
   this.init( arguments );
-  this.oscillatorInit();
   this.processProperties( arguments );
+  this.oscillatorInit();
   
-  that = this
+  this.connect();
 };
 Gibberish.Sequencer.prototype = Gibberish._oscillator
 var _hasInput = false; // wait until requested to ask for permissions so annoying popup doesn't appear automatically
