@@ -265,6 +265,7 @@ Gibberish.Synth2 = function(properties) {
     amp:		  .25,
     channels: 1,
 	  pan:		  0,
+    sr:       Gibberish.context.sampleRate,
   };
 /**###Gibberish.Synth2.note : method  
 Generate an enveloped note at the provided frequency  
@@ -275,11 +276,9 @@ param **amp** Number. Optional. The volume to use.
 	this.note = function(frequency, amp) {
 		if(typeof this.frequency !== 'object'){
       this.frequency = frequency;
-      _frequency = frequency;
     }else{
       this.frequency[0] = frequency;
-      _frequency = frequency;
-      Gibberish.dirty(this);
+      Gibberish.dirty(this);      
     }
 					
 		if(typeof amp !== 'undefined') this.amp = amp;
@@ -298,14 +297,14 @@ param **amp** Number. Optional. The volume to use.
     	panner      = Gibberish.makePanner(),
     	out         = [0,0];
 
-  this.callback = function(frequency, pulsewidth, attack, decay, cutoff, resonance, isLowPass, glide, amp, channels, pan) {
+  this.callback = function(frequency, pulsewidth, attack, decay, cutoff, resonance, isLowPass, glide, amp, channels, pan, sr) {
     //sample, cutoff, resonance, isLowPass
 		if(envstate() < 2) {
       glide = glide >= 1 ? .99999 : glide;
       frequency = lag(frequency, 1-glide, glide);
       
 			var env = envelope(attack, decay);
-			var val = filter ( osc( frequency, .15, pulsewidth ), cutoff * env, resonance, isLowPass ) * env * amp;
+			var val = filter ( osc( frequency, .15, pulsewidth, sr ), cutoff * env, resonance, isLowPass ) * env * amp;
 
 			out[0] = out[1] = val;
       

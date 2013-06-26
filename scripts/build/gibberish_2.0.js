@@ -618,14 +618,16 @@ param **value** : Any. The initival value to set the property to
           
         (function(obj) {
           var _key = key;
-          Object.defineProperty(obj, _key, {
-            configurable: true,
-            get: function() 	 { return obj.properties[_key].value },
-            set: function(val) { 
-              obj.properties[_key].value = val;
-              Gibberish.dirty(obj);
-            },
-          });
+          try{
+            Object.defineProperty(obj, _key, {
+              configurable: true,
+              get: function() 	 { return obj.properties[_key].value },
+              set: function(val) { 
+                obj.properties[_key].value = val;
+                Gibberish.dirty(obj);
+              },
+            });
+          }catch(e){  }
         })(this);
       },
 /**###Ugen.init : method
@@ -2476,7 +2478,7 @@ Gibberish.Delay = function() {
       
   		var _phase = phase++ % 88200;
       
-  		var delayPos = (_phase + time) % 88200;
+  		var delayPos = (_phase + (time | 0)) % 88200;
       if(channels === 1) {
   			buffers[0][delayPos] =  (sample + buffers[0][_phase]) * feedback;
         sample += buffers[0][_phase];
@@ -2489,9 +2491,17 @@ Gibberish.Delay = function() {
       
   		return sample;
   	},
-  })
-  .init()
-  .processProperties(arguments);
+  });
+  
+  var time = Math.round( this.properties.time );
+  Object.defineProperty(this, 'time', {
+    get: function() { return time; },
+    set: function(v) { time = Math.round(v); Gibberish.dirty( this ) }
+  });
+  
+  this.init();
+  this.processProperties(arguments);
+  
 };
 Gibberish.Delay.prototype = Gibberish._effect;
 
@@ -3908,6 +3918,7 @@ Gibberish.Synth2 = function(properties) {
     amp:		  .25,
     channels: 1,
 	  pan:		  0,
+    sr:       Gibberish.context.sampleRate,
   };
 /**###Gibberish.Synth2.note : method  
 Generate an enveloped note at the provided frequency  
@@ -3918,11 +3929,9 @@ param **amp** Number. Optional. The volume to use.
 	this.note = function(frequency, amp) {
 		if(typeof this.frequency !== 'object'){
       this.frequency = frequency;
-      _frequency = frequency;
     }else{
       this.frequency[0] = frequency;
-      _frequency = frequency;
-      Gibberish.dirty(this);
+      Gibberish.dirty(this);      
     }
 					
 		if(typeof amp !== 'undefined') this.amp = amp;
@@ -3941,14 +3950,14 @@ param **amp** Number. Optional. The volume to use.
     	panner      = Gibberish.makePanner(),
     	out         = [0,0];
 
-  this.callback = function(frequency, pulsewidth, attack, decay, cutoff, resonance, isLowPass, glide, amp, channels, pan) {
+  this.callback = function(frequency, pulsewidth, attack, decay, cutoff, resonance, isLowPass, glide, amp, channels, pan, sr) {
     //sample, cutoff, resonance, isLowPass
 		if(envstate() < 2) {
       glide = glide >= 1 ? .99999 : glide;
       frequency = lag(frequency, 1-glide, glide);
       
 			var env = envelope(attack, decay);
-			var val = filter ( osc( frequency, .15, pulsewidth ), cutoff * env, resonance, isLowPass ) * env * amp;
+			var val = filter ( osc( frequency, .15, pulsewidth, sr ), cutoff * env, resonance, isLowPass ) * env * amp;
 
 			out[0] = out[1] = val;
       
@@ -5498,16 +5507,13 @@ method is called automatically when the sequencer is first created; you should o
     },*/
   });
   
-  /*for(var key in arguments[0]) {
-    this[key] = arguments[0][key];
-  }*/
+  this.init( arguments );
+  this.processProperties( arguments );
   
   for(var key in this.keysAndValues) {
     this.counts[key] = 0;
   }
   
-  this.init( arguments );
-  this.processProperties( arguments );
   this.oscillatorInit();
   
   this.connect();

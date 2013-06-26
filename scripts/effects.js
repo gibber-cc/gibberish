@@ -86,7 +86,7 @@ Gibberish.Delay = function() {
       
   		var _phase = phase++ % 88200;
       
-  		var delayPos = (_phase + time) % 88200;
+  		var delayPos = (_phase + (time | 0)) % 88200;
       if(channels === 1) {
   			buffers[0][delayPos] =  (sample + buffers[0][_phase]) * feedback;
         sample += buffers[0][_phase];
@@ -99,9 +99,17 @@ Gibberish.Delay = function() {
       
   		return sample;
   	},
-  })
-  .init()
-  .processProperties(arguments);
+  });
+  
+  var time = Math.round( this.properties.time );
+  Object.defineProperty(this, 'time', {
+    get: function() { return time; },
+    set: function(v) { time = Math.round(v); Gibberish.dirty( this ) }
+  });
+  
+  this.init();
+  this.processProperties(arguments);
+  
 };
 Gibberish.Delay.prototype = Gibberish._effect;
 

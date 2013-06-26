@@ -618,14 +618,16 @@ param **value** : Any. The initival value to set the property to
           
         (function(obj) {
           var _key = key;
-          Object.defineProperty(obj, _key, {
-            configurable: true,
-            get: function() 	 { return obj.properties[_key].value },
-            set: function(val) { 
-              obj.properties[_key].value = val;
-              Gibberish.dirty(obj);
-            },
-          });
+          try{
+            Object.defineProperty(obj, _key, {
+              configurable: true,
+              get: function() 	 { return obj.properties[_key].value },
+              set: function(val) { 
+                obj.properties[_key].value = val;
+                Gibberish.dirty(obj);
+              },
+            });
+          }catch(e){  }
         })(this);
       },
 /**###Ugen.init : method

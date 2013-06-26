@@ -171,16 +171,13 @@ method is called automatically when the sequencer is first created; you should o
     },*/
   });
   
-  /*for(var key in arguments[0]) {
-    this[key] = arguments[0][key];
-  }*/
+  this.init( arguments );
+  this.processProperties( arguments );
   
   for(var key in this.keysAndValues) {
     this.counts[key] = 0;
   }
   
-  this.init( arguments );
-  this.processProperties( arguments );
   this.oscillatorInit();
   
   this.connect();
