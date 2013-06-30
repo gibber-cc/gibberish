@@ -48,6 +48,7 @@ Gibberish.Sequencer2 = function() {
     keysAndValues : null,
     counts        : {},
     properties    : { rate: 1, isRunning:false, nextTime:0 },
+    offset        : 0,
     name          : 'seq',
     
     callback : function(rate, isRunning, nextTime) {
@@ -179,6 +180,8 @@ method is called automatically when the sequencer is first created; you should o
   }
   
   this.oscillatorInit();
+  
+  phase += this.offset
   
   this.connect();
 };

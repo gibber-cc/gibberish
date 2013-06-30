@@ -46,6 +46,7 @@ Gibberish.Sequencer = function() {
     isConnected   : true,
     keysAndValues : null,
     counts        : {},
+    offset        : 0,
     name          : 'seq',
     
     tick : function() {
@@ -123,7 +124,7 @@ param **shouldKeepOffset** boolean, default false. If true, the phase of the seq
 **/     
     start : function(shouldKeepOffset) {
       if(!shouldKeepOffset) {
-        this.phase = 0;
+        this.phase = this.offset;
       }
       
       this.isRunning = true;
@@ -176,6 +177,8 @@ method is called automatically when the sequencer is first created; you should o
   }
   
   this.connect();
+  
+  this.phase += this.offset
   
   //this.init( arguments );
   //this.oscillatorInit();
