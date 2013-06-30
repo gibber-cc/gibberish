@@ -29,7 +29,7 @@ b = new Gibberish.Sequencer({ target:a, durations:[11025, 22050], keysAndValues:
 `
 **/
 
-Gibberish.Sequencer = function() {
+Gibberish.Sequencer2 = function() {
   var that = this,
       phase = 0;
   
@@ -111,7 +111,7 @@ Gibberish.Sequencer = function() {
             }
           }
           
-          return;
+          return 0;
         }
       
         phase += rate; //that.rate;
@@ -182,4 +182,4 @@ method is called automatically when the sequencer is first created; you should o
   
   this.connect();
 };
-Gibberish.Sequencer.prototype = Gibberish._oscillator
+Gibberish.Sequencer2.prototype = Gibberish._oscillator

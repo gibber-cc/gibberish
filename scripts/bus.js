@@ -79,7 +79,7 @@ Gibberish.bus = function(){
 Gibberish.bus.prototype = new Gibberish.ugen();
 Gibberish._bus = new Gibberish.bus();
 
-Gibberish.Bus = function() {  
+Gibberish.Bus = function() {
   Gibberish.extend(this, {
     name : 'bus',
         
@@ -137,7 +137,9 @@ Gibberish.Bus2 = function() {
   };
   
   var output = [0,0],
-      panner = Gibberish.makePanner();
+      panner = Gibberish.makePanner(),
+      args = null,
+      phase = 0;
   
   this.callback = function() {    
     var amp = arguments[arguments.length - 2]; // use arguments to accommodate arbitray number of inputs without using array
@@ -145,6 +147,8 @@ Gibberish.Bus2 = function() {
     
     output[0] = output[1] = 0;
     
+    args = arguments
+    //if(phase++ % 44100 === 0) console.log(arguments)
     for(var i = 0; i < arguments.length - 2; i++) {
       var isObject = typeof arguments[i] === 'object';
       output[0] += isObject ? arguments[i][0] : arguments[i];
@@ -153,8 +157,14 @@ Gibberish.Bus2 = function() {
     
     output[0] *= amp;
     output[1] *= amp;
-    return panner(output, pan, output);
+    
+    //if(output[0] > 2 ) console.log("WHOA", output[0])
+    return output //panner(output, pan, output);
   };
+  
+  this.show = function() { console.log(output, args) }
+  this.getOutput = function() { return output }
+  this.getArgs = function() { return args }
   
   //this.initialized = false;
   this.init( arguments );

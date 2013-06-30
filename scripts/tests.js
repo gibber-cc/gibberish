@@ -12,10 +12,10 @@ window.routingTest = function() {
   
   filter = new Gibberish.Filter24( bus1 ).connect();
   
-  ssd = new Gibberish.SingleSampleDelay( filter );
+  ssd = new Gibberish.SingleSampleDelay( filter, .1 );
   ssd.connect(bus1);
   
-  ssd2 = new Gibberish.SingleSampleDelay( Gibberish.out );
+  ssd2 = new Gibberish.SingleSampleDelay( Gibberish.out, .1 );
   ssd2.connect( bus1 );
   
   bus2 = new Gibberish.Bus2({ amp:.5 });
@@ -855,35 +855,36 @@ window.sampler = function() {
 window['time_modulation(Reich)'] = function() {
   Gibberish.clear();
 
-	a = new Gibberish.Synth({ waveform:'Sine', attack:44, decay:5512, pan:-.75 }).connect();
-	b = new Gibberish.Synth({ waveform:'Sine', attack:44, decay:5512, pan:.75  }).connect();  
+	a = new Gibberish.Synth({ waveform:'Sine', attack:340, decay:5512, pan:-.5, amp:.25 }).connect();
+	b = new Gibberish.Synth({ waveform:'Sine', attack:340, decay:5512, pan:.5, amp:.25  }).connect();  
 
-  sequencer_a = new Gibberish.Sequencer({
+  sequencer_a = new Gibberish.Sequencer2({
     target:a, key:'note',
     values:[ 660 ],
-    durations:[ ms(250) ],
+    durations:[ ms(350) ],
   }).start();
 
-  sequencer_b = new Gibberish.Sequencer({
+  sequencer_b = new Gibberish.Sequencer2({
     target:b, key:'note',
     values:[ 440 ],
-    durations:[ ms(250) ],
+    durations:[ ms(350) ],
     rate: Add( 1, new Gibberish.Sine(.001, .1))
   }).start();
   			
 	var inputString = "// two sequencers, one with rate modulation, that\n"+
-  "// gradually go in and out of phase with each other\n"+
+  "// gradually go in and out of phase with each other. The Sequencer2 object\n"+
+  "// allows audio rate modulation of sequencer speed.\n"+
   "\n"+  
 	"a = new Gibberish.Synth({ attack:44, decay:5512, pan:-.75 }).connect()\n"+
 	"b = new Gibberish.Synth({ attack:44, decay:5512, pan:.75  }).connect(); \n"+
   "\n"+
-  "sequencer_a = new Gibberish.Sequencer(\n"+
+  "sequencer_a = new Gibberish.Sequencer2(\n"+
   "  target:a, key:'note'\n"+
   "  values:[ 660 ]\n"+
   "  durations:[ ms(250) ]\n"+
   "}).start()\n"+
   "\n"+
-  "sequencer_b = new Gibberish.Sequencer(\n"+
+  "sequencer_b = new Gibberish.Sequencer2(\n"+
   "  target:b, key:'note'\n"+
   "  values:[ 440 ]\n"+
   "  durations:[ ms(250) ]\n"+

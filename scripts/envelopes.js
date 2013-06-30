@@ -75,8 +75,8 @@ Gibberish.AD = function(_attack, _decay) {
   		return this;			
     },
   	callback : function(attack,decay) {
-  		attack = attack < 0 ? _4 : attack;
-  		decay  = decay  < 0 ? _4 : decay;				
+  		attack = attack < 0 ? 22050 : attack;
+  		decay  = decay  < 0 ? 22050 : decay;				
   		if(state === 0){
   			var incr = 1 / attack;
   			phase += incr;

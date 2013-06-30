@@ -136,20 +136,26 @@ Gibberish.SingleSampleDelay = function() {
     amp   : arguments[1] || 1,
   };
   
-  var value = 0;
+  var value = 0,
+      phase = 0;
   
   this.analysisCallback = function(input, amp) {
-    if(typeof input === 'object') {
+    /*if(typeof input === 'object') {
       value = typeof input === 'object' ? [input[0] * amp, input[1] * amp ] : input * amp;
     }else{
       value = input * amp;
-    }
+    }*/
+    value = input
+    //if(phase++ % 44100 === 0) console.log(value, input, amp)
   };
   
   this.callback = function() {
+    //if(phase % 44100 === 0) console.log(value)
+    
     return value;
   };
-    
+  
+  this.getValue = function() { return value }
   this.init();
   this.analysisInit();
 };

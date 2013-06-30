@@ -76,10 +76,10 @@ Perform codegen on all dirty ugens and re-create the audio callback. This method
     /* concatenate code for all ugens */
     this.memo = {};
     
-    for(var j = 0; j < this.sequencers.length; j++) {
+    //for(var j = 0; j < this.sequencers2.length; j++) {
       //console.log("getting codeblock", j)
-      this.sequencers[j].getCodeblock();
-    }
+      //this.sequencers2[j].getCodeblock();
+    //}
     
     //console.log(this.codeblock)
     
@@ -128,7 +128,7 @@ param **Audio Event** : Object. The HTML5 audio event object.
 
 		for(var i = 0, _bl = e.outputBuffer.length; i < _bl; i++){
       
-      //for(var j = 0; j < sequencers.length; j++) { sequencers[j].tick(); }
+      for(var j = 0; j < sequencers.length; j++) { sequencers[j].tick(); }
       
       if(me.isDirty) {
         me.createCallback();
@@ -1869,7 +1869,7 @@ Gibberish.bus = function(){
 Gibberish.bus.prototype = new Gibberish.ugen();
 Gibberish._bus = new Gibberish.bus();
 
-Gibberish.Bus = function() {  
+Gibberish.Bus = function() {
   Gibberish.extend(this, {
     name : 'bus',
         
@@ -1927,7 +1927,9 @@ Gibberish.Bus2 = function() {
   };
   
   var output = [0,0],
-      panner = Gibberish.makePanner();
+      panner = Gibberish.makePanner(),
+      args = null,
+      phase = 0;
   
   this.callback = function() {    
     var amp = arguments[arguments.length - 2]; // use arguments to accommodate arbitray number of inputs without using array
@@ -1935,6 +1937,8 @@ Gibberish.Bus2 = function() {
     
     output[0] = output[1] = 0;
     
+    args = arguments
+    //if(phase++ % 44100 === 0) console.log(arguments)
     for(var i = 0; i < arguments.length - 2; i++) {
       var isObject = typeof arguments[i] === 'object';
       output[0] += isObject ? arguments[i][0] : arguments[i];
@@ -1943,8 +1947,14 @@ Gibberish.Bus2 = function() {
     
     output[0] *= amp;
     output[1] *= amp;
-    return panner(output, pan, output);
+    
+    //if(output[0] > 2 ) console.log("WHOA", output[0])
+    return output //panner(output, pan, output);
   };
+  
+  this.show = function() { console.log(output, args) }
+  this.getOutput = function() { return output }
+  this.getArgs = function() { return args }
   
   //this.initialized = false;
   this.init( arguments );
@@ -2028,8 +2038,8 @@ Gibberish.AD = function(_attack, _decay) {
   		return this;			
     },
   	callback : function(attack,decay) {
-  		attack = attack < 0 ? _4 : attack;
-  		decay  = decay  < 0 ? _4 : decay;				
+  		attack = attack < 0 ? 22050 : attack;
+  		decay  = decay  < 0 ? 22050 : decay;				
   		if(state === 0){
   			var incr = 1 / attack;
   			phase += incr;
@@ -2312,20 +2322,26 @@ Gibberish.SingleSampleDelay = function() {
     amp   : arguments[1] || 1,
   };
   
-  var value = 0;
+  var value = 0,
+      phase = 0;
   
   this.analysisCallback = function(input, amp) {
-    if(typeof input === 'object') {
+    /*if(typeof input === 'object') {
       value = typeof input === 'object' ? [input[0] * amp, input[1] * amp ] : input * amp;
     }else{
       value = input * amp;
-    }
+    }*/
+    value = input
+    //if(phase++ % 44100 === 0) console.log(value, input, amp)
   };
   
   this.callback = function() {
+    //if(phase % 44100 === 0) console.log(value)
+    
     return value;
   };
-    
+  
+  this.getValue = function() { return value }
   this.init();
   this.analysisInit();
 };
@@ -5365,7 +5381,7 @@ b = new Gibberish.Sequencer({ target:a, durations:[11025, 22050], keysAndValues:
 `
 **/
 
-Gibberish.Sequencer = function() {
+Gibberish.Sequencer2 = function() {
   var that = this,
       phase = 0;
   
@@ -5447,7 +5463,7 @@ Gibberish.Sequencer = function() {
             }
           }
           
-          return;
+          return 0;
         }
       
         phase += rate; //that.rate;
@@ -5517,6 +5533,190 @@ method is called automatically when the sequencer is first created; you should o
   this.oscillatorInit();
   
   this.connect();
+};
+Gibberish.Sequencer2.prototype = Gibberish._oscillator
+/**#Gibberish.Sequencer - Miscellaneous
+A sample-accurate sequencer that can sequence changes to properties, method calls or anonymous function calls.
+  
+## Example Usage##
+`Gibberish.init();  
+a = new Gibberish.Synth({ attack:44, decay:44100 }).connect();  
+b = new Gibberish.Sequencer({ target:a, key:'note', durations:[11025, 22050], values:[440, 880] }).start()
+`  
+## Constructor   
+**param** *properties*: Object. A dictionary of property values (see below) to set for the sequencer on initialization.
+- - - -
+**/
+/**###Gibberish.Sequencer.target : property  
+Object. An object for the sequencer to control. May be null if you are sequencing anonymous functions.
+**/
+/**###Gibberish.Sequencer.key : property  
+String. The name of the method or property you would like to sequnce on the Sequencer's target object.
+**/
+/**###Gibberish.Sequencer.durations : property  
+Array. The number of samples between each advancement of the Sequencer. Once the Sequencer arrives at the end of this list, it loops back to the beginning
+**/
+/**###Gibberish.Sequencer.keysAndValues : property  
+Object. A dictionary holding a set of values to be sequenced. The keys of the dictionary determine which methods and properties to sequence on the Sequencer's target object and
+each key has an array of values representing the sequence for that key.
+  
+`Gibberish.init();  
+a = new Gibberish.Synth({ attack:44, decay:44100 }).connect();  
+b = new Gibberish.Sequencer({ target:a, durations:[11025, 22050], keysAndValues:{ 'note':[440,880], 'amp':[.2,.4] } }).start()
+`
+**/
+
+Gibberish.Sequencer = function() {  
+  Gibberish.extend(this, {
+    target        : null,
+    key           : null,
+    values        : null,
+    valuesIndex   : 0,
+    durations     : null,
+    durationsIndex: 0,
+    nextTime      : 0,
+    phase         : 0,
+    isRunning     : false,
+    playOnce      : false,
+    repeatCount   : 0,
+    repeatTarget  : null,
+    isConnected   : true,
+    keysAndValues : null,
+    counts        : {},
+    name          : 'seq',
+    
+    tick : function() {
+      if(this.isRunning) {
+        if(this.phase >= this.nextTime) {
+          if(this.values !== null) {
+            if(this.target) {
+              var val = this.values[ this.valuesIndex++ ];
+              
+              if(typeof val === 'function') { val = val(); }
+              
+              if(typeof this.target[this.key] === 'function') {
+                this.target[this.key]( val );
+              }else{
+                this.target[this.key] = val;
+              }
+            }else{
+              if(typeof this.values[ this.valuesIndex ] === 'function') {
+                this.values[ this.valuesIndex++ ]();
+              }
+            }
+            if(this.valuesIndex >= this.values.length) this.valuesIndex = 0;
+          }else if(this.keysAndValues !== null) {
+            for(var key in this.keysAndValues) {
+              var index = this.counts[key]++;
+              var val = this.keysAndValues[key][index];
+              
+              if(typeof val === 'function') { val = val(); }
+              
+              if(typeof this.target[key] === 'function') {
+                this.target[key]( val );
+              }else{
+                this.target[key] = val;
+              }
+              if(this.counts[key] >= this.keysAndValues[key].length) {
+                this.counts[key] = 0;
+              }
+            }
+          }else if(typeof this.target[this.key] === 'function') {
+            this.target[this.key]();
+          }
+          
+          this.phase -= this.nextTime;
+        
+          if(Array.isArray(this.durations)) {
+            var next = this.durations[ this.durationsIndex++ ];
+            this.nextTime = typeof next === 'function' ? next() : next;
+            if( this.durationsIndex >= this.durations.length) {
+              this.durationsIndex = 0;
+            }
+          }else{
+            var next = this.durations;
+            this.nextTime = typeof next === 'function' ? next() : next;
+          }
+          
+          if(this.repeatTarget) {
+            this.repeatCount++;
+            if(this.repeatCount === this.repeatTarget) {
+              this.isRunning = false;
+              this.repeatCount = 0;
+            }
+          }
+          
+          return;
+        }
+      
+        this.phase++
+      }
+    },
+
+/**###Gibberish.Sequencer.start : method  
+Start the sequencer running.
+
+param **shouldKeepOffset** boolean, default false. If true, the phase of the sequencer will not be reset when calling the start method.
+**/     
+    start : function(shouldKeepOffset) {
+      if(!shouldKeepOffset) {
+        this.phase = 0;
+      }
+      
+      this.isRunning = true;
+      return this;
+    },
+
+/**###Gibberish.Sequencer.stop : method  
+Stop the sequencer.
+**/     
+    stop: function() {
+      this.isRunning = false;
+      return this;
+    },
+    
+/**###Gibberish.Sequencer.repeat : method  
+Play the sequencer a certain number of times and then stop it.
+
+param **timesToRepeat** number. The number of times to repeat the sequence.
+**/        
+    repeat : function(times) {
+      this.repeatTarget = times;
+      return this;
+    },
+
+/**###Gibberish.Sequencer.disconnect : method  
+Each sequencer object has a tick method that is called once per sample. Use the disconnect method to stop the tick method from being called.
+**/     
+    disconnect : function() {
+      var idx = Gibberish.sequencers.indexOf( this );
+      Gibberish.sequencers.splice( idx, 1 );
+      this.isConnected = false;
+    },
+/**###Gibberish.Sequencer.connect : method  
+Each sequencer object has a tick method that is called once per sample. Use the connect method to start calling the tick method. Note that the connect
+method is called automatically when the sequencer is first created; you should only need to call it again if you call the disconnect method at some point.
+**/    
+    connect : function() {
+      if( Gibberish.sequencers.indexOf( this ) === -1 ) {
+        Gibberish.sequencers.push( this );
+      }
+    },
+  });
+  
+  for(var key in arguments[0]) {
+    this[key] = arguments[0][key];
+  }
+  
+  for(var key in this.keysAndValues) {
+    this.counts[key] = 0;
+  }
+  
+  this.connect();
+  
+  //this.init( arguments );
+  //this.oscillatorInit();
+  //this.processProperties( arguments );
 };
 Gibberish.Sequencer.prototype = Gibberish._oscillator
 var _hasInput = false; // wait until requested to ask for permissions so annoying popup doesn't appear automatically
