@@ -797,6 +797,11 @@ Disconnect a ugen from a bus (or all busses). This stops all audio and signal pr
 param **bus** : Bus ugen. Optional. The bus to send the ugen to. If this argument is undefined the ugen will be disconnected from all busses.
 **/      
       disconnect : function(bus) {
+        var idx = Gibberish.callbackArgs.indexOf( this.symbol )
+        
+        Gibberish.callbackArgs.splice(idx, 1)
+        Gibberish.callbackObjects.splice(idx - 1, 1) // must account for input object
+        
         if(typeof bus === 'undefined') {
           for(var i = 0; i < this.destinations.length; i++) {
             this.destinations[i].removeConnection( this );
@@ -809,6 +814,7 @@ param **bus** : Bus ugen. Optional. The bus to send the ugen to. If this argumen
           }
           bus.removeConnection( this );
         }
+        
         return this;
       },
     });
