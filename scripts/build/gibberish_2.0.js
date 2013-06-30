@@ -53,7 +53,7 @@ Gibberish = {
   callback          : '',
   audioFiles        : {},
   sequencers        : [],
-  callbackArgs      : [],
+  callbackArgs      : ['input'],
   callbackObjects   : [],
   
 /**###Gibberish.createCallback : method
@@ -118,7 +118,7 @@ Perform codegen on all dirty ugens and re-create the audio callback. This method
     this.callbackString = this.codestring;
     if( this.debug ) console.log( this.callbackString );
     
-    eval(this.codestring);    
+    return eval(this.codestring);    
   },
 
 /**###Gibberish.audioProcess : method
@@ -127,28 +127,30 @@ The default audio callback used in Webkit browsers. This callback starts running
 param **Audio Event** : Object. The HTML5 audio event object.
 **/ 
   audioProcess : function(e){
-    //console.log("AUDIO PROCESS");
 		var bufferL = e.outputBuffer.getChannelData(0),
 		    bufferR = e.outputBuffer.getChannelData(1),	
 		    input = e.inputBuffer.getChannelData(0),
         me = Gibberish,
+        callback = me.callback,
         sequencers = me.sequencers,
         out = Gibberish.out.callback,
-        objs = me.callbackObjects
+        objs = me.callbackObjects.slice(0)
+
+        objs.unshift(0)
         
-        //callbackArray = //me.callbackObjects
-    
 		for(var i = 0, _bl = e.outputBuffer.length; i < _bl; i++){
       
       for(var j = 0; j < sequencers.length; j++) { sequencers[j].tick(); }
       
       if(me.isDirty) {
-        me.createCallback();
+        callback = me.createCallback();
         me.isDirty = false;
+        objs = me.callbackObjects.slice(0)
+        objs.unshift(0)
       }
-
-			//var val = me.callback.apply( input[i], out );
-      var val = me.callback.apply( null, objs );
+      
+      objs[0] = input[i]
+      val = callback.apply( null, objs );
       
 			bufferL[i] = val[0];
 			bufferR[i] = val[1];      
@@ -160,18 +162,24 @@ The default audio callback used in Firefox. This callback starts running as soon
 param **Sound Data** : Object. The buffer of audio data to be filled
 **/   
   audioProcessFirefox : function(soundData) { // callback for firefox
-    var me = Gibberish;
-    
+    var me = Gibberish,
+        callback = me.callback,
+        sequencers = me.sequencers,
+        objs = me.callbackObjects.slice(0)
+        
+    objs.unshift(0)
     for (var i=0, size=soundData.length; i<size; i+=2) {
       
-      for(var j = 0; j < me.sequencers.length; j++) { me.sequencers[j].tick(); }
+      for(var j = 0; j < sequencers.length; j++) { sequencers[j].tick(); }
       
       if(me.isDirty) {
-        me.createCallback();
+        callback = me.createCallback();
         me.isDirty = false;
+        objs = me.callbackObjects.slice(0)
+        objs.unshift(0)       
       }      
       
-			var val = me.callback();
+			var val = callback.apply(null, objs);
       
 			soundData[i] = val[0];
       soundData[i+1] = val[1];
@@ -186,7 +194,7 @@ Remove all objects from Gibberish graph and perform codegen... kills all running
     this.analysisUgens.length = 0;
     this.sequencers.length = 0;
     
-    this.callbackArgs.length = 1
+    this.callbackArgs.length = 2
     this.callbackObjects.length = 1
     
     Gibberish.dirty(this.out);
