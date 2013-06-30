@@ -53,6 +53,8 @@ Gibberish = {
   callback          : '',
   audioFiles        : {},
   sequencers        : [],
+  callbackArgs      : [],
+  callbackObjects   : [],
   
 /**###Gibberish.createCallback : method
 Perform codegen on all dirty ugens and re-create the audio callback. This method is called automatically in the default Gibberish sample loop whenever Gibberish.isDirty is true.
@@ -60,6 +62,8 @@ Perform codegen on all dirty ugens and re-create the audio callback. This method
   createCallback : function() {
     //console.log('callback', this.sequencers)
     this.memo = {};
+    this.callbackArgs.length = 1
+    this.callbackObjects.length = 1
     
     this.codeblock.length = 0;
     
@@ -71,7 +75,14 @@ Perform codegen on all dirty ugens and re-create the audio callback. This method
     
     this.codestring = this.upvalues.join("");
     
-    this.codestring += '\nGibberish.callback = function(input, bus2_0) {\n\t';
+    this.codestring += '\nGibberish.callback = function('
+    
+    for(var i = 0; i < this.callbackArgs.length; i++) {
+      this.codestring += this.callbackArgs[i]
+      if(i < this.callbackArgs.length - 1)
+        this.codestring += ', '
+    }
+    this.codestring += '){\n\t';
 
     /* concatenate code for all ugens */
     this.memo = {};
@@ -119,13 +130,16 @@ param **Audio Event** : Object. The HTML5 audio event object.
 **/ 
   audioProcess : function(e){
     //console.log("AUDIO PROCESS");
-		var bufferL = e.outputBuffer.getChannelData(0);
-		var bufferR = e.outputBuffer.getChannelData(1);	
-		var input = e.inputBuffer.getChannelData(0);
-		
-    var me = Gibberish; // dereference for efficiency
-    var sequencers = me.sequencers
-    var out = Gibberish.out.callback
+		var bufferL = e.outputBuffer.getChannelData(0),
+		    bufferR = e.outputBuffer.getChannelData(1),	
+		    input = e.inputBuffer.getChannelData(0),
+        me = Gibberish,
+        sequencers = me.sequencers,
+        out = Gibberish.out.callback,
+        objs = me.callbackObjects
+        
+        //callbackArray = //me.callbackObjects
+    
 		for(var i = 0, _bl = e.outputBuffer.length; i < _bl; i++){
       
       for(var j = 0; j < sequencers.length; j++) { sequencers[j].tick(); }
@@ -135,7 +149,8 @@ param **Audio Event** : Object. The HTML5 audio event object.
         me.isDirty = false;
       }
 
-			var val = me.callback( input[i], out );
+			//var val = me.callback.apply( input[i], out );
+      var val = me.callback.apply( null, objs );
       
 			bufferL[i] = val[0];
 			bufferR[i] = val[1];      
@@ -526,6 +541,8 @@ Generates output code (as a string) used inside audio callback
         
         if(this.codeblock === null) {
           Gibberish.pushUnique( 'var ' + this.symbol + ' = Gibberish.functions.' + this.symbol + ';\n', Gibberish.upvalues );
+          Gibberish.callbackArgs.push( this.symbol )
+          Gibberish.callbackObjects.push( this.callback )
         }
         
         this.codeblock = s;
