@@ -62,8 +62,6 @@ Perform codegen on all dirty ugens and re-create the audio callback. This method
   createCallback : function() {
     //console.log('callback', this.sequencers)
     this.memo = {};
-    this.callbackArgs.length = 1
-    this.callbackObjects.length = 1
     
     this.codeblock.length = 0;
     
@@ -73,7 +71,7 @@ Perform codegen on all dirty ugens and re-create the audio callback. This method
     }
     this.dirtied.length = 0;
     
-    this.codestring = this.upvalues.join("");
+    this.codestring = ''//this.upvalues.join("");
     
     this.codestring += '\nGibberish.callback = function('
     
@@ -187,6 +185,10 @@ Remove all objects from Gibberish graph and perform codegen... kills all running
     this.out.inputs.length = 0;
     this.analysisUgens.length = 0;
     this.sequencers.length = 0;
+    
+    this.callbackArgs.length = 1
+    this.callbackObjects.length = 1
+    
     Gibberish.dirty(this.out);
   },
 
