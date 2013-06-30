@@ -248,6 +248,7 @@ Gibberish.future = function(func, time) {
       function() {
         func();
         seq.stop();
+        seq.disconnect();
       }
     ],
     durations:[ time ]

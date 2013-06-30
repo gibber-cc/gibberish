@@ -76,6 +76,7 @@ Gibberish.bus = function(){
     return panner(output, pan, output);
   };
 };
+
 Gibberish.bus.prototype = new Gibberish.ugen();
 Gibberish._bus = new Gibberish.bus();
 
@@ -138,28 +139,28 @@ Gibberish.Bus2 = function() {
   
   var output = [0,0],
       panner = Gibberish.makePanner(),
-      args = null,
       phase = 0;
   
-  this.callback = function() {    
-    var amp = arguments[arguments.length - 2]; // use arguments to accommodate arbitray number of inputs without using array
-    var pan = arguments[arguments .length - 1];
+  this.callback = function() {
+    // use arguments to accommodate arbitray number of inputs without using array    
+    var args = arguments,
+        length = args.length,
+        amp = args[length - 2], 
+        pan = args[length - 1]
     
     output[0] = output[1] = 0;
     
-    args = arguments
-    //if(phase++ % 44100 === 0) console.log(arguments)
-    for(var i = 0; i < arguments.length - 2; i++) {
-      var isObject = typeof arguments[i] === 'object';
-      output[0] += isObject ? arguments[i][0] : arguments[i];
-      output[1] += isObject ? arguments[i][1] : arguments[i];
+    //if(phase++ % 44100 === 0) console.log(args)
+    for(var i = 0, l = length - 2; i < l; i++) {
+      var isObject = typeof args[i] === 'object';
+      output[0] += isObject ? args[i][0] : args[i];
+      output[1] += isObject ? args[i][1] : args[i];
     }
     
     output[0] *= amp;
     output[1] *= amp;
     
-    //if(output[0] > 2 ) console.log("WHOA", output[0])
-    return output //panner(output, pan, output);
+    return panner(output, pan, output);
   };
   
   this.show = function() { console.log(output, args) }
