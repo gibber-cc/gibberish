@@ -18,8 +18,11 @@ Gibberish.analysis = function() {
       Gibberish.memo[this.symbol] = v;
       this.variable = v;
     }
-    Gibberish.upvalues.push( 'var ' + this.symbol + ' = Gibberish.functions.' + this.symbol + ';\n');
+
     this.codeblock = "var " + this.variable + " = " + this.symbol + "();\n";
+    
+    Gibberish.callbackArgs.push( this.symbol )
+    Gibberish.callbackObjects.push( this.callback )
     
     return this.variable;
   }
@@ -83,14 +86,17 @@ Gibberish.analysis = function() {
     
     this.analysisCodeblock = s;
     
+    Gibberish.callbackArgs.push( this.analysisSymbol )
+    Gibberish.callbackObjects.push( this.analysisCallback )
+    
     return s;
   };
   
   this.analysisInit = function() {    
     this.analysisSymbol = Gibberish.generateSymbol(this.name);
-    Gibberish.functions[this.analysisSymbol] = this.analysisCallback;
-    Gibberish.upvalues.push( 'var ' + this.analysisSymbol + ' = Gibberish.functions.' + this.analysisSymbol + ';\n');
     Gibberish.analysisUgens.push( this );
+    Gibberish.callbackArgs.push( this.analysisSymbol )
+    Gibberish.callbackObjects.push( this.analysisCallback )
   };
 };
 Gibberish.analysis.prototype = new Gibberish.ugen();

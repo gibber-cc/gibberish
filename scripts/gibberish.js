@@ -41,7 +41,6 @@ Object. Used in the codegen process to make sure codegen for each ugen is only p
 Gibberish = {
   memo              : {},
   functions         : {}, // store ugen callbacks to be used as upvalues
-  upvalues          : [],
   codeblock         : [],
   analysisCodeblock : [],
   analysisUgens     : [],
@@ -71,9 +70,7 @@ Perform codegen on all dirty ugens and re-create the audio callback. This method
     }
     this.dirtied.length = 0;
     
-    this.codestring = ''//this.upvalues.join("");
-    
-    this.codestring += '\nGibberish.callback = function('
+    this.codestring = '\nGibberish.callback = function('
     
     for(var i = 0; i < this.callbackArgs.length; i++) {
       this.codestring += this.callbackArgs[i]
@@ -189,7 +186,6 @@ param **Sound Data** : Object. The buffer of audio data to be filled
 Remove all objects from Gibberish graph and perform codegen... kills all running sound and CPU usage.
 **/   
   clear : function() {
-    this.upvalues.length = 1; // make sure to leave master bus!!!
     this.out.inputs.length = 0;
     this.analysisUgens.length = 0;
     this.sequencers.length = 0;
@@ -529,8 +525,7 @@ Generates output code (as a string) used inside audio callback
                 s = s.replace(value, "");
                 s += val;
               }else if(op.binop === "++"){
-                Gibberish.upvalues.push('var abs = Math.abs\n;');
-                s += ' + abs(' + val + ')';
+                s += ' + Math.abs(' + val + ')';
               }else{
                 if( j === 0) s+= value
                 s += " " + op.binop + " " + val + ")";
@@ -550,7 +545,6 @@ Generates output code (as a string) used inside audio callback
         s += ");\n";
         
         if(this.codeblock === null) {
-          Gibberish.pushUnique( 'var ' + this.symbol + ' = Gibberish.functions.' + this.symbol + ';\n', Gibberish.upvalues );
           Gibberish.callbackArgs.push( this.symbol )
           Gibberish.callbackObjects.push( this.callback )
         }
