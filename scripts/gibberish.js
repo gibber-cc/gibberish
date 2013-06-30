@@ -70,7 +70,7 @@ Perform codegen on all dirty ugens and re-create the audio callback. This method
     }
     this.dirtied.length = 0;
     
-    this.codestring = '\nGibberish.callback = function('
+    this.codestring = 'Gibberish.callback = function('
     
     for(var i = 0; i < this.callbackArgs.length; i++) {
       this.codestring += this.callbackArgs[i]
@@ -797,10 +797,17 @@ Disconnect a ugen from a bus (or all busses). This stops all audio and signal pr
 param **bus** : Bus ugen. Optional. The bus to send the ugen to. If this argument is undefined the ugen will be disconnected from all busses.
 **/      
       disconnect : function(bus) {
-        var idx = Gibberish.callbackArgs.indexOf( this.symbol )
+        if(this.children) {
+          for(var i = 0; i < this.children.length; i++) {
+            this.children[i].disconnect()
+          }
+        }
         
+        var idx = Gibberish.callbackArgs.indexOf( this.symbol )
         Gibberish.callbackArgs.splice(idx, 1)
-        Gibberish.callbackObjects.splice(idx - 1, 1) // must account for input object
+        
+        idx = Gibberish.callbackObjects.indexOf( this.callback )        
+        Gibberish.callbackObjects.splice(idx, 1)
         
         if(typeof bus === 'undefined') {
           for(var i = 0; i < this.destinations.length; i++) {
@@ -808,7 +815,7 @@ param **bus** : Bus ugen. Optional. The bus to send the ugen to. If this argumen
           }
           this.destinations = [];
         }else{
-          var idx = this.destinations.indexOf(bus);
+          idx = this.destinations.indexOf(bus);
           if(idx > -1) {
             this.destinations.splice(idx, 1);
           }
