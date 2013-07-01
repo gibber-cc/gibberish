@@ -2253,12 +2253,11 @@ Gibberish.analysis = function() {
       v = this.variable ? this.variable : Gibberish.generateSymbol('v');
       Gibberish.memo[this.symbol] = v;
       this.variable = v;
+      Gibberish.callbackArgs.push( this.symbol )
+      Gibberish.callbackObjects.push( this.callback )
     }
 
     this.codeblock = "var " + this.variable + " = " + this.symbol + "();\n";
-    
-    Gibberish.callbackArgs.push( this.symbol )
-    Gibberish.callbackObjects.push( this.callback )
     
     return this.variable;
   }
@@ -2311,21 +2310,29 @@ Gibberish.analysis = function() {
   };
   
   this.analysisCodegen = function() {
-    var s = this.analysisSymbol + "(" + this.input.variable + ",";
-    for(var key in this.properties) {
-      if(key !== 'input') {
-        s += this[key] + ",";
+
+    if(Gibberish.memo[this.symbol]) {
+      return Gibberish.memo[this.symbol];
+    }else{
+      Gibberish.memo[this.symbol] = v;
+      var s = this.analysisSymbol + "(" + this.input.variable + ",";
+      for(var key in this.properties) {
+        if(key !== 'input') {
+          s += this[key] + ",";
+        }
       }
+      s = s.slice(0, -1);
+      s += ");";
+    
+      this.analysisCodeblock = s;
+    
+      if( Gibberish.callbackArgs.indexOf( this.analysisSymbol) === -1 ) {
+        Gibberish.callbackArgs.push( this.analysisSymbol )
+        Gibberish.callbackObjects.push( this.analysisCallback )
+      }
+    
+      return s;
     }
-    s = s.slice(0, -1);
-    s += ");";
-    
-    this.analysisCodeblock = s;
-    
-    Gibberish.callbackArgs.push( this.analysisSymbol )
-    Gibberish.callbackObjects.push( this.analysisCallback )
-    
-    return s;
   };
   
   this.analysisInit = function() {    
@@ -2444,7 +2451,12 @@ Gibberish.Record = function(_input, _size, oncomplete) {
       for(var i = 0; i < Gibberish.analysisUgens.length; i++) {
         var ugen = Gibberish.analysisUgens[i];
         if(ugen === this) {
-          
+          if( Gibberish.callbackArgs.indexOf( this.analysisSymbol) > -1 ) {
+            Gibberish.callbackArgs.splice( Gibberish.callbackArgs.indexOf( this.analysisSymbol), 1 )
+          }
+          if( Gibberish.callbackObjects.indexOf( this.analysisCallback ) > -1 ) {
+            Gibberish.callbackObjects.splice( Gibberish.callbackObjects.indexOf( this.analysisCallback ), 1 )
+          }
           Gibberish.analysisUgens.splice(i, 1);
           return;
         }
@@ -3638,6 +3650,8 @@ Gibberish.Granulator = function(properties) {
       shouldWrite:  false,
     },
     
+    setBuffer : function(b) { buffer = b; bufferLength = b.length },
+    
     callback : function(speed, speedMin, speedMax, grainSize, positionMin, positionMax, position, amp, fade, pan, shouldWrite) {
     		for(var i = 0; i < numberOfGrains; i++) {
     			var grain = grains[i];
@@ -3712,15 +3726,16 @@ Gibberish.Granulator = function(properties) {
 	if(typeof properties.input !== "undefined") { 
 			that.shouldWrite = true;
       
-			that.sampler = Sampler()
-			//that.sampler.connect();
+			that.sampler = new Gibberish.Sampler();
+			that.sampler.connect();
 			that.sampler.record(properties.buffer, that.bufferLength);
       
-			that.buffer = that.sampler.buffer;
+			buffer = that.sampler.buffer;
 	}else if(typeof properties.buffer !== 'undefined') {
 	  buffer = properties.buffer;
     bufferLength = buffer.length;
 	}
+
 };
 Gibberish.Granulator.prototype = Gibberish._effect;
 Gibberish.synth = function() {
@@ -4975,7 +4990,7 @@ _pitch, amp, isRecording, isPlaying, input, length, start, end, loops, pan
 		this.isLoaded = true;
 					
 		buffer = this.buffer;
-    this.end = this.bufferLength = buffer.length;
+    this.end = this.bufferLength = buffer.length || 88200;
 		    
 		phase = this.bufferLength;
 		if(arguments[0] && arguments[0].loops) {

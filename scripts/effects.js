@@ -1174,6 +1174,8 @@ Gibberish.Granulator = function(properties) {
       shouldWrite:  false,
     },
     
+    setBuffer : function(b) { buffer = b; bufferLength = b.length },
+    
     callback : function(speed, speedMin, speedMax, grainSize, positionMin, positionMax, position, amp, fade, pan, shouldWrite) {
     		for(var i = 0; i < numberOfGrains; i++) {
     			var grain = grains[i];
@@ -1252,7 +1254,7 @@ Gibberish.Granulator = function(properties) {
 			that.sampler.connect();
 			that.sampler.record(properties.buffer, that.bufferLength);
       
-			that.buffer = that.sampler.buffer;
+			buffer = that.sampler.buffer;
 	}else if(typeof properties.buffer !== 'undefined') {
 	  buffer = properties.buffer;
     bufferLength = buffer.length;

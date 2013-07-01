@@ -17,12 +17,11 @@ Gibberish.analysis = function() {
       v = this.variable ? this.variable : Gibberish.generateSymbol('v');
       Gibberish.memo[this.symbol] = v;
       this.variable = v;
+      Gibberish.callbackArgs.push( this.symbol )
+      Gibberish.callbackObjects.push( this.callback )
     }
 
     this.codeblock = "var " + this.variable + " = " + this.symbol + "();\n";
-    
-    Gibberish.callbackArgs.push( this.symbol )
-    Gibberish.callbackObjects.push( this.callback )
     
     return this.variable;
   }
@@ -75,21 +74,29 @@ Gibberish.analysis = function() {
   };
   
   this.analysisCodegen = function() {
-    var s = this.analysisSymbol + "(" + this.input.variable + ",";
-    for(var key in this.properties) {
-      if(key !== 'input') {
-        s += this[key] + ",";
+
+    if(Gibberish.memo[this.symbol]) {
+      return Gibberish.memo[this.symbol];
+    }else{
+      Gibberish.memo[this.symbol] = v;
+      var s = this.analysisSymbol + "(" + this.input.variable + ",";
+      for(var key in this.properties) {
+        if(key !== 'input') {
+          s += this[key] + ",";
+        }
       }
+      s = s.slice(0, -1);
+      s += ");";
+    
+      this.analysisCodeblock = s;
+    
+      if( Gibberish.callbackArgs.indexOf( this.analysisSymbol) === -1 ) {
+        Gibberish.callbackArgs.push( this.analysisSymbol )
+        Gibberish.callbackObjects.push( this.analysisCallback )
+      }
+    
+      return s;
     }
-    s = s.slice(0, -1);
-    s += ");";
-    
-    this.analysisCodeblock = s;
-    
-    Gibberish.callbackArgs.push( this.analysisSymbol )
-    Gibberish.callbackObjects.push( this.analysisCallback )
-    
-    return s;
   };
   
   this.analysisInit = function() {    
@@ -208,7 +215,12 @@ Gibberish.Record = function(_input, _size, oncomplete) {
       for(var i = 0; i < Gibberish.analysisUgens.length; i++) {
         var ugen = Gibberish.analysisUgens[i];
         if(ugen === this) {
-          
+          if( Gibberish.callbackArgs.indexOf( this.analysisSymbol) > -1 ) {
+            Gibberish.callbackArgs.splice( Gibberish.callbackArgs.indexOf( this.analysisSymbol), 1 )
+          }
+          if( Gibberish.callbackObjects.indexOf( this.analysisCallback ) > -1 ) {
+            Gibberish.callbackObjects.splice( Gibberish.callbackObjects.indexOf( this.analysisCallback ), 1 )
+          }
           Gibberish.analysisUgens.splice(i, 1);
           return;
         }
