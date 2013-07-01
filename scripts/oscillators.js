@@ -88,7 +88,7 @@ Gibberish.asmSine = function (stdlib, foreign, heap) {
       phase = +(phase + freq / tableFreq);
       if(phase >= 1024.0) phase = +(phase - 1024.0);  
           
-      index = floor(phase);
+      index = +floor(phase);
       frac = phase - index;
       
       index1 = (~~index);

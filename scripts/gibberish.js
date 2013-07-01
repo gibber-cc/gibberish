@@ -307,7 +307,7 @@ Create a callback and start it running. Note that in iOS audio callbacks can onl
           mySource.noteOn(0);
         }
       }else{
-        /*if(typeof AudioContext === 'function') { // use web audio api for firefox 24 and higher
+        /*if(typeof AudioContext === 'function') { // use web audio api for firefox 24 and higher... actually, no, it's not fast enough yet
           Gibberish.context = new AudioContext();
           Gibberish.node = Gibberish.context.createScriptProcessor(1024, 2, 2, Gibberish.context.sampleRate);	
           Gibberish.node.onaudioprocess = Gibberish.audioProcess;
@@ -315,7 +315,7 @@ Create a callback and start it running. Note that in iOS audio callbacks can onl
         }else{ // use audio data api*/
           Gibberish.AudioDataDestination(44100, Gibberish.audioProcessFirefox);
           Gibberish.context = { sampleRate: 44100 } // needed hack to determine samplerate in ugens
-          //}
+        //}
       }
     }
     

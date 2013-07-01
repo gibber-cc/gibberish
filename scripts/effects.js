@@ -103,6 +103,7 @@ Gibberish.Delay = function() {
   
   var time = Math.round( this.properties.time );
   Object.defineProperty(this, 'time', {
+    configurable: true,
     get: function() { return time; },
     set: function(v) { time = Math.round(v); Gibberish.dirty( this ) }
   });
@@ -981,16 +982,17 @@ Gibberish.Comb = function(time) {
 		name:		"comb",
     properties : {
       input : 0,
-  		time:		time || 1200,
+      feedback : .84,
+  		//time:		time || 1200,
     },
     
-  	callback: function(sample) {
+  	callback: function(sample, feedback) {
   		var currentPos = ++index % bufferLength;
 			var out = buffer[currentPos];
 						
 			store = (out * .8) + (store * .2);
 						
-			buffer[currentPos] = sample + (store * .84);
+			buffer[currentPos] = sample + (store * feedback);
 
   		return out;
   	},
@@ -1039,6 +1041,7 @@ Gibberish.Reverb = function() {
                           
 		    stereoSpread: 	  23
 		},
+    feedback = .84,
     combs = [],
     apfs  = [],
     output   = [0,0],
@@ -1054,9 +1057,10 @@ Gibberish.Reverb = function() {
       input:    0,
   		wet:		  .5,
   		dry:		  .55,
+      feedback: .84,
     },
     
-    callback : function(sample, wet, dry) {
+    callback : function(sample, wet, dry, feedback) {
       var channels = typeof sample === 'object' ? 2 : 1;
       
 			var input = channels === 1 ? sample : sample[0] + sample[1]; // converted to fake stereo
@@ -1065,7 +1069,7 @@ Gibberish.Reverb = function() {
       var out = _out;
 						
 			for(var i = 0; i < 8; i++) {
-				var filt = combs[i](_out);
+				var filt = combs[i](_out, feedback);
 				out += filt;				
 			}
 							
@@ -1080,9 +1084,13 @@ Gibberish.Reverb = function() {
 	})  
   .init()
   .processProperties(arguments);
+  
+  this.feedback = this.roomSize * tuning.scaleRoom + tuning.offsetRoom;
     
+  this.setFeedback = function(v) { feedback = v }
+  
 	for(var i = 0; i < 8; i++){
-		combs.push( new Gibberish.Comb(tuning.combTuning[i], this.roomSize * tuning.scaleRoom * tuning.offsetRoom, this.damping ).callback );
+		combs.push( new Gibberish.Comb( tuning.combTuning[i] ).callback );
 	}
   
 	for(var i = 0; i < 4; i++){

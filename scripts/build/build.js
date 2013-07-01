@@ -16,9 +16,10 @@ function concat(opts) {
     });
     _fs.writeFileSync(distPath, out.join(EOL), FILE_ENCODING);
     console.log(' '+ distPath +' built.');
+    return out
 }
  
-concat({
+var out = concat({
     src : [
         __dirname + '/../gibberish.js',
         __dirname + '/../utils.js',
@@ -44,6 +45,8 @@ concat({
     ],
     dest : __dirname + '/gibberish_2.0.js'
 });
+
+_fs.writeFileSync(__dirname + '/../../../gibber2/js/external/gibberish.2.0.min.js', out.join(EOL), FILE_ENCODING);
 
 //uglifyjs gibberish_2.0.js -o gibberish_2.0.min.js -c -m
 
