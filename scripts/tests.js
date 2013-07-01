@@ -259,14 +259,19 @@ window.reverb = function() {
 	a = new Gibberish.KarplusStrong();
 	b = new Gibberish.Reverb(a).connect();
   
+  b.roomSize = Add(.85, new Gibberish.Sine(.01, .15) )
+  
   sequencer = new Gibberish.Sequencer({
     target:a, key:'note',
     values:[ Gibberish.Rndf(200, 1000) ],
     durations:[ seconds(1) ],
   }).start();
 
-	var inputString = "a = new Gibberish.KarplusStrong();\n"+
+	var inputString = "// gradually change roomSize over time...\n"+
+  "a = new Gibberish.KarplusStrong();\n"+
 	"b = new Gibberish.Reverb(a).connect();\n"+
+  "\n"+
+  "b.roomSize = Add(.85, new Gibberish.Sine(.01, .15) )\n"+
   "\n"+
   "sequencer = new Gibberish.Sequencer({\n"+
   "  target:a, key:'note',\n"+

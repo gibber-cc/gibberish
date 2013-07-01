@@ -3459,14 +3459,21 @@ Gibberish.Comb = function(time) {
     properties : {
       input : 0,
       feedback : .84,
+      damping: .2,
   		//time:		time || 1200,
     },
     
-  	callback: function(sample, feedback) {
+    /*
+		self.sample	= self.buffer[self.index];
+		self.store	= self.sample * self.invDamping + self.store * self.damping;
+		self.buffer[self.index++] = s + self.store * self.feedback;
+    */
+    
+  	callback: function(sample, feedback, damping) {
   		var currentPos = ++index % bufferLength;
 			var out = buffer[currentPos];
 						
-			store = (out * .8) + (store * .2);
+			store = (out * (1 - damping)) + (store * damping);
 						
 			buffer[currentPos] = sample + (store * feedback);
 
@@ -3510,7 +3517,7 @@ Gibberish.Reverb = function() {
 		    allPassFeedback:  0.5,
                           
 		    fixedGain: 		    0.015,
-		    scaleDamping: 	  0.9,
+		    scaleDamping: 	  0.4,
                           
 		    scaleRoom: 		    0.28,
 		    offsetRoom: 	    0.7,
@@ -3527,16 +3534,16 @@ Gibberish.Reverb = function() {
 		name:		"reverb",
     
 		roomSize:	.5,
-		damping:	.2223,
     
     properties: {
       input:    0,
   		wet:		  .5,
   		dry:		  .55,
-      feedback: .84,
+      roomSize: .84,
+      damping:  .5,
     },
     
-    callback : function(sample, wet, dry, feedback) {
+    callback : function(sample, wet, dry, roomSize, damping) {
       var channels = typeof sample === 'object' ? 2 : 1;
       
 			var input = channels === 1 ? sample : sample[0] + sample[1]; // converted to fake stereo
@@ -3545,7 +3552,7 @@ Gibberish.Reverb = function() {
       var out = _out;
 						
 			for(var i = 0; i < 8; i++) {
-				var filt = combs[i](_out, feedback);
+				var filt = combs[i](_out, roomSize * .98, (damping * .4)); // .98 is scaleRoom + offsetRoom, .4 is scaleDamping
 				out += filt;				
 			}
 							
@@ -3560,9 +3567,7 @@ Gibberish.Reverb = function() {
 	})  
   .init()
   .processProperties(arguments);
-  
-  this.feedback = this.roomSize * tuning.scaleRoom + tuning.offsetRoom;
-    
+      
   this.setFeedback = function(v) { feedback = v }
   
 	for(var i = 0; i < 8; i++){
