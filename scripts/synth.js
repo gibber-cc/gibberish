@@ -107,7 +107,7 @@ param **amp** Number. Optional. The volume to use.
 			return channels === 1 ? val : panner(val, pan, out);
     }else{
 		  val = out[0] = out[1] = 0;
-      return channels === 1 ? val : panner(val, pan, out);
+      return channels === 1 ? val : out
     }
 	};
   
@@ -179,13 +179,19 @@ param **amp** Number. Optional. The volume to use.
   });
   
   this.amp = 1 / this.maxVoices;
-  this.processProperties(arguments);
+  
+  Gibberish.polyInit(this);
   
   this.children = [];
+  
+  if(typeof arguments[0] === 'object') {
+    this.maxVoices = arguments[0].maxVoices ? arguments[0].maxVoices : this.maxVoices
+  }
   
   this.dirty = true;
   for(var i = 0; i < this.maxVoices; i++) {
     var props = {
+      waveform: this.waveform,
       attack:   this.attack,
       decay:    this.decay,
       pulsewidth: this.pulsewidth,
@@ -193,12 +199,14 @@ param **amp** Number. Optional. The volume to use.
       amp:      1,
     };
     var synth = new Gibberish.Synth(props);
+    //var synth = new Gibberish.Synth();
     synth.connect(this);
 
     this.children.push(synth);
   }
   
-  Gibberish.polyInit(this);
+  this.processProperties(arguments);
+  
   Gibberish._synth.oscillatorInit.call(this);
 };
 
@@ -384,9 +392,14 @@ param **amp** Number. Optional. The volume to use.
   });
   
   this.amp = 1 / this.maxVoices;
-  this.processProperties(arguments);
+  
+  Gibberish.polyInit(this);
   
   this.children = [];
+  
+  if(typeof arguments[0] === 'object') {
+    this.maxVoices = arguments[0].maxVoices ? arguments[0].maxVoices : this.maxVoices
+  }
   
   this.dirty = true;
   for(var i = 0; i < this.maxVoices; i++) {
@@ -403,6 +416,6 @@ param **amp** Number. Optional. The volume to use.
     this.children.push(synth);
   }
   
-  Gibberish.polyInit(this);
-  Gibberish._synth.oscillatorInit.call(this);
+  this.processProperties(arguments);
+    Gibberish._synth.oscillatorInit.call(this);
 };

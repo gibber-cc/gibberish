@@ -156,9 +156,15 @@ param **amp** Number. Optional. The volume to use.
 		},
 	});    
   this.amp = 1 / this.maxVoices;
-  	
-	this.processProperties(arguments);
-
+  
+  Gibberish.polyInit(this);
+  
+  this.children = [];
+  
+  if(typeof arguments[0] === 'object') {
+    this.maxVoices = arguments[0].maxVoices ? arguments[0].maxVoices : this.maxVoices
+  }
+  
 	for(var i = 0; i < this.maxVoices; i++) {
 		var props = {
 			attack: 	this.attack,
@@ -174,6 +180,6 @@ param **amp** Number. Optional. The volume to use.
 		this.children.push(synth);
 	}
   
-  Gibberish.polyInit(this);
+	this.processProperties(arguments);
   Gibberish._synth.oscillatorInit.call(this);
 };

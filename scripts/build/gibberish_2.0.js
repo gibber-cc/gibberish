@@ -350,6 +350,40 @@ Create and return an object that can be used to pan a stereo source.
 		return f;
 	},
   
+  defineUgenProperty : function(key, initValue, obj) {
+    obj.properties[key] = {
+      symbol: Gibberish.generateSymbol('v'),
+      value:  initValue,
+      binops: [],
+      getCodeblock : function() { 
+        if(typeof obj.value !== 'number') Gibberish.codeblock.push("var " + obj.symbol + " = " + obj.value + ";\n"); 
+      },
+      codegen : function() { 
+        if( typeof obj.value === 'number' || typeof obj.value === 'string') { 
+          return obj.value;
+        }else{
+          obj.value.codegen(); 
+          return obj.value.symbol;
+        }
+      },
+      parent : obj,
+      name : key,
+    };
+      
+    (function(obj) {
+      var _key = key;
+      try{
+        Object.defineProperty(obj, _key, {
+          configurable: true,
+          get: function() 	 { return obj.properties[_key].value },
+          set: function(val) { 
+            obj.properties[_key].value = val;
+            Gibberish.dirty(obj);
+          },
+        });
+      }catch(e){  }
+    })(obj);
+  },
 /**###Gibberish.polyInit : method
 For ugens with polyphony, add metaprogramming that passes on property changes to the 'children' of the polyphonic object. Polyphonic ugens in Gibberish are just single instances that are routed into a shared bus, along with a few special methods for voice allocation etc.  
   
@@ -617,40 +651,7 @@ Creates getters and setters for ugen properties that automatically dirty the uge
 param **key** : String. The name of a property to add getter / setters for.  
 param **value** : Any. The initival value to set the property to
 **/       
-      defineUgenProperty : function(key, initValue) {
-        this.properties[key] = {
-          symbol: Gibberish.generateSymbol('v'),
-          value:  initValue,
-          binops: [],
-          getCodeblock : function() { 
-            if(typeof this.value !== 'number') Gibberish.codeblock.push("var " + this.symbol + " = " + this.value + ";\n"); 
-          },
-          codegen : function() { 
-            if( typeof this.value === 'number' || typeof this.value === 'string') { 
-              return this.value;
-            }else{
-              this.value.codegen(); 
-              return this.value.symbol;
-            }
-          },
-          parent : this,
-          name : key,
-        };
-          
-        (function(obj) {
-          var _key = key;
-          try{
-            Object.defineProperty(obj, _key, {
-              configurable: true,
-              get: function() 	 { return obj.properties[_key].value },
-              set: function(val) { 
-                obj.properties[_key].value = val;
-                Gibberish.dirty(obj);
-              },
-            });
-          }catch(e){  }
-        })(this);
-      },
+      
 /**###Ugen.init : method
 Initialize ugen by calling defineUgenProperty for every key in the ugen's properties dictionary, generating a unique id for the ugen and various other small tasks.
 **/             
@@ -669,7 +670,7 @@ Initialize ugen by calling defineUgenProperty for every key in the ugen's proper
           this.destinations = [];
           
           for(var key in this.properties) {
-            this.defineUgenProperty(key, this.properties[key]);
+            Gibberish.defineUgenProperty(key, this.properties[key], this);
           }
         }
         
@@ -1808,9 +1809,14 @@ Gibberish.PolyKarplusStrong = function() {
   });
   
   this.amp = 1 / this.maxVoices;
-  this.processProperties(arguments);
+  
+  Gibberish.polyInit(this);
   
   this.children = [];
+  
+  if(typeof arguments[0] === 'object') {
+    this.maxVoices = arguments[0].maxVoices ? arguments[0].maxVoices : this.maxVoices
+  }
   
   for(var i = 0; i < this.maxVoices; i++) {
     var props = {
@@ -1824,8 +1830,9 @@ Gibberish.PolyKarplusStrong = function() {
     this.children.push(synth);
   }
   
+  this.processProperties(arguments);
+  
   this.initialized = false
-  Gibberish.polyInit(this);
   Gibberish._synth.oscillatorInit.call(this);
   Gibberish.dirty( this )
 };
@@ -3824,7 +3831,7 @@ param **amp** Number. Optional. The volume to use.
 			return channels === 1 ? val : panner(val, pan, out);
     }else{
 		  val = out[0] = out[1] = 0;
-      return channels === 1 ? val : panner(val, pan, out);
+      return channels === 1 ? val : out
     }
 	};
   
@@ -3896,13 +3903,19 @@ param **amp** Number. Optional. The volume to use.
   });
   
   this.amp = 1 / this.maxVoices;
-  this.processProperties(arguments);
+  
+  Gibberish.polyInit(this);
   
   this.children = [];
+  
+  if(typeof arguments[0] === 'object') {
+    this.maxVoices = arguments[0].maxVoices ? arguments[0].maxVoices : this.maxVoices
+  }
   
   this.dirty = true;
   for(var i = 0; i < this.maxVoices; i++) {
     var props = {
+      waveform: this.waveform,
       attack:   this.attack,
       decay:    this.decay,
       pulsewidth: this.pulsewidth,
@@ -3910,12 +3923,14 @@ param **amp** Number. Optional. The volume to use.
       amp:      1,
     };
     var synth = new Gibberish.Synth(props);
+    //var synth = new Gibberish.Synth();
     synth.connect(this);
 
     this.children.push(synth);
   }
   
-  Gibberish.polyInit(this);
+  this.processProperties(arguments);
+  
   Gibberish._synth.oscillatorInit.call(this);
 };
 
@@ -4101,9 +4116,14 @@ param **amp** Number. Optional. The volume to use.
   });
   
   this.amp = 1 / this.maxVoices;
-  this.processProperties(arguments);
+  
+  Gibberish.polyInit(this);
   
   this.children = [];
+  
+  if(typeof arguments[0] === 'object') {
+    this.maxVoices = arguments[0].maxVoices ? arguments[0].maxVoices : this.maxVoices
+  }
   
   this.dirty = true;
   for(var i = 0; i < this.maxVoices; i++) {
@@ -4120,8 +4140,8 @@ param **amp** Number. Optional. The volume to use.
     this.children.push(synth);
   }
   
-  Gibberish.polyInit(this);
-  Gibberish._synth.oscillatorInit.call(this);
+  this.processProperties(arguments);
+    Gibberish._synth.oscillatorInit.call(this);
 };
 /**#Gibberish.FMSynth - Synth
 Classic 2-op FM synthesis with an attached attack / decay envelope.
@@ -4281,9 +4301,15 @@ param **amp** Number. Optional. The volume to use.
 		},
 	});    
   this.amp = 1 / this.maxVoices;
-  	
-	this.processProperties(arguments);
-
+  
+  Gibberish.polyInit(this);
+  
+  this.children = [];
+  
+  if(typeof arguments[0] === 'object') {
+    this.maxVoices = arguments[0].maxVoices ? arguments[0].maxVoices : this.maxVoices
+  }
+  
 	for(var i = 0; i < this.maxVoices; i++) {
 		var props = {
 			attack: 	this.attack,
@@ -4299,7 +4325,7 @@ param **amp** Number. Optional. The volume to use.
 		this.children.push(synth);
 	}
   
-  Gibberish.polyInit(this);
+	this.processProperties(arguments);
   Gibberish._synth.oscillatorInit.call(this);
 };
 function AudioFileRequest(url, async) {

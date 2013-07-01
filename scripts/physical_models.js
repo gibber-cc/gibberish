@@ -92,9 +92,14 @@ Gibberish.PolyKarplusStrong = function() {
   });
   
   this.amp = 1 / this.maxVoices;
-  this.processProperties(arguments);
+  
+  Gibberish.polyInit(this);
   
   this.children = [];
+  
+  if(typeof arguments[0] === 'object') {
+    this.maxVoices = arguments[0].maxVoices ? arguments[0].maxVoices : this.maxVoices
+  }
   
   for(var i = 0; i < this.maxVoices; i++) {
     var props = {
@@ -108,8 +113,9 @@ Gibberish.PolyKarplusStrong = function() {
     this.children.push(synth);
   }
   
+  this.processProperties(arguments);
+  
   this.initialized = false
-  Gibberish.polyInit(this);
   Gibberish._synth.oscillatorInit.call(this);
   Gibberish.dirty( this )
 };

@@ -350,6 +350,40 @@ Create and return an object that can be used to pan a stereo source.
 		return f;
 	},
   
+  defineUgenProperty : function(key, initValue, obj) {
+    obj.properties[key] = {
+      symbol: Gibberish.generateSymbol('v'),
+      value:  initValue,
+      binops: [],
+      getCodeblock : function() { 
+        if(typeof obj.value !== 'number') Gibberish.codeblock.push("var " + obj.symbol + " = " + obj.value + ";\n"); 
+      },
+      codegen : function() { 
+        if( typeof obj.value === 'number' || typeof obj.value === 'string') { 
+          return obj.value;
+        }else{
+          obj.value.codegen(); 
+          return obj.value.symbol;
+        }
+      },
+      parent : obj,
+      name : key,
+    };
+      
+    (function(obj) {
+      var _key = key;
+      try{
+        Object.defineProperty(obj, _key, {
+          configurable: true,
+          get: function() 	 { return obj.properties[_key].value },
+          set: function(val) { 
+            obj.properties[_key].value = val;
+            Gibberish.dirty(obj);
+          },
+        });
+      }catch(e){  }
+    })(obj);
+  },
 /**###Gibberish.polyInit : method
 For ugens with polyphony, add metaprogramming that passes on property changes to the 'children' of the polyphonic object. Polyphonic ugens in Gibberish are just single instances that are routed into a shared bus, along with a few special methods for voice allocation etc.  
   
@@ -617,40 +651,7 @@ Creates getters and setters for ugen properties that automatically dirty the uge
 param **key** : String. The name of a property to add getter / setters for.  
 param **value** : Any. The initival value to set the property to
 **/       
-      defineUgenProperty : function(key, initValue) {
-        this.properties[key] = {
-          symbol: Gibberish.generateSymbol('v'),
-          value:  initValue,
-          binops: [],
-          getCodeblock : function() { 
-            if(typeof this.value !== 'number') Gibberish.codeblock.push("var " + this.symbol + " = " + this.value + ";\n"); 
-          },
-          codegen : function() { 
-            if( typeof this.value === 'number' || typeof this.value === 'string') { 
-              return this.value;
-            }else{
-              this.value.codegen(); 
-              return this.value.symbol;
-            }
-          },
-          parent : this,
-          name : key,
-        };
-          
-        (function(obj) {
-          var _key = key;
-          try{
-            Object.defineProperty(obj, _key, {
-              configurable: true,
-              get: function() 	 { return obj.properties[_key].value },
-              set: function(val) { 
-                obj.properties[_key].value = val;
-                Gibberish.dirty(obj);
-              },
-            });
-          }catch(e){  }
-        })(this);
-      },
+      
 /**###Ugen.init : method
 Initialize ugen by calling defineUgenProperty for every key in the ugen's properties dictionary, generating a unique id for the ugen and various other small tasks.
 **/             
@@ -669,7 +670,7 @@ Initialize ugen by calling defineUgenProperty for every key in the ugen's proper
           this.destinations = [];
           
           for(var key in this.properties) {
-            this.defineUgenProperty(key, this.properties[key]);
+            Gibberish.defineUgenProperty(key, this.properties[key], this);
           }
         }
         
