@@ -1248,8 +1248,8 @@ Gibberish.Granulator = function(properties) {
 	if(typeof properties.input !== "undefined") { 
 			that.shouldWrite = true;
       
-			that.sampler = Sampler()
-			//that.sampler.connect();
+			that.sampler = new Gibberish.Sampler();
+			that.sampler.connect();
 			that.sampler.record(properties.buffer, that.bufferLength);
       
 			that.buffer = that.sampler.buffer;
@@ -1257,5 +1257,6 @@ Gibberish.Granulator = function(properties) {
 	  buffer = properties.buffer;
     bufferLength = buffer.length;
 	}
+
 };
 Gibberish.Granulator.prototype = Gibberish._effect;
