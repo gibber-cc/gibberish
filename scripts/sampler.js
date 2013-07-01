@@ -212,28 +212,29 @@ Record the output of a Gibberish ugen for a given amount of time
 param **ugen** Object. The Gibberish ugen to be recorded.
 param **recordLength** Number (in samples). How long to record for.
 **/     
-		record : function(input, recordLength) {
-      this.isRecording = true;
-      
-      var self = this;
-      
-      new Gibberish.Record(input, recordLength, function() {
-        buffer = this.getBuffer();
-        self.end = bufferLength = buffer.length;
-        phase = self.end;
-        self.isRecording = false;
-      })
-      .record();
-      
-      return this;
-		},
+    // record : function(input, recordLength) {
+    //       this.isRecording = true;
+    //       
+    //       var self = this;
+    //       
+    //       this.recorder = new Gibberish.Record(input, recordLength, function() {
+    //         self.setBuffer( this.getBuffer() );
+    //         self.end = bufferLength = self.getBuffer().length;
+    //         self.setPhase( self.end )
+    //         self.isRecording = false;
+    //       })
+    //       .record();
+    //       
+    //       return this;
+    // },
 
 /**###Gibberish.Sampler.getBuffer : method  
 Returns a pointer to the Sampler's internal buffer.  
 **/
-    getBuffer : function() {
-      return buffer;
-    },
+    getBuffer : function() { return buffer; },
+    setBuffer : function(b) { buffer = b },
+    getPhase : function() { return phase },
+    setPhase : function(p) { phase = p },
 /**###Gibberish.Sampler.callback : method  
 Return a single sample. It's a pretty lengthy method signature, they are all properties that have already been listed:  
 
@@ -339,3 +340,18 @@ _pitch, amp, isRecording, isPlaying, input, length, start, end, loops, pan
 	}
 };
 Gibberish.Sampler.prototype = Gibberish._oscillator;
+Gibberish.Sampler.prototype.record = function(input, recordLength) {
+  this.isRecording = true;
+  
+  var self = this;
+  
+  this.recorder = new Gibberish.Record(input, recordLength, function() {
+    self.setBuffer( this.getBuffer() );
+    self.end = bufferLength = self.getBuffer().length;
+    self.setPhase( self.end )
+    self.isRecording = false;
+  })
+  .record();
+  
+  return this;
+};

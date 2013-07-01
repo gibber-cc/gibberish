@@ -512,7 +512,8 @@ Gibberish.PWM = function() {
       sin = Math.sin,
       scale = 11;
       pi_2 = Math.PI * 2,
-      test = 0;
+      test = 0,
+      sr = Gibberish.context.sampleRate;
 
   Gibberish.extend(this, {
     name: 'pwm',
@@ -529,7 +530,7 @@ param **frequency** Number. The frequency to be used to calculate output.
 param **amp** Number. The amplitude to be used to calculate output.  
 param **pulsewidth** Number. The duty cycle of the waveform
 **/    
-    callback : function(frequency, amp, pulsewidth, sr) {
+    callback : function(frequency, amp, pulsewidth) {
       var w = frequency / sr,
           n = .5 - w,
           scaling = scale * n * n * n * n,

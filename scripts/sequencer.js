@@ -71,7 +71,7 @@ Gibberish.Sequencer = function() {
             if(this.valuesIndex >= this.values.length) this.valuesIndex = 0;
           }else if(this.keysAndValues !== null) {
             for(var key in this.keysAndValues) {
-              var index = this.counts[key]++;
+              var index = typeof this.keysAndValues[ key ].pick === 'function' ? this.keysAndValues[ key ].pick() : this.counts[key]++;
               var val = this.keysAndValues[key][index];
               
               if(typeof val === 'function') { val = val(); }
@@ -92,7 +92,7 @@ Gibberish.Sequencer = function() {
           this.phase -= this.nextTime;
         
           if(Array.isArray(this.durations)) {
-            var next = this.durations[ this.durationsIndex++ ];
+            var next = typeof this.durations.pick === 'function' ? this.durations[ this.durations.pick() ] : this.durations[ this.durationsIndex++ ];
             this.nextTime = typeof next === 'function' ? next() : next;
             if( this.durationsIndex >= this.durations.length) {
               this.durationsIndex = 0;

@@ -217,7 +217,7 @@ Gibberish.Record = function(_input, _size, oncomplete) {
   });
   // cannot be assigned within extend call
   this.properties.input = _input;
-  
+
   this.init();
   this.analysisInit();
   

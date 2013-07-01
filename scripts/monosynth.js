@@ -68,6 +68,7 @@ Gibberish.MonoSynth = function() {
   		resonance:	2.5,
   		filterMult:	.3,
   		isLowPass:	true,
+      pulsewidth: .5,
   		amp:		    .6,
   		detune2:		.01,
   		detune3:		-.01,
@@ -122,7 +123,7 @@ param **amp** : Optional. Float. The volume of the note, usually between 0..1. T
     	panner    = Gibberish.makePanner(),
     	out       = [0,0];
     
-  this.callback = function(frequency, amp1, amp2, amp3, attack, decay, cutoff, resonance, filterMult, isLowPass, masterAmp, detune2, detune3, octave2, octave3, glide, pan, channels) {
+  this.callback = function(frequency, amp1, amp2, amp3, attack, decay, cutoff, resonance, filterMult, isLowPass, pulsewidth, masterAmp, detune2, detune3, octave2, octave3, glide, pan, channels) {
 		if(envstate() < 2) {
       if(glide >= 1) glide = .9999;
       frequency = lag(frequency, 1-glide, glide);
@@ -152,7 +153,7 @@ param **amp** : Optional. Float. The volume of the note, usually between 0..1. T
 			frequency2 += detune2 > 0 ? ((frequency * 2) - frequency) * detune2 : (frequency - (frequency / 2)) * detune2;
 			frequency3 += detune3 > 0 ? ((frequency * 2) - frequency) * detune3 : (frequency - (frequency / 2)) * detune3;
 							
-			var oscValue = osc1(frequency, amp1, 1) + osc2(frequency2, amp2, 1) + osc3(frequency3, amp3, 1);
+			var oscValue = osc1(frequency, amp1, pulsewidth) + osc2(frequency2, amp2, pulsewidth) + osc3(frequency3, amp3, pulsewidth);
 			var envResult = envelope(attack, decay);
 			var val = filter( oscValue, cutoff + filterMult * envResult, resonance, isLowPass, 1) * envResult;
 			val *= masterAmp;

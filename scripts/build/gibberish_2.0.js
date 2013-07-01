@@ -1633,7 +1633,8 @@ Gibberish.PWM = function() {
       sin = Math.sin,
       scale = 11;
       pi_2 = Math.PI * 2,
-      test = 0;
+      test = 0,
+      sr = Gibberish.context.sampleRate;
 
   Gibberish.extend(this, {
     name: 'pwm',
@@ -1650,7 +1651,7 @@ param **frequency** Number. The frequency to be used to calculate output.
 param **amp** Number. The amplitude to be used to calculate output.  
 param **pulsewidth** Number. The duty cycle of the waveform
 **/    
-    callback : function(frequency, amp, pulsewidth, sr) {
+    callback : function(frequency, amp, pulsewidth) {
       var w = frequency / sr,
           n = .5 - w,
           scaling = scale * n * n * n * n,
@@ -2452,7 +2453,7 @@ Gibberish.Record = function(_input, _size, oncomplete) {
   });
   // cannot be assigned within extend call
   this.properties.input = _input;
-  
+
   this.init();
   this.analysisInit();
   
@@ -4858,28 +4859,29 @@ Record the output of a Gibberish ugen for a given amount of time
 param **ugen** Object. The Gibberish ugen to be recorded.
 param **recordLength** Number (in samples). How long to record for.
 **/     
-		record : function(input, recordLength) {
-      this.isRecording = true;
-      
-      var self = this;
-      
-      new Gibberish.Record(input, recordLength, function() {
-        buffer = this.getBuffer();
-        self.end = bufferLength = buffer.length;
-        phase = self.end;
-        self.isRecording = false;
-      })
-      .record();
-      
-      return this;
-		},
+    // record : function(input, recordLength) {
+    //       this.isRecording = true;
+    //       
+    //       var self = this;
+    //       
+    //       this.recorder = new Gibberish.Record(input, recordLength, function() {
+    //         self.setBuffer( this.getBuffer() );
+    //         self.end = bufferLength = self.getBuffer().length;
+    //         self.setPhase( self.end )
+    //         self.isRecording = false;
+    //       })
+    //       .record();
+    //       
+    //       return this;
+    // },
 
 /**###Gibberish.Sampler.getBuffer : method  
 Returns a pointer to the Sampler's internal buffer.  
 **/
-    getBuffer : function() {
-      return buffer;
-    },
+    getBuffer : function() { return buffer; },
+    setBuffer : function(b) { buffer = b },
+    getPhase : function() { return phase },
+    setPhase : function(p) { phase = p },
 /**###Gibberish.Sampler.callback : method  
 Return a single sample. It's a pretty lengthy method signature, they are all properties that have already been listed:  
 
@@ -4985,6 +4987,21 @@ _pitch, amp, isRecording, isPlaying, input, length, start, end, loops, pan
 	}
 };
 Gibberish.Sampler.prototype = Gibberish._oscillator;
+Gibberish.Sampler.prototype.record = function(input, recordLength) {
+  this.isRecording = true;
+  
+  var self = this;
+  
+  this.recorder = new Gibberish.Record(input, recordLength, function() {
+    self.setBuffer( this.getBuffer() );
+    self.end = bufferLength = self.getBuffer().length;
+    self.setPhase( self.end )
+    self.isRecording = false;
+  })
+  .record();
+  
+  return this;
+};
 /**#Gibberish.MonoSynth - Synth
 A three oscillator monosynth for bass and lead lines. You can set the octave and tuning offsets for oscillators 2 & 3. There is a 24db filter and an envelope controlling
 both the amplitude and filter cutoff.
@@ -5055,6 +5072,7 @@ Gibberish.MonoSynth = function() {
   		resonance:	2.5,
   		filterMult:	.3,
   		isLowPass:	true,
+      pulsewidth: .5,
   		amp:		    .6,
   		detune2:		.01,
   		detune3:		-.01,
@@ -5109,7 +5127,7 @@ param **amp** : Optional. Float. The volume of the note, usually between 0..1. T
     	panner    = Gibberish.makePanner(),
     	out       = [0,0];
     
-  this.callback = function(frequency, amp1, amp2, amp3, attack, decay, cutoff, resonance, filterMult, isLowPass, masterAmp, detune2, detune3, octave2, octave3, glide, pan, channels) {
+  this.callback = function(frequency, amp1, amp2, amp3, attack, decay, cutoff, resonance, filterMult, isLowPass, pulsewidth, masterAmp, detune2, detune3, octave2, octave3, glide, pan, channels) {
 		if(envstate() < 2) {
       if(glide >= 1) glide = .9999;
       frequency = lag(frequency, 1-glide, glide);
@@ -5139,7 +5157,7 @@ param **amp** : Optional. Float. The volume of the note, usually between 0..1. T
 			frequency2 += detune2 > 0 ? ((frequency * 2) - frequency) * detune2 : (frequency - (frequency / 2)) * detune2;
 			frequency3 += detune3 > 0 ? ((frequency * 2) - frequency) * detune3 : (frequency - (frequency / 2)) * detune3;
 							
-			var oscValue = osc1(frequency, amp1, 1) + osc2(frequency2, amp2, 1) + osc3(frequency3, amp3, 1);
+			var oscValue = osc1(frequency, amp1, pulsewidth) + osc2(frequency2, amp2, pulsewidth) + osc3(frequency3, amp3, pulsewidth);
 			var envResult = envelope(attack, decay);
 			var val = filter( oscValue, cutoff + filterMult * envResult, resonance, isLowPass, 1) * envResult;
 			val *= masterAmp;
@@ -5685,7 +5703,7 @@ Gibberish.Sequencer = function() {
             if(this.valuesIndex >= this.values.length) this.valuesIndex = 0;
           }else if(this.keysAndValues !== null) {
             for(var key in this.keysAndValues) {
-              var index = this.counts[key]++;
+              var index = typeof this.keysAndValues[ key ].pick === 'function' ? this.keysAndValues[ key ].pick() : this.counts[key]++;
               var val = this.keysAndValues[key][index];
               
               if(typeof val === 'function') { val = val(); }
@@ -5706,7 +5724,7 @@ Gibberish.Sequencer = function() {
           this.phase -= this.nextTime;
         
           if(Array.isArray(this.durations)) {
-            var next = this.durations[ this.durationsIndex++ ];
+            var next = typeof this.durations.pick === 'function' ? this.durations[ this.durations.pick() ] : this.durations[ this.durationsIndex++ ];
             this.nextTime = typeof next === 'function' ? next() : next;
             if( this.durationsIndex >= this.durations.length) {
               this.durationsIndex = 0;
