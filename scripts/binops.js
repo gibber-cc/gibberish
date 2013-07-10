@@ -203,4 +203,39 @@ Create an object that returns the first argument raised to the power of the seco
 
     return me;
   },
+  
+  Map : function( prop, _aMin, _aMax, _bMin, _bMax, _curve) {
+    var pow = Math.pow,
+    LINEAR = 0,
+    LOGARITHMIC = 1,
+    base = 0,
+    phase = 0,
+    me = {
+      name : 'map',
+      properties : { value:prop, aMin:_aMin, aMax:_aMax, bMin:_bMin, bMax:_bMax, curve:LOGARITHMIC },
+      
+      
+      callback : function( v, v1Min, v1Max, v2Min, v2Max, curve ) {
+        var range1 = v1Max-v1Min,
+            range2 = v2Max - v2Min,
+            percent = (v - v2Min) / range2,
+            val 
+            
+        percent = percent < 0 ? 0 : percent // avoid NaN output for exponential output curve
+        
+        val = curve === 0 ? v1Min + ( percent * range1 ) : v1Min + pow( percent, 1.5 ) * range1
+            
+        if( val > _aMax ) val = _aMax 
+        if( val < _aMin ) val = _aMin
+        
+        return val
+      },
+    }
+  
+    me.__proto__ = new Gibberish.ugen()
+  
+    me.init()
+
+    return me
+  },
 };

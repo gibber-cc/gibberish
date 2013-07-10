@@ -64,14 +64,23 @@ Perform codegen on all dirty ugens and re-create the audio callback. This method
     
     this.codeblock.length = 0;
     
+    this.callbackArgs.length = 0;
+    this.callbackObjects.length = 0;
+    
+    //console.log( this.dirtied )
     /* generate code for dirty ugens */
     for(var i = 0; i < this.dirtied.length; i++) {
       this.dirtied[i].codegen();
     }
     this.dirtied.length = 0;
     
-    this.codestring = 'Gibberish.callback = function('
+    this.codestring = 'Gibberish.callback = function(input,'
+
+    this.memo = {};
     
+    this.out.getCodeblock();
+    
+    //console.log( this.callbackArgs )
     for(var i = 0; i < this.callbackArgs.length; i++) {
       this.codestring += this.callbackArgs[i]
       if(i < this.callbackArgs.length - 1)
@@ -82,14 +91,6 @@ Perform codegen on all dirty ugens and re-create the audio callback. This method
     /* concatenate code for all ugens */
     this.memo = {};
     
-    //for(var j = 0; j < this.sequencers2.length; j++) {
-      //console.log("getting codeblock", j)
-      //this.sequencers2[j].getCodeblock();
-    //}
-    
-    //console.log(this.codeblock)
-    
-    this.out.getCodeblock();
     this.codestring += this.codeblock.join("\t");
     this.codestring += "\n\t";
     
@@ -578,11 +579,6 @@ Generates output code (as a string) used inside audio callback
       
         s += ");\n";
         
-        if(this.codeblock === null) {
-          Gibberish.callbackArgs.push( this.symbol )
-          Gibberish.callbackObjects.push( this.callback )
-        }
-        
         this.codeblock = s;
 
         this.dirty = false;        
@@ -642,6 +638,9 @@ Retrieves codeblock for ugen previously created with codegen method.
             Gibberish.codeblock.push(this.codeblock);
           }
         }
+        
+        if( Gibberish.callbackArgs.indexOf( this.symbol ) === -1 ) { Gibberish.callbackArgs.push( this.symbol ) }
+        if( Gibberish.callbackObjects.indexOf( this.callback ) === -1 ) { Gibberish.callbackObjects.push( this.callback ) }
         
         return this.variable;
       },

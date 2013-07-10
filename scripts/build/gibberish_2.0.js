@@ -64,14 +64,23 @@ Perform codegen on all dirty ugens and re-create the audio callback. This method
     
     this.codeblock.length = 0;
     
+    this.callbackArgs.length = 0;
+    this.callbackObjects.length = 0;
+    
+    //console.log( this.dirtied )
     /* generate code for dirty ugens */
     for(var i = 0; i < this.dirtied.length; i++) {
       this.dirtied[i].codegen();
     }
     this.dirtied.length = 0;
     
-    this.codestring = 'Gibberish.callback = function('
+    this.codestring = 'Gibberish.callback = function(input,'
+
+    this.memo = {};
     
+    this.out.getCodeblock();
+    
+    //console.log( this.callbackArgs )
     for(var i = 0; i < this.callbackArgs.length; i++) {
       this.codestring += this.callbackArgs[i]
       if(i < this.callbackArgs.length - 1)
@@ -82,14 +91,6 @@ Perform codegen on all dirty ugens and re-create the audio callback. This method
     /* concatenate code for all ugens */
     this.memo = {};
     
-    //for(var j = 0; j < this.sequencers2.length; j++) {
-      //console.log("getting codeblock", j)
-      //this.sequencers2[j].getCodeblock();
-    //}
-    
-    //console.log(this.codeblock)
-    
-    this.out.getCodeblock();
     this.codestring += this.codeblock.join("\t");
     this.codestring += "\n\t";
     
@@ -578,11 +579,6 @@ Generates output code (as a string) used inside audio callback
       
         s += ");\n";
         
-        if(this.codeblock === null) {
-          Gibberish.callbackArgs.push( this.symbol )
-          Gibberish.callbackObjects.push( this.callback )
-        }
-        
         this.codeblock = s;
 
         this.dirty = false;        
@@ -642,6 +638,9 @@ Retrieves codeblock for ugen previously created with codegen method.
             Gibberish.codeblock.push(this.codeblock);
           }
         }
+        
+        if( Gibberish.callbackArgs.indexOf( this.symbol ) === -1 ) { Gibberish.callbackArgs.push( this.symbol ) }
+        if( Gibberish.callbackObjects.indexOf( this.callback ) === -1 ) { Gibberish.callbackObjects.push( this.callback ) }
         
         return this.variable;
       },
@@ -1119,6 +1118,23 @@ Gibberish.Proxy = function() {
   Gibberish.dirty(this.input.parent);
 };
 Gibberish.Proxy.prototype = new Gibberish.ugen();
+
+Gibberish.Proxy2 = function() {
+  var input = arguments[0],
+      name = arguments[1]
+      
+	Gibberish.extend(this, {
+  	name: 'proxy2',
+    type: 'effect',
+    
+    properties : {},
+    
+    callback : function() {
+      return input[ name ]
+    },
+  }).init();
+};
+Gibberish.Proxy2.prototype = new Gibberish.ugen();
 Gibberish.oscillator = function() {
   this.type = 'oscillator';
   
@@ -2734,7 +2750,7 @@ Gibberish.OnePole = function() {
     type: 'effect',
     
     properties : {
-      input : null,
+      input : 0,
       a0 : .15,           
       b1 : .85, 
     },
@@ -2752,10 +2768,34 @@ Use this to apply the filter to a property of an object.
 param **propertyName** String. The name of the property to smooth.  
 param **object** Object. The object containing the property to be smoothed
 **/    
-    smooth : function(propName, obj) {
-      this.input = obj.properties[propName];
-      obj.mod(propName, this, '=');
+    smooth : function(property, obj) {
+      this.input = obj[ property ]
+      history = this.input
+      obj[ property ] = this
+      
+      this.obj = obj
+      this.property = property
+      
+      this.oldSetter = obj.__lookupSetter__( property )
+      this.oldGetter = obj.__lookupGetter__( property )
+      
+      var op = this
+      Object.defineProperty( obj, property, {
+        get : function() { return op.input },
+        set : function(v) { 
+          op.input = v
+        }
+      })
     },
+    
+    remove : function() {
+      Object.defineProperty( this.obj, this.property, {
+        get: this.oldGetter,
+        set: this.oldSetter
+      })
+      
+      this.obj[ this.property ] = this.input
+    }
   })
   .init()
   .processProperties(arguments);
@@ -3736,15 +3776,15 @@ Gibberish.Granulator = function(properties) {
 		grains[i].pan = Gibberish.rndf(self.spread * -1, self.spread);
 	}
 			
-	if(typeof properties.input !== "undefined") { 
-			that.shouldWrite = true;
+	/*if(typeof properties.input !== "undefined") { 
+			this.shouldWrite = true;
       
-			that.sampler = new Gibberish.Sampler();
-			that.sampler.connect();
-			that.sampler.record(properties.buffer, that.bufferLength);
+			this.sampler = new Gibberish.Sampler();
+			this.sampler.connect();
+			this.sampler.record(properties.buffer, this.bufferLength);
       
-			buffer = that.sampler.buffer;
-	}else if(typeof properties.buffer !== 'undefined') {
+			buffer = this.sampler.buffer;
+	}else*/ if(typeof properties.buffer !== 'undefined') {
 	  buffer = properties.buffer;
     bufferLength = buffer.length;
 	}
@@ -5407,6 +5447,41 @@ Create an object that returns the first argument raised to the power of the seco
 
     return me;
   },
+  
+  Map : function( prop, _aMin, _aMax, _bMin, _bMax, _curve) {
+    var pow = Math.pow,
+    LINEAR = 0,
+    LOGARITHMIC = 1,
+    base = 0,
+    phase = 0,
+    me = {
+      name : 'map',
+      properties : { value:prop, aMin:_aMin, aMax:_aMax, bMin:_bMin, bMax:_bMax, curve:LOGARITHMIC },
+      
+      
+      callback : function( v, v1Min, v1Max, v2Min, v2Max, curve ) {
+        var range1 = v1Max-v1Min,
+            range2 = v2Max - v2Min,
+            percent = (v - v2Min) / range2,
+            val 
+            
+        percent = percent < 0 ? 0 : percent // avoid NaN output for exponential output curve
+        
+        val = curve === 0 ? v1Min + ( percent * range1 ) : v1Min + pow( percent, 1.5 ) * range1
+            
+        if( val > _aMax ) val = _aMax 
+        if( val < _aMin ) val = _aMin
+        
+        return val
+      },
+    }
+  
+    me.__proto__ = new Gibberish.ugen()
+  
+    me.init()
+
+    return me
+  },
 };
 /**#Gibberish.Time - Miscellaneous
 This object is used to simplify timing in Gibberish. It contains an export function to place its methods in another object (like window)
@@ -5825,6 +5900,10 @@ method is called automatically when the sequencer is first created; you should o
       if( Gibberish.sequencers.indexOf( this ) === -1 ) {
         Gibberish.sequencers.push( this );
       }
+      
+      this.isConnected = true
+      
+      return this
     },
   });
   

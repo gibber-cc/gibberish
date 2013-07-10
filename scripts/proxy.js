@@ -26,3 +26,20 @@ Gibberish.Proxy = function() {
   Gibberish.dirty(this.input.parent);
 };
 Gibberish.Proxy.prototype = new Gibberish.ugen();
+
+Gibberish.Proxy2 = function() {
+  var input = arguments[0],
+      name = arguments[1]
+      
+	Gibberish.extend(this, {
+  	name: 'proxy2',
+    type: 'effect',
+    
+    properties : {},
+    
+    callback : function() {
+      return input[ name ]
+    },
+  }).init();
+};
+Gibberish.Proxy2.prototype = new Gibberish.ugen();

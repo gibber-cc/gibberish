@@ -165,6 +165,10 @@ method is called automatically when the sequencer is first created; you should o
       if( Gibberish.sequencers.indexOf( this ) === -1 ) {
         Gibberish.sequencers.push( this );
       }
+      
+      this.isConnected = true
+      
+      return this
     },
   });
   

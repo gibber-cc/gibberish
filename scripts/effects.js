@@ -258,7 +258,7 @@ Gibberish.OnePole = function() {
     type: 'effect',
     
     properties : {
-      input : null,
+      input : 0,
       a0 : .15,           
       b1 : .85, 
     },
@@ -276,10 +276,37 @@ Use this to apply the filter to a property of an object.
 param **propertyName** String. The name of the property to smooth.  
 param **object** Object. The object containing the property to be smoothed
 **/    
-    smooth : function(propName, obj) {
-      this.input = obj.properties[propName];
-      obj.mod(propName, this, '=');
+    smooth : function(property, obj) {
+      this.input = obj[ property ]
+      history = this.input
+      obj[ property ] = this
+      
+      this.obj = obj
+      this.property = property
+      
+      this.oldSetter = obj.__lookupSetter__( property )
+      this.oldGetter = obj.__lookupGetter__( property )
+      
+      var op = this
+      Object.defineProperty( obj, property, {
+        get : function() { return op.input },
+        set : function(v) { 
+          op.input = v
+        }
+      })
     },
+
+/**###Gibberish.OnePole.remove : method  
+Remove OnePole from assigned ugen property. This will effectively remove the filter from the graph and return the normal target ugen property behavior.
+**/      
+    remove : function() {
+      Object.defineProperty( this.obj, this.property, {
+        get: this.oldGetter,
+        set: this.oldSetter
+      })
+      
+      this.obj[ this.property ] = this.input
+    }
   })
   .init()
   .processProperties(arguments);
@@ -1260,15 +1287,15 @@ Gibberish.Granulator = function(properties) {
 		grains[i].pan = Gibberish.rndf(self.spread * -1, self.spread);
 	}
 			
-	if(typeof properties.input !== "undefined") { 
-			that.shouldWrite = true;
+	/*if(typeof properties.input !== "undefined") { 
+			this.shouldWrite = true;
       
-			that.sampler = new Gibberish.Sampler();
-			that.sampler.connect();
-			that.sampler.record(properties.buffer, that.bufferLength);
+			this.sampler = new Gibberish.Sampler();
+			this.sampler.connect();
+			this.sampler.record(properties.buffer, this.bufferLength);
       
-			buffer = that.sampler.buffer;
-	}else if(typeof properties.buffer !== 'undefined') {
+			buffer = this.sampler.buffer;
+	}else*/ if(typeof properties.buffer !== 'undefined') {
 	  buffer = properties.buffer;
     bufferLength = buffer.length;
 	}
