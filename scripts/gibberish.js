@@ -639,8 +639,8 @@ Retrieves codeblock for ugen previously created with codegen method.
           }
         }
         
-        if( Gibberish.callbackArgs.indexOf( this.symbol ) === -1 ) { Gibberish.callbackArgs.push( this.symbol ) }
-        if( Gibberish.callbackObjects.indexOf( this.callback ) === -1 ) { Gibberish.callbackObjects.push( this.callback ) }
+        if( Gibberish.callbackArgs.indexOf( this.symbol ) === -1 && this.name !== 'op') { Gibberish.callbackArgs.push( this.symbol ) }
+        if( Gibberish.callbackObjects.indexOf( this.callback ) === -1 && this.name !== 'op' ) { Gibberish.callbackObjects.push( this.callback ) }
         
         return this.variable;
       },

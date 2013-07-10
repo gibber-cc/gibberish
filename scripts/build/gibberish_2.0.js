@@ -639,8 +639,8 @@ Retrieves codeblock for ugen previously created with codegen method.
           }
         }
         
-        if( Gibberish.callbackArgs.indexOf( this.symbol ) === -1 ) { Gibberish.callbackArgs.push( this.symbol ) }
-        if( Gibberish.callbackObjects.indexOf( this.callback ) === -1 ) { Gibberish.callbackObjects.push( this.callback ) }
+        if( Gibberish.callbackArgs.indexOf( this.symbol ) === -1 && this.name !== 'op') { Gibberish.callbackArgs.push( this.symbol ) }
+        if( Gibberish.callbackObjects.indexOf( this.callback ) === -1 && this.name !== 'op' ) { Gibberish.callbackObjects.push( this.callback ) }
         
         return this.variable;
       },
@@ -2787,7 +2787,10 @@ param **object** Object. The object containing the property to be smoothed
         }
       })
     },
-    
+
+/**###Gibberish.OnePole.remove : method  
+Remove OnePole from assigned ugen property. This will effectively remove the filter from the graph and return the normal target ugen property behavior.
+**/      
     remove : function() {
       Object.defineProperty( this.obj, this.property, {
         get: this.oldGetter,
@@ -5376,9 +5379,7 @@ Create an object that returns the absolute value of the (single) argument. The a
 **/  
   Abs : function() {
     var args = Array.prototype.slice.call(arguments, 0),
-        _abs = Math.abs;
-  
-    var me = {
+    me = {
       name : 'abs',
       properties : {},
       callback : Math.abs,
@@ -5393,10 +5394,8 @@ Create an object that returns the absolute value of the (single) argument. The a
 Create an object that returns the square root of the (single) argument. The argument may be a unit generator or number.
 **/    
   Sqrt : function() {
-    var args = Array.prototype.slice.call(arguments, 0)
-        _sqrt = Math.sqrt;
-  
-    var me = {
+    var args = Array.prototype.slice.call(arguments, 0),
+    me = {
       name : 'sqrt',
       properties : {},
       callback : Math.sqrt,
@@ -5412,9 +5411,8 @@ Create an object that returns the square root of the (single) argument. The argu
 Create an object that returns the first argument raised to the power of the second argument. The arguments may be a unit generators or numbers.
 **/      
   Pow : function() {
-    var args = Array.prototype.slice.call(arguments, 0);
-      
-    var me = {
+    var args = Array.prototype.slice.call(arguments, 0),
+    me = {
       name : 'pow',
       properties : {},
       callback : Math.pow,
@@ -5429,9 +5427,7 @@ Create an object that returns the first argument raised to the power of the seco
   
   Merge : function() {
     var args = Array.prototype.slice.call(arguments, 0),
-        phase = 0;
-  
-    var me = {
+    me = {
       name : 'merge',
       properties : {},
       callback : function(a) {
