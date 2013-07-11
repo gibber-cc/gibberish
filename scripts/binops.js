@@ -196,8 +196,8 @@ Create an object that returns the first argument raised to the power of the seco
 
     return me;
   },
-  
-  Map : function( prop, _aMin, _aMax, _bMin, _bMax, _curve) {
+            
+  Map : function( prop, _aMin, _aMax, _bMin, _bMax, _curve, _wrap) {
     var pow = Math.pow,
     LINEAR = 0,
     LOGARITHMIC = 1,
@@ -205,22 +205,21 @@ Create an object that returns the first argument raised to the power of the seco
     phase = 0,
     me = {
       name : 'map',
-      properties : { value:prop, aMin:_aMin, aMax:_aMax, bMin:_bMin, bMax:_bMax, curve:LOGARITHMIC },
-      
-      
-      callback : function( v, v1Min, v1Max, v2Min, v2Max, curve ) {
+      properties : { value:prop, aMin:_aMin, aMax:_aMax, bMin:_bMin, bMax:_bMax, curve:_curve || LINEAR, wrap: _wrap || false },
+
+      callback : function( v, v1Min, v1Max, v2Min, v2Max, curve, wrap ) {
         var range1 = v1Max-v1Min,
             range2 = v2Max - v2Min,
             percent = (v - v2Min) / range2,
             val 
             
-        percent = percent < 0 ? 0 : percent // avoid NaN output for exponential output curve
-        
+        percent = percent < 0 && curve ? 0 : percent // avoid NaN output for exponential output curve
+
         val = curve === 0 ? v1Min + ( percent * range1 ) : v1Min + pow( percent, 1.5 ) * range1
-            
-        if( val > _aMax ) val = _aMax 
-        if( val < _aMin ) val = _aMin
-        
+
+        if( val > v1Max ) val = wrap ? v1Min + val % v1Min : v1Max 
+        if( val < v1Min ) val = wrap ? v1Max + val % v1Min : v1Min
+
         return val
       },
     }
