@@ -61,7 +61,6 @@ Gibberish = {
 Perform codegen on all dirty ugens and re-create the audio callback. This method is called automatically in the default Gibberish sample loop whenever Gibberish.isDirty is true.
 **/
   createCallback : function() {
-    //console.log('callback', this.sequencers)
     this.memo = {};
     
     this.codeblock.length = 0;
@@ -70,7 +69,6 @@ Perform codegen on all dirty ugens and re-create the audio callback. This method
     this.callbackObjects.length = 0;
     this.analysisCallbackArgs.length = 0;
     
-    //console.log( this.dirtied )
     /* generate code for dirty ugens */
     for(var i = 0; i < this.dirtied.length; i++) {
       this.dirtied[i].codegen();
@@ -85,7 +83,7 @@ Perform codegen on all dirty ugens and re-create the audio callback. This method
     var codeblockStore = this.codeblock.slice(0)
     
     // we must push these here because they callback arguments are at the start of the string, 
-    // but we have to wait to codegen the analysis until after the ugens that are analyzed have been codegen'd
+    // but we have to wait to codegen the analysis ugens until after their targets have been codegen'd
     if(this.analysisUgens.length > 0) { 
       this.analysisCodeblock.length = 0;
       for(var i = 0; i < this.analysisUgens.length; i++) {
@@ -117,11 +115,12 @@ Perform codegen on all dirty ugens and re-create the audio callback. This method
       this.analysisCodeblock.length = 0;
       for(var i = 0; i < this.analysisUgens.length; i++) {
         this.codeblock.length = 0;    
-        //console.log("CALLING ANALYSIS CODEGEN");
         this.analysisUgens[i].codegen2();
-        this.codestring += this.codeblock.join("");
-        this.codestring += "\n\t";
-        this.analysisCodeblock.push ( this.analysisUgens[i].analysisCodegen() );
+        if(this.codestring !== 'undefined' ) {
+          this.codestring += this.codeblock.join("");
+          this.codestring += "\n\t";
+          this.analysisCodeblock.push ( this.analysisUgens[i].analysisCodegen() );
+        }
       }
       this.codestring += this.analysisCodeblock.join('\n\t');
       this.codestring += '\n\t';
@@ -776,7 +775,6 @@ is using a matching object as the modulator.
       
       smooth : function(property, amount) {
         var op = new Gibberish.OnePole();
-        //op.smooth(this, property);
         this.mod(property, op, "=");
       },
 /**###Ugen.connect : method
@@ -825,7 +823,6 @@ param **bus** : Bus ugen. Optional. The bus to send the ugen to. If this argumen
             this.input.disconnect( null, tempDisconnect )
           }
           
-          console.log( "DISCONNECT ")
           var idx = Gibberish.callbackArgs.indexOf( this.symbol )
           Gibberish.callbackArgs.splice(idx, 1)
         
@@ -2312,13 +2309,14 @@ Gibberish.analysis = function() {
           }
         } 
       }else if( typeof property.value === 'object' ) {      
-        Gibberish.codestring += Gibberish.memo[property.value.symbol];
-      }/*else{
-        console.log('hmmmm', property.value )
-        Gibberish.codestring = property.value; // Gibberish.memo[property.value.symbol]
-      }*/
-        
-      if(property.binops) {
+        Gibberish.codestring += Gibberish.memo[property.value.symbol]; // TODO: should never be undefined...
+      }else{ // assume type = number
+        //console.log('hmmmm', property.value )
+        //Gibberish.codestring += property.value; // Gibberish.memo[property.value.symbol]
+      }
+      
+      // TODO: why would this be in here?
+      /*if(property.binops) {
         for(var j = 0; j < property.binops.length; j++) {
           var op = property.binops[j],
               val; 
@@ -2326,7 +2324,7 @@ Gibberish.analysis = function() {
             op.ugen.codegen();
           }
         }
-      }      
+      }*/     
     }
   };
   
@@ -2356,6 +2354,8 @@ Gibberish.analysis = function() {
   this.analysisInit = function() {
     this.analysisSymbol = Gibberish.generateSymbol(this.name);
     Gibberish.analysisUgens.push( this );
+    Gibberish.dirty()
+    this.analysisCodegen();    
   };
 };
 Gibberish.analysis.prototype = new Gibberish.ugen();

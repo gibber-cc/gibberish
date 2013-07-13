@@ -42,13 +42,14 @@ Gibberish.analysis = function() {
           }
         } 
       }else if( typeof property.value === 'object' ) {      
-        Gibberish.codestring += Gibberish.memo[property.value.symbol];
-      }/*else{
-        console.log('hmmmm', property.value )
-        Gibberish.codestring = property.value; // Gibberish.memo[property.value.symbol]
-      }*/
-        
-      if(property.binops) {
+        Gibberish.codestring += typeof Gibberish.memo[property.value.symbol] === 'undefined' ? '' : Gibberish.memo[property.value.symbol]; // TODO: should never be undefined...
+      }else{ // assume type = number
+        //console.log('hmmmm', property.value )
+        //Gibberish.codestring += property.value; // Gibberish.memo[property.value.symbol]
+      }
+      
+      // TODO: why would this be in here?
+      /*if(property.binops) {
         for(var j = 0; j < property.binops.length; j++) {
           var op = property.binops[j],
               val; 
@@ -56,7 +57,7 @@ Gibberish.analysis = function() {
             op.ugen.codegen();
           }
         }
-      }      
+      }*/     
     }
   };
   
@@ -86,6 +87,8 @@ Gibberish.analysis = function() {
   this.analysisInit = function() {
     this.analysisSymbol = Gibberish.generateSymbol(this.name);
     Gibberish.analysisUgens.push( this );
+    Gibberish.dirty(); // dirty in case analysis is not connected to graph, 
+    this.analysisCodegen();    
   };
 };
 Gibberish.analysis.prototype = new Gibberish.ugen();
