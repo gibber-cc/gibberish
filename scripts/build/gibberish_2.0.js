@@ -54,6 +54,8 @@ Gibberish = {
   sequencers        : [],
   callbackArgs      : ['input'],
   callbackObjects   : [],
+  analysisCallbackArgs    : [],
+  analysisCallbackObjects : [],
   
 /**###Gibberish.createCallback : method
 Perform codegen on all dirty ugens and re-create the audio callback. This method is called automatically in the default Gibberish sample loop whenever Gibberish.isDirty is true.
@@ -66,6 +68,7 @@ Perform codegen on all dirty ugens and re-create the audio callback. This method
     
     this.callbackArgs.length = 0;
     this.callbackObjects.length = 0;
+    this.analysisCallbackArgs.length = 0;
     
     //console.log( this.dirtied )
     /* generate code for dirty ugens */
@@ -79,23 +82,37 @@ Perform codegen on all dirty ugens and re-create the audio callback. This method
     this.memo = {};
     
     this.out.getCodeblock();
+    var codeblockStore = this.codeblock.slice(0)
     
-    //console.log( this.callbackArgs )
+    // we must push these here because they callback arguments are at the start of the string, 
+    // but we have to wait to codegen the analysis until after the ugens that are analyzed have been codegen'd
+    if(this.analysisUgens.length > 0) { 
+      this.analysisCodeblock.length = 0;
+      for(var i = 0; i < this.analysisUgens.length; i++) {
+        this.analysisCallbackArgs.push( this.analysisUgens[i].analysisSymbol )
+      }
+    }
+    
     for(var i = 0; i < this.callbackArgs.length; i++) {
       this.codestring += this.callbackArgs[i]
       if(i < this.callbackArgs.length - 1)
         this.codestring += ', '
     }
+    
+    for( var i = 0; i < this.analysisCallbackArgs.length; i++ ) {
+      this.codestring += ', '
+      this.codestring += this.analysisCallbackArgs[i]
+    }
+    
     this.codestring += '){\n\t';
 
     /* concatenate code for all ugens */
     this.memo = {};
     
-    this.codestring += this.codeblock.join("\t");
+    this.codestring += codeblockStore.join('\t')//this.codeblock.join("\t");
     this.codestring += "\n\t";
     
     /* analysis codeblock */
-    this.codeblock.length = 0;    
     if(this.analysisUgens.length > 0) {
       this.analysisCodeblock.length = 0;
       for(var i = 0; i < this.analysisUgens.length; i++) {
@@ -807,7 +824,8 @@ param **bus** : Bus ugen. Optional. The bus to send the ugen to. If this argumen
           }else if( typeof this.input === 'object' ) {
             this.input.disconnect( null, tempDisconnect )
           }
-        
+          
+          console.log( "DISCONNECT ")
           var idx = Gibberish.callbackArgs.indexOf( this.symbol )
           Gibberish.callbackArgs.splice(idx, 1)
         
@@ -2281,7 +2299,8 @@ Gibberish.analysis = function() {
   this.codegen2 = function() {
     for(var key in this.properties) {
       var property = this.properties[key];
-      if( Array.isArray( property.value ) ) {
+      
+      if( Array.isArray( property.value ) ) { // TODO: is this array case needed anymore? I don't think so...
         for(var i = 0; i < property.value.length; i++) {
           var member = property.value[i];
           if( typeof member === 'object' ) {
@@ -2292,26 +2311,12 @@ Gibberish.analysis = function() {
             member.type = 'analysis';
           }
         } 
-      }else if( typeof property.value === 'object' ) {
-        //console.log("CODEGEN FOR OBJECT THAT IS A PROPERTY VALUE");
-        
-        //console.log(property.value);
-        if(!Gibberish.memo[property.value.symbol]) {
-          property.value.type = 'ddd';
-          
-          property.value.codegen();
-          property.value.getCodeblock();
-          Gibberish.codeblock.push(property.value.codeblock);
-        
-          //console.log(Gibberish.codeblock);
-          property.value.type = 'analysis';
-        
-          var v = property.value.variable ? property.value.variable : Gibberish.generateSymbol('v');
-          Gibberish.memo[property.value.symbol] = v;
-          property.value.variable = v;
-          Gibberish.codestring = 'var ' + property.value.symbol + ' = Gibberish.functions.' + property.value.symbol + ';\n' + Gibberish.codestring;
-        }
-      }
+      }else if( typeof property.value === 'object' ) {      
+        Gibberish.codestring += Gibberish.memo[property.value.symbol];
+      }/*else{
+        console.log('hmmmm', property.value )
+        Gibberish.codestring = property.value; // Gibberish.memo[property.value.symbol]
+      }*/
         
       if(property.binops) {
         for(var j = 0; j < property.binops.length; j++) {
@@ -2326,36 +2331,31 @@ Gibberish.analysis = function() {
   };
   
   this.analysisCodegen = function() {
-
-    if(Gibberish.memo[this.symbol]) {
-      return Gibberish.memo[this.symbol];
-    }else{
-      Gibberish.memo[this.symbol] = v;
-      var s = this.analysisSymbol + "(" + this.input.variable + ",";
-      for(var key in this.properties) {
-        if(key !== 'input') {
-          s += this[key] + ",";
-        }
+    
+    // TODO: can this be memoized somehow?
+    //if(Gibberish.memo[this.analysisSymbol]) {
+    //  return Gibberish.memo[this.analysisSymbol];
+    //}else{
+     // Gibberish.memo[this.symbol] = v;
+    var s = this.analysisSymbol + "(" + this.input.variable + ",";
+    for(var key in this.properties) {
+      if(key !== 'input') {
+        s += this[key] + ",";
       }
-      s = s.slice(0, -1);
-      s += ");";
-    
-      this.analysisCodeblock = s;
-    
-      if( Gibberish.callbackArgs.indexOf( this.analysisSymbol) === -1 ) {
-        Gibberish.callbackArgs.push( this.analysisSymbol )
-        Gibberish.callbackObjects.push( this.analysisCallback )
-      }
-    
-      return s;
     }
+    s = s.slice(0, -1);
+    s += ");";
+  
+    this.analysisCodeblock = s;
+  
+    Gibberish.callbackObjects.push( this.analysisCallback )
+        
+    return s;
   };
   
-  this.analysisInit = function() {    
+  this.analysisInit = function() {
     this.analysisSymbol = Gibberish.generateSymbol(this.name);
     Gibberish.analysisUgens.push( this );
-    Gibberish.callbackArgs.push( this.analysisSymbol )
-    Gibberish.callbackObjects.push( this.analysisCallback )
   };
 };
 Gibberish.analysis.prototype = new Gibberish.ugen();
@@ -2365,9 +2365,9 @@ Gibberish.Follow = function() {
   this.name = 'follow';
     
   this.properties = {
-    mult  : 1,
     input : 0,
     bufferSize : 4410,
+    mult : 1,
   };
     
   var abs = Math.abs,
@@ -2377,12 +2377,16 @@ Gibberish.Follow = function() {
       value = 0;
 			
   this.analysisCallback = function(input, bufferSize, mult) {
+    if( typeof input !== 'number') input = input[0] + input[1]
+    
   	sum += abs(input);
   	sum -= history[index];
+    
   	history[index] = abs(input);
+    
   	index = (index + 1) % bufferSize;
 			
-    // if history[index] isn't defined set it to 0	
+    // if history[index] isn't defined set it to 0 TODO: does this really need to happen here? I guess there were clicks on initialization...
     history[index] = history[index] ? history[index] : 0;
   	value = (sum / bufferSize) * mult;
   };
@@ -2390,6 +2394,8 @@ Gibberish.Follow = function() {
   this.callback = function() { return value; };
     
   this.init();
+  this.analysisInit();
+  this.processProperties( arguments );  
 };
 Gibberish.Follow.prototype = Gibberish._analysis;
 
@@ -2423,6 +2429,8 @@ Gibberish.SingleSampleDelay = function() {
   this.getValue = function() { return value }
   this.init();
   this.analysisInit();
+  this.processProperties( arguments );
+  
 };
 Gibberish.SingleSampleDelay.prototype = Gibberish._analysis;
 
@@ -5453,7 +5461,7 @@ Create an object that returns the first argument raised to the power of the seco
     me = {
       name : 'map',
       properties : { value:prop, aMin:_aMin, aMax:_aMax, bMin:_bMin, bMax:_bMax, curve:_curve || LINEAR, wrap: _wrap || false },
-                      //a.proxy, 440, 880,    0,      3.14, 0,      true
+
       callback : function( v, v1Min, v1Max, v2Min, v2Max, curve, wrap ) {
         var range1 = v1Max-v1Min,
             range2 = v2Max - v2Min,
@@ -5461,12 +5469,12 @@ Create an object that returns the first argument raised to the power of the seco
             val 
             
         percent = percent < 0 && curve ? 0 : percent // avoid NaN output for exponential output curve
-        if(++phase % 22050 === 0) console.log( 1, percent )
+
         val = curve === 0 ? v1Min + ( percent * range1 ) : v1Min + pow( percent, 1.5 ) * range1
-        if(phase % 22050 === 0) console.log(2, val)    
+
         if( val > v1Max ) val = wrap ? v1Min + val % v1Min : v1Max 
         if( val < v1Min ) val = wrap ? v1Max + val % v1Min : v1Min
-        if(phase % 22050 === 0) console.log(3, val)    
+
         return val
       },
     }

@@ -54,6 +54,8 @@ Gibberish = {
   sequencers        : [],
   callbackArgs      : ['input'],
   callbackObjects   : [],
+  analysisCallbackArgs    : [],
+  analysisCallbackObjects : [],
   
 /**###Gibberish.createCallback : method
 Perform codegen on all dirty ugens and re-create the audio callback. This method is called automatically in the default Gibberish sample loop whenever Gibberish.isDirty is true.
@@ -66,6 +68,7 @@ Perform codegen on all dirty ugens and re-create the audio callback. This method
     
     this.callbackArgs.length = 0;
     this.callbackObjects.length = 0;
+    this.analysisCallbackArgs.length = 0;
     
     //console.log( this.dirtied )
     /* generate code for dirty ugens */
@@ -79,23 +82,37 @@ Perform codegen on all dirty ugens and re-create the audio callback. This method
     this.memo = {};
     
     this.out.getCodeblock();
+    var codeblockStore = this.codeblock.slice(0)
     
-    //console.log( this.callbackArgs )
+    // we must push these here because they callback arguments are at the start of the string, 
+    // but we have to wait to codegen the analysis until after the ugens that are analyzed have been codegen'd
+    if(this.analysisUgens.length > 0) { 
+      this.analysisCodeblock.length = 0;
+      for(var i = 0; i < this.analysisUgens.length; i++) {
+        this.analysisCallbackArgs.push( this.analysisUgens[i].analysisSymbol )
+      }
+    }
+    
     for(var i = 0; i < this.callbackArgs.length; i++) {
       this.codestring += this.callbackArgs[i]
       if(i < this.callbackArgs.length - 1)
         this.codestring += ', '
     }
+    
+    for( var i = 0; i < this.analysisCallbackArgs.length; i++ ) {
+      this.codestring += ', '
+      this.codestring += this.analysisCallbackArgs[i]
+    }
+    
     this.codestring += '){\n\t';
 
     /* concatenate code for all ugens */
     this.memo = {};
     
-    this.codestring += this.codeblock.join("\t");
+    this.codestring += codeblockStore.join('\t')//this.codeblock.join("\t");
     this.codestring += "\n\t";
     
     /* analysis codeblock */
-    this.codeblock.length = 0;    
     if(this.analysisUgens.length > 0) {
       this.analysisCodeblock.length = 0;
       for(var i = 0; i < this.analysisUgens.length; i++) {
@@ -807,7 +824,8 @@ param **bus** : Bus ugen. Optional. The bus to send the ugen to. If this argumen
           }else if( typeof this.input === 'object' ) {
             this.input.disconnect( null, tempDisconnect )
           }
-        
+          
+          console.log( "DISCONNECT ")
           var idx = Gibberish.callbackArgs.indexOf( this.symbol )
           Gibberish.callbackArgs.splice(idx, 1)
         

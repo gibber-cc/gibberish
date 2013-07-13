@@ -29,7 +29,8 @@ Gibberish.analysis = function() {
   this.codegen2 = function() {
     for(var key in this.properties) {
       var property = this.properties[key];
-      if( Array.isArray( property.value ) ) {
+      
+      if( Array.isArray( property.value ) ) { // TODO: is this array case needed anymore? I don't think so...
         for(var i = 0; i < property.value.length; i++) {
           var member = property.value[i];
           if( typeof member === 'object' ) {
@@ -40,26 +41,12 @@ Gibberish.analysis = function() {
             member.type = 'analysis';
           }
         } 
-      }else if( typeof property.value === 'object' ) {
-        //console.log("CODEGEN FOR OBJECT THAT IS A PROPERTY VALUE");
-        
-        //console.log(property.value);
-        if(!Gibberish.memo[property.value.symbol]) {
-          property.value.type = 'ddd';
-          
-          property.value.codegen();
-          property.value.getCodeblock();
-          Gibberish.codeblock.push(property.value.codeblock);
-        
-          //console.log(Gibberish.codeblock);
-          property.value.type = 'analysis';
-        
-          var v = property.value.variable ? property.value.variable : Gibberish.generateSymbol('v');
-          Gibberish.memo[property.value.symbol] = v;
-          property.value.variable = v;
-          Gibberish.codestring = 'var ' + property.value.symbol + ' = Gibberish.functions.' + property.value.symbol + ';\n' + Gibberish.codestring;
-        }
-      }
+      }else if( typeof property.value === 'object' ) {      
+        Gibberish.codestring += Gibberish.memo[property.value.symbol];
+      }/*else{
+        console.log('hmmmm', property.value )
+        Gibberish.codestring = property.value; // Gibberish.memo[property.value.symbol]
+      }*/
         
       if(property.binops) {
         for(var j = 0; j < property.binops.length; j++) {
@@ -74,36 +61,31 @@ Gibberish.analysis = function() {
   };
   
   this.analysisCodegen = function() {
-
-    if(Gibberish.memo[this.symbol]) {
-      return Gibberish.memo[this.symbol];
-    }else{
-      Gibberish.memo[this.symbol] = v;
-      var s = this.analysisSymbol + "(" + this.input.variable + ",";
-      for(var key in this.properties) {
-        if(key !== 'input') {
-          s += this[key] + ",";
-        }
+    
+    // TODO: can this be memoized somehow?
+    //if(Gibberish.memo[this.analysisSymbol]) {
+    //  return Gibberish.memo[this.analysisSymbol];
+    //}else{
+     // Gibberish.memo[this.symbol] = v;
+    var s = this.analysisSymbol + "(" + this.input.variable + ",";
+    for(var key in this.properties) {
+      if(key !== 'input') {
+        s += this[key] + ",";
       }
-      s = s.slice(0, -1);
-      s += ");";
-    
-      this.analysisCodeblock = s;
-    
-      if( Gibberish.callbackArgs.indexOf( this.analysisSymbol) === -1 ) {
-        Gibberish.callbackArgs.push( this.analysisSymbol )
-        Gibberish.callbackObjects.push( this.analysisCallback )
-      }
-    
-      return s;
     }
+    s = s.slice(0, -1);
+    s += ");";
+  
+    this.analysisCodeblock = s;
+  
+    Gibberish.callbackObjects.push( this.analysisCallback )
+        
+    return s;
   };
   
-  this.analysisInit = function() {    
+  this.analysisInit = function() {
     this.analysisSymbol = Gibberish.generateSymbol(this.name);
     Gibberish.analysisUgens.push( this );
-    Gibberish.callbackArgs.push( this.analysisSymbol )
-    Gibberish.callbackObjects.push( this.analysisCallback )
   };
 };
 Gibberish.analysis.prototype = new Gibberish.ugen();
@@ -113,9 +95,9 @@ Gibberish.Follow = function() {
   this.name = 'follow';
     
   this.properties = {
-    mult  : 1,
     input : 0,
     bufferSize : 4410,
+    mult : 1,
   };
     
   var abs = Math.abs,
@@ -125,12 +107,16 @@ Gibberish.Follow = function() {
       value = 0;
 			
   this.analysisCallback = function(input, bufferSize, mult) {
+    if( typeof input !== 'number') input = input[0] + input[1]
+    
   	sum += abs(input);
   	sum -= history[index];
+    
   	history[index] = abs(input);
+    
   	index = (index + 1) % bufferSize;
 			
-    // if history[index] isn't defined set it to 0	
+    // if history[index] isn't defined set it to 0 TODO: does this really need to happen here? I guess there were clicks on initialization...
     history[index] = history[index] ? history[index] : 0;
   	value = (sum / bufferSize) * mult;
   };
@@ -138,6 +124,8 @@ Gibberish.Follow = function() {
   this.callback = function() { return value; };
     
   this.init();
+  this.analysisInit();
+  this.processProperties( arguments );  
 };
 Gibberish.Follow.prototype = Gibberish._analysis;
 
@@ -171,6 +159,8 @@ Gibberish.SingleSampleDelay = function() {
   this.getValue = function() { return value }
   this.init();
   this.analysisInit();
+  this.processProperties( arguments );
+  
 };
 Gibberish.SingleSampleDelay.prototype = Gibberish._analysis;
 
