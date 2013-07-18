@@ -365,47 +365,23 @@ Create and return an object that can be used to pan a stereo source.
 		return f;
 	},
   
-  defineUgenProperty : function(key, initValue, obj) {
-    obj.properties[key] = {
-      symbol: Gibberish.generateSymbol('v'),
+  defineUgenProperty : function(key, initValue, _obj) {
+    var prop = _obj.properties[key] = {
+      //symbol: Gibberish.generateSymbol('v'),
       value:  initValue,
       binops: [],
-      getCodeblock : function() { 
-        if(typeof obj.properties[ key].value !== 'number') 
-          return "var " + obj.symbol + " = " + obj.properties[ key ].value + ";\n"; 
-        else
-          return typeof obj.properties[ key].value
-        
-      },
-      codegen : function() { 
-        var memo;
-        if( Gibberish.memo[ obj.properties[ key ].value.symbol ] ) return Gibberish.memo[ obj.properties[ key ].value.symbol ];
-        
-        if( obj.properties[ key ].value.codegen ) { 
-          obj.properties[ key ].value.codegen(); 
-          memo = obj.properties[ key ].value.symbol;
-        }else{
-          memo = obj.properties[ key ].value;
-        }
-        Gibberish.memo[ this.symbol ] = memo
-      },
-      parent : obj,
+      parent : _obj,
       name : key,
     };
-      
-    (function(_obj) {
-      var _key = key;
-      try{
-        Object.defineProperty(_obj, _key, {
-          configurable: true,
-          get: function() 	 { return _obj.properties[_key].value },
-          set: function(val) { 
-            _obj.properties[_key].value = val;
-            Gibberish.dirty(_obj);
-          },
-        });
-      }catch(e){  console.log( e ) }
-    })(obj);
+
+    Object.defineProperty(_obj, key, {
+      configurable: true,
+      get: function() { return prop.value },
+      set: function(val) { 
+        prop.value = val;
+        Gibberish.dirty(_obj);
+      },
+    });
   },
 /**###Gibberish.polyInit : method
 For ugens with polyphony, add metaprogramming that passes on property changes to the 'children' of the polyphonic object. Polyphonic ugens in Gibberish are just single instances that are routed into a shared bus, along with a few special methods for voice allocation etc.  

@@ -366,47 +366,22 @@ Create and return an object that can be used to pan a stereo source.
 	},
   
   defineUgenProperty : function(key, initValue, _obj) {
-    var obj = _obj.properties[key] = {
-      symbol: Gibberish.generateSymbol('v'),
+    var prop = _obj.properties[key] = {
+      //symbol: Gibberish.generateSymbol('v'),
       value:  initValue,
       binops: [],
-      getCodeblock : function() { 
-        if(typeof obj.value !== 'number') 
-          return "var " + obj.symbol + " = " + obj.value + ";\n"; 
-        else
-          return typeof obj.properties[ key].value
-        
-      },
-      codegen : function() { 
-        var memo;
-        if( Gibberish.memo[ obj.value.symbol ] ) return Gibberish.memo[ obj.value.symbol ];
-        
-        if( obj.value.codegen ) { 
-          obj.value.codegen(); 
-          memo = obj.value.symbol;
-        }else{
-          memo = obj.value;
-        }
-        
-        return Gibberish.memo[ this.symbol ] = memo
-      },
       parent : _obj,
       name : key,
     };
-      
-    (function(__obj) { // ugh... I guess the closure makes it a little faster? probably not... 
-      var _key = key;
-      try{
-        Object.defineProperty(__obj, _key, {
-          configurable: true,
-          get: function() 	 { return __obj.properties[_key].value },
-          set: function(val) { 
-            __obj.properties[_key].value = val;
-            Gibberish.dirty(__obj);
-          },
-        });
-      }catch(e){  console.log( e ) }
-    })(_obj);
+
+    Object.defineProperty(_obj, key, {
+      configurable: true,
+      get: function() { return prop.value },
+      set: function(val) { 
+        prop.value = val;
+        Gibberish.dirty(_obj);
+      },
+    });
   },
 /**###Gibberish.polyInit : method
 For ugens with polyphony, add metaprogramming that passes on property changes to the 'children' of the polyphonic object. Polyphonic ugens in Gibberish are just single instances that are routed into a shared bus, along with a few special methods for voice allocation etc.  
