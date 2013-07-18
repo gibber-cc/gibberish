@@ -28,30 +28,32 @@ Gibberish.analysis = function() {
   }
   
   this.analysisCodegen = function() {
-    
     // TODO: can this be memoized somehow?
     //if(Gibberish.memo[this.analysisSymbol]) {
     //  return Gibberish.memo[this.analysisSymbol];
     //}else{
-     // Gibberish.memo[this.symbol] = v;
-    //console.log( this.input )
+    // Gibberish.memo[this.symbol] = v;
+    // console.log( this.input )
+    
     var input = 0;
     if(this.input.codegen){
-      this.input.codegen()  
-      input = this.input.variable
+      input = this.input.codegen()  
     }
+    
     var s = this.analysisSymbol + "(" + input + ",";
     for(var key in this.properties) {
       if(key !== 'input') {
         s += this[key] + ",";
       }
     }
-    s = s.slice(0, -1);
+    s = s.slice(0, -1); // remove trailing comma
     s += ");";
   
     this.analysisCodeblock = s;
+    
     if( Gibberish.analysisCodeblock.indexOf( this.analysisCodeblock ) === -1 ) Gibberish.analysisCodeblock.push( this.analysisCodeblock )
-    Gibberish.callbackObjects.push( this.analysisCallback )
+    
+    if( Gibberish.callbackObjects.indexOf( this.analysisCallback) === -1 ) Gibberish.callbackObjects.push( this.analysisCallback )
         
     return s;
   };

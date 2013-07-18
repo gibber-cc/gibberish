@@ -367,7 +367,6 @@ Create and return an object that can be used to pan a stereo source.
   
   defineUgenProperty : function(key, initValue, _obj) {
     var prop = _obj.properties[key] = {
-      //symbol: Gibberish.generateSymbol('v'),
       value:  initValue,
       binops: [],
       parent : _obj,
@@ -2257,56 +2256,22 @@ Gibberish.analysis = function() {
     return this.variable;
   }
   
-  this.codegen2 = function() {
-    for(var key in this.properties) {
-      var property = this.properties[key];
-      //console.log( "PROP ", property)
-      if( Array.isArray( property.value ) ) { // TODO: is this array case needed anymore? I don't think so...
-        for(var i = 0; i < property.value.length; i++) {
-          var member = property.value[i];
-          if( typeof member === 'object' ) {
-            member.type = 'ddd';
-            
-            member.codegen();
-            member.type = 'analysis';
-          }
-        } 
-      }else if( typeof property.value === 'object' ) {      
-        //Gibberish.codestring += typeof Gibberish.memo[property.value.symbol] === 'undefined' ? '' : Gibberish.memo[property.value.symbol]; // TODO: should never be undefined...
-        //console.log( property )
-        Gibberish.codestring += property.value.codegen() // TODO: should never be undefined...        
-      }else{ // assume type = number
-        //console.log('hmmmm', property.value )
-        //Gibberish.codestring += property.value
-        //Gibberish.codestring += Gibberish.memo[property.value.symbol]
-      }
-      
-      // TODO: why would this be in here?
-      /*if(property.binops) {
-        for(var j = 0; j < property.binops.length; j++) {
-          var op = property.binops[j],
-              val; 
-          if( typeof op.ugen === 'object') {
-            op.ugen.codegen();
-          }
-        }
-      }*/     
-    }
-  };
-  
   this.analysisCodegen = function() {
-    
     // TODO: can this be memoized somehow?
     //if(Gibberish.memo[this.analysisSymbol]) {
     //  return Gibberish.memo[this.analysisSymbol];
     //}else{
-     // Gibberish.memo[this.symbol] = v;
-    //console.log( this.input )
+    // Gibberish.memo[this.symbol] = v;
+    // console.log( this.input )
+    
     var input = 0;
     if(this.input.codegen){
-      this.input.codegen()  
-      input = this.input.variable
+      input = this.input.codegen()  
+      //input = //this.input.variable
     }
+    
+    //console.log( "ANALYSIS INPUT ", input )
+    
     var s = this.analysisSymbol + "(" + input + ",";
     for(var key in this.properties) {
       if(key !== 'input') {
@@ -2317,8 +2282,10 @@ Gibberish.analysis = function() {
     s += ");";
   
     this.analysisCodeblock = s;
+    
     if( Gibberish.analysisCodeblock.indexOf( this.analysisCodeblock ) === -1 ) Gibberish.analysisCodeblock.push( this.analysisCodeblock )
-    Gibberish.callbackObjects.push( this.analysisCallback )
+    
+    if( Gibberish.callbackObjects.indexOf( this.analysisCallback) === -1 ) Gibberish.callbackObjects.push( this.analysisCallback )
         
     return s;
   };
