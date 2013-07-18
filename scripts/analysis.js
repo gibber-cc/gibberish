@@ -27,43 +27,6 @@ Gibberish.analysis = function() {
     return this.variable;
   }
   
-  this.codegen2 = function() {
-    for(var key in this.properties) {
-      var property = this.properties[key];
-      //console.log( "PROP ", property)
-      if( Array.isArray( property.value ) ) { // TODO: is this array case needed anymore? I don't think so...
-        for(var i = 0; i < property.value.length; i++) {
-          var member = property.value[i];
-          if( typeof member === 'object' ) {
-            member.type = 'ddd';
-            
-            member.codegen();
-            member.type = 'analysis';
-          }
-        } 
-      }else if( typeof property.value === 'object' ) {      
-        //Gibberish.codestring += typeof Gibberish.memo[property.value.symbol] === 'undefined' ? '' : Gibberish.memo[property.value.symbol]; // TODO: should never be undefined...
-        //console.log( property )
-        Gibberish.codestring += property.value.codegen() // TODO: should never be undefined...        
-      }else{ // assume type = number
-        //console.log('hmmmm', property.value )
-        //Gibberish.codestring += property.value
-        //Gibberish.codestring += Gibberish.memo[property.value.symbol]
-      }
-      
-      // TODO: why would this be in here?
-      /*if(property.binops) {
-        for(var j = 0; j < property.binops.length; j++) {
-          var op = property.binops[j],
-              val; 
-          if( typeof op.ugen === 'object') {
-            op.ugen.codegen();
-          }
-        }
-      }*/     
-    }
-  };
-  
   this.analysisCodegen = function() {
     
     // TODO: can this be memoized somehow?

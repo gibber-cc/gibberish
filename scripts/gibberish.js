@@ -367,7 +367,6 @@ Create and return an object that can be used to pan a stereo source.
   
   defineUgenProperty : function(key, initValue, _obj) {
     var prop = _obj.properties[key] = {
-      //symbol: Gibberish.generateSymbol('v'),
       value:  initValue,
       binops: [],
       parent : _obj,
