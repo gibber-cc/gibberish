@@ -29,17 +29,56 @@ Gibberish.Proxy.prototype = new Gibberish.ugen();
 
 Gibberish.Proxy2 = function() {
   var input = arguments[0],
-      name = arguments[1]
+      name = arguments[1],
+      phase = 0
       
-	Gibberish.extend(this, {
+	Gibberish.extend( this, {
   	name: 'proxy2',
     type: 'effect',
     
-    properties : {},
+    properties : { },
     
     callback : function() {
-      return input[ name ]
+      var v = input[ name ]
+      if( phase++ % 44100 === 0 ) console.log( v, input, name)
+      return Array.isArray( v ) ? ( v[0] + v[1] + v[2] ) / 3 : v
     },
   }).init();
 };
 Gibberish.Proxy2.prototype = new Gibberish.ugen();
+
+Gibberish.Proxy3 = function() {
+  var input = arguments[0],
+      name = arguments[1],
+      phase = 0
+      
+	Gibberish.extend( this, {
+  	name: 'proxy3',
+    type: 'effect',
+    
+    properties : { },
+    
+    callback : function() {
+      var v = input[ name ]
+      //if( phase++ % 44100 === 0 ) console.log( v, input, name)
+      return v || 0
+    },
+  })
+  
+  this.init();
+  
+  this.codegen = function() {
+    // if(Gibberish.memo[this.symbol]) {
+    //   return Gibberish.memo[this.symbol];
+    // }
+    
+    console.log(" CALLED ")
+    if( ! this.variable ) this.variable = Gibberish.generateSymbol('v');
+    Gibberish.callbackArgs.push( this.symbol )
+    Gibberish.callbackObjects.push( this.callback )
+
+    this.codeblock = "var " + this.variable + " = " + this.symbol + "(" + input.properties[ name ].codegen() + ");\n"
+  }
+  
+};
+Gibberish.Proxy3.prototype = new Gibberish.ugen();

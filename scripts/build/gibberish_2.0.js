@@ -40,7 +40,6 @@ Object. Used in the codegen process to make sure codegen for each ugen is only p
 
 Gibberish = {
   memo              : {},
-  functions         : {}, // store ugen callbacks to be used as upvalues
   codeblock         : [],
   analysisCodeblock : [],
   analysisUgens     : [],
@@ -52,8 +51,8 @@ Gibberish = {
   callback          : '',
   audioFiles        : {},
   sequencers        : [],
-  callbackArgs      : ['input'],
-  callbackObjects   : [],
+  callbackArgs      : ['input'], // names of function arguments for main audio callback
+  callbackObjects   : [],        // ugen function callbacks used in main audio callback
   analysisCallbackArgs    : [],
   analysisCallbackObjects : [],
   
@@ -79,7 +78,7 @@ Perform codegen on all dirty ugens and re-create the audio callback. This method
 
     this.memo = {};
     
-    this.out.getCodeblock();
+    this.out.codegen()
     var codeblockStore = this.codeblock.slice(0)
     
     // we must push these here because they callback arguments are at the start of the string, 
@@ -114,13 +113,13 @@ Perform codegen on all dirty ugens and re-create the audio callback. This method
     if(this.analysisUgens.length > 0) {
       this.analysisCodeblock.length = 0;
       for(var i = 0; i < this.analysisUgens.length; i++) {
-        this.codeblock.length = 0;    
-        this.analysisUgens[i].codegen2();
-        if(this.codestring !== 'undefined' ) {
+        this.codeblock.length = 0;
+        this.analysisUgens[i].analysisCodegen();
+        /*if(this.codestring !== 'undefined' ) {
           this.codestring += this.codeblock.join("");
           this.codestring += "\n\t";
           this.analysisCodeblock.push ( this.analysisUgens[i].analysisCodegen() );
-        }
+        }*/
       }
       this.codestring += this.analysisCodeblock.join('\n\t');
       this.codestring += '\n\t';
@@ -303,7 +302,6 @@ Create a callback and start it running. Note that in iOS audio callbacks can onl
   init : function() {
     Gibberish.out = new Gibberish.Bus2();
     Gibberish.out.codegen(); // make sure bus is first upvalue so that clearing works correctly
-    Gibberish.out.getCodeblock(); // make sure bus is first upvalue
     Gibberish.dirty(Gibberish.out);
     
     var bufferSize = typeof arguments[0] === 'undefined' ? 1024 : arguments[0];
@@ -373,32 +371,40 @@ Create and return an object that can be used to pan a stereo source.
       value:  initValue,
       binops: [],
       getCodeblock : function() { 
-        if(typeof obj.value !== 'number') Gibberish.codeblock.push("var " + obj.symbol + " = " + obj.value + ";\n"); 
+        if(typeof obj.properties[ key].value !== 'number') 
+          return "var " + obj.symbol + " = " + obj.properties[ key ].value + ";\n"; 
+        else
+          return typeof obj.properties[ key].value
+        
       },
       codegen : function() { 
-        if( typeof obj.value === 'number' || typeof obj.value === 'string') { 
-          return obj.value;
+        var memo;
+        if( Gibberish.memo[ obj.properties[ key ].value.symbol ] ) return Gibberish.memo[ obj.properties[ key ].value.symbol ];
+        
+        if( obj.properties[ key ].value.codegen ) { 
+          obj.properties[ key ].value.codegen(); 
+          memo = obj.properties[ key ].value.symbol;
         }else{
-          obj.value.codegen(); 
-          return obj.value.symbol;
+          memo = obj.properties[ key ].value;
         }
+        Gibberish.memo[ this.symbol ] = memo
       },
       parent : obj,
       name : key,
     };
       
-    (function(obj) {
+    (function(_obj) {
       var _key = key;
       try{
-        Object.defineProperty(obj, _key, {
+        Object.defineProperty(_obj, _key, {
           configurable: true,
-          get: function() 	 { return obj.properties[_key].value },
+          get: function() 	 { return _obj.properties[_key].value },
           set: function(val) { 
-            obj.properties[_key].value = val;
-            Gibberish.dirty(obj);
+            _obj.properties[_key].value = val;
+            Gibberish.dirty(_obj);
           },
         });
-      }catch(e){  }
+      }catch(e){  console.log( e ) }
     })(obj);
   },
 /**###Gibberish.polyInit : method
@@ -596,70 +602,16 @@ Generates output code (as a string) used inside audio callback
         s += ");\n";
         
         this.codeblock = s;
-
+        
+        if( Gibberish.codeblock.indexOf( this.codeblock ) === -1 ) Gibberish.codeblock.push( this.codeblock )
+        if( Gibberish.callbackArgs.indexOf( this.symbol ) === -1 && this.name !== 'op') { Gibberish.callbackArgs.push( this.symbol ) }
+        if( Gibberish.callbackObjects.indexOf( this.callback ) === -1 && this.name !== 'op' ) { Gibberish.callbackObjects.push( this.callback ) }
+        
         this.dirty = false;        
         
         return v;
       },
 
-/**###Ugen.getCodeblock : method
-Retrieves codeblock for ugen previously created with codegen method.
-**/       
-      getCodeblock : function() {
-        if(this === null) return;
-        //console.log("getting codeblock for " + this.symbol);
-        if(this.codeblock === null ) { this.codegen(); }
-        
-        if(Gibberish.memo[this.symbol]) {
-          return;
-        }else{
-          Gibberish.memo[this.symbol] = this.variable;
-        }
-        
-        if(this.type !== 'analysis') {
-          for(var key in this.properties) {
-            var property = this.properties[key];
-            if( Array.isArray( property.value ) ) {
-              var arr = property.value;
-            
-              for(var i = 0; i < arr.length; i++) {
-                var obj = arr[i];
-                if(typeof obj === 'object') {
-                    if(obj !== null)
-                      obj.getCodeblock();
-                }
-              }
-            }else if( typeof property.value === 'object' ) {
-              if(property.value !== null) {
-                property.value.getCodeblock();
-              }
-            }
-
-            if(property.binops) {
-              for(var j = 0; j < property.binops.length; j++) {
-                var op = property.binops[j];
-                if( typeof op.ugen === 'object') {
-                   if(op.ugen !== null)
-                    op.ugen.getCodeblock();
-                }
-              }
-            }
-          }
-        }
-        
-        if(this.type === 'analysis') {
-          Gibberish.codeblock.unshift(this.codeblock);
-        }else{
-          if(this.codeblock !== '') {
-            Gibberish.codeblock.push(this.codeblock);
-          }
-        }
-        
-        if( Gibberish.callbackArgs.indexOf( this.symbol ) === -1 && this.name !== 'op') { Gibberish.callbackArgs.push( this.symbol ) }
-        if( Gibberish.callbackObjects.indexOf( this.callback ) === -1 && this.name !== 'op' ) { Gibberish.callbackObjects.push( this.callback ) }
-        
-        return this.variable;
-      },
 /**###Ugen.defineUgenProperty : method
 Creates getters and setters for ugen properties that automatically dirty the ugen whenever the property value is changed.  
   
@@ -683,7 +635,6 @@ Initialize ugen by calling defineUgenProperty for every key in the ugen's proper
         
         if(!this.initialized) {
           this.destinations = [];
-          
           for(var key in this.properties) {
             Gibberish.defineUgenProperty(key, this.properties[key], this);
           }
@@ -695,9 +646,7 @@ Initialize ugen by calling defineUgenProperty for every key in the ugen's proper
             this[key] = options[key];
           }
         }
-        
-        Gibberish.functions[this.symbol] = this.callback;
-                
+                        
         this.initialized = true;
         
         return this;
@@ -1136,20 +1085,59 @@ Gibberish.Proxy.prototype = new Gibberish.ugen();
 
 Gibberish.Proxy2 = function() {
   var input = arguments[0],
-      name = arguments[1]
+      name = arguments[1],
+      phase = 0
       
-	Gibberish.extend(this, {
+	Gibberish.extend( this, {
   	name: 'proxy2',
     type: 'effect',
     
-    properties : {},
+    properties : { },
     
     callback : function() {
-      return input[ name ]
+      var v = input[ name ]
+      if( phase++ % 44100 === 0 ) console.log( v, input, name)
+      return Array.isArray( v ) ? ( v[0] + v[1] + v[2] ) / 3 : v
     },
   }).init();
 };
 Gibberish.Proxy2.prototype = new Gibberish.ugen();
+
+Gibberish.Proxy3 = function() {
+  var input = arguments[0],
+      name = arguments[1],
+      phase = 0
+      
+	Gibberish.extend( this, {
+  	name: 'proxy3',
+    type: 'effect',
+    
+    properties : { },
+    
+    callback : function() {
+      var v = input[ name ]
+      //if( phase++ % 44100 === 0 ) console.log( v, input, name)
+      return v || 0
+    },
+  })
+  
+  this.init();
+  
+  this.codegen = function() {
+    // if(Gibberish.memo[this.symbol]) {
+    //   return Gibberish.memo[this.symbol];
+    // }
+    
+    console.log(" CALLED ")
+    if( ! this.variable ) this.variable = Gibberish.generateSymbol('v');
+    Gibberish.callbackArgs.push( this.symbol )
+    Gibberish.callbackObjects.push( this.callback )
+
+    this.codeblock = "var " + this.variable + " = " + this.symbol + "(" + input.properties[ name ].codegen() + ");\n"
+  }
+  
+};
+Gibberish.Proxy3.prototype = new Gibberish.ugen();
 Gibberish.oscillator = function() {
   this.type = 'oscillator';
   
@@ -1902,7 +1890,6 @@ Gibberish.bus = function(){
       amp:		      arguments[1], 
       codegen:      this.inputCodegen,
     };
-    arg.getCodeblock = arg.value.getCodeblock.bind( arg.value );
     
     this.inputs.push( arg );
 
@@ -2023,8 +2010,8 @@ Gibberish.Bus2 = function() {
     //if(phase++ % 44100 === 0) console.log(args)
     for(var i = 0, l = length - 2; i < l; i++) {
       var isObject = typeof args[i] === 'object';
-      output[0] += isObject ? args[i][0] : args[i];
-      output[1] += isObject ? args[i][1] : args[i];
+      output[0] += isObject ? args[i][0] || 0 : args[i] || 0;
+      output[1] += isObject ? args[i][1] || 0 : args[i] || 0;
     }
     
     output[0] *= amp;
@@ -2278,25 +2265,26 @@ Gibberish.analysis = function() {
   this.type = 'analysis';
   
   this.codegen = function() {
-    if(Gibberish.memo[this.symbol]) {
-      return Gibberish.memo[this.symbol];
-    }else{
+    //if(Gibberish.memo[this.symbol]) {
+    //  return Gibberish.memo[this.symbol];
+    //}else{
       v = this.variable ? this.variable : Gibberish.generateSymbol('v');
       Gibberish.memo[this.symbol] = v;
       this.variable = v;
       Gibberish.callbackArgs.push( this.symbol )
       Gibberish.callbackObjects.push( this.callback )
-    }
+      //}
 
     this.codeblock = "var " + this.variable + " = " + this.symbol + "();\n";
     
+    if( Gibberish.codeblock.indexOf( this.codeblock ) === -1 ) Gibberish.codeblock.push( this.codeblock )
     return this.variable;
   }
   
   this.codegen2 = function() {
     for(var key in this.properties) {
       var property = this.properties[key];
-      
+      //console.log( "PROP ", property)
       if( Array.isArray( property.value ) ) { // TODO: is this array case needed anymore? I don't think so...
         for(var i = 0; i < property.value.length; i++) {
           var member = property.value[i];
@@ -2304,15 +2292,17 @@ Gibberish.analysis = function() {
             member.type = 'ddd';
             
             member.codegen();
-            member.getCodeblock();
             member.type = 'analysis';
           }
         } 
       }else if( typeof property.value === 'object' ) {      
-        Gibberish.codestring += Gibberish.memo[property.value.symbol]; // TODO: should never be undefined...
+        //Gibberish.codestring += typeof Gibberish.memo[property.value.symbol] === 'undefined' ? '' : Gibberish.memo[property.value.symbol]; // TODO: should never be undefined...
+        //console.log( property )
+        Gibberish.codestring += property.value.codegen() // TODO: should never be undefined...        
       }else{ // assume type = number
         //console.log('hmmmm', property.value )
-        //Gibberish.codestring += property.value; // Gibberish.memo[property.value.symbol]
+        //Gibberish.codestring += property.value
+        //Gibberish.codestring += Gibberish.memo[property.value.symbol]
       }
       
       // TODO: why would this be in here?
@@ -2335,7 +2325,13 @@ Gibberish.analysis = function() {
     //  return Gibberish.memo[this.analysisSymbol];
     //}else{
      // Gibberish.memo[this.symbol] = v;
-    var s = this.analysisSymbol + "(" + this.input.variable + ",";
+    //console.log( this.input )
+    var input = 0;
+    if(this.input.codegen){
+      this.input.codegen()  
+      input = this.input.variable
+    }
+    var s = this.analysisSymbol + "(" + input + ",";
     for(var key in this.properties) {
       if(key !== 'input') {
         s += this[key] + ",";
@@ -2345,7 +2341,7 @@ Gibberish.analysis = function() {
     s += ");";
   
     this.analysisCodeblock = s;
-  
+    if( Gibberish.analysisCodeblock.indexOf( this.analysisCodeblock ) === -1 ) Gibberish.analysisCodeblock.push( this.analysisCodeblock )
     Gibberish.callbackObjects.push( this.analysisCallback )
         
     return s;
@@ -2354,7 +2350,7 @@ Gibberish.analysis = function() {
   this.analysisInit = function() {
     this.analysisSymbol = Gibberish.generateSymbol(this.name);
     Gibberish.analysisUgens.push( this );
-    Gibberish.dirty()
+    Gibberish.dirty(); // dirty in case analysis is not connected to graph, 
     this.analysisCodegen();    
   };
 };
@@ -2374,10 +2370,13 @@ Gibberish.Follow = function() {
       history = [0],
       sum = 0,
       index = 0,
-      value = 0;
+      value = 0,
+      phase = 0;
 			
   this.analysisCallback = function(input, bufferSize, mult) {
-    if( typeof input !== 'number') input = input[0] + input[1]
+    if( typeof input === 'object' ) input = input[0] + input[1]
+    
+    //if( phase++ % 44100 === 0) console.log( input )
     
   	sum += abs(input);
   	sum -= history[index];
@@ -2386,12 +2385,13 @@ Gibberish.Follow = function() {
     
   	index = (index + 1) % bufferSize;
 			
-    // if history[index] isn't defined set it to 0 TODO: does this really need to happen here? I guess there were clicks on initialization...
+    // if history[index] isn't defined set it to 0 
+    // TODO: does this really need to happen here? I guess there were clicks on initialization...
     history[index] = history[index] ? history[index] : 0;
   	value = (sum / bufferSize) * mult;
   };
     
-  this.callback = function() { return value; };
+  this.callback = this.getValue = function() { return value; };
     
   this.init();
   this.analysisInit();
@@ -5323,9 +5323,7 @@ param **target** object, default window. The object to export the Gibberish.Bino
       
       return out;
     };
-    
-    //me.getCodeblock = function() {}; // override
-    
+        
     //me.processProperties.apply( me, args );
 
     return me;
@@ -5452,15 +5450,16 @@ Create an object that returns the first argument raised to the power of the seco
     return me;
   },
             
-  Map : function( prop, _aMin, _aMax, _bMin, _bMax, _curve, _wrap) {
+  Map : function( prop, _outputMin, _outputMax, _inputMin, _inputMax, _curve, _wrap) {
     var pow = Math.pow,
     LINEAR = 0,
     LOGARITHMIC = 1,
     base = 0,
     phase = 0,
+    _value = 0,
     me = {
       name : 'map',
-      properties : { value:prop, aMin:_aMin, aMax:_aMax, bMin:_bMin, bMax:_bMax, curve:_curve || LINEAR, wrap: _wrap || false },
+      properties : { value:prop, outputMin:_outputMin, outputMax:_outputMax, inputMin:_inputMin, inputMax:_inputMax, curve:_curve || LINEAR, wrap: _wrap || false },
 
       callback : function( v, v1Min, v1Max, v2Min, v2Max, curve, wrap ) {
         var range1 = v1Max-v1Min,
@@ -5472,11 +5471,15 @@ Create an object that returns the first argument raised to the power of the seco
 
         val = curve === 0 ? v1Min + ( percent * range1 ) : v1Min + pow( percent, 1.5 ) * range1
 
-        if( val > v1Max ) val = wrap ? v1Min + val % v1Min : v1Max 
+        if( val > v1Max ) val = wrap ? v1Min + val % v1Max : v1Max 
         if( val < v1Min ) val = wrap ? v1Max + val % v1Min : v1Min
-
+        
+        _value = val
+        //if(phase++ % 22050 === 0 ) console.log( val, v )
         return val
       },
+      
+      getValue: function() { return _value }
     }
   
     me.__proto__ = new Gibberish.ugen()

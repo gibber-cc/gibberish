@@ -11,25 +11,26 @@ Gibberish.analysis = function() {
   this.type = 'analysis';
   
   this.codegen = function() {
-    if(Gibberish.memo[this.symbol]) {
-      return Gibberish.memo[this.symbol];
-    }else{
+    //if(Gibberish.memo[this.symbol]) {
+    //  return Gibberish.memo[this.symbol];
+    //}else{
       v = this.variable ? this.variable : Gibberish.generateSymbol('v');
       Gibberish.memo[this.symbol] = v;
       this.variable = v;
       Gibberish.callbackArgs.push( this.symbol )
       Gibberish.callbackObjects.push( this.callback )
-    }
+      //}
 
     this.codeblock = "var " + this.variable + " = " + this.symbol + "();\n";
     
+    if( Gibberish.codeblock.indexOf( this.codeblock ) === -1 ) Gibberish.codeblock.push( this.codeblock )
     return this.variable;
   }
   
   this.codegen2 = function() {
     for(var key in this.properties) {
       var property = this.properties[key];
-      
+      //console.log( "PROP ", property)
       if( Array.isArray( property.value ) ) { // TODO: is this array case needed anymore? I don't think so...
         for(var i = 0; i < property.value.length; i++) {
           var member = property.value[i];
@@ -37,15 +38,17 @@ Gibberish.analysis = function() {
             member.type = 'ddd';
             
             member.codegen();
-            member.getCodeblock();
             member.type = 'analysis';
           }
         } 
       }else if( typeof property.value === 'object' ) {      
-        Gibberish.codestring += typeof Gibberish.memo[property.value.symbol] === 'undefined' ? '' : Gibberish.memo[property.value.symbol]; // TODO: should never be undefined...
+        //Gibberish.codestring += typeof Gibberish.memo[property.value.symbol] === 'undefined' ? '' : Gibberish.memo[property.value.symbol]; // TODO: should never be undefined...
+        //console.log( property )
+        Gibberish.codestring += property.value.codegen() // TODO: should never be undefined...        
       }else{ // assume type = number
         //console.log('hmmmm', property.value )
-        //Gibberish.codestring += property.value; // Gibberish.memo[property.value.symbol]
+        //Gibberish.codestring += property.value
+        //Gibberish.codestring += Gibberish.memo[property.value.symbol]
       }
       
       // TODO: why would this be in here?
@@ -68,7 +71,13 @@ Gibberish.analysis = function() {
     //  return Gibberish.memo[this.analysisSymbol];
     //}else{
      // Gibberish.memo[this.symbol] = v;
-    var s = this.analysisSymbol + "(" + this.input.variable + ",";
+    //console.log( this.input )
+    var input = 0;
+    if(this.input.codegen){
+      this.input.codegen()  
+      input = this.input.variable
+    }
+    var s = this.analysisSymbol + "(" + input + ",";
     for(var key in this.properties) {
       if(key !== 'input') {
         s += this[key] + ",";
@@ -78,7 +87,7 @@ Gibberish.analysis = function() {
     s += ");";
   
     this.analysisCodeblock = s;
-  
+    if( Gibberish.analysisCodeblock.indexOf( this.analysisCodeblock ) === -1 ) Gibberish.analysisCodeblock.push( this.analysisCodeblock )
     Gibberish.callbackObjects.push( this.analysisCallback )
         
     return s;
@@ -107,10 +116,13 @@ Gibberish.Follow = function() {
       history = [0],
       sum = 0,
       index = 0,
-      value = 0;
+      value = 0,
+      phase = 0;
 			
   this.analysisCallback = function(input, bufferSize, mult) {
-    if( typeof input !== 'number') input = input[0] + input[1]
+    if( typeof input === 'object' ) input = input[0] + input[1]
+    
+    //if( phase++ % 44100 === 0) console.log( input )
     
   	sum += abs(input);
   	sum -= history[index];
@@ -119,12 +131,13 @@ Gibberish.Follow = function() {
     
   	index = (index + 1) % bufferSize;
 			
-    // if history[index] isn't defined set it to 0 TODO: does this really need to happen here? I guess there were clicks on initialization...
+    // if history[index] isn't defined set it to 0 
+    // TODO: does this really need to happen here? I guess there were clicks on initialization...
     history[index] = history[index] ? history[index] : 0;
   	value = (sum / bufferSize) * mult;
   };
     
-  this.callback = function() { return value; };
+  this.callback = this.getValue = function() { return value; };
     
   this.init();
   this.analysisInit();

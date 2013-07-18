@@ -68,9 +68,7 @@ param **target** object, default window. The object to export the Gibberish.Bino
       
       return out;
     };
-    
-    //me.getCodeblock = function() {}; // override
-    
+        
     //me.processProperties.apply( me, args );
 
     return me;
@@ -197,15 +195,16 @@ Create an object that returns the first argument raised to the power of the seco
     return me;
   },
             
-  Map : function( prop, _aMin, _aMax, _bMin, _bMax, _curve, _wrap) {
+  Map : function( prop, _outputMin, _outputMax, _inputMin, _inputMax, _curve, _wrap) {
     var pow = Math.pow,
     LINEAR = 0,
     LOGARITHMIC = 1,
     base = 0,
     phase = 0,
+    _value = 0,
     me = {
       name : 'map',
-      properties : { value:prop, aMin:_aMin, aMax:_aMax, bMin:_bMin, bMax:_bMax, curve:_curve || LINEAR, wrap: _wrap || false },
+      properties : { value:prop, outputMin:_outputMin, outputMax:_outputMax, inputMin:_inputMin, inputMax:_inputMax, curve:_curve || LINEAR, wrap: _wrap || false },
 
       callback : function( v, v1Min, v1Max, v2Min, v2Max, curve, wrap ) {
         var range1 = v1Max-v1Min,
@@ -217,11 +216,15 @@ Create an object that returns the first argument raised to the power of the seco
 
         val = curve === 0 ? v1Min + ( percent * range1 ) : v1Min + pow( percent, 1.5 ) * range1
 
-        if( val > v1Max ) val = wrap ? v1Min + val % v1Min : v1Max 
+        if( val > v1Max ) val = wrap ? v1Min + val % v1Max : v1Max 
         if( val < v1Min ) val = wrap ? v1Max + val % v1Min : v1Min
-
+        
+        _value = val
+        //if(phase++ % 22050 === 0 ) console.log( val, v )
         return val
       },
+      
+      getValue: function() { return _value }
     }
   
     me.__proto__ = new Gibberish.ugen()

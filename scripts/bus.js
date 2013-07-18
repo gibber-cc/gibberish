@@ -32,7 +32,6 @@ Gibberish.bus = function(){
       amp:		      arguments[1], 
       codegen:      this.inputCodegen,
     };
-    arg.getCodeblock = arg.value.getCodeblock.bind( arg.value );
     
     this.inputs.push( arg );
 
@@ -153,8 +152,8 @@ Gibberish.Bus2 = function() {
     //if(phase++ % 44100 === 0) console.log(args)
     for(var i = 0, l = length - 2; i < l; i++) {
       var isObject = typeof args[i] === 'object';
-      output[0] += isObject ? args[i][0] : args[i];
-      output[1] += isObject ? args[i][1] : args[i];
+      output[0] += isObject ? args[i][0] || 0 : args[i] || 0;
+      output[1] += isObject ? args[i][1] || 0 : args[i] || 0;
     }
     
     output[0] *= amp;

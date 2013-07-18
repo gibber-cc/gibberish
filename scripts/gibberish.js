@@ -40,7 +40,6 @@ Object. Used in the codegen process to make sure codegen for each ugen is only p
 
 Gibberish = {
   memo              : {},
-  functions         : {}, // store ugen callbacks to be used as upvalues
   codeblock         : [],
   analysisCodeblock : [],
   analysisUgens     : [],
@@ -52,8 +51,8 @@ Gibberish = {
   callback          : '',
   audioFiles        : {},
   sequencers        : [],
-  callbackArgs      : ['input'],
-  callbackObjects   : [],
+  callbackArgs      : ['input'], // names of function arguments for main audio callback
+  callbackObjects   : [],        // ugen function callbacks used in main audio callback
   analysisCallbackArgs    : [],
   analysisCallbackObjects : [],
   
@@ -79,7 +78,7 @@ Perform codegen on all dirty ugens and re-create the audio callback. This method
 
     this.memo = {};
     
-    this.out.getCodeblock();
+    this.out.codegen()
     var codeblockStore = this.codeblock.slice(0)
     
     // we must push these here because they callback arguments are at the start of the string, 
@@ -114,13 +113,13 @@ Perform codegen on all dirty ugens and re-create the audio callback. This method
     if(this.analysisUgens.length > 0) {
       this.analysisCodeblock.length = 0;
       for(var i = 0; i < this.analysisUgens.length; i++) {
-        this.codeblock.length = 0;    
-        this.analysisUgens[i].codegen2();
-        if(this.codestring !== 'undefined' ) {
+        this.codeblock.length = 0;
+        this.analysisUgens[i].analysisCodegen();
+        /*if(this.codestring !== 'undefined' ) {
           this.codestring += this.codeblock.join("");
           this.codestring += "\n\t";
           this.analysisCodeblock.push ( this.analysisUgens[i].analysisCodegen() );
-        }
+        }*/
       }
       this.codestring += this.analysisCodeblock.join('\n\t');
       this.codestring += '\n\t';
@@ -303,7 +302,6 @@ Create a callback and start it running. Note that in iOS audio callbacks can onl
   init : function() {
     Gibberish.out = new Gibberish.Bus2();
     Gibberish.out.codegen(); // make sure bus is first upvalue so that clearing works correctly
-    Gibberish.out.getCodeblock(); // make sure bus is first upvalue
     Gibberish.dirty(Gibberish.out);
     
     var bufferSize = typeof arguments[0] === 'undefined' ? 1024 : arguments[0];
@@ -373,32 +371,40 @@ Create and return an object that can be used to pan a stereo source.
       value:  initValue,
       binops: [],
       getCodeblock : function() { 
-        if(typeof obj.value !== 'number') Gibberish.codeblock.push("var " + obj.symbol + " = " + obj.value + ";\n"); 
+        if(typeof obj.properties[ key].value !== 'number') 
+          return "var " + obj.symbol + " = " + obj.properties[ key ].value + ";\n"; 
+        else
+          return typeof obj.properties[ key].value
+        
       },
       codegen : function() { 
-        if( typeof obj.value === 'number' || typeof obj.value === 'string') { 
-          return obj.value;
+        var memo;
+        if( Gibberish.memo[ obj.properties[ key ].value.symbol ] ) return Gibberish.memo[ obj.properties[ key ].value.symbol ];
+        
+        if( obj.properties[ key ].value.codegen ) { 
+          obj.properties[ key ].value.codegen(); 
+          memo = obj.properties[ key ].value.symbol;
         }else{
-          obj.value.codegen(); 
-          return obj.value.symbol;
+          memo = obj.properties[ key ].value;
         }
+        Gibberish.memo[ this.symbol ] = memo
       },
       parent : obj,
       name : key,
     };
       
-    (function(obj) {
+    (function(_obj) {
       var _key = key;
       try{
-        Object.defineProperty(obj, _key, {
+        Object.defineProperty(_obj, _key, {
           configurable: true,
-          get: function() 	 { return obj.properties[_key].value },
+          get: function() 	 { return _obj.properties[_key].value },
           set: function(val) { 
-            obj.properties[_key].value = val;
-            Gibberish.dirty(obj);
+            _obj.properties[_key].value = val;
+            Gibberish.dirty(_obj);
           },
         });
-      }catch(e){  }
+      }catch(e){  console.log( e ) }
     })(obj);
   },
 /**###Gibberish.polyInit : method
@@ -596,70 +602,16 @@ Generates output code (as a string) used inside audio callback
         s += ");\n";
         
         this.codeblock = s;
-
+        
+        if( Gibberish.codeblock.indexOf( this.codeblock ) === -1 ) Gibberish.codeblock.push( this.codeblock )
+        if( Gibberish.callbackArgs.indexOf( this.symbol ) === -1 && this.name !== 'op') { Gibberish.callbackArgs.push( this.symbol ) }
+        if( Gibberish.callbackObjects.indexOf( this.callback ) === -1 && this.name !== 'op' ) { Gibberish.callbackObjects.push( this.callback ) }
+        
         this.dirty = false;        
         
         return v;
       },
 
-/**###Ugen.getCodeblock : method
-Retrieves codeblock for ugen previously created with codegen method.
-**/       
-      getCodeblock : function() {
-        if(this === null) return;
-        //console.log("getting codeblock for " + this.symbol);
-        if(this.codeblock === null ) { this.codegen(); }
-        
-        if(Gibberish.memo[this.symbol]) {
-          return;
-        }else{
-          Gibberish.memo[this.symbol] = this.variable;
-        }
-        
-        if(this.type !== 'analysis') {
-          for(var key in this.properties) {
-            var property = this.properties[key];
-            if( Array.isArray( property.value ) ) {
-              var arr = property.value;
-            
-              for(var i = 0; i < arr.length; i++) {
-                var obj = arr[i];
-                if(typeof obj === 'object') {
-                    if(obj !== null)
-                      obj.getCodeblock();
-                }
-              }
-            }else if( typeof property.value === 'object' ) {
-              if(property.value !== null) {
-                property.value.getCodeblock();
-              }
-            }
-
-            if(property.binops) {
-              for(var j = 0; j < property.binops.length; j++) {
-                var op = property.binops[j];
-                if( typeof op.ugen === 'object') {
-                   if(op.ugen !== null)
-                    op.ugen.getCodeblock();
-                }
-              }
-            }
-          }
-        }
-        
-        if(this.type === 'analysis') {
-          Gibberish.codeblock.unshift(this.codeblock);
-        }else{
-          if(this.codeblock !== '') {
-            Gibberish.codeblock.push(this.codeblock);
-          }
-        }
-        
-        if( Gibberish.callbackArgs.indexOf( this.symbol ) === -1 && this.name !== 'op') { Gibberish.callbackArgs.push( this.symbol ) }
-        if( Gibberish.callbackObjects.indexOf( this.callback ) === -1 && this.name !== 'op' ) { Gibberish.callbackObjects.push( this.callback ) }
-        
-        return this.variable;
-      },
 /**###Ugen.defineUgenProperty : method
 Creates getters and setters for ugen properties that automatically dirty the ugen whenever the property value is changed.  
   
@@ -683,7 +635,6 @@ Initialize ugen by calling defineUgenProperty for every key in the ugen's proper
         
         if(!this.initialized) {
           this.destinations = [];
-          
           for(var key in this.properties) {
             Gibberish.defineUgenProperty(key, this.properties[key], this);
           }
@@ -695,9 +646,7 @@ Initialize ugen by calling defineUgenProperty for every key in the ugen's proper
             this[key] = options[key];
           }
         }
-        
-        Gibberish.functions[this.symbol] = this.callback;
-                
+                        
         this.initialized = true;
         
         return this;
