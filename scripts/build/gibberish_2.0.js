@@ -365,20 +365,21 @@ Create and return an object that can be used to pan a stereo source.
 		return f;
 	},
   
-  defineUgenProperty : function(key, initValue, _obj) {
-    var prop = _obj.properties[key] = {
+  // IMPORTANT: REMEMBER THIS IS OVERRIDDEN IN GIBBER
+  defineUgenProperty : function(key, initValue, obj) {
+    var prop = obj.properties[key] = {
       value:  initValue,
       binops: [],
-      parent : _obj,
+      parent : obj,
       name : key,
     };
 
-    Object.defineProperty(_obj, key, {
+    Object.defineProperty(obj, key, {
       configurable: true,
       get: function() { return prop.value },
       set: function(val) { 
         prop.value = val;
-        Gibberish.dirty(_obj);
+        Gibberish.dirty(obj);
       },
     });
   },
@@ -529,7 +530,8 @@ Generates output code (as a string) used inside audio callback
             }
             
           }else if( typeof property.value === 'object' ) {
-            //console.log( "CODEGEN FOR OBJECT THAT IS A PROPERTY VALUE", key );
+            //console.log( "ADD", property.value )
+            //console.log( property.value.codeblock );
             value = property.value !== null ? property.value.codegen() : 'null';
           }else if( property.name !== 'undefined'){
             if(typeof property.value === 'function') {
@@ -538,6 +540,7 @@ Generates output code (as a string) used inside audio callback
               value = property.value;
             }
           }
+          
 
           if(property.binops.length != 0) {
             for( var k = 0; k < property.binops.length; k++) {
@@ -2240,15 +2243,15 @@ Gibberish.analysis = function() {
   this.type = 'analysis';
   
   this.codegen = function() {
-    //if(Gibberish.memo[this.symbol]) {
-    //  return Gibberish.memo[this.symbol];
-    //}else{
+    if(Gibberish.memo[this.symbol]) {
+      return Gibberish.memo[this.symbol];
+    }else{
       v = this.variable ? this.variable : Gibberish.generateSymbol('v');
       Gibberish.memo[this.symbol] = v;
       this.variable = v;
       Gibberish.callbackArgs.push( this.symbol )
       Gibberish.callbackObjects.push( this.callback )
-      //}
+    }
 
     this.codeblock = "var " + this.variable + " = " + this.symbol + "();\n";
     
@@ -2266,11 +2269,14 @@ Gibberish.analysis = function() {
     
     var input = 0;
     if(this.input.codegen){
-      input = this.input.codegen()  
-      //input = //this.input.variable
+      input = this.input.codegen()
+      //console.log( "PROPERTY UGEN", input)
+      if(input.indexOf('op') > -1) console.log("ANALYSIS BUG")
+    }else if( this.input.value ){
+      input = typeof this.input.value.codegen !== 'undefined' ? this.input.value.codegen() : this.input.value
+    }else{
+      input = 'null'
     }
-    
-    //console.log( "ANALYSIS INPUT ", input )
     
     var s = this.analysisSymbol + "(" + input + ",";
     for(var key in this.properties) {
@@ -2278,7 +2284,7 @@ Gibberish.analysis = function() {
         s += this[key] + ",";
       }
     }
-    s = s.slice(0, -1);
+    s = s.slice(0, -1); // remove trailing comma
     s += ");";
   
     this.analysisCodeblock = s;
@@ -5235,7 +5241,7 @@ param **target** object, default window. The object to export the Gibberish.Bino
     me.codegen = function() {
       var keys, out = "( ";
       
-      if(typeof Gibberish.memo[this.symbol] !== 'undefined') { return Gibberish.memo[this.symbol]; }
+      //if(typeof Gibberish.memo[this.symbol] !== 'undefined') { return Gibberish.memo[this.symbol]; }
       
       keys = Object.keys(this.properties);
 
@@ -5244,12 +5250,12 @@ param **target** object, default window. The object to export the Gibberish.Bino
         
         var shouldPush = false;
         if(isObject) {
-          if(!Gibberish.memo[ this[i].symbol ]) {
-            shouldPush = true;
+          //if(!Gibberish.memo[ this[i].symbol ]) {
+          //  shouldPush = true;
             out += this[i].codegen();
-          }else{
-            out += Gibberish.memo[ this[i].symbol ];
-          }
+            //}else{
+          //  out += Gibberish.memo[ this[i].symbol ];
+          //}
         }else{
           out += this[i];
         }
@@ -5261,8 +5267,8 @@ param **target** object, default window. The object to export the Gibberish.Bino
       
       out += " )";
       
-      this.codeblock = '';
-      Gibberish.memo[this.symbol] = out;
+      this.codeblock = out;
+      //Gibberish.memo[this.symbol] = out;
       
       return out;
     };
@@ -5402,7 +5408,7 @@ Create an object that returns the first argument raised to the power of the seco
     _value = 0,
     me = {
       name : 'map',
-      properties : { value:prop, outputMin:_outputMin, outputMax:_outputMax, inputMin:_inputMin, inputMax:_inputMax, curve:_curve || LINEAR, wrap: _wrap || false },
+      properties : { input:prop, outputMin:_outputMin, outputMax:_outputMax, inputMin:_inputMin, inputMax:_inputMax, curve:_curve || LINEAR, wrap: _wrap || false },
 
       callback : function( v, v1Min, v1Max, v2Min, v2Max, curve, wrap ) {
         var range1 = v1Max-v1Min,

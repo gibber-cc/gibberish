@@ -365,20 +365,21 @@ Create and return an object that can be used to pan a stereo source.
 		return f;
 	},
   
-  defineUgenProperty : function(key, initValue, _obj) {
-    var prop = _obj.properties[key] = {
+  // IMPORTANT: REMEMBER THIS IS OVERRIDDEN IN GIBBER
+  defineUgenProperty : function(key, initValue, obj) {
+    var prop = obj.properties[key] = {
       value:  initValue,
       binops: [],
-      parent : _obj,
+      parent : obj,
       name : key,
     };
 
-    Object.defineProperty(_obj, key, {
+    Object.defineProperty(obj, key, {
       configurable: true,
       get: function() { return prop.value },
       set: function(val) { 
         prop.value = val;
-        Gibberish.dirty(_obj);
+        Gibberish.dirty(obj);
       },
     });
   },
@@ -529,7 +530,8 @@ Generates output code (as a string) used inside audio callback
             }
             
           }else if( typeof property.value === 'object' ) {
-            //console.log( "CODEGEN FOR OBJECT THAT IS A PROPERTY VALUE", key );
+            //console.log( "ADD", property.value )
+            //console.log( property.value.codeblock );
             value = property.value !== null ? property.value.codegen() : 'null';
           }else if( property.name !== 'undefined'){
             if(typeof property.value === 'function') {
@@ -538,6 +540,7 @@ Generates output code (as a string) used inside audio callback
               value = property.value;
             }
           }
+          
 
           if(property.binops.length != 0) {
             for( var k = 0; k < property.binops.length; k++) {

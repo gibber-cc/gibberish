@@ -37,7 +37,7 @@ param **target** object, default window. The object to export the Gibberish.Bino
     me.codegen = function() {
       var keys, out = "( ";
       
-      if(typeof Gibberish.memo[this.symbol] !== 'undefined') { return Gibberish.memo[this.symbol]; }
+      //if(typeof Gibberish.memo[this.symbol] !== 'undefined') { return Gibberish.memo[this.symbol]; }
       
       keys = Object.keys(this.properties);
 
@@ -46,12 +46,12 @@ param **target** object, default window. The object to export the Gibberish.Bino
         
         var shouldPush = false;
         if(isObject) {
-          if(!Gibberish.memo[ this[i].symbol ]) {
-            shouldPush = true;
+          //if(!Gibberish.memo[ this[i].symbol ]) {
+          //  shouldPush = true;
             out += this[i].codegen();
-          }else{
-            out += Gibberish.memo[ this[i].symbol ];
-          }
+            //}else{
+          //  out += Gibberish.memo[ this[i].symbol ];
+          //}
         }else{
           out += this[i];
         }
@@ -63,8 +63,8 @@ param **target** object, default window. The object to export the Gibberish.Bino
       
       out += " )";
       
-      this.codeblock = '';
-      Gibberish.memo[this.symbol] = out;
+      this.codeblock = out;
+      //Gibberish.memo[this.symbol] = out;
       
       return out;
     };
@@ -204,7 +204,7 @@ Create an object that returns the first argument raised to the power of the seco
     _value = 0,
     me = {
       name : 'map',
-      properties : { value:prop, outputMin:_outputMin, outputMax:_outputMax, inputMin:_inputMin, inputMax:_inputMax, curve:_curve || LINEAR, wrap: _wrap || false },
+      properties : { input:prop, outputMin:_outputMin, outputMax:_outputMax, inputMin:_inputMin, inputMax:_inputMax, curve:_curve || LINEAR, wrap: _wrap || false },
 
       callback : function( v, v1Min, v1Max, v2Min, v2Max, curve, wrap ) {
         var range1 = v1Max-v1Min,

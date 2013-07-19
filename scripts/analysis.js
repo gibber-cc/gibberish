@@ -11,15 +11,15 @@ Gibberish.analysis = function() {
   this.type = 'analysis';
   
   this.codegen = function() {
-    //if(Gibberish.memo[this.symbol]) {
-    //  return Gibberish.memo[this.symbol];
-    //}else{
+    if(Gibberish.memo[this.symbol]) {
+      return Gibberish.memo[this.symbol];
+    }else{
       v = this.variable ? this.variable : Gibberish.generateSymbol('v');
       Gibberish.memo[this.symbol] = v;
       this.variable = v;
       Gibberish.callbackArgs.push( this.symbol )
       Gibberish.callbackObjects.push( this.callback )
-      //}
+    }
 
     this.codeblock = "var " + this.variable + " = " + this.symbol + "();\n";
     
@@ -37,7 +37,13 @@ Gibberish.analysis = function() {
     
     var input = 0;
     if(this.input.codegen){
-      input = this.input.codegen()  
+      input = this.input.codegen()
+      //console.log( "PROPERTY UGEN", input)
+      if(input.indexOf('op') > -1) console.log("ANALYSIS BUG")
+    }else if( this.input.value ){
+      input = typeof this.input.value.codegen !== 'undefined' ? this.input.value.codegen() : this.input.value
+    }else{
+      input = 'null'
     }
     
     var s = this.analysisSymbol + "(" + input + ",";
