@@ -1074,7 +1074,7 @@ Gibberish.Proxy2 = function() {
     
     callback : function() {
       var v = input[ name ]
-      if( phase++ % 44100 === 0 ) console.log( v, input, name)
+      // if( phase++ % 44100 === 0 ) console.log( v, input, name)
       return Array.isArray( v ) ? ( v[0] + v[1] + v[2] ) / 3 : v
     },
   }).init();
@@ -1751,7 +1751,7 @@ Gibberish.KarplusStrong = function() {
       
   Gibberish.extend(this, {
     name:"karplus_strong",
-    
+    frequency : 0,
     properties: { blend:1, damping:0, amp:1, channels:2, pan:0  },
   
     note : function(frequency) {
@@ -1761,6 +1761,8 @@ Gibberish.KarplusStrong = function() {
       for(var i = 0; i < _size; i++) {
         buffer[i] = rnd() * 2 - 1; // white noise
       }
+      
+      this.frequency = frequency;
     },
 
     callback : function(blend, damping, amp, channels, pan) { 
@@ -1797,11 +1799,12 @@ Gibberish.PolyKarplusStrong = function() {
   		blend:			1,
       damping:    0,
     },
-        
+
     note : function(_frequency, amp) {
       var synth = this.children[this.voiceCount++];
       if(this.voiceCount >= this.maxVoices) this.voiceCount = 0;
       synth.note(_frequency, amp);
+      this.frequency = _frequency;
     },
     
   });
@@ -5415,19 +5418,20 @@ Create an object that returns the first argument raised to the power of the seco
             range2 = v2Max - v2Min,
             percent = (v - v2Min) / range2,
             val 
-            
-        percent = percent < 0 && curve ? 0 : percent // avoid NaN output for exponential output curve
+        
+        if( percent > 1 ) {
+          percent = wrap ? percent % 1 : 1
+        }else if( percent < 0 ) {
+          percent = wrap ? 1 + (percent % 1) : 0
+        }
 
         val = curve === 0 ? v1Min + ( percent * range1 ) : v1Min + pow( percent, 1.5 ) * range1
 
-        if( val > v1Max ) val = wrap ? v1Min + val % v1Max : v1Max 
-        if( val < v1Min ) val = wrap ? v1Max + val % v1Min : v1Min
-        
         _value = val
-        //if(phase++ % 22050 === 0 ) console.log( val, v )
+        // if(phase++ % 22050 === 0 ) console.log( _value, percent, v )
         return val
       },
-      
+
       getValue: function() { return _value }
     }
   

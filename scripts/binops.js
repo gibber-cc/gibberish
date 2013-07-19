@@ -211,19 +211,20 @@ Create an object that returns the first argument raised to the power of the seco
             range2 = v2Max - v2Min,
             percent = (v - v2Min) / range2,
             val 
-            
-        percent = percent < 0 && curve ? 0 : percent // avoid NaN output for exponential output curve
+        
+        if( percent > 1 ) {
+          percent = wrap ? percent % 1 : 1
+        }else if( percent < 0 ) {
+          percent = wrap ? 1 + (percent % 1) : 0
+        }
 
         val = curve === 0 ? v1Min + ( percent * range1 ) : v1Min + pow( percent, 1.5 ) * range1
 
-        if( val > v1Max ) val = wrap ? v1Min + val % v1Max : v1Max 
-        if( val < v1Min ) val = wrap ? v1Max + val % v1Min : v1Min
-        
         _value = val
-        //if(phase++ % 22050 === 0 ) console.log( val, v )
+        // if(phase++ % 22050 === 0 ) console.log( _value, percent, v )
         return val
       },
-      
+
       getValue: function() { return _value }
     }
   

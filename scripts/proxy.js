@@ -40,7 +40,7 @@ Gibberish.Proxy2 = function() {
     
     callback : function() {
       var v = input[ name ]
-      if( phase++ % 44100 === 0 ) console.log( v, input, name)
+      // if( phase++ % 44100 === 0 ) console.log( v, input, name)
       return Array.isArray( v ) ? ( v[0] + v[1] + v[2] ) / 3 : v
     },
   }).init();
