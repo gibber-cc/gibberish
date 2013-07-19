@@ -74,8 +74,8 @@ Gibberish.Delay = function() {
   var buffers = [],
       phase = 0;
   
-  buffers.push( new Float32Array(88200) );
-  buffers.push( new Float32Array(88200) );
+  buffers.push( new Float32Array(Gibberish.context.sampleRate * 2) );
+  buffers.push( new Float32Array(Gibberish.context.sampleRate * 2) );
   
   Gibberish.extend(this, {
   	name:"delay",

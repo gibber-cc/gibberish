@@ -115,11 +115,13 @@ Perform codegen on all dirty ugens and re-create the audio callback. This method
       for(var i = 0; i < this.analysisUgens.length; i++) {
         this.codeblock.length = 0;
         this.analysisUgens[i].analysisCodegen();
-        /*if(this.codestring !== 'undefined' ) {
+        /*
+        if(this.codestring !== 'undefined' ) {
           this.codestring += this.codeblock.join("");
           this.codestring += "\n\t";
           this.analysisCodeblock.push ( this.analysisUgens[i].analysisCodegen() );
-        }*/
+        }
+        */
       }
       this.codestring += this.analysisCodeblock.join('\n\t');
       this.codestring += '\n\t';
