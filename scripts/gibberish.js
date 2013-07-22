@@ -69,9 +69,9 @@ Perform codegen on all dirty ugens and re-create the audio callback. This method
     this.analysisCallbackArgs.length = 0;
     
     /* generate code for dirty ugens */
-    for(var i = 0; i < this.dirtied.length; i++) {
+    /*for(var i = 0; i < this.dirtied.length; i++) {
       this.dirtied[i].codegen();
-    }
+    }*/
     this.dirtied.length = 0;
     
     this.codestring = 'Gibberish.callback = function(input,'
@@ -79,6 +79,7 @@ Perform codegen on all dirty ugens and re-create the audio callback. This method
     this.memo = {};
     
     this.out.codegen()
+    
     var codeblockStore = this.codeblock.slice(0)
     
     // we must push these here because they callback arguments are at the start of the string, 
@@ -106,7 +107,7 @@ Perform codegen on all dirty ugens and re-create the audio callback. This method
     /* concatenate code for all ugens */
     this.memo = {};
     
-    this.codestring += codeblockStore.join('\t')//this.codeblock.join("\t");
+    this.codestring += codeblockStore.join('\t') //this.codeblock.join("\t");
     this.codestring += "\n\t";
     
     /* analysis codeblock */
@@ -399,6 +400,7 @@ param **Ugen** : Object. The polyphonic ugen
         var value = ugen.polyProperties[_key];
         
         Object.defineProperty(ugen, _key, {
+          configurable: true,
           get : function() { return value; },
           set : function(val) { 
             value = val;
@@ -738,25 +740,25 @@ param **amount** : Float. The amount of signal to send to the bus.
 /**###Ugen.disconnect : method
 Disconnect a ugen from a bus (or all busses). This stops all audio and signal processing for the ugen.  
   
-param **bus** : Bus ugen. Optional. The bus to send the ugen to. If this argument is undefined the ugen will be disconnected from all busses.
+param **bus** : Bus ugen. Optional. The bus to disconnect the ugen from. If this argument is undefined the ugen will be disconnected from all busses.
 **/      
-      disconnect : function(bus, tempDisconnect ) { // tempDisconnect is used to do a short disconnect and reonnect
+      disconnect : function(bus, tempDisconnect ) { // tempDisconnect is used to do a short disconnect and reconnect
         var idx
         
         if( !tempDisconnect ) {
           if( this.children ) {
             for(var i = 0; i < this.children.length; i++) {
-              this.children[i].disconnect()
+              this.children[i].disconnect( this )
             }
           }else if( typeof this.input === 'object' ) {
             this.input.disconnect( null, tempDisconnect )
           }
           
-          var idx = Gibberish.callbackArgs.indexOf( this.symbol )
+          /*var idx = Gibberish.callbackArgs.indexOf( this.symbol )
           Gibberish.callbackArgs.splice(idx, 1)
         
           idx = Gibberish.callbackObjects.indexOf( this.callback )        
-          Gibberish.callbackObjects.splice(idx, 1)
+          Gibberish.callbackObjects.splice(idx, 1)*/
         }
         
         if( !bus ) {
@@ -772,6 +774,7 @@ param **bus** : Bus ugen. Optional. The bus to send the ugen to. If this argumen
           bus.removeConnection( this );
         }
         
+        Gibberish.dirty( this )
         return this;
       },
     });

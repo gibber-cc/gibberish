@@ -698,7 +698,7 @@ Gibberish.Flanger = function() {
     name:"flanger",
   	properties:{ input:0, rate:.25, amount:125, feedback:0, offset:125 },
     
-  	callback : function(sample, delayModulationRate, delayModulationAmount, feedback, offset, channels) {
+  	callback : function(sample, delayModulationRate, delayModulationAmount, feedback, offset) {
       var channels = typeof sample === 'number' ? 1 : 2;
       
   		var delayIndex = readIndex + delayModulation( delayModulationRate, delayModulationAmount * .95 );
@@ -723,7 +723,7 @@ Gibberish.Flanger = function() {
         sample += delayedSample;
       }
 			
-  		if(++writeIndex >= bufferLength) writeIndex = 0;
+  		if(++writeIndex >= bufferLength) writeInrdex = 0;
   		if(++readIndex  >= bufferLength) readIndex  = 0;
 
   		return sample;

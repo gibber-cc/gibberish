@@ -64,6 +64,11 @@ Gibberish.analysis = function() {
     return s;
   };
   
+  this.remove = function() {
+    Gibberish.analysisUgens.splice( Gibberish.analysisUgens.indexOf( this ), 1 )
+    //Gibberish.analysisCodeblock.splice( Gibberish.analysisCodeblock.indexOf( this.analysisCodeblock ), 1 )
+  }
+  
   this.analysisInit = function() {
     this.analysisSymbol = Gibberish.generateSymbol(this.name);
     Gibberish.analysisUgens.push( this );

@@ -44,6 +44,9 @@ Gibberish.Proxy2 = function() {
       return Array.isArray( v ) ? ( v[0] + v[1] + v[2] ) / 3 : v
     },
   }).init();
+  
+  this.getInput = function() { return input }
+  this.getName = function() { return name }
 };
 Gibberish.Proxy2.prototype = new Gibberish.ugen();
 
