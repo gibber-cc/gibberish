@@ -3187,7 +3187,7 @@ Gibberish.Flanger = function() {
         sample += delayedSample;
       }
 			
-  		if(++writeIndex >= bufferLength) writeInrdex = 0;
+  		if(++writeIndex >= bufferLength) writeIndex = 0;
   		if(++readIndex  >= bufferLength) readIndex  = 0;
 
   		return sample;
