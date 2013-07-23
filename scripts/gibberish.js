@@ -746,13 +746,13 @@ param **bus** : Bus ugen. Optional. The bus to disconnect the ugen from. If this
         var idx
         
         if( !tempDisconnect ) {
-          if( this.children ) {
+          /*if( this.children ) {
             for(var i = 0; i < this.children.length; i++) {
               this.children[i].disconnect( this )
             }
           }else if( typeof this.input === 'object' ) {
             this.input.disconnect( null, tempDisconnect )
-          }
+          }*/
           
           /*var idx = Gibberish.callbackArgs.indexOf( this.symbol )
           Gibberish.callbackArgs.splice(idx, 1)

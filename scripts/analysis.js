@@ -66,7 +66,6 @@ Gibberish.analysis = function() {
   
   this.remove = function() {
     Gibberish.analysisUgens.splice( Gibberish.analysisUgens.indexOf( this ), 1 )
-    //Gibberish.analysisCodeblock.splice( Gibberish.analysisCodeblock.indexOf( this.analysisCodeblock ), 1 )
   }
   
   this.analysisInit = function() {

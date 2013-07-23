@@ -389,7 +389,7 @@ Gibberish.Filter24 = function() {
 
   			output2 = isLowPass ? poles2[3] : output2 - poles2[3];
         output[0] = output1;
-        output[1] = output1;
+        output[1] = output2;
         
         return output;
       }
@@ -723,7 +723,7 @@ Gibberish.Flanger = function() {
         sample += delayedSample;
       }
 			
-  		if(++writeIndex >= bufferLength) writeInrdex = 0;
+  		if(++writeIndex >= bufferLength) writeIndex = 0;
   		if(++readIndex  >= bufferLength) readIndex  = 0;
 
   		return sample;

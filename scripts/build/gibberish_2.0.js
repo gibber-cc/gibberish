@@ -746,13 +746,13 @@ param **bus** : Bus ugen. Optional. The bus to disconnect the ugen from. If this
         var idx
         
         if( !tempDisconnect ) {
-          if( this.children ) {
+          /*if( this.children ) {
             for(var i = 0; i < this.children.length; i++) {
               this.children[i].disconnect( this )
             }
           }else if( typeof this.input === 'object' ) {
             this.input.disconnect( null, tempDisconnect )
-          }
+          }*/
           
           /*var idx = Gibberish.callbackArgs.indexOf( this.symbol )
           Gibberish.callbackArgs.splice(idx, 1)
@@ -2309,7 +2309,6 @@ Gibberish.analysis = function() {
   
   this.remove = function() {
     Gibberish.analysisUgens.splice( Gibberish.analysisUgens.indexOf( this ), 1 )
-    //Gibberish.analysisCodeblock.splice( Gibberish.analysisCodeblock.indexOf( this.analysisCodeblock ), 1 )
   }
   
   this.analysisInit = function() {
@@ -2854,7 +2853,7 @@ Gibberish.Filter24 = function() {
 
   			output2 = isLowPass ? poles2[3] : output2 - poles2[3];
         output[0] = output1;
-        output[1] = output1;
+        output[1] = output2;
         
         return output;
       }
@@ -4945,7 +4944,7 @@ _pitch, amp, isRecording, isPlaying, input, length, start, end, loops, pan
   					phase = loops ? end : phase;
   				}
   			}
-  			return panner(val, pan, out);
+  			return panner(val * amp, pan, out);
   		}
   		phase = loops && _pitch > 0 ? start : phase;
   		phase = loops && _pitch < 0 ? end : phase;
