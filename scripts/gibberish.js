@@ -313,7 +313,10 @@ Create a callback and start it running. Note that in iOS audio callbacks can onl
     start = function(context, destination) {
       
       if (!context) {
-        document.getElementsByTagName('body')[0].removeEventListener('touchstart', start);
+        var body = document.getElementsByTagName('body');
+        if (body && body[0]) {
+          body[0].removeEventListener('touchstart', start);
+        }
         Gibberish.context = new webkitAudioContext();
       }
       else {
