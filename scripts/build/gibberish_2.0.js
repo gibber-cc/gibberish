@@ -302,12 +302,12 @@ param **readFn** : Function. The audio callback to use.
 /**###Gibberish.AudioDataDestination : method
 Create a callback and start it running. Note that in iOS audio callbacks can only be created in response to user events. Thus, in iOS this method assigns an event handler to the HTML body that creates the callback as soon as the body is touched; at that point the event handler is removed. 
 **/   
-  init : function(context, destination) {
+  init : function(context, destination, buffersize) {
     Gibberish.out = new Gibberish.Bus2();
     Gibberish.out.codegen(); // make sure bus is first upvalue so that clearing works correctly
     Gibberish.dirty(Gibberish.out);
     
-    var bufferSize = typeof arguments[0] === 'undefined' ? 1024 : arguments[0];
+    var bufferSize = typeof buffersize === 'undefined' ? 1024 : buffersize;
     
     // we will potentially delay start of audio until touch of screen for iOS devices
     start = function(context, destination) {
