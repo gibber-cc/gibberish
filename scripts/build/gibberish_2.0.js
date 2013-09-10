@@ -312,9 +312,11 @@ Create a callback and start it running. Note that in iOS audio callbacks can onl
     // we will potentially delay start of audio until touch of screen for iOS devices
     start = function(context, destination) {
       
-      document.getElementsByTagName('body')[0].removeEventListener('touchstart', start);
-
       if (!context) {
+        var body = document.getElementsByTagName('body');
+        if (body && body[0]) {
+          body[0].removeEventListener('touchstart', start);
+        }
         Gibberish.context = new webkitAudioContext();
       }
       else {
