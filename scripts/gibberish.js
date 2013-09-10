@@ -38,7 +38,7 @@ Object. Used in the codegen process to make sure codegen for each ugen is only p
 **/
 
 
-var Gibberish = {
+window.Gibberish = {
   memo              : {},
   codeblock         : [],
   analysisCodeblock : [],
