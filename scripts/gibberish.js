@@ -330,6 +330,9 @@ Create a callback and start it running. Note that in iOS audio callbacks can onl
       if (!destination) {
         Gibberish.node.connect(Gibberish.context.destination);
       }
+      else {
+        Gibberish.node.connect(destination);
+      }
 
       // iOS 6 hack only if the context is not passed in the init function
       if (!context) {
