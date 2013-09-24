@@ -4,13 +4,29 @@
 
 Gibberish is different from other JavaScript audio libraries (such as [audiolib.js][audiolib] or [Audiolet][audiolet]) in that it generates code that is heavily optimized for JIT compilation. The code that is generated is arguably not human-readble, hence the name _Gibberish_. Below is an example of the input code (which you write) and the audio callback that is outputted (which is created by Gibberish... you should never have to even look at this). The audio callback plays a sine wave with vibrato feeding delay and reverb effects:
 
-# This fork
+## This fork
 
 This is a forked version by janesconference. This fork:
 
 - Allows Gibberish to work with an audio node as destination. This allows Gibberish to work in Hyacinth (http://hya.io) and to be more flexible, in general.
 - Uses a grunt-based build system and exports a package.json. Just `grunt` to compile gibberish in build/, or `grunt build` to compile, strip logs and uglify.
-- Allows Gibbberish to work with jspm.io fictionless package manager (http://jspm.io/)
+- Allows Gibbberish to work with jspm.io frictionless package manager (http://jspm.io/)
+
+## Use jspm.io CDN
+
+To get the uglified build from the jspm.io CDN, just put
+
+`https://github.jspm.io/janesconference/Gibberish@master/gibberish.js` in your script tag
+
+or `jspm.import` this URL in your javascript:
+
+`github:janesconference/Gibberish/gibberish`
+
+## Use a custom context and Web Audio Node destination
+
+You can now pass your context and destination audio node to the Gibberish.init() function like this:
+
+`Gibberish.init(your_context, your_audio_node);`
 
 ## Live Demo
 [http://www.charlie-roberts.com/gibberish][gibberish]
