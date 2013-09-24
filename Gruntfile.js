@@ -37,7 +37,7 @@ module.exports = function(grunt) {
 
         concat: {
           dist: {
-            src: [],
+            src: files,
             dest: './build/gibberish.js'
           }
         },
