@@ -19,8 +19,5 @@
   ],
   "bugs": {
     "url": "https://github.com/janesconference/Gibberish/issues"
-  },
-  "buildConfig": {
-    "uglify": true
   }
 }
