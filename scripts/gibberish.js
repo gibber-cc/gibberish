@@ -38,7 +38,7 @@ Object. Used in the codegen process to make sure codegen for each ugen is only p
 **/
 
 
-Gibberish = {
+window.Gibberish = {
   memo              : {},
   codeblock         : [],
   analysisCodeblock : [],
@@ -302,45 +302,53 @@ param **readFn** : Function. The audio callback to use.
 /**###Gibberish.AudioDataDestination : method
 Create a callback and start it running. Note that in iOS audio callbacks can only be created in response to user events. Thus, in iOS this method assigns an event handler to the HTML body that creates the callback as soon as the body is touched; at that point the event handler is removed. 
 **/   
-  init : function() {
+  init : function(context, destination, buffersize) {
     Gibberish.out = new Gibberish.Bus2();
     Gibberish.out.codegen(); // make sure bus is first upvalue so that clearing works correctly
     Gibberish.dirty(Gibberish.out);
     
-    var bufferSize = typeof arguments[0] === 'undefined' ? 1024 : arguments[0];
+    var bufferSize = typeof buffersize === 'undefined' ? 1024 : buffersize;
     
     // we will potentially delay start of audio until touch of screen for iOS devices
-    start = function() {
+    start = function(context, destination) {
       
-      if(navigator.userAgent.indexOf('Firefox') === -1 ){
-        document.getElementsByTagName('body')[0].removeEventListener('touchstart', start);
+      if (!context) {
+        var body = document.getElementsByTagName('body');
+        if (body && body[0]) {
+          body[0].removeEventListener('touchstart', start);
+        }
         Gibberish.context = new webkitAudioContext();
-        Gibberish.node = Gibberish.context.createJavaScriptNode(bufferSize, 2, 2, Gibberish.context.sampleRate);	
-        Gibberish.node.onaudioprocess = Gibberish.audioProcess;
+      }
+      else {
+        // Use the provided context
+        Gibberish.context = context;
+      }
+
+      Gibberish.node = Gibberish.context.createJavaScriptNode(bufferSize, 2, 2, Gibberish.context.sampleRate);	
+      Gibberish.node.onaudioprocess = Gibberish.audioProcess;
+
+      if (!destination) {
         Gibberish.node.connect(Gibberish.context.destination);
-    
-        if('ontouchstart' in document.documentElement){ // required to start audio under iOS 6
+      }
+      else {
+        Gibberish.node.connect(destination);
+      }
+
+      // iOS 6 hack only if the context is not passed in the init function
+      if (!context) {
+        if('ontouchstart' in document.documentElement) { // required to start audio under iOS 6
           var mySource = Gibberish.context.createBufferSource();
           mySource.connect(Gibberish.context.destination);
           mySource.noteOn(0);
         }
-      }else{
-        /*if(typeof AudioContext === 'function') { // use web audio api for firefox 24 and higher... actually, no, it's not fast enough yet
-          Gibberish.context = new AudioContext();
-          Gibberish.node = Gibberish.context.createScriptProcessor(1024, 2, 2, Gibberish.context.sampleRate);	
-          Gibberish.node.onaudioprocess = Gibberish.audioProcess;
-          Gibberish.node.connect(Gibberish.context.destination);
-        }else{ // use audio data api*/
-          Gibberish.AudioDataDestination(44100, Gibberish.audioProcessFirefox);
-          Gibberish.context = { sampleRate: 44100 } // needed hack to determine samplerate in ugens
-        //}
       }
+      
     }
     
-    if('ontouchstart' in document.documentElement) {
+    if(!context && 'ontouchstart' in document.documentElement) {
       document.getElementsByTagName('body')[0].addEventListener('touchstart', start);
     }else{
-      start();
+      start(context, destination);
     }
     
     return this;

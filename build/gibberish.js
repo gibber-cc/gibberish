@@ -38,7 +38,7 @@ Object. Used in the codegen process to make sure codegen for each ugen is only p
 **/
 
 
-Gibberish = {
+window.Gibberish = {
   memo              : {},
   codeblock         : [],
   analysisCodeblock : [],
@@ -132,7 +132,7 @@ Perform codegen on all dirty ugens and re-create the audio callback. This method
     this.codestring += '}';
     
     this.callbackString = this.codestring;
-    if( this.debug ) console.log( this.callbackString );
+    if( this.debug ) 0;
     
     return eval(this.codestring);    
   },
@@ -302,45 +302,53 @@ param **readFn** : Function. The audio callback to use.
 /**###Gibberish.AudioDataDestination : method
 Create a callback and start it running. Note that in iOS audio callbacks can only be created in response to user events. Thus, in iOS this method assigns an event handler to the HTML body that creates the callback as soon as the body is touched; at that point the event handler is removed. 
 **/   
-  init : function() {
+  init : function(context, destination, buffersize) {
     Gibberish.out = new Gibberish.Bus2();
     Gibberish.out.codegen(); // make sure bus is first upvalue so that clearing works correctly
     Gibberish.dirty(Gibberish.out);
     
-    var bufferSize = typeof arguments[0] === 'undefined' ? 1024 : arguments[0];
+    var bufferSize = typeof buffersize === 'undefined' ? 1024 : buffersize;
     
     // we will potentially delay start of audio until touch of screen for iOS devices
-    start = function() {
+    start = function(context, destination) {
       
-      if(navigator.userAgent.indexOf('Firefox') === -1 ){
-        document.getElementsByTagName('body')[0].removeEventListener('touchstart', start);
+      if (!context) {
+        var body = document.getElementsByTagName('body');
+        if (body && body[0]) {
+          body[0].removeEventListener('touchstart', start);
+        }
         Gibberish.context = new webkitAudioContext();
-        Gibberish.node = Gibberish.context.createJavaScriptNode(bufferSize, 2, 2, Gibberish.context.sampleRate);	
-        Gibberish.node.onaudioprocess = Gibberish.audioProcess;
+      }
+      else {
+        // Use the provided context
+        Gibberish.context = context;
+      }
+
+      Gibberish.node = Gibberish.context.createJavaScriptNode(bufferSize, 2, 2, Gibberish.context.sampleRate);	
+      Gibberish.node.onaudioprocess = Gibberish.audioProcess;
+
+      if (!destination) {
         Gibberish.node.connect(Gibberish.context.destination);
-    
-        if('ontouchstart' in document.documentElement){ // required to start audio under iOS 6
+      }
+      else {
+        Gibberish.node.connect(destination);
+      }
+
+      // iOS 6 hack only if the context is not passed in the init function
+      if (!context) {
+        if('ontouchstart' in document.documentElement) { // required to start audio under iOS 6
           var mySource = Gibberish.context.createBufferSource();
           mySource.connect(Gibberish.context.destination);
           mySource.noteOn(0);
         }
-      }else{
-        /*if(typeof AudioContext === 'function') { // use web audio api for firefox 24 and higher... actually, no, it's not fast enough yet
-          Gibberish.context = new AudioContext();
-          Gibberish.node = Gibberish.context.createScriptProcessor(1024, 2, 2, Gibberish.context.sampleRate);	
-          Gibberish.node.onaudioprocess = Gibberish.audioProcess;
-          Gibberish.node.connect(Gibberish.context.destination);
-        }else{ // use audio data api*/
-          Gibberish.AudioDataDestination(44100, Gibberish.audioProcessFirefox);
-          Gibberish.context = { sampleRate: 44100 } // needed hack to determine samplerate in ugens
-        //}
       }
+      
     }
     
-    if('ontouchstart' in document.documentElement) {
+    if(!context && 'ontouchstart' in document.documentElement) {
       document.getElementsByTagName('body')[0].addEventListener('touchstart', start);
     }else{
-      start();
+      start(context, destination);
     }
     
     return this;
@@ -885,7 +893,7 @@ Array2.prototype.add = function() {
 	}
 	//console.log("ADDING ::: this.parent = ", this.parent)
 	if(this.parent) {  
-    console.log("DIRTYING");
+    0;
   	Gibberish.dirty(this.parent);
   }
 		
@@ -1114,7 +1122,7 @@ Gibberish.Proxy3 = function() {
     //   return Gibberish.memo[this.symbol];
     // }
     
-    console.log(" CALLED ")
+    0
     if( ! this.variable ) this.variable = Gibberish.generateSymbol('v');
     Gibberish.callbackArgs.push( this.symbol )
     Gibberish.callbackObjects.push( this.callback )
@@ -2009,7 +2017,7 @@ Gibberish.Bus2 = function() {
     return panner(output, pan, output);
   };
   
-  this.show = function() { console.log(output, args) }
+  this.show = function() { 0 }
   this.getOutput = function() { return output }
   this.getArgs = function() { return args }
   
@@ -2282,7 +2290,7 @@ Gibberish.analysis = function() {
     if(this.input.codegen){
       input = this.input.codegen()
       //console.log( "PROPERTY UGEN", input)
-      if(input.indexOf('op') > -1) console.log("ANALYSIS BUG")
+      if(input.indexOf('op') > -1) 0
     }else if( this.input.value ){
       input = typeof this.input.value.codegen !== 'undefined' ? this.input.value.codegen() : this.input.value
     }else{
@@ -4507,7 +4515,7 @@ WAVDecoder.prototype.decode = function(data) {
     var chunk = this.readChunkHeaderL(data, offset);
     offset += 8;
     if (chunk.name != 'RIFF') {
-        console.error('File is not a WAV');
+        0;
         return null;
     }
 
@@ -4517,7 +4525,7 @@ WAVDecoder.prototype.decode = function(data) {
     var wave = this.readString(data, offset, 4);
     offset += 4;
     if (wave != 'WAVE') {
-        console.error('File is not a WAV');
+        0;
         return null;
     }
 
@@ -4531,7 +4539,7 @@ WAVDecoder.prototype.decode = function(data) {
 
             if (encoding != 0x0001) {
                 // Only support PCM
-                console.error('Cannot decode non-PCM encoded WAV file');
+                0;
                 return null;
             }
 
@@ -4607,7 +4615,7 @@ AIFFDecoder.prototype.decode = function(data) {
     var chunk = this.readChunkHeaderB(data, offset);
     offset += 8;
     if (chunk.name != 'FORM') {
-        console.error('File is not an AIFF');
+        0;
         return null;
     }
 
@@ -4617,7 +4625,7 @@ AIFFDecoder.prototype.decode = function(data) {
     var aiff = this.readString(data, offset, 4);
     offset += 4;
     if (aiff != 'AIFF') {
-        console.error('File is not an AIFF');
+        0;
         return null;
     }
 
@@ -4788,7 +4796,7 @@ param **buffer** Object. The decoded sampler buffers from the audio file
       self.length = phase = bufferLength;
       self.isPlaying = true;
 					
-			console.log("LOADED ", self.file, bufferLength);
+			0;
 			Gibberish.audioFiles[self.file] = buffer;
 			
       if(self.onload) self.onload();
@@ -4959,7 +4967,7 @@ _pitch, amp, isRecording, isPlaying, input, length, start, end, loops, pan
 
 	if(typeof arguments[0] !== "undefined") {
 		if(typeof arguments[0] === "string") {
-      console.log("SETTING FILE");
+      0;
 			this.file = arguments[0];
       this.pitch = 0;
 			//this.isPlaying = true;
@@ -5901,7 +5909,7 @@ function createInput() {
   navigator.webkitGetUserMedia(
 		{audio:true}, 
 		function (stream) {
-      console.log("CONNECTING INPUT");
+      0;
 	    Gibberish.mediaStreamSource = Gibberish.context.createMediaStreamSource( stream );
 	    Gibberish.mediaStreamSource.connect( Gibberish.node );
 			_hasInput = true;
