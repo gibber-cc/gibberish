@@ -14,13 +14,13 @@ Gibberish.analysis = function() {
     if(Gibberish.memo[this.symbol]) {
       return Gibberish.memo[this.symbol];
     }else{
-      v = this.variable ? this.variable : Gibberish.generateSymbol('v');
+      var v = this.variable ? this.variable : Gibberish.generateSymbol('v');
       Gibberish.memo[this.symbol] = v;
       this.variable = v;
       Gibberish.callbackArgs.push( this.symbol )
       Gibberish.callbackObjects.push( this.callback )
     }
-
+        
     this.codeblock = "var " + this.variable + " = " + this.symbol + "();\n";
     
     if( Gibberish.codeblock.indexOf( this.codeblock ) === -1 ) Gibberish.codeblock.push( this.codeblock )
@@ -60,6 +60,8 @@ Gibberish.analysis = function() {
     if( Gibberish.analysisCodeblock.indexOf( this.analysisCodeblock ) === -1 ) Gibberish.analysisCodeblock.push( this.analysisCodeblock )
     
     if( Gibberish.callbackObjects.indexOf( this.analysisCallback) === -1 ) Gibberish.callbackObjects.push( this.analysisCallback )
+    
+    //console.log( this.analysisCallback )
         
     return s;
   };
@@ -72,8 +74,8 @@ Gibberish.analysis = function() {
     this.analysisSymbol = Gibberish.generateSymbol(this.name);
     Gibberish.analysisUgens.push( this );
     Gibberish.dirty(); // dirty in case analysis is not connected to graph, 
-    this.analysisCodegen();    
   };
+  
 };
 Gibberish.analysis.prototype = new Gibberish.ugen();
 Gibberish._analysis = new Gibberish.analysis();
@@ -93,11 +95,12 @@ Gibberish.Follow = function() {
       index = 0,
       value = 0,
       phase = 0;
-			
+      
   this.analysisCallback = function(input, bufferSize, mult) {
+
     if( typeof input === 'object' ) input = input[0] + input[1]
     
-    //if( phase++ % 44100 === 0) console.log( input )
+    //if( phase++ % 44100 === 0) console.log( "FOLLOW INPUT:", input )
     
   	sum += abs(input);
   	sum -= history[index];
@@ -113,6 +116,7 @@ Gibberish.Follow = function() {
   };
     
   this.callback = this.getValue = function() { return value; };
+  
     
   this.init();
   this.analysisInit();
@@ -217,4 +221,3 @@ Gibberish.Record = function(_input, _size, oncomplete) {
   Gibberish.dirty(); // ugen is not attached to anything else
 };
 Gibberish.Record.prototype = Gibberish._analysis;
-

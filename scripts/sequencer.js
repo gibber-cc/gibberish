@@ -148,6 +148,16 @@ param **timesToRepeat** number. The number of times to repeat the sequence.
       this.repeatTarget = times;
       return this;
     },
+    
+    shuffle : function() {
+      for( key in this.keysAndValues ) {
+        this.shuffleArray( this.keysAndValues[ key ] )
+      }
+    },
+    
+    shuffleArray : function( arr ) {
+  		for(var j, x, i = arr.length; i; j = parseInt(Math.random() * i), x = arr[--i], arr[i] = arr[j], arr[j] = x);
+    },
 
 /**###Gibberish.Sequencer.disconnect : method  
 Each sequencer object has a tick method that is called once per sample. Use the disconnect method to stop the tick method from being called.

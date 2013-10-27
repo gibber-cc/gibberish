@@ -46,7 +46,7 @@ var out = concat({
     dest : __dirname + '/gibberish_2.0.js'
 });
 
-_fs.writeFileSync(__dirname + '/../../../gibber2/js/external/gibberish.2.0.min.js', out.join(EOL), FILE_ENCODING);
+//_fs.writeFileSync(__dirname + '/../../../gibber/js/external/gibberish.2.0.min.js', out.join(EOL), FILE_ENCODING);
 
 //uglifyjs gibberish_2.0.js -o gibberish_2.0.min.js -c -m
 

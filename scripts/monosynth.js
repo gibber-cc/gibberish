@@ -58,14 +58,13 @@ Gibberish.MonoSynth = function() {
     name:       'monosynth',
     
     properties: {
-  		frequency:	0,
-  		amp1:			  1,
-  		amp2:			  1,
-  		amp3:			  1,
   		attack:			10000,
   		decay:			10000,
   		cutoff:			.2,
   		resonance:	2.5,
+  		amp1:			  1,
+  		amp2:			  1,
+  		amp3:			  1,
   		filterMult:	.3,
   		isLowPass:	true,
       pulsewidth: .5,
@@ -76,6 +75,7 @@ Gibberish.MonoSynth = function() {
   		octave3:		-1,
       glide:      0,
   		pan:			  0,
+  		frequency:	0,
       channels:   1,
     },
     
@@ -123,7 +123,7 @@ param **amp** : Optional. Float. The volume of the note, usually between 0..1. T
     	panner    = Gibberish.makePanner(),
     	out       = [0,0];
     
-  this.callback = function(frequency, amp1, amp2, amp3, attack, decay, cutoff, resonance, filterMult, isLowPass, pulsewidth, masterAmp, detune2, detune3, octave2, octave3, glide, pan, channels) {
+  this.callback = function(attack, decay, cutoff, resonance, amp1, amp2, amp3, filterMult, isLowPass, pulsewidth, masterAmp, detune2, detune3, octave2, octave3, glide, pan, frequency, channels) {
 		if(envstate() < 2) {
       if(glide >= 1) glide = .9999;
       frequency = lag(frequency, 1-glide, glide);

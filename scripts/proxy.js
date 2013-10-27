@@ -46,7 +46,9 @@ Gibberish.Proxy2 = function() {
   }).init();
   
   this.getInput = function() { return input }
+  this.setInput = function( v ) { input = v }
   this.getName = function() { return name }
+  this.setName = function( v ) { name = v }
 };
 Gibberish.Proxy2.prototype = new Gibberish.ugen();
 

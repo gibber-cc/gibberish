@@ -1,3 +1,4 @@
+
 Array2 = function() { 
   this.length = 0;
 };
@@ -156,21 +157,34 @@ Gibberish.rndf = function(min, max, number, canRepeat) {
 };
   
 Gibberish.Rndf = function() {
-  var min, max, random = Math.random;
+  var min, max, quantity, random = Math.random, round = Math.round;
     
   if(arguments.length === 0) {
     min = 0; max = 1;
   }else if(arguments.length === 1) {
     min = 0; max = arguments[0];
-  }else{
+  }else if(arguments.length === 2) {
     min = arguments[0]; max = arguments[1];
+  }else{
+    min = arguments[0]; max = arguments[1]; quantity = arguments[2];
   }
     
   return function() {
-    var value = min + random() * max;
+    var value;
+    
+    if( typeof quantity === 'undefined' ) {
+      value = min + random() * max ;
+    }else{
+      value = []
+      for( var i = 0; i < quantity; i++ ) {
+        value.push( min + random() * max )
+      }
+    }
+    
     return value;
   }
 };
+
 
 Gibberish.rndi = function() {
   var min, max;
@@ -185,19 +199,32 @@ Gibberish.rndi = function() {
     
   return Math.round( min + Math.random() * max );
 };
+
 Gibberish.Rndi = function() {
-  var min, max, random = Math.random, round = Math.round;
+  var min, max, quantity, random = Math.random, round = Math.round, canRepeat = true;
     
   if(arguments.length === 0) {
     min = 0; max = 1;
   }else if(arguments.length === 1) {
     min = 0; max = arguments[0];
-  }else{
+  }else if(arguments.length === 2) {
     min = arguments[0]; max = arguments[1];
+  }else{
+    min = arguments[0]; max = arguments[1]; quantity = arguments[2];
   }
     
   return function() {
-    var value = round( min + random() * max );
+    var value;
+    
+    if( typeof quantity === 'undefined') {
+      value = round( min + random() * max );
+    }else{
+      value = []
+      for( var i = 0; i < quantity; i++ ) {
+        value.push( round( min + random() * max ) )
+      }
+    }
+    
     return value;
   }
 };

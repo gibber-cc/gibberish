@@ -82,7 +82,7 @@ Perform codegen on all dirty ugens and re-create the audio callback. This method
     
     var codeblockStore = this.codeblock.slice(0)
     
-    // we must push these here because they callback arguments are at the start of the string, 
+    // we must push these here because the callback arguments are at the start of the string, 
     // but we have to wait to codegen the analysis ugens until after their targets have been codegen'd
     if(this.analysisUgens.length > 0) { 
       this.analysisCodeblock.length = 0;
@@ -90,7 +90,7 @@ Perform codegen on all dirty ugens and re-create the audio callback. This method
         this.analysisCallbackArgs.push( this.analysisUgens[i].analysisSymbol )
       }
     }
-    
+
     for(var i = 0; i < this.callbackArgs.length; i++) {
       this.codestring += this.callbackArgs[i]
       if(i < this.callbackArgs.length - 1)
@@ -101,11 +101,10 @@ Perform codegen on all dirty ugens and re-create the audio callback. This method
       this.codestring += ', '
       this.codestring += this.analysisCallbackArgs[i]
     }
-    
     this.codestring += '){\n\t';
 
     /* concatenate code for all ugens */
-    this.memo = {};
+    //this.memo = {};
     
     this.codestring += codeblockStore.join('\t') //this.codeblock.join("\t");
     this.codestring += "\n\t";
@@ -127,14 +126,13 @@ Perform codegen on all dirty ugens and re-create the audio callback. This method
       this.codestring += this.analysisCodeblock.join('\n\t');
       this.codestring += '\n\t';
     }
-
     this.codestring += 'return ' + this.out.variable +';\n';
     this.codestring += '}';
     
     this.callbackString = this.codestring;
     if( this.debug ) console.log( this.callbackString );
     
-    return eval(this.codestring);    
+    return this.codestring;    
   },
 
 /**###Gibberish.audioProcess : method
@@ -150,7 +148,8 @@ param **Audio Event** : Object. The HTML5 audio event object.
         callback = me.callback,
         sequencers = me.sequencers,
         out = Gibberish.out.callback,
-        objs = me.callbackObjects.slice(0)
+        objs = me.callbackObjects.slice(0),
+        _callback
 
         objs.unshift(0)
         
@@ -159,7 +158,14 @@ param **Audio Event** : Object. The HTML5 audio event object.
       for(var j = 0; j < sequencers.length; j++) { sequencers[j].tick(); }
       
       if(me.isDirty) {
-        callback = me.createCallback();
+        _callback = me.createCallback();
+        
+        try{
+          callback = eval( _callback )
+        }catch( e ) {
+          console.error( "ERROR WITH CALLBACK : \n\n", _callback )
+        }
+        
         me.isDirty = false;
         objs = me.callbackObjects.slice(0)
         objs.unshift(0)
@@ -534,9 +540,9 @@ Generates output code (as a string) used inside audio callback
             }
             
           }else if( typeof property.value === 'object' ) {
-            //console.log( "ADD", property.value )
-            //console.log( property.value.codeblock );
-            value = property.value !== null ? property.value.codegen() : 'null';
+            if( property.value !== null) {
+              value = property.value.codegen ? property.value.codegen() : property.value
+            }
           }else if( property.name !== 'undefined'){
             if(typeof property.value === 'function') {
               value = property.value();

@@ -89,7 +89,7 @@ Gibberish.PolyKarplusStrong = function() {
       var synth = this.children[this.voiceCount++];
       if(this.voiceCount >= this.maxVoices) this.voiceCount = 0;
       synth.note(_frequency, amp);
-      this.frequency = _frequency;
+      //this.frequency = _frequency;
     },
     
   });

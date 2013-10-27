@@ -696,9 +696,9 @@ Gibberish.Flanger = function() {
       
 	Gibberish.extend(this, {
     name:"flanger",
-  	properties:{ input:0, rate:.25, amount:125, feedback:0, offset:125 },
+    properties:{ input:0, rate:.25, feedback:0, amount:125, offset:125 },
     
-  	callback : function(sample, delayModulationRate, delayModulationAmount, feedback, offset) {
+    callback : function(sample, delayModulationRate, feedback, delayModulationAmount, offset) {
       var channels = typeof sample === 'number' ? 1 : 2;
       
   		var delayIndex = readIndex + delayModulation( delayModulationRate, delayModulationAmount * .95 );

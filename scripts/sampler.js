@@ -199,7 +199,7 @@ param **amp** Number. Optional. The volume to use.
         
         var __pitch = typeof this.pitch === 'number' ? this.pitch : this.pitch[0];  // account for modulations
 
-        if(__pitch > 0) {
+        if(__pitch > 0 || typeof __pitch !== 'number'   ) {
           phase = this.start;
 				}else{
           phase = this.end;

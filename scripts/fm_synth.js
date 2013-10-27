@@ -136,8 +136,7 @@ Gibberish.PolyFM = function() {
     children: [],
     
     polyProperties : {
-      frequency: 0,
-  		glide:		 0,
+      glide:		 0,
       attack: 22050,
       decay:  22050,
       index:  5,
@@ -150,7 +149,7 @@ param **frequency** Number. The frequency for the carrier oscillator. The modula
 param **amp** Number. Optional. The volume to use.  
 **/
 		note : function(_frequency, amp) {
-			var synth = this.children[this.voiceCount++];
+			var synth = this.children[ this.voiceCount++ ];
 			if(this.voiceCount >= this.maxVoices) this.voiceCount = 0;
 			synth.note(_frequency, amp);
 		},

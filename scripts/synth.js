@@ -371,10 +371,13 @@ Gibberish.PolySynth2 = function() {
     
     polyProperties : {
       frequency: 0,
-  		glide:			0,
+      glide:			0,
       attack: 22050,
       decay:  22050,
       pulsewidth:.5,
+      resonance: 3.5,
+      cutoff:.25,
+      useLowPassFilter:true,
       waveform:"PWM",
     },
 
