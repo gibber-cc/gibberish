@@ -2154,10 +2154,11 @@ Gibberish.AD = function(_attack, _decay) {
 };
 Gibberish.AD.prototype = Gibberish._envelope;
 
-Gibberish.ADSR = function(attack, decay, sustain, release, attackLevel, sustainLevel) {
+Gibberish.ADSR = function(attack, decay, sustain, release, attackLevel, sustainLevel, requireReleaseTrigger) {
 	var that = { 
     name:   "adsr",
 		type:		"envelope",
+    'requireReleaseTrigger' : typeof requireReleaseTrigger !== 'undefined' ? requireReleaseTrigger : false,
     
     properties: {
   		attack:		isNaN(attack) ? 10000 : attack,
@@ -2166,18 +2167,24 @@ Gibberish.ADSR = function(attack, decay, sustain, release, attackLevel, sustainL
   		release:	isNaN(release) ? 10000 : release,
   		attackLevel:  attackLevel || 1,
   		sustainLevel: sustainLevel || .5,
+      releaseTrigger: 0,
     },
 
 		run: function() {
 			this.setPhase(0);
 			this.setState(0);
 		},
+    stop : function() {
+      this.releaseTrigger = 1
+    }
 	};
 	Gibberish.extend(this, that);
 	
-	var phase = 0;
-	var state = 0;
-	this.callback = function(attack,decay,sustain,release,attackLevel,sustainLevel) {
+	var phase = 0,
+	    state = 0,
+      obj = this;
+      
+  this.callback = function(attack,decay,sustain,release,attackLevel,sustainLevel,releaseTrigger) {
 		var val = 0;
 		if(state === 0){
 			val = phase / attack * attackLevel;
@@ -2198,17 +2205,26 @@ Gibberish.ADSR = function(attack, decay, sustain, release, attackLevel, sustainL
 			}
 		}else if(state === 2) {
 			val = sustainLevel;
-			if(phase-- === 0) {
+      if( obj.requireReleaseTrigger && releaseTrigger ){
+        state++;
+        phase = release;
+        obj.releaseTrigger = 0;
+      }else if(phase-- === 0 && !obj.requireReleaseTrigger) {
 				state++;
 				phase = release;
 			}
 		}else if(state === 3) {
       phase--;
 			val = (phase / release) * sustainLevel;
-			if(phase <= 0) state++;
+			if(phase <= 0) {
+        state++;
+      }
 		}
 		return val;
 	};
+  this.call = function() {
+    return this.callback( this.attack, this.decay, this.sustain, this.release, this.attackLevel, this.sustainLevel, this.releaseTrigger )
+  };
 	this.setPhase = function(newPhase) { phase = newPhase; };
 	this.setState = function(newState) { state = newState; phase = 0; };
 	this.getState = function() { return state; };		
@@ -3862,11 +3878,16 @@ Gibberish.Synth = function(properties) {
     pulsewidth:.5,
 	  attack:		22050,
 	  decay:		22050,
+    sustain:  22050,
+    release:  22050,
+    attackLevel: 1,
+    sustainLevel: .5,
+    releaseTrigger: 0,
     glide:    .15,
     amp:		  .25,
     channels: 2,
 	  pan:		  0,
-    sr:       Gibberish.context.sampleRate
+    sr:       Gibberish.context.sampleRate,
   };
 /**###Gibberish.Synth.note : method  
 Generate an enveloped note at the provided frequency  
@@ -3876,8 +3897,13 @@ param **amp** Number. Optional. The volume to use.
 **/    
 	this.note = function(frequency, amp) {
 		if(typeof this.frequency !== 'object'){
+      if( frequency === 0 && useADSR ) {
+        this.releaseTrigger = 1;
+        return;
+      }
       this.frequency = frequency;
       _frequency = frequency;
+
     }else{
       this.frequency[0] = frequency;
       _frequency = frequency;
@@ -3889,32 +3915,50 @@ param **amp** Number. Optional. The volume to use.
     _envelope.run();
 	};
   
-	var _envelope   = new Gibberish.AD(),
+	var useADSR     = typeof properties.useADSR === 'undefined' ? false : properties.useADSR,
+      _envelope   = useADSR ? new Gibberish.ADSR( null,null,null,22050,1,.5, 1) : new Gibberish.AD(),
       envstate    = _envelope.getState,
       envelope    = _envelope.callback,
       _osc        = new Gibberish.PWM(),
 	    osc         = _osc.callback,
       lag         = new Gibberish.OnePole().callback,
     	panner      = Gibberish.makePanner(),
+      obj         = this
     	out         = [0,0];
-
-  this.callback = function(frequency, pulsewidth, attack, decay, glide, amp, channels, pan, sr) {
+      
+  this.callback = function(frequency, pulsewidth, attack, decay, sustain,release,attackLevel,sustainLevel,releaseTrigger, glide, amp, channels, pan, sr) {
     glide = glide >= 1 ? .99999 : glide;
     frequency = lag(frequency, 1-glide, glide);
     
-		if(envstate() < 2) {				
-			var env = envelope(attack, decay);
-			var val = osc( frequency, 1, pulsewidth, sr ) * env * amp;
-
-			out[0] = out[1] = val;
+    var env, val
+    if( useADSR ) {
+      env = envelope(attack,decay,sustain,release,attackLevel,sustainLevel,releaseTrigger)
+      if( releaseTrigger ) {
+        obj.releaseTrigger = 0
+      }
       
-			return channels === 1 ? val : panner(val, pan, out);
+      if( envstate() < 4 ) {
+  			val = osc( frequency, 1, pulsewidth, sr ) * env * amp;
+    
+  			return channels === 1 ? val : panner(val, pan, out);
+      }else{
+  		  val = out[0] = out[1] = 0;
+        return channels === 1 ? val : out
+      }
     }else{
-		  val = out[0] = out[1] = 0;
-      return channels === 1 ? val : out
+  		if(envstate() < 2) {
+        evn = envelope(attack, decay);
+  			val = osc( frequency, 1, pulsewidth, sr ) * env * amp;
+      
+  			return channels === 1 ? val : panner(val, pan, out);
+      }else{
+  		  val = out[0] = out[1] = 0;
+        return channels === 1 ? val : out
+      }
     }
 	};
   
+  this.getEnv = function() { return _envelope; }
   this.getOsc = function() { return _osc; };
   this.setOsc = function(val) { _osc = val; osc = _osc.callback };
   
@@ -4098,7 +4142,7 @@ param **amp** Number. Optional. The volume to use.
     _envelope.run();
 	};
   
-	var _envelope   = new Gibberish.AD(),
+	var _envelope   = properties.useADSR ? new Gibberish.ADSR() : new Gibberish.AD(),
       envstate    = _envelope.getState,
       envelope    = _envelope.callback,
       _osc        = new Gibberish.PWM(),
@@ -4117,13 +4161,11 @@ param **amp** Number. Optional. The volume to use.
       
 			var env = envelope(attack, decay);
 			var val = filter ( osc( frequency, .15, pulsewidth, sr ), cutoff * env, resonance, isLowPass ) * env * amp;
-
-			out[0] = out[1] = val;
       
 			return channels === 1 ? val : panner(val, pan, out);
     }else{
 		  val = out[0] = out[1] = 0;
-      return channels === 1 ? val : panner(val, pan, out);
+      return channels === 1 ? val : out;
     }
 	};
   

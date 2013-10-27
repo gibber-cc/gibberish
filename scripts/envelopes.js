@@ -100,10 +100,11 @@ Gibberish.AD = function(_attack, _decay) {
 };
 Gibberish.AD.prototype = Gibberish._envelope;
 
-Gibberish.ADSR = function(attack, decay, sustain, release, attackLevel, sustainLevel) {
+Gibberish.ADSR = function(attack, decay, sustain, release, attackLevel, sustainLevel, requireReleaseTrigger) {
 	var that = { 
     name:   "adsr",
 		type:		"envelope",
+    'requireReleaseTrigger' : typeof requireReleaseTrigger !== 'undefined' ? requireReleaseTrigger : false,
     
     properties: {
   		attack:		isNaN(attack) ? 10000 : attack,
@@ -112,18 +113,24 @@ Gibberish.ADSR = function(attack, decay, sustain, release, attackLevel, sustainL
   		release:	isNaN(release) ? 10000 : release,
   		attackLevel:  attackLevel || 1,
   		sustainLevel: sustainLevel || .5,
+      releaseTrigger: 0,
     },
 
 		run: function() {
 			this.setPhase(0);
 			this.setState(0);
 		},
+    stop : function() {
+      this.releaseTrigger = 1
+    }
 	};
 	Gibberish.extend(this, that);
 	
-	var phase = 0;
-	var state = 0;
-	this.callback = function(attack,decay,sustain,release,attackLevel,sustainLevel) {
+	var phase = 0,
+	    state = 0,
+      obj = this;
+      
+  this.callback = function(attack,decay,sustain,release,attackLevel,sustainLevel,releaseTrigger) {
 		var val = 0;
 		if(state === 0){
 			val = phase / attack * attackLevel;
@@ -144,17 +151,26 @@ Gibberish.ADSR = function(attack, decay, sustain, release, attackLevel, sustainL
 			}
 		}else if(state === 2) {
 			val = sustainLevel;
-			if(phase-- === 0) {
+      if( obj.requireReleaseTrigger && releaseTrigger ){
+        state++;
+        phase = release;
+        obj.releaseTrigger = 0;
+      }else if(phase-- === 0 && !obj.requireReleaseTrigger) {
 				state++;
 				phase = release;
 			}
 		}else if(state === 3) {
       phase--;
 			val = (phase / release) * sustainLevel;
-			if(phase <= 0) state++;
+			if(phase <= 0) {
+        state++;
+      }
 		}
 		return val;
 	};
+  this.call = function() {
+    return this.callback( this.attack, this.decay, this.sustain, this.release, this.attackLevel, this.sustainLevel, this.releaseTrigger )
+  };
 	this.setPhase = function(newPhase) { phase = newPhase; };
 	this.setState = function(newState) { state = newState; phase = 0; };
 	this.getState = function() { return state; };		
