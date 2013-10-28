@@ -42,6 +42,11 @@ Gibberish.FMSynth = function(properties) {
 	  index:		5,			
 	  attack:		22050,
 	  decay:		22050,
+    sustain:  22050,
+    release:  22050,
+    attackLevel: 1,
+    sustainLevel: .5,
+    releaseTrigger: 0,
     glide:    .15,
     amp:		  .25,
     channels: 2,
@@ -54,21 +59,29 @@ param **frequency** Number. The frequency for the carrier oscillator. The modula
 param **amp** Number. Optional. The volume to use.  
 **/
 	this.note = function(frequency, amp) {
-    if(typeof this.frequency !== 'object') {
-  		this.frequency = frequency;
-      _frequency = frequency;
+    var noteoff = false;
+		if(typeof this.frequency !== 'object'){
+      if( useADSR && frequency === lastFrequency && amp === 0) {
+        this.releaseTrigger = 1;
+        noteoff = true;
+        return;
+      }
+      
+      this.frequency = lastFrequency = frequency;
     }else{
-      this.frequency[0] = frequency;
-      _frequency = frequency;
+      this.frequency[0] = lastFrequency = frequency;
       Gibberish.dirty(this);
     }
 					
-		if(typeof amp !== 'undefined') this.amp = amp;
+		if(typeof amp !== 'undefined' && !noteoff ) this.amp = amp;
 					
     _envelope.run();
 	};
   
-	var _envelope   = new Gibberish.AD(),
+  properties = properties || {}
+  
+	var useADSR     = typeof properties.useADSR === 'undefined' ? false : properties.useADSR,
+      _envelope   = useADSR ? new Gibberish.ADSR() : new Gibberish.AD(),
       envstate    = _envelope.getState,
       envelope    = _envelope.callback,
 	    carrier     = new Gibberish.Sine().callback,
@@ -76,25 +89,46 @@ param **amp** Number. Optional. The volume to use.
       lag         = new Gibberish.OnePole().callback,
     	panner      = Gibberish.makePanner(),
     	out         = [0,0],
+      obj         = this,
+      lastFrequency = 0,
       phase = 0,
       check = false;
 
-  this.callback = function(frequency, cmRatio, index, attack, decay, glide, amp, channels, pan) {    
-		if(envstate() < 2) {				
-      if(glide >= 1) glide = .9999;
-      frequency = lag(frequency, 1-glide, glide);
-      
-			var env = envelope(attack, decay);
-			var mod = modulator(frequency * cmRatio, frequency * index) * env;
-            
-			var val = carrier( frequency + mod, 1 ) * env * amp;
+  this.callback = function(frequency, cmRatio, index, attack, decay, sustain, release, sustainLevel, releaseLevel, releaseTrigger, glide, amp, channels, pan) {
+    var env, val, mod
+        
+    if(glide >= 1) glide = .9999;
+    frequency = lag(frequency, 1-glide, glide);
+    
+    if( useADSR ) {
+      env = envelope( attack, decay, sustain, release, attackLevel, sustainLevel, releaseTrigger );
+      if( releaseTrigger ) {
+        obj.releaseTrigger = 0
+      }
 
-			out[0] = out[1] = val;
-      
-			return channels === 1 ? val : panner(val, pan, out);
+      if( envstate() < 4 ) {
+        mod = modulator(frequency * cmRatio, frequency * index) * env;
+  			val = carrier( frequency + mod, 1 ) * env * amp;
+    
+  			return channels === 1 ? val : panner(val, pan, out);
+      }else{
+  		  val = out[0] = out[1] = 0;
+        return channels === 1 ? val : out
+      }
     }else{
-		  val = out[0] = out[1] = 0;
-      return channels === 1 ? val : panner(val, pan, out);
+      if( envstate() < 2 ) {
+  			env = envelope(attack, decay);
+  			mod = modulator(frequency * cmRatio, frequency * index) * env;
+          
+  			val = carrier( frequency + mod, 1 ) * env * amp;
+
+  			out[0] = out[1] = val;
+    
+  			return channels === 1 ? val : panner(val, pan, out);
+      }else{
+  		  val = out[0] = out[1] = 0;
+        return channels === 1 ? val : panner(val, pan, out);
+      }
     }
 	};
   
