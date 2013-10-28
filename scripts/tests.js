@@ -190,6 +190,46 @@ window.ADSRTest = function() {
 	}, 250);
 };
 
+window.ADSRTest2 = function() {
+  Gibberish.clear();
+  
+  a = new Gibberish.PolyFM({ useADSR:true, requireReleaseTrigger:true }).connect()
+  a.note(440)
+  a.note(660)
+  a.note(770)
+  a.note(990)
+  a.note(1100)
+  
+  Gibberish.future( function() { a.note(440,0) }, seconds(3) )
+  Gibberish.future( function() { a.note(660,0) }, seconds(4) )
+  Gibberish.future( function() { a.note(770,0) }, seconds(5) )
+  Gibberish.future( function() { a.note(990,0) }, seconds(6) )
+  Gibberish.future( function() { a.note(1100,0) }, seconds(7) )  
+  
+	var inputString = "// test of ADSR envelope in PolyFM. Send a note message\n// with 0 amplitude to trigger release.\n"+
+  "// if requireReleaseTrigger is false the release portion will trigger automatically.\n\n"+
+  "a = new Gibberish.PolyFM({ useADSR:true, requireReleaseTrigger:true }).connect()\n"+
+  "a.note(440)\n"+
+  "a.note(660)\n"+
+  "a.note(770)\n"+
+  "a.note(990)\n"+
+  "a.note(1100)\n"+
+  "\n"+
+  "Gibberish.future( function() { a.note(440,0) }, seconds(3) )\n"+
+  "Gibberish.future( function() { a.note(660,0) }, seconds(4) )\n"+
+  "Gibberish.future( function() { a.note(770,0) }, seconds(5) )\n"+
+  "Gibberish.future( function() { a.note(990,0) }, seconds(6) )\n"+
+  "Gibberish.future( function() { a.note(1100,0) }, seconds(7) )";
+
+	var input = document.getElementById("input");
+	input.innerHTML = inputString;
+			
+	codeTimeout = setTimeout(function() { 
+		var codegen = document.getElementById("output");
+		codegen.innerHTML = Gibberish.callbackString;
+	}, 250);
+};
+
 window.distortion = function() {
   Gibberish.clear();
   
