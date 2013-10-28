@@ -4047,6 +4047,7 @@ param **amp** Number. Optional. The volume to use.
   if(typeof arguments[0] === 'object') {
     this.maxVoices = arguments[0].maxVoices ? arguments[0].maxVoices : this.maxVoices
     this.useADSR = typeof arguments[0].useADSR !== 'undefined' ? arguments[ 0 ].useADSR : false
+    this.requireReleaseTrigger = typeof arguments[0].requireReleaseTrigger !== 'undefined' ? arguments[ 0 ].requireReleaseTrigger : false    
   }
   
   this.dirty = true;
@@ -4058,11 +4059,10 @@ param **amp** Number. Optional. The volume to use.
       pulsewidth: this.pulsewidth,
       channels: 2,
       amp:      1,
-      useADSR : this.useADSR || false
-    };
-    var synth = new Gibberish.Synth(props);
-    //var synth = new Gibberish.Synth();
-    synth.connect(this);
+      useADSR : this.useADSR || false,
+      requireReleaseTrigger: this.requireReleaseTrigger || false,
+    },
+    synth = new Gibberish.Synth( props ).connect( this );
 
     this.children.push(synth);
   }
@@ -4306,6 +4306,7 @@ param **amp** Number. Optional. The volume to use.
   if(typeof arguments[0] === 'object') {
     this.maxVoices = arguments[0].maxVoices ? arguments[0].maxVoices : this.maxVoices
     this.useADSR = typeof arguments[0].useADSR !== 'undefined' ? arguments[ 0 ].useADSR : false
+    this.requireReleaseTrigger = typeof arguments[0].requireReleaseTrigger !== 'undefined' ? arguments[ 0 ].requireReleaseTrigger : false
   }
   
   this.dirty = true;
@@ -4316,7 +4317,8 @@ param **amp** Number. Optional. The volume to use.
       pulsewidth: this.pulsewidth,
       channels: 2,
       amp:      1,
-      useADSR:  this.useADSR || false
+      useADSR:  this.useADSR || false,
+      requireReleaseTrigger: this.requireReleaseTrigger || false,
     };
     var synth = new Gibberish.Synth2(props);
     synth.connect(this);
@@ -4325,7 +4327,7 @@ param **amp** Number. Optional. The volume to use.
   }
   
   this.processProperties(arguments);
-    Gibberish._synth.oscillatorInit.call(this);
+  Gibberish._synth.oscillatorInit.call(this);
 };
 /**#Gibberish.FMSynth - Synth
 Classic 2-op FM synthesis with an attached attack / decay envelope.
@@ -4499,6 +4501,7 @@ Gibberish.PolyFM = function() {
 		maxVoices:		5,
 		voiceCount:		0,
     children: [],
+    frequencies: [],
     
     polyProperties : {
       glide:		 0,
@@ -4513,12 +4516,19 @@ Generate an enveloped note at the provided frequency using a simple voice alloca
 param **frequency** Number. The frequency for the carrier oscillator. The modulator frequency will be calculated automatically from this value in conjunction with the synth's  
 param **amp** Number. Optional. The volume to use.  
 **/
-		note : function(_frequency, amp) {
-			var synth = this.children[ this.voiceCount++ ];
-			if(this.voiceCount >= this.maxVoices) this.voiceCount = 0;
-			synth.note(_frequency, amp);
-		},
-	});    
+    note : function(_frequency, amp) {
+      var lastNoteIndex = this.frequencies.indexOf( _frequency ),
+          idx = lastNoteIndex > -1 ? lastNoteIndex : this.voiceCount++,
+          synth = this.children[ idx ];
+      
+      synth.note(_frequency, amp);
+            
+      this.frequencies[ idx ] = _frequency;
+      
+      if(this.voiceCount >= this.maxVoices) this.voiceCount = 0;
+    },
+	}); 
+     
   this.amp = 1 / this.maxVoices;
   
   Gibberish.polyInit(this);
@@ -4527,6 +4537,8 @@ param **amp** Number. Optional. The volume to use.
   
   if(typeof arguments[0] === 'object') {
     this.maxVoices = arguments[0].maxVoices ? arguments[0].maxVoices : this.maxVoices
+    this.useADSR = typeof arguments[0].useADSR !== 'undefined' ? arguments[ 0 ].useADSR : false    
+    this.requireReleaseTrigger = typeof arguments[0].requireReleaseTrigger !== 'undefined' ? arguments[ 0 ].requireReleaseTrigger : false    
   }
   
 	for(var i = 0; i < this.maxVoices; i++) {
@@ -4536,6 +4548,8 @@ param **amp** Number. Optional. The volume to use.
 			cmRatio:	this.cmRatio,
 			index:		this.index,
       channels: 2,
+      useADSR : this.useADSR || false,      
+      requireReleaseTrigger: this.requireReleaseTrigger || false,
 			amp: 		  1,
 		};
 		var synth = new Gibberish.FMSynth(props);

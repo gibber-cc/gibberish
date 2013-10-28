@@ -227,6 +227,7 @@ param **amp** Number. Optional. The volume to use.
   if(typeof arguments[0] === 'object') {
     this.maxVoices = arguments[0].maxVoices ? arguments[0].maxVoices : this.maxVoices
     this.useADSR = typeof arguments[0].useADSR !== 'undefined' ? arguments[ 0 ].useADSR : false
+    this.requireReleaseTrigger = typeof arguments[0].requireReleaseTrigger !== 'undefined' ? arguments[ 0 ].requireReleaseTrigger : false    
   }
   
   this.dirty = true;
@@ -238,11 +239,10 @@ param **amp** Number. Optional. The volume to use.
       pulsewidth: this.pulsewidth,
       channels: 2,
       amp:      1,
-      useADSR : this.useADSR || false
-    };
-    var synth = new Gibberish.Synth(props);
-    //var synth = new Gibberish.Synth();
-    synth.connect(this);
+      useADSR : this.useADSR || false,
+      requireReleaseTrigger: this.requireReleaseTrigger || false,
+    },
+    synth = new Gibberish.Synth( props ).connect( this );
 
     this.children.push(synth);
   }
@@ -486,6 +486,7 @@ param **amp** Number. Optional. The volume to use.
   if(typeof arguments[0] === 'object') {
     this.maxVoices = arguments[0].maxVoices ? arguments[0].maxVoices : this.maxVoices
     this.useADSR = typeof arguments[0].useADSR !== 'undefined' ? arguments[ 0 ].useADSR : false
+    this.requireReleaseTrigger = typeof arguments[0].requireReleaseTrigger !== 'undefined' ? arguments[ 0 ].requireReleaseTrigger : false
   }
   
   this.dirty = true;
@@ -496,7 +497,8 @@ param **amp** Number. Optional. The volume to use.
       pulsewidth: this.pulsewidth,
       channels: 2,
       amp:      1,
-      useADSR:  this.useADSR || false
+      useADSR:  this.useADSR || false,
+      requireReleaseTrigger: this.requireReleaseTrigger || false,
     };
     var synth = new Gibberish.Synth2(props);
     synth.connect(this);
@@ -505,5 +507,5 @@ param **amp** Number. Optional. The volume to use.
   }
   
   this.processProperties(arguments);
-    Gibberish._synth.oscillatorInit.call(this);
+  Gibberish._synth.oscillatorInit.call(this);
 };
