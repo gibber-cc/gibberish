@@ -94,7 +94,9 @@ param **amp** Number. Optional. The volume to use.
       phase = 0,
       check = false;
 
-  this.callback = function(frequency, cmRatio, index, attack, decay, sustain, release, sustainLevel, releaseLevel, releaseTrigger, glide, amp, channels, pan) {
+  _envelope.requireReleaseTrigger = properties.requireReleaseTrigger || false;
+
+  this.callback = function(frequency, cmRatio, index, attack, decay, sustain, release, attackLevel, sustainLevel, releaseTrigger, glide, amp, channels, pan) {
     var env, val, mod
         
     if(glide >= 1) glide = .9999;
