@@ -559,7 +559,8 @@ window.polyFM = function() {
   Gibberish.clear();
   			
 	s = new Gibberish.PolyFM({ attack:20 }).connect();
-	
+	s.index = Add(20, new Gibberish.Sine(.1, 20))
+  
   sequencer = new Gibberish.Sequencer({
     values:[ function() {
   		s.note( Gibberish.rndf(200, 1000) );
@@ -571,7 +572,8 @@ window.polyFM = function() {
     durations:[ seconds(1) ],
   }).start();
 			
-	var inputString = "s = new Gibberish.PolyFM({ attack:20 }).connect();\n\n"+
+	var inputString = "s = new Gibberish.PolyFM({ attack:20 }).connect();\n"+
+  "s.index = Add(20, new Gibberish.Sine(.1, 20));\n\n"+
   "sequencer = new Gibberish.Sequencer({\n"+
   "  values:[ function() {\n"+
   "		s.note( Gibberish.rndf(200, 1000) );\n"+

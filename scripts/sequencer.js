@@ -56,7 +56,15 @@ Gibberish.Sequencer = function() {
             if(this.target) {
               var val = this.values[ this.valuesIndex++ ];
               
-              if(typeof val === 'function') { val = val(); }
+              if(typeof val === 'function') { 
+                try {
+                  val = val(); 
+                }catch(e) {
+                  console.error('ERROR: Can\'t execute function triggered by Sequencer:\n' + val.toString() )
+                  this.values.splice( this.valuesIndex - 1, 1)
+                  this.valuesIndex--;
+                }
+              }
               
               if(typeof this.target[this.key] === 'function') {
                 this.target[this.key]( val );
@@ -65,7 +73,13 @@ Gibberish.Sequencer = function() {
               }
             }else{
               if(typeof this.values[ this.valuesIndex ] === 'function') {
-                this.values[ this.valuesIndex++ ]();
+                try {
+                  this.values[ this.valuesIndex++ ]();
+                }catch(e) {
+                  console.error('ERROR: Can\'t execute function triggered by Sequencer:\n' + this.values[ this.valuesIndex - 1 ].toString() )
+                  this.values.splice( this.valuesIndex - 1, 1)
+                  this.valuesIndex--;
+                }
               }
             }
             if(this.valuesIndex >= this.values.length) this.valuesIndex = 0;
@@ -74,7 +88,17 @@ Gibberish.Sequencer = function() {
               var index = typeof this.keysAndValues[ key ].pick === 'function' ? this.keysAndValues[ key ].pick() : this.counts[key]++;
               var val = this.keysAndValues[key][index];
               
-              if(typeof val === 'function') { val = val(); }
+              if(typeof val === 'function') { 
+                try {
+                  val = val(); 
+                }catch(e) {
+                  console.error('ERROR: Can\'t execute function triggered by Sequencer:\n' + val.toString() )
+                  this.keysAndValues[key].splice( index, 1)
+                  if( typeof this.keysAndValues[ key ].pick !== 'function' ) {
+                    this.counts[key]--;
+                  }
+                }
+              }
               
               if(typeof this.target[key] === 'function') {
                 this.target[key]( val );
