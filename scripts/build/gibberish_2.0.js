@@ -196,6 +196,11 @@ param **Sound Data** : Object. The buffer of audio data to be filled
       
       if(me.isDirty) {
         callback = me.createCallback();
+        try {
+          callback = eval( callback );
+        }catch( e ) {
+          console.error( 'ERROR WITH CALLBACK : \n\n', callback )
+        }
         me.isDirty = false;
         objs = me.callbackObjects.slice(0)
         objs.unshift(0)       
@@ -786,6 +791,7 @@ param **bus** : Bus ugen. Optional. The bus to disconnect the ugen from. If this
     });
   },
 };
+
 
 Array2 = function() { 
   this.length = 0;
@@ -3927,6 +3933,7 @@ param **amp** Number. Optional. The volume to use.
     	panner      = Gibberish.makePanner(),
       obj         = this,
       lastFrequency = 0,
+      phase = 0,
     	out         = [0,0];
       
   _envelope.requireReleaseTrigger = properties.requireReleaseTrigger || false;
@@ -3952,7 +3959,7 @@ param **amp** Number. Optional. The volume to use.
       }
     }else{
   		if(envstate() < 2) {
-        evn = envelope(attack, decay);
+        env = envelope(attack, decay);
   			val = osc( frequency, 1, pulsewidth, sr ) * env * amp;
       
   			return channels === 1 ? val : panner(val, pan, out);
@@ -4329,6 +4336,7 @@ param **amp** Number. Optional. The volume to use.
   this.processProperties(arguments);
   Gibberish._synth.oscillatorInit.call(this);
 };
+
 /**#Gibberish.FMSynth - Synth
 Classic 2-op FM synthesis with an attached attack / decay envelope.
   
@@ -5960,7 +5968,15 @@ Gibberish.Sequencer = function() {
             if(this.target) {
               var val = this.values[ this.valuesIndex++ ];
               
-              if(typeof val === 'function') { val = val(); }
+              if(typeof val === 'function') { 
+                try {
+                  val = val(); 
+                }catch(e) {
+                  console.error('ERROR: Can\'t execute function triggered by Sequencer:\n' + val.toString() )
+                  this.values.splice( this.valuesIndex - 1, 1)
+                  this.valuesIndex--;
+                }
+              }
               
               if(typeof this.target[this.key] === 'function') {
                 this.target[this.key]( val );
@@ -5969,7 +5985,13 @@ Gibberish.Sequencer = function() {
               }
             }else{
               if(typeof this.values[ this.valuesIndex ] === 'function') {
-                this.values[ this.valuesIndex++ ]();
+                try {
+                  this.values[ this.valuesIndex++ ]();
+                }catch(e) {
+                  console.error('ERROR: Can\'t execute function triggered by Sequencer:\n' + this.values[ this.valuesIndex - 1 ].toString() )
+                  this.values.splice( this.valuesIndex - 1, 1)
+                  this.valuesIndex--;
+                }
               }
             }
             if(this.valuesIndex >= this.values.length) this.valuesIndex = 0;
@@ -5978,7 +6000,17 @@ Gibberish.Sequencer = function() {
               var index = typeof this.keysAndValues[ key ].pick === 'function' ? this.keysAndValues[ key ].pick() : this.counts[key]++;
               var val = this.keysAndValues[key][index];
               
-              if(typeof val === 'function') { val = val(); }
+              if(typeof val === 'function') { 
+                try {
+                  val = val(); 
+                }catch(e) {
+                  console.error('ERROR: Can\'t execute function triggered by Sequencer:\n' + val.toString() )
+                  this.keysAndValues[key].splice( index, 1)
+                  if( typeof this.keysAndValues[ key ].pick !== 'function' ) {
+                    this.counts[key]--;
+                  }
+                }
+              }
               
               if(typeof this.target[key] === 'function') {
                 this.target[key]( val );

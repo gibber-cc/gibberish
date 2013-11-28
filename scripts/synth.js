@@ -107,6 +107,7 @@ param **amp** Number. Optional. The volume to use.
     	panner      = Gibberish.makePanner(),
       obj         = this,
       lastFrequency = 0,
+      phase = 0,
     	out         = [0,0];
       
   _envelope.requireReleaseTrigger = properties.requireReleaseTrigger || false;
@@ -132,7 +133,7 @@ param **amp** Number. Optional. The volume to use.
       }
     }else{
   		if(envstate() < 2) {
-        evn = envelope(attack, decay);
+        env = envelope(attack, decay);
   			val = osc( frequency, 1, pulsewidth, sr ) * env * amp;
       
   			return channels === 1 ? val : panner(val, pan, out);

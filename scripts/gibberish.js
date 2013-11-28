@@ -196,6 +196,11 @@ param **Sound Data** : Object. The buffer of audio data to be filled
       
       if(me.isDirty) {
         callback = me.createCallback();
+        try {
+          callback = eval( callback );
+        }catch( e ) {
+          console.error( 'ERROR WITH CALLBACK : \n\n', callback )
+        }
         me.isDirty = false;
         objs = me.callbackObjects.slice(0)
         objs.unshift(0)       
