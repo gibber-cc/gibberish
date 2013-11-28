@@ -5773,7 +5773,15 @@ Gibberish.Sequencer2 = function() {
             if(that.target) {
               var val = that.values[ that.valuesIndex++ ];
               
-              if(typeof val === 'function') { val = val(); }
+              if(typeof val === 'function') {
+                try {
+                  val = val(); 
+                }catch(e) {
+                  console.error('ERROR: Can\'t execute function triggered by Sequencer:\n' + val.toString() )
+                  that.values.splice( that.valuesIndex - 1, 1)
+                  that.valuesIndex--;
+                }
+              }
               
               if(typeof that.target[that.key] === 'function') {
                 that.target[that.key]( val );
@@ -5782,17 +5790,33 @@ Gibberish.Sequencer2 = function() {
               }
             }else{
               if(typeof that.values[ that.valuesIndex ] === 'function') {
-                that.values[ that.valuesIndex++ ]();
+                try {
+                  that.values[ that.valuesIndex++ ]();
+                }catch(e) {
+                  console.error('ERROR: Can\'t execute function triggered by Sequencer:\n' + that.values[ that.valuesIndex - 1 ].toString() )
+                  that.values.splice( that.valuesIndex - 1, 1)
+                  that.valuesIndex--;
+                }
               }
             }
             if(that.valuesIndex >= that.values.length) that.valuesIndex = 0;
           }else if(that.keysAndValues !== null) {
             for(var key in that.keysAndValues) {
-              var index = that.counts[key]++;
+              var index = typeof that.keysAndValues[ key ].pick === 'function' ? that.keysAndValues[ key ].pick() : that.counts[key]++;
               var val = that.keysAndValues[key][index];
               
-              if(typeof val === 'function') { val = val(); }
-              
+              if(typeof val === 'function') { 
+                try {
+                  val = val(); 
+                }catch(e) {
+                  console.error('ERROR: Can\'t execute function triggered by Sequencer:\n' + val.toString() )
+                  that.keysAndValues[key].splice( index, 1)
+                  if( typeof that.keysAndValues[ key ].pick !== 'function' ) {
+                    that.counts[key]--;
+                  }
+                }
+              }
+
               if(typeof that.target[key] === 'function') {
                 that.target[key]( val );
               }else{
@@ -5800,6 +5824,14 @@ Gibberish.Sequencer2 = function() {
               }
               if(that.counts[key] >= that.keysAndValues[key].length) {
                 that.counts[key] = 0;
+
+                if(that.repeatTarget) {
+                  that.repeatCount++;
+                  if(that.repeatCount === that.repeatTarget) {
+                    that.isRunning = false;
+                    that.repeatCount = 0;
+                  }
+                }
               }
             }
           }else if(typeof that.target[that.key] === 'function') {
@@ -5809,7 +5841,7 @@ Gibberish.Sequencer2 = function() {
           phase -= nextTime;
         
           if(Array.isArray(that.durations)) {
-            var next = that.durations[ that.durationsIndex++ ];
+            var next = typeof that.durations.pick === 'function' ? that.durations[ that.durations.pick() ] : that.durations[ that.durationsIndex++ ];
             that.nextTime = typeof next === 'function' ? next() : next;
             if( that.durationsIndex >= that.durations.length) {
               that.durationsIndex = 0;
@@ -5826,7 +5858,6 @@ Gibberish.Sequencer2 = function() {
               that.repeatCount = 0;
             }
           }
-          
           return 0;
         }
       
