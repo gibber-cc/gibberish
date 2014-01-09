@@ -73,6 +73,48 @@ window.routingTest = function() {
 	}, 250);
 };
 
+window.wavetable = function() {
+  Gibberish.clear();
+  
+  a = new Gibberish.Table();
+  
+  var t = []
+  for( var i = 0; i < 1024; i++ ) { t[ i ] = Gibberish.rndf(-1,1) }
+
+  a.setTable( t )
+  a.connect()
+  
+  b = new Gibberish.Sequencer({
+    target:a, key:'frequency',
+    values:[ Gibberish.Rndf(200, 2000) ],
+    durations:[ seconds(.5) ],
+  }).start()
+  
+  var inputString = [
+    "a = new Gibberish.Table();",
+    "",
+    "var t = []",
+    "for( var i = 0; i < 1024; i++ ) { t[ i ] = Gibberish.rndf(-1,1) }",
+    "",
+    "a.setTable( t )",
+    "a.connect()",
+    "",
+    "b = new Gibberish.Sequencer({",
+    "  target:a, key:'frequency',",
+    "  values:[ Gibberish.Rndf(200, 2000) ],",
+    "  durations:[ seconds(.5) ],",
+    "}).start() "
+  ].join('\n')
+  
+	var input = document.getElementById("input");
+	input.innerHTML = inputString;
+			
+	codeTimeout = setTimeout(function() { 
+		var codegen = document.getElementById("output");
+		codegen.innerHTML = Gibberish.callbackString;
+	}, 250);
+}
+
 window.vibratoTest = function() {
   Gibberish.clear();
   

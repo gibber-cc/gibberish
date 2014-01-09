@@ -11,6 +11,27 @@ Gibberish.oscillator = function() {
 Gibberish.oscillator.prototype = new Gibberish.ugen();
 Gibberish._oscillator = new Gibberish.oscillator();
 
+/**#Gibberish.Table - Oscillator
+An wavetable oscillator.
+
+## Example Usage##
+`// fill the wavetable with random samples
+Gibberish.init();  
+a = new Gibberish.Table();  
+var t = []  
+for( var i = 0; i < 1024; i++ ) { t[ i ] = Gibberish.rndf(-1,1) }  
+a.setTable( t )  
+a.connect()  
+`
+- - - -
+**/
+/**###Gibberish.Table.frequency : property  
+Number. From 20 - 20000 hz.
+**/
+/**###Gibberish.Table.amp : property  
+Number. A linear value specifying relative amplitude, ostensibly from 0..1 but can be higher, or lower when used for modulation.
+**/
+
 Gibberish.Wavetable = function() {
   var phase = 0,
       table = null,
@@ -52,6 +73,23 @@ param **amp** Number. The amplitude to be used to calculate output.
   }
 }
 Gibberish.Wavetable.prototype = Gibberish._oscillator;
+
+Gibberish.Table = function() {
+  this.__proto__ = new Gibberish.Wavetable();
+  
+  this.name = 'table';
+  
+  var pi_2 = Math.PI * 2, 
+      table = new Float32Array(1024);
+      
+  for(var i = 1024; i--;) { table[i] = Math.sin( (i / 1024) * pi_2); }
+  
+  this.setTable( table );
+
+  this.init( arguments );
+  this.oscillatorInit();
+  this.processProperties( arguments );
+}
 
 Gibberish.asmSine = function (stdlib, foreign, heap) {
     "use asm";
