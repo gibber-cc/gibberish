@@ -258,9 +258,7 @@ Number. -1..1. The position of the sinewave in the stereo spectrum
 Gibberish.Sine2 = function() {
   this.__proto__ = new Gibberish.Sine();
   this.name = "sine2";
-  
-  this.defineUgenProperty('pan', 0);
-  
+    
   var sine = this.__proto__.callback,
       panner = Gibberish.makePanner(),
       output = [0,0];
@@ -280,6 +278,7 @@ param **pan** Number. The position in the stereo spectrum of the signal.
 
   this.init();
   this.oscillatorInit();
+  Gibberish.defineUgenProperty('pan', 0, this);
   this.processProperties(arguments);  
 };
 
@@ -352,8 +351,6 @@ Gibberish.Saw2 = function() {
   this.__proto__ = new Gibberish.Saw();
   this.name = "saw2";
   
-  this.defineUgenProperty('pan', 0);
-  
   var saw = this.__proto__.callback,
       panner = Gibberish.makePanner(),
       output = [0,0];
@@ -372,6 +369,8 @@ param **pan** Number. The position in the stereo spectrum of the signal.
   };
 
   this.init();
+  Gibberish.defineUgenProperty('pan', 0, this);
+  
 };
 
 /**#Gibberish.Triangle - Oscillator
@@ -428,9 +427,7 @@ Number. -1..1. The position of the triangle wave in the stereo spectrum
 Gibberish.Triangle2 = function() {
   this.__proto__ = new Gibberish.Triangle();
   this.name = "triangle2";
-  
-  this.defineUgenProperty('pan', 0);
-  
+    
   var triangle = this.__proto__.callback,
       panner = Gibberish.makePanner(),
       output = [0,0];
@@ -449,6 +446,7 @@ param **pan** Number. The position in the stereo spectrum of the signal.
 
   this.init();
   this.oscillatorInit();
+  Gibberish.defineUgenProperty('pan', 0, this);
   this.processProperties(arguments);
 };
 
