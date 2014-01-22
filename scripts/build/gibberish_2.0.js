@@ -1218,6 +1218,9 @@ param **table** Float32Array. Assign an array to be used as the wavetable.
   
   this.getTableFreq = function() { return tableFreq }
   this.setTableFreq = function( v ) { tableFreq = v;  }  
+  
+  this.getPhase = function()  { return phase }
+  this.setPhase = function(v) { phase = v }
 
 /**###Gibberish.Wavetable.callback : method  
 Returns a single sample of output.  
