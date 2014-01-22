@@ -48,7 +48,10 @@ Assign an array representing one cycle of a waveform to use.
 param **table** Float32Array. Assign an array to be used as the wavetable.
 **/     
   this.getTable = function() { return table; }
-  this.setTable = function(_table) { table = _table; }
+  this.setTable = function(_table) { table = _table; tableFreq = Gibberish.context.sampleRate / table.length }
+  
+  this.getTableFreq = function() { return tableFreq }
+  this.setTableFreq = function( v ) { tableFreq = v;  }  
 
 /**###Gibberish.Wavetable.callback : method  
 Returns a single sample of output.  

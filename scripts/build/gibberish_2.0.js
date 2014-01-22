@@ -1177,6 +1177,27 @@ Gibberish.oscillator = function() {
 Gibberish.oscillator.prototype = new Gibberish.ugen();
 Gibberish._oscillator = new Gibberish.oscillator();
 
+/**#Gibberish.Table - Oscillator
+An wavetable oscillator.
+
+## Example Usage##
+`// fill the wavetable with random samples
+Gibberish.init();  
+a = new Gibberish.Table();  
+var t = []  
+for( var i = 0; i < 1024; i++ ) { t[ i ] = Gibberish.rndf(-1,1) }  
+a.setTable( t )  
+a.connect()  
+`
+- - - -
+**/
+/**###Gibberish.Table.frequency : property  
+Number. From 20 - 20000 hz.
+**/
+/**###Gibberish.Table.amp : property  
+Number. A linear value specifying relative amplitude, ostensibly from 0..1 but can be higher, or lower when used for modulation.
+**/
+
 Gibberish.Wavetable = function() {
   var phase = 0,
       table = null,
@@ -1193,7 +1214,10 @@ Assign an array representing one cycle of a waveform to use.
 param **table** Float32Array. Assign an array to be used as the wavetable.
 **/     
   this.getTable = function() { return table; }
-  this.setTable = function(_table) { table = _table; }
+  this.setTable = function(_table) { table = _table; console.log(table.length); tableFreq = Gibberish.context.sampleRate / table.length }
+  
+  this.getTableFreq = function() { return tableFreq }
+  this.setTableFreq = function( v ) { tableFreq = v;  }  
 
 /**###Gibberish.Wavetable.callback : method  
 Returns a single sample of output.  
@@ -2618,22 +2642,22 @@ Gibberish.Delay = function() {
   
   Gibberish.extend(this, {
   	name:"delay",
-  	properties:{ input:0, time: 22050, feedback: .5 },
+  	properties:{ input:0, time: 22050, feedback: .5, wet:1, dry:1 },
 				
-  	callback : function(sample, time, feedback) {
+  	callback : function(sample, time, feedback, wet, dry) {
       var channels = typeof sample === 'number' ? 1 : 2;
       
   		var _phase = phase++ % 88200;
       
   		var delayPos = (_phase + (time | 0)) % 88200;
       if(channels === 1) {
-  			buffers[0][delayPos] =  (sample + buffers[0][_phase]) * feedback;
-        sample += buffers[0][_phase];
+  			buffers[0][delayPos] =  ( sample + buffers[0][_phase] ) * feedback;
+        sample = (sample * dry) + (buffers[0][_phase] * wet);
       }else{
   			buffers[0][delayPos] =  (sample[0] + buffers[0][_phase]) * feedback;
-        sample[0] += buffers[0][_phase];
+        sample[0] = (sample[0] * dry) + (buffers[0][_phase] * wet);
   			buffers[1][delayPos] =  (sample[1] + buffers[1][_phase]) * feedback;
-        sample[1] += buffers[1][_phase];   
+        sample[1] = (sample[1] * dry) + (buffers[1][_phase] * wet);
       }
       
   		return sample;
@@ -5605,6 +5629,28 @@ Create an object that returns the first argument raised to the power of the seco
   
     for(var i = 0; i < args.length; i++) { me.properties[i] = args[i]; }
     me.init();
+
+    return me;
+  },
+  
+  Clamp : function() {
+    var args = Array.prototype.slice.call(arguments, 0),
+    me = {
+      name : 'clamp',
+      properties : { input:0, min:0, max:1 },
+      callback : function( input, min, max ) {
+        if( input < min ) {
+          input = min
+        }else if( input > max ) {
+          input = max
+        }
+        return input
+      },
+    };
+    me.__proto__ = new Gibberish.ugen();
+
+    me.init();
+    me.processProperties( args );
 
     return me;
   },

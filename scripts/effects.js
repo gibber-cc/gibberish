@@ -79,22 +79,22 @@ Gibberish.Delay = function() {
   
   Gibberish.extend(this, {
   	name:"delay",
-  	properties:{ input:0, time: 22050, feedback: .5 },
+  	properties:{ input:0, time: 22050, feedback: .5, wet:1, dry:1 },
 				
-  	callback : function(sample, time, feedback) {
+  	callback : function(sample, time, feedback, wet, dry) {
       var channels = typeof sample === 'number' ? 1 : 2;
       
   		var _phase = phase++ % 88200;
       
   		var delayPos = (_phase + (time | 0)) % 88200;
       if(channels === 1) {
-  			buffers[0][delayPos] =  (sample + buffers[0][_phase]) * feedback;
-        sample += buffers[0][_phase];
+  			buffers[0][delayPos] =  ( sample + buffers[0][_phase] ) * feedback;
+        sample = (sample * dry) + (buffers[0][_phase] * wet);
       }else{
   			buffers[0][delayPos] =  (sample[0] + buffers[0][_phase]) * feedback;
-        sample[0] += buffers[0][_phase];
+        sample[0] = (sample[0] * dry) + (buffers[0][_phase] * wet);
   			buffers[1][delayPos] =  (sample[1] + buffers[1][_phase]) * feedback;
-        sample[1] += buffers[1][_phase];   
+        sample[1] = (sample[1] * dry) + (buffers[1][_phase] * wet);
       }
       
   		return sample;

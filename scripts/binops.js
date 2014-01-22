@@ -176,6 +176,28 @@ Create an object that returns the first argument raised to the power of the seco
     return me;
   },
   
+  Clamp : function() {
+    var args = Array.prototype.slice.call(arguments, 0),
+    me = {
+      name : 'clamp',
+      properties : { input:0, min:0, max:1 },
+      callback : function( input, min, max ) {
+        if( input < min ) {
+          input = min
+        }else if( input > max ) {
+          input = max
+        }
+        return input
+      },
+    };
+    me.__proto__ = new Gibberish.ugen();
+
+    me.init();
+    me.processProperties( args );
+
+    return me;
+  },
+  
   Merge : function() {
     var args = Array.prototype.slice.call(arguments, 0),
     me = {
