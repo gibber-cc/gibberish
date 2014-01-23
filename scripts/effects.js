@@ -226,6 +226,49 @@ Gibberish.RingModulation = function() {
 };
 Gibberish.RingModulation.prototype = Gibberish._effect;
 
+
+/**#Gibberish.DCBlock - FX
+A one-pole filter for removing bias.
+
+## Example Usage##
+` `  
+## Constructor   
+**param** *properties*: Object. A dictionary of property values (see below) to set for the synth on initialization.
+- - - -
+**/
+/**###Gibberish.DCBlock.input : property  
+Float. The input ugen to remove bias from.
+**/
+
+Gibberish.DCBlock = function() {
+  var x1 = 0, y1 = 0
+
+	Gibberish.extend(this, {
+  	name: 'dcblock',
+    type: 'effect',
+    
+    properties : {
+      input : 0, 
+    },
+    
+    reset : function() {
+      x1 = 0;
+      y1 = 0;
+    },
+    
+    callback : function(input) {
+      var y = input - x1 + y1 * .9997
+      x1 = input
+      y1 = y
+    
+      return y;
+    }
+  })
+  .init()
+  .processProperties(arguments);
+};
+Gibberish.DCBlock.prototype = Gibberish._effect;
+
 /**#Gibberish.OnePole - FX
 A one-pole filter for smoothing property values. This is particularly useful when the properties are being controlled interactively. You use the smooth method to apply the filter.
 
