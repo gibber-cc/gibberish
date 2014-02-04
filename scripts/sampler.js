@@ -185,7 +185,7 @@ param **pitch** Number. The speed the sample is played back at.
 param **amp** Number. Optional. The volume to use.
 **/    
 		note: function(pitch, amp) {
-      if(typeof this.pitch === 'number'){
+      if(typeof this.pitch === 'number' || typeof this.pitch === 'function' ){
         this.pitch = pitch;
       }else if(typeof this.pitch === 'object'){
         this.pitch[0] = pitch;
@@ -197,9 +197,22 @@ param **amp** Number. Optional. The volume to use.
 			if(this.function !== null) {
 				this.isPlaying = true;	// needed to allow playback after recording
         
-        var __pitch = typeof this.pitch === 'number' ? this.pitch : this.pitch[0];  // account for modulations
+        var __pitch;// = typeof this.pitch === 'number' || typeof this.pitch === 'function' ? this.pitch : this.pitch[0];  // account for modulations
+        
+        switch( typeof this.pitch ) {
+          case 'number' :
+            __pitch = this.pitch
+            break;
+          case 'function' :
+            __pitch = this.pitch()
+            break;
+          case 'object' :
+            __pitch = this.pitch[ 0 ]
+            if( isNaN(__pitch) ) __pitch = __pitch()
+            break;
+        }
 
-        if(__pitch > 0 || typeof __pitch !== 'number'   ) {
+        if( __pitch > 0 ) {
           phase = this.start;
 				}else{
           phase = this.end;

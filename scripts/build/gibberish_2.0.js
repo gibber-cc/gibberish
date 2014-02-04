@@ -905,7 +905,7 @@ Array2.prototype.add = function() {
 	
 var rnd = Math.random;
 Gibberish.rndf = function(min, max, number, canRepeat) {
-	canRepeat = typeof canRepeat === "undefined" ? true : canRepeat;
+  canRepeat = typeof canRepeat === "undefined" ? true : canRepeat;
 	if(typeof number === "undefined" && typeof min != "object") {
 		if(arguments.length == 1) {
 			min = 0, max = arguments[0];
@@ -917,9 +917,9 @@ Gibberish.rndf = function(min, max, number, canRepeat) {
 			max = 1;
 		}
 	
-		var diff = max - min;
-		var r = rnd();
-		var rr = diff * r;
+		var diff = max - min,
+		    r = rnd(),
+		    rr = diff * r
 	
 		return min + rr;
 	}else{
@@ -951,7 +951,7 @@ Gibberish.rndf = function(min, max, number, canRepeat) {
 };
   
 Gibberish.Rndf = function() {
-  var min, max, quantity, random = Math.random, round = Math.round;
+  var min, max, quantity, random = Math.random, round = Math.round, range;
     
   if(arguments.length === 0) {
     min = 0; max = 1;
@@ -962,16 +962,18 @@ Gibberish.Rndf = function() {
   }else{
     min = arguments[0]; max = arguments[1]; quantity = arguments[2];
   }
-    
+  
+  range = max - min;
+  
   return function() {
     var value;
     
     if( typeof quantity === 'undefined' ) {
-      value = min + random() * max ;
+      value = min + random() * range ;
     }else{
       value = []
       for( var i = 0; i < quantity; i++ ) {
-        value.push( min + random() * max )
+        value.push( min + random() * range )
       }
     }
     
@@ -981,7 +983,7 @@ Gibberish.Rndf = function() {
 
 
 Gibberish.rndi = function() {
-  var min, max;
+  var min, max, range;
     
   if(arguments.length === 0) {
     min = 0; max = 1;
@@ -990,12 +992,13 @@ Gibberish.rndi = function() {
   }else{
     min = arguments[0]; max = arguments[1];
   }
-    
-  return Math.round( min + Math.random() * max );
+  
+  range = max - min
+  return Math.round( min + Math.random() * range );
 };
 
 Gibberish.Rndi = function() {
-  var min, max, quantity, random = Math.random, round = Math.round, canRepeat = true;
+  var min, max, quantity, random = Math.random, round = Math.round, canRepeat = true, range;
     
   if(arguments.length === 0) {
     min = 0; max = 1;
@@ -1006,16 +1009,18 @@ Gibberish.Rndi = function() {
   }else{
     min = arguments[0]; max = arguments[1]; quantity = arguments[2];
   }
-    
+  
+  range = max - min
+  
   return function() {
     var value;
     
     if( typeof quantity === 'undefined') {
-      value = round( min + random() * max );
+      value = round( min + random() * range );
     }else{
       value = []
       for( var i = 0; i < quantity; i++ ) {
-        value.push( round( min + random() * max ) )
+        value.push( round( min + random() * range ) )
       }
     }
     
@@ -5157,7 +5162,7 @@ param **pitch** Number. The speed the sample is played back at.
 param **amp** Number. Optional. The volume to use.
 **/    
 		note: function(pitch, amp) {
-      if(typeof this.pitch === 'number'){
+      if(typeof this.pitch === 'number' || typeof this.pitch === 'function' ){
         this.pitch = pitch;
       }else if(typeof this.pitch === 'object'){
         this.pitch[0] = pitch;
@@ -5169,9 +5174,22 @@ param **amp** Number. Optional. The volume to use.
 			if(this.function !== null) {
 				this.isPlaying = true;	// needed to allow playback after recording
         
-        var __pitch = typeof this.pitch === 'number' ? this.pitch : this.pitch[0];  // account for modulations
+        var __pitch;// = typeof this.pitch === 'number' || typeof this.pitch === 'function' ? this.pitch : this.pitch[0];  // account for modulations
+        
+        switch( typeof this.pitch ) {
+          case 'number' :
+            __pitch = this.pitch
+            break;
+          case 'function' :
+            __pitch = this.pitch()
+            break;
+          case 'object' :
+            __pitch = this.pitch[ 0 ]
+            if( isNaN(__pitch) ) __pitch = __pitch()
+            break;
+        }
 
-        if(__pitch > 0 || typeof __pitch !== 'number'   ) {
+        if( __pitch > 0 ) {
           phase = this.start;
 				}else{
           phase = this.end;
@@ -6242,6 +6260,153 @@ method is called automatically when the sequencer is first created; you should o
   //this.processProperties( arguments );
 };
 Gibberish.Sequencer.prototype = Gibberish._oscillator
+/*
+c = new Gibberish.Synth({ pan:-1 }).connect();
+b = new Gibberish.Synth({ pan:1 }).connect(); 
+a = new Gibberish.PolySeq({ 
+  seqs:[
+    { key:'note', target:b, values:[440,880], durations:22050 },
+    { key:'note', target:c, values:[220,1320], durations:[11025, 22050, 5512.5] },
+  ] 
+}).start()
+*/
+Gibberish.PolySeq = function() {
+  var that = this,
+      phase = 0;
+  
+  Gibberish.extend(this, {
+    seqs          : [],
+    timeline      : {},
+    playOnce      : false,
+    repeatCount   : 0,
+    repeatTarget  : null,
+    isConnected   : true,
+    properties    : { rate: 1, isRunning:false, nextTime:0 },
+    offset        : 0,
+    name          : 'polyseq',
+    
+    callback : function(rate, isRunning, nextTime) {
+      if(isRunning) {
+        if(phase >= nextTime) {
+              seqs = that.timeline[ nextTime ]
+            
+          for( var j = 0; j < seqs.length; j++ ) {
+            var seq = seqs[ j ]
+                      
+            if( seq.target ) {
+              var val = seq.values[ seq.valuesIndex++ % seq.values.length ];
+      
+              if(typeof val === 'function') { val = val(); }
+      
+              if(typeof seq.target[ seq.key ] === 'function') {
+                seq.target[ seq.key ]( val );
+              }else{
+                seq.target[ seq.key ] = val;
+              }
+            }else{
+              if(typeof seq.values[ seq.valuesIndex ] === 'function') {
+                seq.values[ seq.valuesIndex++ % seq.values.length ]();
+              }
+            }
+              
+            if( Array.isArray( seq.durations ) ) {
+              var next = seq.durations[ seq.durationsIndex++ ];
+              seq.nextTime = typeof next === 'function' ? next() : next;
+              if( seq.durationsIndex >= seq.durations.length ) {
+                seq.durationsIndex = 0;
+              }
+            }else{
+              var next = seq.durations;
+              seq.nextTime = typeof next === 'function' ? next() : next;
+            }
+          
+            var t = nextTime + seq.nextTime
+            if( typeof that.timeline[ t ] === 'undefined' ) {
+              that.timeline[ t ] = [ seq ]
+            }else{
+              that.timeline[ t ].push( seq )
+            }
+          }
+          
+          delete that.timeline[ nextTime ]
+          
+          var nt = Object.keys( that.timeline )
+          
+          for( var i = 0; i < nt.length; i++ ) {
+            nt[ i ] = parseFloat( nt[i] )
+          }
+          
+          nt = nt.sort( function(a,b) { if( a < b ) return -1; if( a > b ) return 1; return 0; })
+          
+          that.nextTime = nt[0]
+
+          
+          // if(that.repeatTarget) {
+          //   that.repeatCount++;
+          //   if(that.repeatCount === that.repeatTarget) {
+          //     that.isRunning = false;
+          //     that.repeatCount = 0;
+          //   }
+          // }
+          
+          return 0;
+        }
+      
+        phase += rate; //that.rate;
+      }
+      return 0;
+    },
+  
+    start : function(shouldKeepOffset) {
+      if(!shouldKeepOffset) {
+        phase = 0;
+      }
+      
+      this.isRunning = true;
+      return this;
+    },
+    
+    stop: function() {
+      this.isRunning = false;
+      return this;
+    },
+       
+    repeat : function(times) {
+      this.repeatTarget = times;
+      return this;
+    },
+    
+    shuffle : function() {
+      for( key in this.keysAndValues ) {
+        this.shuffleArray( this.keysAndValues[ key ] )
+      }
+    },
+    
+    shuffleArray : function( arr ) {
+  		for(var j, x, i = arr.length; i; j = parseInt(Math.random() * i), x = arr[--i], arr[i] = arr[j], arr[j] = x);
+    },
+
+  });
+  
+  this.init( arguments );
+  this.processProperties( arguments );
+  
+  this.timeline[0] = []
+  for( var i = 0; i < this.seqs.length; i++ ) {
+    var _seq = this.seqs[ i ]
+    
+    _seq.valuesIndex = _seq.durationsIndex = 0
+    
+    this.timeline[0].push( _seq )
+  }
+  
+  this.oscillatorInit();
+  
+  //phase += this.offset
+  
+  this.connect();
+};
+Gibberish.PolySeq.prototype = Gibberish._oscillator
 var _hasInput = false; // wait until requested to ask for permissions so annoying popup doesn't appear automatically
 
 function createInput() {
