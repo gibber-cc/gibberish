@@ -185,12 +185,25 @@ param **pitch** Number. The speed the sample is played back at.
 param **amp** Number. Optional. The volume to use.
 **/    
 		note: function(pitch, amp) {
-      if(typeof this.pitch === 'number' || typeof this.pitch === 'function' ){
-        this.pitch = pitch;
-      }else if(typeof this.pitch === 'object'){
-        this.pitch[0] = pitch;
-        Gibberish.dirty(this);
+      
+      switch( typeof pitch ) {
+        case 'number' :
+          this.pitch = pitch
+          break;
+        case 'function' :
+          this.pitch = pitch()
+          break;
+        case 'object' :
+          this.pitch = pitch[ 0 ]
+          //if( isNaN(__pitch) ) __pitch = __pitch()
+          break;
       }
+      // if(typeof this.pitch === 'number' || typeof this.pitch === 'function' ){
+      //   this.pitch = pitch;
+      // }else if(typeof this.pitch === 'object'){
+      //   this.pitch[0] = pitch;
+      //   Gibberish.dirty(this);
+      // }
       
 			if(typeof amp === 'number') this.amp = amp;
 					
@@ -217,6 +230,8 @@ param **amp** Number. Optional. The volume to use.
 				}else{
           phase = this.end;
 				}
+        
+        //this.pitch = __pitch;
 			}
 		},
 /**###Gibberish.Sampler.record : method  

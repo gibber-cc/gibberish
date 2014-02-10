@@ -2235,10 +2235,12 @@ Gibberish.ADSR = function(attack, decay, sustain, release, attackLevel, sustainL
 	
 	var phase = 0,
 	    state = 0,
+      rt  = 0,
       obj = this;
       
   this.callback = function(attack,decay,sustain,release,attackLevel,sustainLevel,releaseTrigger) {
 		var val = 0;
+    rt = rt === 1 ? 1 : releaseTrigger;
 		if(state === 0){
 			val = phase / attack * attackLevel;
 			if(++phase / attack === 1) {
@@ -2258,10 +2260,11 @@ Gibberish.ADSR = function(attack, decay, sustain, release, attackLevel, sustainL
 			}
 		}else if(state === 2) {
 			val = sustainLevel;
-      if( obj.requireReleaseTrigger && releaseTrigger ){
+      if( obj.requireReleaseTrigger && rt ){
         state++;
         phase = release;
         obj.releaseTrigger = 0;
+        rt = 0;
       }else if(phase-- === 0 && !obj.requireReleaseTrigger) {
 				state++;
 				phase = release;
@@ -5162,12 +5165,25 @@ param **pitch** Number. The speed the sample is played back at.
 param **amp** Number. Optional. The volume to use.
 **/    
 		note: function(pitch, amp) {
-      if(typeof this.pitch === 'number' || typeof this.pitch === 'function' ){
-        this.pitch = pitch;
-      }else if(typeof this.pitch === 'object'){
-        this.pitch[0] = pitch;
-        Gibberish.dirty(this);
+      
+      switch( typeof pitch ) {
+        case 'number' :
+          this.pitch = pitch
+          break;
+        case 'function' :
+          this.pitch = pitch()
+          break;
+        case 'object' :
+          this.pitch = pitch[ 0 ]
+          //if( isNaN(__pitch) ) __pitch = __pitch()
+          break;
       }
+      // if(typeof this.pitch === 'number' || typeof this.pitch === 'function' ){
+      //   this.pitch = pitch;
+      // }else if(typeof this.pitch === 'object'){
+      //   this.pitch[0] = pitch;
+      //   Gibberish.dirty(this);
+      // }
       
 			if(typeof amp === 'number') this.amp = amp;
 					
@@ -5194,6 +5210,8 @@ param **amp** Number. Optional. The volume to use.
 				}else{
           phase = this.end;
 				}
+        
+        //this.pitch = __pitch;
 			}
 		},
 /**###Gibberish.Sampler.record : method  
@@ -6280,21 +6298,44 @@ Gibberish.PolySeq = function() {
     playOnce      : false,
     repeatCount   : 0,
     repeatTarget  : null,
-    isConnected   : true,
+    isConnected   : false,
     properties    : { rate: 1, isRunning:false, nextTime:0 },
     offset        : 0,
     name          : 'polyseq',
+    add           : function( seq ) {
+      seq.valuesIndex = seq.durationsIndex = 0
+      that.seqs.push( seq )
+      
+      if( typeof that.timeline[0] !== 'undefined' ) {
+        that.timeline[0].push( seq )
+      }else{
+        that.timeline[0] = [seq]
+      }
+      
+      // for Gibber... TODO: remove from Gibberish
+      if( that.scale && (seq.key === 'frequency' || seq.key === 'note') ) {
+        if( that.applyScale ) {
+          that.applyScale()
+        }
+      }
+      
+      that.nextTime = 0
+      seq.shouldStop = false
+    },
     
     callback : function(rate, isRunning, nextTime) {
       if(isRunning) {
         if(phase >= nextTime) {
               seqs = that.timeline[ nextTime ]
-            
+              
+          if( typeof seqs === 'undefined') return
+          
           for( var j = 0; j < seqs.length; j++ ) {
             var seq = seqs[ j ]
-                      
+            if( seq.shouldStop ) continue;
             if( seq.target ) {
-              var val = seq.values[ seq.valuesIndex++ % seq.values.length ];
+              var idx = seq.values.pick ? seq.values.pick() : seq.valuesIndex++ % seq.values.length,
+                  val = seq.values[ idx ];
       
               if(typeof val === 'function') { val = val(); }
       
@@ -6310,7 +6351,9 @@ Gibberish.PolySeq = function() {
             }
               
             if( Array.isArray( seq.durations ) ) {
-              var next = seq.durations[ seq.durationsIndex++ ];
+              var idx = seq.durations.pick ? seq.durations.pick() : seq.durationsIndex++,
+                  next = seq.durations[ idx ]
+
               seq.nextTime = typeof next === 'function' ? next() : next;
               if( seq.durationsIndex >= seq.durations.length ) {
                 seq.durationsIndex = 0;
@@ -6320,7 +6363,14 @@ Gibberish.PolySeq = function() {
               seq.nextTime = typeof next === 'function' ? next() : next;
             }
           
-            var t = nextTime + seq.nextTime
+            var t;
+            
+            if( typeof Gibber !== 'undefined' ) {
+              t = Gibber.Clock.time( seq.nextTime ) + phase // TODO: remove Gibber link... how?
+            }else{
+              t = seq.nextTime + phase
+            }
+            
             if( typeof that.timeline[ t ] === 'undefined' ) {
               that.timeline[ t ] = [ seq ]
             }else{
@@ -6360,6 +6410,21 @@ Gibberish.PolySeq = function() {
     start : function(shouldKeepOffset) {
       if(!shouldKeepOffset) {
         phase = 0;
+        this.nextTime = 0;
+        
+        this.timeline = [ [] ]
+        for( var i = 0; i < this.seqs.length; i++ ) {
+          var _seq = this.seqs[ i ]
+    
+          _seq.valuesIndex = _seq.durationsIndex = _seq.shouldStop = 0
+    
+          this.timeline[0].push( _seq )
+        }
+      }
+      
+      if( !this.isConnected ) {
+        this.connect()
+        this.isConnected = true
       }
       
       this.isRunning = true;
@@ -6368,6 +6433,11 @@ Gibberish.PolySeq = function() {
     
     stop: function() {
       this.isRunning = false;
+      
+      if( this.isConnected ) {
+        this.disconnect()
+        this.isConnected = false
+      }
       return this;
     },
        
@@ -6391,20 +6461,7 @@ Gibberish.PolySeq = function() {
   this.init( arguments );
   this.processProperties( arguments );
   
-  this.timeline[0] = []
-  for( var i = 0; i < this.seqs.length; i++ ) {
-    var _seq = this.seqs[ i ]
-    
-    _seq.valuesIndex = _seq.durationsIndex = 0
-    
-    this.timeline[0].push( _seq )
-  }
-  
   this.oscillatorInit();
-  
-  //phase += this.offset
-  
-  this.connect();
 };
 Gibberish.PolySeq.prototype = Gibberish._oscillator
 var _hasInput = false; // wait until requested to ask for permissions so annoying popup doesn't appear automatically

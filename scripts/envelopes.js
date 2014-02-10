@@ -128,10 +128,12 @@ Gibberish.ADSR = function(attack, decay, sustain, release, attackLevel, sustainL
 	
 	var phase = 0,
 	    state = 0,
+      rt  = 0,
       obj = this;
       
   this.callback = function(attack,decay,sustain,release,attackLevel,sustainLevel,releaseTrigger) {
 		var val = 0;
+    rt = rt === 1 ? 1 : releaseTrigger;
 		if(state === 0){
 			val = phase / attack * attackLevel;
 			if(++phase / attack === 1) {
@@ -151,10 +153,11 @@ Gibberish.ADSR = function(attack, decay, sustain, release, attackLevel, sustainL
 			}
 		}else if(state === 2) {
 			val = sustainLevel;
-      if( obj.requireReleaseTrigger && releaseTrigger ){
+      if( obj.requireReleaseTrigger && rt ){
         state++;
         phase = release;
         obj.releaseTrigger = 0;
+        rt = 0;
       }else if(phase-- === 0 && !obj.requireReleaseTrigger) {
 				state++;
 				phase = release;
