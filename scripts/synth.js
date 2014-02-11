@@ -76,23 +76,27 @@ param **frequency** Number. The frequency for the oscillator.
 param **amp** Number. Optional. The volume to use.  
 **/    
 	this.note = function(frequency, amp) {
-    var noteoff = false;
-		if(typeof this.frequency !== 'object'){
-      if( useADSR && frequency === lastFrequency && amp === 0) {
-        this.releaseTrigger = 1;
-        noteoff = true;
-        return;
+    if( amp !== 0 ) {
+  		if(typeof this.frequency !== 'object'){
+        if( useADSR && frequency === lastFrequency ) {
+          this.releaseTrigger = 1;
+          return;
+        }
+        
+        this.frequency = lastFrequency = frequency;
+        this.releaseTrigger = 0;
+      }else{
+        this.frequency[0] = lastFrequency = frequency;
+        this.releaseTrigger = 0;
+        Gibberish.dirty(this);
       }
-      
-      this.frequency = lastFrequency = frequency;
+					
+  		if( typeof amp !== 'undefined') this.amp = amp;
+	  
+      _envelope.run();
     }else{
-      this.frequency[0] = lastFrequency = frequency;
-      Gibberish.dirty(this);
+      this.releaseTrigger = 1;
     }
-					
-		if(typeof amp !== 'undefined' && !noteoff ) this.amp = amp;
-					
-    _envelope.run();
 	};
   
   properties = properties || {}
@@ -330,23 +334,27 @@ param **frequency** Number. The frequency for the oscillator.
 param **amp** Number. Optional. The volume to use.  
 **/      
 	this.note = function(frequency, amp) {
-    var noteoff = false;
-		if(typeof this.frequency !== 'object'){
-      if( useADSR && frequency === lastFrequency && amp === 0) {
-        this.releaseTrigger = 1;
-        noteoff = true;
-        return;
+    if( amp !== 0 ) {
+  		if(typeof this.frequency !== 'object'){
+        if( useADSR && frequency === lastFrequency ) {
+          this.releaseTrigger = 1;
+          return;
+        }
+        
+        this.frequency = lastFrequency = frequency;
+        this.releaseTrigger = 0;
+      }else{
+        this.frequency[0] = lastFrequency = frequency;
+        this.releaseTrigger = 0;
+        Gibberish.dirty(this);
       }
-      
-      this.frequency = lastFrequency = frequency;
+					
+  		if( typeof amp !== 'undefined') this.amp = amp;
+	  
+      _envelope.run();
     }else{
-      this.frequency[0] = lastFrequency = frequency;
-      Gibberish.dirty(this);
+      this.releaseTrigger = 1;
     }
-					
-		if(typeof amp !== 'undefined' && !noteoff ) this.amp = amp;
-					
-    _envelope.run();
 	};
   
   properties = properties || {}

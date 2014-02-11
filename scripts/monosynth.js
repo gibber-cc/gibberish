@@ -85,17 +85,42 @@ param **note or frequency** : String or Integer. You can pass a note name, such 
 param **amp** : Optional. Float. The volume of the note, usually between 0..1. The main amp property of the Synth will also affect note amplitude.
 **/				
 		note : function(_frequency, amp) {
-      if(typeof amp !== 'undefined') this.amp = amp;
+      if(typeof amp !== 'undefined' && amp !== 0) this.amp = amp;
       
+      if( amp !== 0 ) {
+    		if(typeof this.frequency !== 'object'){
+      
+          this.frequency = _frequency;
+        }else{
+          this.frequency[0] = _frequency;
+          Gibberish.dirty(this);
+        }
+        
+  			if(envstate() > 0 ) _envelope.run();
+      }
+		},
+  	_note : function(frequency, amp) {
   		if(typeof this.frequency !== 'object'){
-        this.frequency = _frequency;
+        if( useADSR && frequency === lastFrequency && amp === 0) {
+          this.releaseTrigger = 1;
+          return;
+        }
+        if( amp !== 0 ) {
+          this.frequency = lastFrequency = frequency;
+        }
+        this.releaseTrigger = 0;
       }else{
-        this.frequency[0] = _frequency;
+        if( amp !== 0 ) {
+          this.frequency[0] = lastFrequency = frequency;
+        }
+        this.releaseTrigger = 0;
         Gibberish.dirty(this);
       }
 					
-			if(envstate() > 0) _envelope.run();
-		},
+  		if(typeof amp !== 'undefined' && amp !== 0) this.amp = amp;
+	  
+      if( amp !== 0 ) { _envelope.run(); }
+  	},
 	});
   
 	var waveform = this.waveform;
