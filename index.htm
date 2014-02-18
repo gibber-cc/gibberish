@@ -1,0 +1,351 @@
+<html>
+<head>
+<script>
+$ = { extend : function(destination, source) {
+    for (var property in source) {
+			var keys = property.split(".");
+			if(source[property] instanceof Array && source[property].length < 100) { // don't copy large array buffers
+		    destination[property] = source[property].slice(0);
+				if(property === "fx") {
+					destination[property].parent = source[property].parent;
+				}
+      }else if (typeof source[property] === "object" && source[property] !== null && !(source[property] instanceof Float32Array) ) {
+          destination[property] = destination[property] || {};
+          arguments.callee(destination[property], source[property]);
+      } else {
+          destination[property] = source[property];
+      }
+    }
+    return destination;
+  }
+}
+AUDIO = 0
+CONTROL = 1
+size = 8192
+masterSize = 8192
+
+
+
+/*
+scheduler.add( sines[0], 'frequency', 220 + Math.random() * 1024, 1024 )
+scheduler.add( sines[1], 'frequency', 220 + Math.random() * 1024, 4096 )
+scheduler.add( sines[2], 'frequency', 220 + Math.random() * 1024, 6400 )
+*/
+
+Ugen = {
+  describe: function() { for( var key in fnc ) { console.log( key, ':', fnc[ key ] ) } },
+  toString: function() { return "inputs:" + JSON.stringify( fnc.inputs ) + ', phase: ' + fnc.phase }
+}
+
+Scheduler = function() {
+  var fnc = $.extend(
+    function that() {
+      that.time++
+    },
+    {
+      time:0,
+      add: function( obj, key, value, future ) {
+        if( isNaN( future ) ) future = 0
+        
+        var date = this.time * this.outputLength + future
+        //console.log( date )
+        obj.timeline[ this.time * this.outputLength + future ] = [ key, value ] 
+      },
+      outputLength: size
+    }
+  )
+  
+  return fnc
+}
+scheduler = Scheduler()
+
+Wavetable = function( props ) {
+  var fnc = $.extend( 
+    function that( _frequency, _amp ) {
+      var index, frac, index2, val1, val2, 
+          frequency, amp,
+          tFrequency = isNaN( _frequency ),
+          tAmp = isNaN( _amp ),
+          tableFreq = that.tableFreq,
+          phase, table = that.table,
+          _l = that.outputLength, out = that.out, rate = that.rate,
+          timeline = that.timeline, time = that.time, evt, key, value, dirty = false;
+          
+      for( var i = 0; i < _l; i++ ) {
+        if( rate === 0 || i % 64 === 0) {
+          evt = timeline[ time++ ]
+          if( typeof evt !== 'undefined' ) {
+            console.log( "EVENT!", time, evt )
+            key = evt[ 0 ]
+            value = evt[ 1 ]
+            eval( "_" + key + " = " + value )
+            dirty = true
+          }
+          frequency = tFrequency ? _frequency[ i ] : _frequency
+          amp = tAmp ? _amp[ i ] : _amp
+                
+          phase = that.phase += frequency / tableFreq
+          
+          while( that.phase >= 1024 ) that.phase -= 1024; 
+    
+          index   = phase | 0
+          frac    = phase - index
+          index   = index & 1023
+          index2  = index === 1023 ? 0 : index + 1
+          val1    = table[index]
+          val2    = table[index2]
+        
+          out[ i ] = ( val1 + ( frac * (val2 - val1) ) ) * amp
+        }else{
+          out[ i ] = out[ i - 1 ]
+        }
+      }
+      
+      that.time = time
+      if( dirty ) that.frequency = frequency
+      
+      return out
+    },
+    $.extend({
+      timeline:{},
+      time:0,
+      frequency: 440,
+      amp:.05,
+      phase: 0,
+      rate : AUDIO,
+      tableFreq : 44100 / 1024,
+      inputs : { frequency:440, amp: .25 },
+      outputLength : size,
+      out : [],
+    }, props)
+  )
+  fnc.__proto__ = Ugen
+  return fnc
+}
+
+Sine = function(props) {
+  props = props || {}
+  props.table = new Float32Array(1024);
+  
+  var pi_2 = Math.PI * 2  
+  for(var i = 1024; i--;) { props.table[i] = Math.sin( (i / 1024) * pi_2); }
+  
+  return Wavetable( props )
+}
+
+Square = function( props ) {
+  props = props || {}
+  props.table = new Float32Array(1024)
+
+  for(var i = 1024; i--;) { props.table[i] = i / 1024 > .5 ? 1 : -1; }
+  
+  return Wavetable( props )
+}
+
+Add = function() {  
+  var fnc = function that( a,b ) { 
+    var _l = that.outputLength,
+        _typeA = isNaN(a),
+        _typeB = isNaN(b),
+        out = that.out,
+        _a,_b
+    
+    for( var i = 0; i < _l; i++ ) {
+      _a = _typeA ? a[ i ] : a
+      _b = _typeB ? b[ i ] : b
+      
+      out[ i ] = _a + _b
+    }
+    
+    return out
+  }
+
+  $.extend( fnc, {
+    inputs : { a:0, b:0 },
+    outputLength : size,
+    sampleRate : 44100,
+    out : [],
+    describe: function() { for( var key in fnc ) { console.log( key, ':', fnc[ key ] ) } },
+    toString: function() { return "inputs:" + JSON.stringify( fnc.inputs ) }
+  })
+
+  return fnc
+}
+
+Bus = function() { 
+  var fnc = function that() { 
+    var _l = that.outputLength,
+        out = that.out,
+        args = Array.prototype.slice.call( arguments, 0 ),
+        l = args.length
+    
+    for( var i = 0; i < _l; i++ ) {
+      out[ i ] = 0
+      for( var j = 0; j < l; j++ ) {
+        out[ i ] += args[ j ][ i ]
+      }
+    }
+    
+    return out
+  }
+
+  $.extend( fnc, {
+    inputs : { a:0, b:0 },
+    outputLength : size,
+    sampleRate : 44100,
+    out : [],
+    describe: function() { for( var key in fnc ) { console.log( key, ':', fnc[ key ] ) } },
+    toString: function() { return "inputs:" + JSON.stringify( fnc.inputs ) }
+  })
+
+  return fnc
+}
+
+sines = []
+ss = 3
+for( var i = 0; i < ss; i++ ) {
+  sines[i] = Sine()
+}
+_sines = []
+bus = Bus()
+
+CONSTANT = 0
+ARRAY = 1
+
+freq = {
+  v: function() { return 440 },
+  type:0,
+}
+
+var audioProcess = function(e) {
+	var bufferL = e.outputBuffer.getChannelData(0),
+	    bufferR = e.outputBuffer.getChannelData(1),
+      samplesToGo = masterSize,
+      sine, _freq, _amp
+  
+  while(samplesToGo > 0) {
+    scheduler()
+    
+    for( var i = 0; i < ss; i++ ) {
+      sine = sines[i]
+      _freq = typeof sine.frequency === 'object' ? _freq() : sine.frequency
+      
+      _sines[ i ] = sine( _freq, sine.amp )
+    }
+    var out = bus.apply( bus, _sines )
+    // var mod  = aa( .1, 50 ),
+    //     mod2 = bb( 4, mod ),
+    //     add = dd( 440, mod2 ),
+    //     out = cc( add, .1 )
+    // var a = aa(440, .1),
+    //     b = bb(440, .1),
+    //     c = cc(440, .1),
+    //     out = ee(440, .1)
+        
+    bufferL.set( out, masterSize - samplesToGo )
+    bufferR.set( out, masterSize - samplesToGo )
+    
+    samplesToGo -= size
+  }
+          
+}
+
+context = new webkitAudioContext()
+node = context.createJavaScriptNode( masterSize, 2, 2, context.sampleRate )
+node.onaudioprocess = audioProcess
+node.connect( context.destination )
+
+</script>
+</head>
+<body>GIBBERISH</body>
+</html>
+
+<!--
+<script>
+/*Define = function(Name, properties) {
+  var inputKeys = Object.keys( properties.inputs ),
+      header = '_fnc = function() {\n var fnc = function that( ',
+      footer = '}\n $.extend( fnc, properties ); return fnc }',
+      vars = 'var out = that.out, _l = that.outputLength, rate = that.rate,',
+      loopStart = '\tfor( var i = 0; i < _l; i++ ) { \n' +
+        '\t\tif( rate === AUDIO || i % 64 === 0) {\n',
+      loopEnd = '\t\t}else{' +
+      'out[i] = out[i-1]\n' +
+      '}\n}\n' +
+      'return out',
+      varResolve = '',
+      singleSample, _fnc
+  
+  for( var i = 0; i < inputKeys.length; i++) {
+    var name = inputKeys [ i ],
+        _name = '_' + name
+        
+    header += _name
+    vars += 'type' + name + ' = ' + 'isNaN( ' + _name + ' )'
+    varResolve += name + ' = ' + 'type' + name + ' ? ' + _name + '[i] : ' + _name + '\n'    
+    
+    if( i < inputKeys.length - 1 ) {
+      header += ', '
+      vars   += ','
+    }else{
+      header += ' ){\n'
+      //vars   += ';\n'
+    }
+  }
+  
+  for( var i = 0; i < properties.dereference.length; i++ ) {
+    var prop = properties.dereference[ i ]
+    vars += ', ' + prop + ' = that.' + prop + '\n'
+  }
+  
+  vars += ',' + properties.vars.join(',') + ';\n'
+  
+  singleSample = properties.sample.toString()
+  singleSample = singleSample.slice( singleSample.indexOf( '{' ) + 1, -1 )
+  
+  console.log( header + vars + loopStart + varResolve + singleSample + loopEnd + footer  )
+  eval( header + vars + loopStart + varResolve + singleSample + loopEnd + footer )
+  
+  $.extend( _fnc, properties )
+  _fnc.describe()
+  
+  window[ Name ] = _fnc
+}*/
+
+/*Define('Sine', { 
+  inputs: { frequency:440, amp:.1 },
+  dereference : [ 'table', 'tableFreq' ], 
+  phase:0,
+  vars: [ 'index', 'frac', 'index2', 'val1', 'val2', 'frequency', 'amp', 'phase' ],
+  rate:AUDIO,
+  out:[],
+  tableFreq:44100 / 1024,
+  table:(function() {
+    var pi_2 = Math.PI * 2, 
+        table = new Float32Array(1024);
+  
+    for(var i = 1024; i--;) { table[i] = Math.sin( (i / 1024) * pi_2); }
+    
+    return table
+  })(),
+  outputLength: size,
+  describe: function() { for( var key in this ) { console.log( key, ':', this[ key ] ) } },
+  toString: function() { return "inputs:" + JSON.stringify( this.inputs ) + ', phase: ' + this.phase },
+  sample: function() {
+    //var index,frac,index2,val1,val2
+    phase = that.phase += frequency / tableFreq
+    while( that.phase >= 1024 ) phase = that.phase -= 1024; 
+    
+    index   = phase | 0
+    frac    = phase - index
+    index   = index & 1023
+    index2  = index === 1023 ? 0 : index + 1
+    val1    = table[index]
+    val2    = table[index2]
+    
+    out[ i ] = ( val1 + ( frac * (val2 - val1) ) ) * amp
+  }
+})
+*/
+</script>
+-->
