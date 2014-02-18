@@ -349,9 +349,31 @@ _pitch, amp, isRecording, isPlaying, input, length, start, end, loops, pan
     
     if(this.onload) this.onload();
 	}else if(this.file !== null){
-    var request = new AudioFileRequest(this.file);
-    request.onSuccess = this._onload;
-    request.send();
+    var xhr = new XMLHttpRequest(), initSound
+        
+    xhr.open( 'GET', this.file, true )
+    xhr.responseType = 'arraybuffer'
+    xhr.onload = function( e ) { initSound( this.response ) }
+    xhr.send()
+    
+    function initSound( arrayBuffer ) {
+      Gibberish.context.decodeAudioData(arrayBuffer, function(_buffer) {
+        buffer = _buffer.getChannelData(0)
+  			self.length = phase = self.end = bufferLength = buffer.length
+        self.isPlaying = true;
+					
+  			console.log("LOADED 2 ", self.file, bufferLength);
+  			Gibberish.audioFiles[self.file] = buffer;
+			
+        if(self.onload) self.onload();
+      
+        if(self.playOnLoad !== 0) self.note( self.playOnLoad );
+      
+  			self.isLoaded = true;
+      }, function(e) {
+        console.log('Error decoding file', e);
+      }); 
+    }
 	}else if(typeof this.buffer !== 'undefined' ) {
 		this.isLoaded = true;
 					

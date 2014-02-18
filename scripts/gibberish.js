@@ -318,15 +318,21 @@ Create a callback and start it running. Note that in iOS audio callbacks can onl
     Gibberish.out.codegen(); // make sure bus is first upvalue so that clearing works correctly
     Gibberish.dirty(Gibberish.out);
     
-    var bufferSize = typeof arguments[0] === 'undefined' ? 1024 : arguments[0];
+    var bufferSize = typeof arguments[0] === 'undefined' ? 1024 : arguments[0], audioContext
     
+    if( typeof webkitAudioContext !== 'undefined' ) {
+      audioContext = webkitAudioContext
+    }else if ( typeof AudioContext !== 'undefined' ) {
+      audioContext = AudioContext
+    }
+
     // we will potentially delay start of audio until touch of screen for iOS devices
     start = function() {
       
-      if(navigator.userAgent.indexOf('Firefox') === -1 ){
+      if( typeof audioContext !== 'undefined' ) {
         document.getElementsByTagName('body')[0].removeEventListener('touchstart', start);
-        Gibberish.context = new webkitAudioContext();
-        Gibberish.node = Gibberish.context.createJavaScriptNode(bufferSize, 2, 2, Gibberish.context.sampleRate);	
+        Gibberish.context = new audioContext();
+        Gibberish.node = Gibberish.context.createScriptProcessor(bufferSize, 2, 2, Gibberish.context.sampleRate);	
         Gibberish.node.onaudioprocess = Gibberish.audioProcess;
         Gibberish.node.connect(Gibberish.context.destination);
     
@@ -335,16 +341,11 @@ Create a callback and start it running. Note that in iOS audio callbacks can onl
           mySource.connect(Gibberish.context.destination);
           mySource.noteOn(0);
         }
+      }else if( navigator.userAgent.indexOf( 'Firefox' ) === -1 ){
+        Gibberish.AudioDataDestination(44100, Gibberish.audioProcessFirefox);
+        Gibberish.context = { sampleRate: 44100 } // needed hack to determine samplerate in ugens
       }else{
-        /*if(typeof AudioContext === 'function') { // use web audio api for firefox 24 and higher... actually, no, it's not fast enough yet
-          Gibberish.context = new AudioContext();
-          Gibberish.node = Gibberish.context.createScriptProcessor(1024, 2, 2, Gibberish.context.sampleRate);	
-          Gibberish.node.onaudioprocess = Gibberish.audioProcess;
-          Gibberish.node.connect(Gibberish.context.destination);
-        }else{ // use audio data api*/
-          Gibberish.AudioDataDestination(44100, Gibberish.audioProcessFirefox);
-          Gibberish.context = { sampleRate: 44100 } // needed hack to determine samplerate in ugens
-        //}
+        alert('Your browser does not support javascript audio synthesis. Please download a modern web browser that is not Internet Explorer.')
       }
     }
     

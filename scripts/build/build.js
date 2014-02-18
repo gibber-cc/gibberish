@@ -32,7 +32,7 @@ var out = concat({
         __dirname + '/../effects.js',
         __dirname + '/../synth.js',
         __dirname + '/../fm_synth.js',
-        __dirname + '/../externals/audiofile.js',
+        //__dirname + '/../externals/audiofile.js',
         __dirname + '/../sampler.js',
         __dirname + '/../monosynth.js',
         __dirname + '/../binops.js',
