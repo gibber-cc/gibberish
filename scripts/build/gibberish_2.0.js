@@ -4684,6 +4684,7 @@ Sample recording and playback.
 ## Example Usage##
 `Gibberish.init();  
 a = new Gibberish.Sampler({ file:'resources/snare.wav' }).connect();  
+// wait until sample has downloaded  
 a.note(2);  
 a.note(1);  
 a.note(-.5);  
@@ -4705,6 +4706,9 @@ Number. The speed that the sample is played back at. A pitch of 1 means the samp
 **/
 /**###Gibberish.Sampler.amp : property  
 Number. A linear value specifying relative amplitude, ostensibly from 0..1 but can be higher, or lower when used for modulation.
+**/
+/**###Gibberish.Sampler.playOnLoad : property  
+Number. If this value is set to be non-zero, the sampler will trigger a note at the provided pitch as soon as the sample is downloaded. 
 **/
 /**###Gibberish.Sampler.isRecording : property  
 Boolean. Tells the sample to record into it's buffer. This is handled automatically by the object; there is no need to manually set this property.
@@ -4763,8 +4767,9 @@ Gibberish.Sampler = function() {
       pan :         0,
     },
     
-/**###Gibberish.Sampler._onload : method  
-This is an event handler that is called when a sampler has finished loading an audio file  
+/**###Gibberish.Sampler.onload : method  
+This is an event handler that is called when a sampler has finished loading an audio file.
+Use this to trigger a set of events upon downloading the sample. 
   
 param **buffer** Object. The decoded sampler buffers from the audio file
 **/ 
@@ -4975,7 +4980,6 @@ _pitch, amp, isRecording, isPlaying, input, length, start, end, loops, pan
 
 	if(typeof arguments[0] !== "undefined") {
 		if(typeof arguments[0] === "string") {
-      console.log("SETTING FILE");
 			this.file = arguments[0];
       this.pitch = 0;
 			//this.isPlaying = true;
@@ -5040,7 +5044,7 @@ _pitch, amp, isRecording, isPlaying, input, length, start, end, loops, pan
   			self.length = phase = self.end = bufferLength = buffer.length
         self.isPlaying = true;
 					
-  			console.log("LOADED 2 ", self.file, bufferLength);
+  			console.log("LOADED", self.file, bufferLength);
   			Gibberish.audioFiles[self.file] = buffer;
 			
         if(self.onload) self.onload();
@@ -5415,10 +5419,10 @@ Create an object that returns the absolute value of the (single) argument. The a
     me = {
       name : 'abs',
       properties : {},
-      callback : Math.abs,
+      callback : Math.abs.bind( me ),
     };
     me.__proto__ = new Gibberish.ugen();
-    me.properties[0] = arguments[0];
+    me.properties[0] = args[0];
     me.init();
 
     return me;
@@ -5454,7 +5458,8 @@ Create an object that returns the first argument raised to the power of the seco
   
     for(var i = 0; i < args.length; i++) { me.properties[i] = args[i]; }
     me.init();
-
+    
+    console.log( me.callback )
     return me;
   },
   

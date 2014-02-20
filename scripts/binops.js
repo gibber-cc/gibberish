@@ -133,10 +133,10 @@ Create an object that returns the absolute value of the (single) argument. The a
     me = {
       name : 'abs',
       properties : {},
-      callback : Math.abs,
+      callback : Math.abs.bind( me ),
     };
     me.__proto__ = new Gibberish.ugen();
-    me.properties[0] = arguments[0];
+    me.properties[0] = args[0];
     me.init();
 
     return me;
@@ -149,7 +149,7 @@ Create an object that returns the square root of the (single) argument. The argu
     me = {
       name : 'sqrt',
       properties : {},
-      callback : Math.sqrt,
+      callback : Math.sqrt.bind(me),
     };
     me.__proto__ = new Gibberish.ugen();    
     me.properties[i] = arguments[0];
@@ -166,13 +166,14 @@ Create an object that returns the first argument raised to the power of the seco
     me = {
       name : 'pow',
       properties : {},
-      callback : Math.pow,
+      callback : Math.pow.bind(me),
     };
     me.__proto__ = new Gibberish.ugen();
   
     for(var i = 0; i < args.length; i++) { me.properties[i] = args[i]; }
     me.init();
-
+    
+    console.log( me.callback )
     return me;
   },
   
