@@ -10,35 +10,30 @@ Gibberish is different from other JavaScript audio libraries (such as [audiolib.
 ##Input
 ```javascript
 Gibberish.init();                   // convenience method to start audio callback
+Gibberish.Binops.export();          // export math functions into global namespace
 
-s = new Gibberish.Sine( 440, .4 ); 	// sine wave, 440 Hz, .4 amplitude
-m = new Gibberish.Sine( 5, 15 );	// sine wave, 5 Hz, 15 amplitude
-s.mod( 'frequency', m, '+' );		// modulate the frequency of sine s with the output of m
+mod = new Gibberish.Sine( 5, 15 );  // sine wave, 5 Hz, 15 amplitude
 
-d = new Gibberish.Delay(  s );      // create a delay effect and feed our sine wave into it
-r = new Gibberish.Reverb( r );      // create a reverb effect and feed our delay into it
-r.connect();                        // connect reverb to default master output
+sine = new Gibberish.Sine({         // sine wave with frequency modulated by mod
+  frequency: Add( 440, mod ), 
+  amp: .4 
+}); 
+
+delay = new Gibberish.Delay({ input:sine });     // create a delay effect and feed our sine wave into it
+reverb = new Gibberish.Reverb({ input:delay });  // create a reverb effect and feed our delay into it
+reverb.connect();                                // connect reverb to default master output
 ```
 
-##Output (with some text formatting applied)
+##Output
 ```javascript
-// create upvalues for callback function. It is quicker to reference
-// upvalues than to dynamically resolve addresses of objects in a ugen graph.
+Gibberish.callback = function(input,sine_2, sine_4, delay_5, reverb_6, bus2_0){
+  var v_10 = sine_2(5, 15);
+  var v_9 = sine_4(( 440 + v_10 ), 0.4);
+  var v_8 = delay_5(v_9, 22050, 0.5, 1, 1);
+  var v_7 = reverb_6(v_8, 0.5, 0.55, 0.84, 0.5);
+  var v_1 = bus2_0(v_7, 1, 0);
 
-var bus2_0 = Gibberish.functions.bus2_0;
-var sine_314 = Gibberish.functions.sine_314;
-var sine_311 = Gibberish.functions.sine_311;
-var Delay_317 = Gibberish.functions.Delay_317;
-var Reverb_322 = Gibberish.functions.Reverb_322;
-
-Gibberish.callback = function() {
-	var v_327 = sine_314(5, 15);
-	var v_326 = sine_311(440 + v_327, 0.4);
-	var v_329 = Delay_317(v_326, 22050, 0.5, 1);
-	var v_328 = Reverb_322(v_329, 0.5, 0.55);
-	var v_4   = bus2_0(v_328, 1, 0);
-
-	return v_4;
+  return v_1;
 }
 ```
 
@@ -56,6 +51,16 @@ Gibberish has a long list of oscillators, fx, and synthesis algorithms built in.
 * Band-limited PWM
 * White Noise
 * Sampler - read audiofiles and playback at various speeds
+* Table - wavetable with dynamic buffer
+
+### Synthetic Percussion (tr-808 emulation)
+* Kick
+* Snare
+* Clave
+* Tom
+* Cowbell
+* Hat
+* Conga
 
 ### Synths
 All synths except the monosynth also have polyphonic versions
@@ -84,10 +89,14 @@ All synths except the monosynth also have polyphonic versions
 ### Analysis
 * Envelope Follower
 
+### Sequencing
+* Seq
+* Seq2 - audio rate sequencer with rate modulation
+
 ## License
-Gibberish is licensed under the MIT license. The Sampler object reads audiofiles using [audiofile][Audiofile.js].
+Gibberish is licensed under the MIT license.
 
 [gibberish]:http://www.charlie-roberts.com/gibberish
 [audiolib]:https://github.com/jussi-kalliokoski/audiolib.js/
 [audiolet]:https://github.com/oampo/Audiolet
-[audiofile]:https://github.com/oampo/audiofile.js/
+
