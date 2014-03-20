@@ -982,9 +982,8 @@ Gibberish.Rndf = function() {
   }
 };
 
-
-Gibberish.rndi = function() {
-  var min, max, range;
+Gibberish.rndi = function( min, max, number, canRepeat ) {
+  var range;
     
   if(arguments.length === 0) {
     min = 0; max = 1;
@@ -994,8 +993,28 @@ Gibberish.rndi = function() {
     min = arguments[0]; max = arguments[1];
   }
   
-  range = max - min
-  return Math.round( min + Math.random() * range );
+  if( typeof number === 'undefined' ) {
+    range = max - min
+    return Math.round( min + Math.random() * range );
+  }else{
+		var output = [];
+		var tmp = [];
+		
+		for(var i = 0; i < number; i++) {
+			var num;
+			if(canRepeat) {
+				num = Gibberish.rndi(min, max);
+			}else{
+				num = Gibberish.rndi(min, max);
+				while(tmp.indexOf(num) > -1) {
+					num = Gibberish.rndi(min, max);
+				}
+				tmp.push(num);
+			}
+			output.push(num);
+		}
+		return output;
+  }
 };
 
 Gibberish.Rndi = function() {
@@ -2150,16 +2169,16 @@ Gibberish.Line = function(start, end, time, loops) {
 
 	var phase = 0;
 	var incr = (end - start) / time;
-
+  
 	this.callback = function(start, end, time, loops) {
 		var out = phase < time ? start + ( phase++ * incr) : end;
 				
 		phase = (out >= end && loops) ? 0 : phase;
-				
+		
 		return out;
 	};
-
-	Gibberish.extend(this, that);
+  
+  Gibberish.extend(this, that);
   this.init();
 
   return this;
@@ -5435,7 +5454,7 @@ Create an object that returns the square root of the (single) argument. The argu
     me = {
       name : 'sqrt',
       properties : {},
-      callback : Math.sqrt,
+      callback : Math.sqrt.bind(me),
     };
     me.__proto__ = new Gibberish.ugen();    
     me.properties[i] = arguments[0];
@@ -5452,7 +5471,7 @@ Create an object that returns the first argument raised to the power of the seco
     me = {
       name : 'pow',
       properties : {},
-      callback : Math.pow,
+      callback : Math.pow.bind(me),
     };
     me.__proto__ = new Gibberish.ugen();
   
@@ -6052,6 +6071,7 @@ Gibberish.PolySeq = function() {
     properties    : { rate: 1, isRunning:false, nextTime:0 },
     offset        : 0,
     name          : 'polyseq',
+    getPhase      : function() { return phase },
     add           : function( seq ) {
       seq.valuesIndex = seq.durationsIndex = 0
       that.seqs.push( seq )
@@ -6076,7 +6096,8 @@ Gibberish.PolySeq = function() {
     callback : function(rate, isRunning, nextTime) {
       if(isRunning) {
         if(phase >= nextTime) {
-              seqs = that.timeline[ nextTime ]
+          var seqs = that.timeline[ nextTime ],
+              phaseDiff = phase - nextTime
               
           if( typeof seqs === 'undefined') return
           
@@ -6121,6 +6142,9 @@ Gibberish.PolySeq = function() {
               t = seq.nextTime + phase
             }
             
+            t -= phaseDiff
+            seq.nextTime -= phaseDiff
+            
             if( typeof that.timeline[ t ] === 'undefined' ) {
               that.timeline[ t ] = [ seq ]
             }else{
@@ -6139,7 +6163,6 @@ Gibberish.PolySeq = function() {
           nt = nt.sort( function(a,b) { if( a < b ) return -1; if( a > b ) return 1; return 0; })
           
           that.nextTime = nt[0]
-
           
           // if(that.repeatTarget) {
           //   that.repeatCount++;
@@ -6162,7 +6185,7 @@ Gibberish.PolySeq = function() {
         phase = 0;
         this.nextTime = 0;
         
-        this.timeline = [ [] ]
+        this.timeline = { 0:[] }
         for( var i = 0; i < this.seqs.length; i++ ) {
           var _seq = this.seqs[ i ]
     

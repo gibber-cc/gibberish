@@ -42,16 +42,16 @@ Gibberish.Line = function(start, end, time, loops) {
 
 	var phase = 0;
 	var incr = (end - start) / time;
-
+  
 	this.callback = function(start, end, time, loops) {
 		var out = phase < time ? start + ( phase++ * incr) : end;
 				
 		phase = (out >= end && loops) ? 0 : phase;
-				
+		
 		return out;
 	};
-
-	Gibberish.extend(this, that);
+  
+  Gibberish.extend(this, that);
   this.init();
 
   return this;

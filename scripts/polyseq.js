@@ -22,6 +22,7 @@ Gibberish.PolySeq = function() {
     properties    : { rate: 1, isRunning:false, nextTime:0 },
     offset        : 0,
     name          : 'polyseq',
+    getPhase      : function() { return phase },
     add           : function( seq ) {
       seq.valuesIndex = seq.durationsIndex = 0
       that.seqs.push( seq )
@@ -46,7 +47,8 @@ Gibberish.PolySeq = function() {
     callback : function(rate, isRunning, nextTime) {
       if(isRunning) {
         if(phase >= nextTime) {
-              seqs = that.timeline[ nextTime ]
+          var seqs = that.timeline[ nextTime ],
+              phaseDiff = phase - nextTime
               
           if( typeof seqs === 'undefined') return
           
@@ -91,6 +93,9 @@ Gibberish.PolySeq = function() {
               t = seq.nextTime + phase
             }
             
+            t -= phaseDiff
+            seq.nextTime -= phaseDiff
+            
             if( typeof that.timeline[ t ] === 'undefined' ) {
               that.timeline[ t ] = [ seq ]
             }else{
@@ -109,7 +114,6 @@ Gibberish.PolySeq = function() {
           nt = nt.sort( function(a,b) { if( a < b ) return -1; if( a > b ) return 1; return 0; })
           
           that.nextTime = nt[0]
-
           
           // if(that.repeatTarget) {
           //   that.repeatCount++;
@@ -132,7 +136,7 @@ Gibberish.PolySeq = function() {
         phase = 0;
         this.nextTime = 0;
         
-        this.timeline = [ [] ]
+        this.timeline = { 0:[] }
         for( var i = 0; i < this.seqs.length; i++ ) {
           var _seq = this.seqs[ i ]
     

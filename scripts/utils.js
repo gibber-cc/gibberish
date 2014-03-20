@@ -187,9 +187,8 @@ Gibberish.Rndf = function() {
   }
 };
 
-
-Gibberish.rndi = function() {
-  var min, max, range;
+Gibberish.rndi = function( min, max, number, canRepeat ) {
+  var range;
     
   if(arguments.length === 0) {
     min = 0; max = 1;
@@ -199,8 +198,28 @@ Gibberish.rndi = function() {
     min = arguments[0]; max = arguments[1];
   }
   
-  range = max - min
-  return Math.round( min + Math.random() * range );
+  if( typeof number === 'undefined' ) {
+    range = max - min
+    return Math.round( min + Math.random() * range );
+  }else{
+		var output = [];
+		var tmp = [];
+		
+		for(var i = 0; i < number; i++) {
+			var num;
+			if(canRepeat) {
+				num = Gibberish.rndi(min, max);
+			}else{
+				num = Gibberish.rndi(min, max);
+				while(tmp.indexOf(num) > -1) {
+					num = Gibberish.rndi(min, max);
+				}
+				tmp.push(num);
+			}
+			output.push(num);
+		}
+		return output;
+  }
 };
 
 Gibberish.Rndi = function() {
