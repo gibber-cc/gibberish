@@ -269,6 +269,60 @@ Gibberish.DCBlock = function() {
 };
 Gibberish.DCBlock.prototype = Gibberish._effect;
 
+/**#Gibberish.Tremolo - FX
+A basic amplitude modulation effect.
+
+## Example Usage##
+`a = new Gibberish.Synth({ attack:44, decay:44100 }).connect();  
+b = new Gibberish.Tremolo({input:a, frequency:4, amp:1});   
+a.note(880);   
+`  
+## Constructor   
+**param** *properties*: Object. A dictionary of property values (see below) to set for the synth on initialization.
+- - - -
+**/
+/**###Gibberish.Tremolo.input : property  
+Float. The input to apply the tremolo effect to
+**/
+/**###Gibberish.Tremolo.frequency : property  
+Float. The speed of the tremolo effect, measured in Hz
+**/
+/**###Gibberish.Tremolo.amp : property  
+Float. The magnitude of the tremolo effect.
+**/
+
+Gibberish.Tremolo = function() {
+  var modulationCallback = new Gibberish.Sine().callback
+  
+	Gibberish.extend(this, {
+  	name: 'tremolo',
+    type: 'effect',
+    
+    properties : {
+      input : 0,
+      frequency:2.5,
+      amp:.5,
+    },
+  
+    callback : function( input, frequency, amp ) {
+      var channels = typeof sample === 'number' ? 1 : 2,
+          modAmount = modulationCallback( frequency, amp )
+      
+      if(channels === 1) {
+        input *= modAmount
+      }else{
+        input[0] *= modAmount
+        input[1] *= modAmount
+      }
+      
+      return input;
+    }
+  })
+  .init()
+  .processProperties(arguments);
+};
+Gibberish.Tremolo.prototype = Gibberish._effect;
+
 /**#Gibberish.OnePole - FX
 A one-pole filter for smoothing property values. This is particularly useful when the properties are being controlled interactively. You use the smooth method to apply the filter.
 

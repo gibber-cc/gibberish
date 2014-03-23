@@ -2861,6 +2861,57 @@ Gibberish.DCBlock = function() {
 };
 Gibberish.DCBlock.prototype = Gibberish._effect;
 
+/*
+
+gibberish.Tremolo = Gen({
+ +				name:"Tremolo",
+ +				acceptsInput:true,	
+ +				props:{ frequency: 2.5, amp: .5, channels:2 },
+ +				upvalues: { modulation:gen("Sine") },
+ +				
+ +				callback: function(sample, frequency, amp, channels) {
+ +					var x = modulation(frequency, amp, 1)[0];
+ +					for(var channel = 0; channel < channels; channel++) {
+ +						var wet = x * sample[channel];
+ +						sample[channel] = wet;
+ +					}
+ +					return sample;
+ +				},
+ +			});
+*/
+
+Gibberish.Tremolo = function() {
+  var modulationCallback = new Gibberish.Sine().callback
+  
+	Gibberish.extend(this, {
+  	name: 'tremolo',
+    type: 'effect',
+    
+    properties : {
+      input : 0,
+      frequency:2.5,
+      amp:.5,
+    },
+  
+    callback : function( input, frequency, amp ) {
+      var channels = typeof sample === 'number' ? 1 : 2,
+          modAmount = modulationCallback( frequency, amp )
+      
+      if(channels === 1) {
+        input *= modAmount
+      }else{
+        input[0] *= modAmount
+        input[1] *= modAmount
+      }
+      
+      return input;
+    }
+  })
+  .init()
+  .processProperties(arguments);
+};
+Gibberish.Tremolo.prototype = Gibberish._effect;
+
 /**#Gibberish.OnePole - FX
 A one-pole filter for smoothing property values. This is particularly useful when the properties are being controlled interactively. You use the smooth method to apply the filter.
 
