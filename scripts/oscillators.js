@@ -80,15 +80,17 @@ param **amp** Number. The amplitude to be used to calculate output.
 }
 Gibberish.Wavetable.prototype = Gibberish._oscillator;
 
-Gibberish.Table = function() {
+Gibberish.Table = function( table ) {
   this.__proto__ = new Gibberish.Wavetable();
   
   this.name = 'table';
   
-  var pi_2 = Math.PI * 2, 
-      table = new Float32Array(1024);
-      
-  for(var i = 1024; i--;) { table[i] = Math.sin( (i / 1024) * pi_2); }
+  var pi_2 = Math.PI * 2
+  
+  if( typeof table === 'undefined' ) { 
+    table = new Float32Array(1024);
+    for(var i = 1024; i--;) { table[i] = Math.sin( (i / 1024) * pi_2); }
+  }
   
   this.setTable( table );
 

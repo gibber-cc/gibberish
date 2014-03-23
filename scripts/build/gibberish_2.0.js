@@ -1271,15 +1271,17 @@ param **amp** Number. The amplitude to be used to calculate output.
 }
 Gibberish.Wavetable.prototype = Gibberish._oscillator;
 
-Gibberish.Table = function() {
+Gibberish.Table = function( table ) {
   this.__proto__ = new Gibberish.Wavetable();
   
   this.name = 'table';
   
-  var pi_2 = Math.PI * 2, 
-      table = new Float32Array(1024);
-      
-  for(var i = 1024; i--;) { table[i] = Math.sin( (i / 1024) * pi_2); }
+  var pi_2 = Math.PI * 2
+  
+  if( typeof table === 'undefined' ) { 
+    table = new Float32Array(1024);
+    for(var i = 1024; i--;) { table[i] = Math.sin( (i / 1024) * pi_2); }
+  }
   
   this.setTable( table );
 
@@ -2861,24 +2863,27 @@ Gibberish.DCBlock = function() {
 };
 Gibberish.DCBlock.prototype = Gibberish._effect;
 
-/*
+/**#Gibberish.Tremolo - FX
+A basic amplitude modulation effect.
 
-gibberish.Tremolo = Gen({
- +				name:"Tremolo",
- +				acceptsInput:true,	
- +				props:{ frequency: 2.5, amp: .5, channels:2 },
- +				upvalues: { modulation:gen("Sine") },
- +				
- +				callback: function(sample, frequency, amp, channels) {
- +					var x = modulation(frequency, amp, 1)[0];
- +					for(var channel = 0; channel < channels; channel++) {
- +						var wet = x * sample[channel];
- +						sample[channel] = wet;
- +					}
- +					return sample;
- +				},
- +			});
-*/
+## Example Usage##
+`a = new Gibberish.Synth({ attack:44, decay:44100 }).connect();  
+b = new Gibberish.Tremolo({input:a, frequency:4, amp:1});   
+a.note(880);   
+`  
+## Constructor   
+**param** *properties*: Object. A dictionary of property values (see below) to set for the synth on initialization.
+- - - -
+**/
+/**###Gibberish.Tremolo.input : property  
+Float. The input to apply the tremolo effect to
+**/
+/**###Gibberish.Tremolo.frequency : property  
+Float. The speed of the tremolo effect, measured in Hz
+**/
+/**###Gibberish.Tremolo.amp : property  
+Float. The magnitude of the tremolo effect.
+**/
 
 Gibberish.Tremolo = function() {
   var modulationCallback = new Gibberish.Sine().callback
