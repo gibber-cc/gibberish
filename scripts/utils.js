@@ -124,7 +124,7 @@ Gibberish.rndf = function(min, max, number, canRepeat) {
 		}
 	
 		var diff = max - min,
-		    r = rnd(),
+		    r = Math.random(),
 		    rr = diff * r
 	
 		return min + rr;
@@ -138,15 +138,15 @@ Gibberish.rndf = function(min, max, number, canRepeat) {
 		for(var i = 0; i < number; i++) {
 			var num;
 			if(typeof arguments[0] === "object") {
-				num = arguments[0][randomi(0, arguments[0].length - 1)];
+				num = arguments[0][rndi(0, arguments[0].length - 1)];
 			}else{
 				if(canRepeat) {
 					num = Gibberish.rndf(min, max);
 				}else{
-					num = Gibberish.rndf(min, max);
-					while(tmp.indexOf(num) > -1) {
-						num = Gibberish.rndf(min, max);
-					}
+          num = Gibberish.rndf(min, max);
+          while(tmp.indexOf(num) > -1) {
+            num = Gibberish.rndf(min, max);
+          }
 					tmp.push(num);
 				}
 			}

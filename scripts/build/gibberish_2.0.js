@@ -919,7 +919,7 @@ Gibberish.rndf = function(min, max, number, canRepeat) {
 		}
 	
 		var diff = max - min,
-		    r = rnd(),
+		    r = Math.random(),
 		    rr = diff * r
 	
 		return min + rr;
@@ -933,15 +933,15 @@ Gibberish.rndf = function(min, max, number, canRepeat) {
 		for(var i = 0; i < number; i++) {
 			var num;
 			if(typeof arguments[0] === "object") {
-				num = arguments[0][randomi(0, arguments[0].length - 1)];
+				num = arguments[0][rndi(0, arguments[0].length - 1)];
 			}else{
 				if(canRepeat) {
 					num = Gibberish.rndf(min, max);
 				}else{
-					num = Gibberish.rndf(min, max);
-					while(tmp.indexOf(num) > -1) {
-						num = Gibberish.rndf(min, max);
-					}
+          num = Gibberish.rndf(min, max);
+          while(tmp.indexOf(num) > -1) {
+            num = Gibberish.rndf(min, max);
+          }
 					tmp.push(num);
 				}
 			}
@@ -1285,9 +1285,9 @@ Gibberish.Table = function( table ) {
   
   this.setTable( table );
 
-  this.init( arguments );
+  this.init();
   this.oscillatorInit();
-  this.processProperties( arguments );
+  //this.processProperties( arguments );
 }
 
 Gibberish.asmSine = function (stdlib, foreign, heap) {
@@ -2899,7 +2899,7 @@ Gibberish.Tremolo = function() {
     },
   
     callback : function( input, frequency, amp ) {
-      var channels = typeof sample === 'number' ? 1 : 2,
+      var channels = typeof input === 'number' ? 1 : 2,
           modAmount = modulationCallback( frequency, amp )
       
       if(channels === 1) {
@@ -6150,6 +6150,8 @@ Gibberish.PolySeq = function() {
     },
     
     callback : function(rate, isRunning, nextTime) {
+      var newNextTime;
+      
       if(isRunning) {
         if(phase >= nextTime) {
           var seqs = that.timeline[ nextTime ],
@@ -6181,25 +6183,25 @@ Gibberish.PolySeq = function() {
               var idx = seq.durations.pick ? seq.durations.pick() : seq.durationsIndex++,
                   next = seq.durations[ idx ]
 
-              seq.nextTime = typeof next === 'function' ? next() : next;
+              newNextTime = typeof next === 'function' ? next() : next;
               if( seq.durationsIndex >= seq.durations.length ) {
                 seq.durationsIndex = 0;
               }
             }else{
               var next = seq.durations;
-              seq.nextTime = typeof next === 'function' ? next() : next;
+              newNextTime = typeof next === 'function' ? next() : next;
             }
           
             var t;
             
             if( typeof Gibber !== 'undefined' ) {
-              t = Gibber.Clock.time( seq.nextTime ) + phase // TODO: remove Gibber link... how?
+              t = Gibber.Clock.time( newNextTime ) + phase // TODO: remove Gibber link... how?
             }else{
-              t = seq.nextTime + phase
+              t = newNextTime + phase
             }
             
             t -= phaseDiff
-            seq.nextTime -= phaseDiff
+            newNextTime -= phaseDiff
             
             if( typeof that.timeline[ t ] === 'undefined' ) {
               that.timeline[ t ] = [ seq ]
@@ -6210,15 +6212,19 @@ Gibberish.PolySeq = function() {
           
           delete that.timeline[ nextTime ]
           
-          var nt = Object.keys( that.timeline )
+          var times = Object.keys( that.timeline ),
+              timesLength = times.length;
           
-          for( var i = 0; i < nt.length; i++ ) {
-            nt[ i ] = parseFloat( nt[i] )
+          if( timesLength > 1 ) {
+            for( var i = 0; i < timesLength; i++ ) {
+              times[ i ] = parseFloat( times[i] )
+            }
+          
+            times = times.sort( function(a,b) { if( a < b ) return -1; if( a > b ) return 1; return 0; })
+            that.nextTime = times[0]
+          }else{
+            that.nextTime = parseFloat( times[0] )
           }
-          
-          nt = nt.sort( function(a,b) { if( a < b ) return -1; if( a > b ) return 1; return 0; })
-          
-          that.nextTime = nt[0]
           
           // if(that.repeatTarget) {
           //   that.repeatCount++;
@@ -6227,11 +6233,9 @@ Gibberish.PolySeq = function() {
           //     that.repeatCount = 0;
           //   }
           // }
-          
-          return 0;
         }
       
-        phase += rate; //that.rate;
+        phase += rate;
       }
       return 0;
     },

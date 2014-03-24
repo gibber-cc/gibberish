@@ -305,7 +305,7 @@ Gibberish.Tremolo = function() {
     },
   
     callback : function( input, frequency, amp ) {
-      var channels = typeof sample === 'number' ? 1 : 2,
+      var channels = typeof input === 'number' ? 1 : 2,
           modAmount = modulationCallback( frequency, amp )
       
       if(channels === 1) {

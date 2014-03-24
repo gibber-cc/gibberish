@@ -94,9 +94,9 @@ Gibberish.Table = function( table ) {
   
   this.setTable( table );
 
-  this.init( arguments );
+  this.init();
   this.oscillatorInit();
-  this.processProperties( arguments );
+  //this.processProperties( arguments );
 }
 
 Gibberish.asmSine = function (stdlib, foreign, heap) {
