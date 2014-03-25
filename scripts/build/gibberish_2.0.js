@@ -6163,10 +6163,11 @@ Gibberish.PolySeq = function() {
       seq.valuesIndex = seq.durationsIndex = 0
       that.seqs.push( seq )
       
-      if( typeof that.timeline[0] !== 'undefined' ) {
-        that.timeline[0].push( seq )
+      
+      if( typeof that.timeline[ phase ] !== 'undefined' ) {
+        that.timeline[ phase ].push( seq )
       }else{
-        that.timeline[0] = [seq]
+        that.timeline[ phase ] = [ seq ]
       }
       
       // for Gibber... TODO: remove from Gibberish
@@ -6176,7 +6177,7 @@ Gibberish.PolySeq = function() {
         }
       }
       
-      that.nextTime = 0
+      that.nextTime = phase
       seq.shouldStop = false
     },
     
@@ -6265,7 +6266,10 @@ Gibberish.PolySeq = function() {
           //   }
           // }  
         }
-      
+        
+        // TODO: If you set the phase to 0, it will be lower than nextTime for many many samples in a row, causing it to quickly skip
+        // through lots of key / value pairs.
+        
         phase += rate;
       }
       return 0;
