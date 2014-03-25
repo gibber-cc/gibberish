@@ -195,11 +195,31 @@ param **amp** Number. Optional. The volume to use.
           idx = lastNoteIndex > -1 ? lastNoteIndex : this.voiceCount++,
           synth = this.children[ idx ];
       
+      //console.log( _frequency, lastNoteIndex, idx, synth )
       synth.note(_frequency, amp);
             
       this.frequencies[ idx ] = _frequency;
       
       if(this.voiceCount >= this.maxVoices) this.voiceCount = 0;
+    },
+    
+    initVoices : function() {
+    	for(var i = 0; i < this.maxVoices; i++) {
+    		var props = {
+    			attack: 	this.attack,
+    			decay:		this.decay,
+    			cmRatio:	this.cmRatio,
+    			index:		this.index,
+          channels: 2,
+          useADSR : this.useADSR || false,      
+          requireReleaseTrigger: this.requireReleaseTrigger || false,
+    			amp: 		  1,
+    		};
+    		var synth = new Gibberish.FMSynth(props);
+    		synth.connect(this);
+
+    		this.children.push(synth);
+    	}
     },
 	}); 
      
@@ -214,23 +234,13 @@ param **amp** Number. Optional. The volume to use.
     this.useADSR = typeof arguments[0].useADSR !== 'undefined' ? arguments[ 0 ].useADSR : false    
     this.requireReleaseTrigger = typeof arguments[0].requireReleaseTrigger !== 'undefined' ? arguments[ 0 ].requireReleaseTrigger : false    
   }
+  this.initVoices()
   
-	for(var i = 0; i < this.maxVoices; i++) {
-		var props = {
-			attack: 	this.attack,
-			decay:		this.decay,
-			cmRatio:	this.cmRatio,
-			index:		this.index,
-      channels: 2,
-      useADSR : this.useADSR || false,      
-      requireReleaseTrigger: this.requireReleaseTrigger || false,
-			amp: 		  1,
-		};
-		var synth = new Gibberish.FMSynth(props);
-		synth.connect(this);
-
-		this.children.push(synth);
-	}
+  // var maxVoices = this.maxVoices
+  // Object.defineProperty( this, 'maxVoices', {
+  //   get: function() { return maxVoices },
+  //   set: function(v) { maxVoices = v; this.initVoices() }
+  // })
   
 	this.processProperties(arguments);
   Gibberish._synth.oscillatorInit.call(this);

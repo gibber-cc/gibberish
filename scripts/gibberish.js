@@ -407,6 +407,16 @@ param **Ugen** : Object. The polyphonic ugen
     ugen.mod = ugen.polyMod;
     ugen.removeMod = ugen.removePolyMod;
     
+    ugen.voicesClear = function() {
+      if( ugen.children.length > 0 ) {
+        for( var i = 0; i < ugen.children.length; i++ ) {
+          ugen.children[ i ].disconnect()
+        }
+        ugen.children.length = 0
+        ugen.voiceCount = 0
+      }
+    }
+    
     for(var key in ugen.polyProperties) {
       (function(_key) {
         var value = ugen.polyProperties[_key];
@@ -424,6 +434,12 @@ param **Ugen** : Object. The polyphonic ugen
         
       })(key);
     }
+    
+    var maxVoices = ugen.maxVoices
+    Object.defineProperty( ugen, 'maxVoices', {
+      get: function() { return maxVoices },
+      set: function(v) { maxVoices = v; this.voicesClear(); this.initVoices() }
+    })
   },
   
 /**###Gibberish.interpolate : method

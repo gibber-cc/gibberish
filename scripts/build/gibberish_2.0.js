@@ -407,6 +407,16 @@ param **Ugen** : Object. The polyphonic ugen
     ugen.mod = ugen.polyMod;
     ugen.removeMod = ugen.removePolyMod;
     
+    ugen.voicesClear = function() {
+      if( ugen.children.length > 0 ) {
+        for( var i = 0; i < ugen.children.length; i++ ) {
+          ugen.children[ i ].disconnect()
+        }
+        ugen.children.length = 0
+        ugen.voiceCount = 0
+      }
+    }
+    
     for(var key in ugen.polyProperties) {
       (function(_key) {
         var value = ugen.polyProperties[_key];
@@ -424,6 +434,12 @@ param **Ugen** : Object. The polyphonic ugen
         
       })(key);
     }
+    
+    var maxVoices = ugen.maxVoices
+    Object.defineProperty( ugen, 'maxVoices', {
+      get: function() { return maxVoices },
+      set: function(v) { maxVoices = v; this.voicesClear(); this.initVoices() }
+    })
   },
   
 /**###Gibberish.interpolate : method
@@ -1923,7 +1939,19 @@ Gibberish.PolyKarplusStrong = function() {
       synth.note(_frequency, amp);
       //this.frequency = _frequency;
     },
-    
+    initVoices: function() {
+      for(var i = 0; i < this.maxVoices; i++) {
+        var props = {
+          blend:   this.blend,
+          damping: this.damping,
+          channels: 2,
+          amp:      1,
+        };
+        var synth = new Gibberish.KarplusStrong(props).connect(this);
+
+        this.children.push(synth);
+      }
+    }
   });
   
   this.amp = 1 / this.maxVoices;
@@ -1935,18 +1963,7 @@ Gibberish.PolyKarplusStrong = function() {
   if(typeof arguments[0] === 'object') {
     this.maxVoices = arguments[0].maxVoices ? arguments[0].maxVoices : this.maxVoices
   }
-  
-  for(var i = 0; i < this.maxVoices; i++) {
-    var props = {
-      blend:   this.blend,
-      damping: this.damping,
-      channels: 2,
-      amp:      1,
-    };
-    var synth = new Gibberish.KarplusStrong(props).connect(this);
-
-    this.children.push(synth);
-  }
+  this.initVoices()
   
   this.processProperties(arguments);
   
@@ -4216,6 +4233,24 @@ param **amp** Number. Optional. The volume to use.
       
       if(this.voiceCount >= this.maxVoices) this.voiceCount = 0;
     },
+    
+    initVoices: function() {
+      for(var i = 0; i < this.maxVoices; i++) {
+        var props = {
+          waveform: this.waveform,
+          attack:   this.attack,
+          decay:    this.decay,
+          pulsewidth: this.pulsewidth,
+          channels: 2,
+          amp:      1,
+          useADSR : this.useADSR || false,
+          requireReleaseTrigger: this.requireReleaseTrigger || false,
+        },
+        synth = new Gibberish.Synth( props ).connect( this );
+
+        this.children.push(synth);
+      }
+    },
   });
   
   this.amp = 1 / this.maxVoices;
@@ -4229,23 +4264,7 @@ param **amp** Number. Optional. The volume to use.
     this.useADSR = typeof arguments[0].useADSR !== 'undefined' ? arguments[ 0 ].useADSR : false
     this.requireReleaseTrigger = typeof arguments[0].requireReleaseTrigger !== 'undefined' ? arguments[ 0 ].requireReleaseTrigger : false    
   }
-  
-  this.dirty = true;
-  for(var i = 0; i < this.maxVoices; i++) {
-    var props = {
-      waveform: this.waveform,
-      attack:   this.attack,
-      decay:    this.decay,
-      pulsewidth: this.pulsewidth,
-      channels: 2,
-      amp:      1,
-      useADSR : this.useADSR || false,
-      requireReleaseTrigger: this.requireReleaseTrigger || false,
-    },
-    synth = new Gibberish.Synth( props ).connect( this );
-
-    this.children.push(synth);
-  }
+  this.initVoices()
   
   this.processProperties(arguments);
   
@@ -4479,6 +4498,24 @@ param **amp** Number. Optional. The volume to use.
       
       if(this.voiceCount >= this.maxVoices) this.voiceCount = 0;
     },
+    
+    initVoices: function() {
+      this.dirty = true;
+      for(var i = 0; i < this.maxVoices; i++) {
+        var props = {
+          attack:   this.attack,
+          decay:    this.decay,
+          pulsewidth: this.pulsewidth,
+          channels: 2,
+          amp:      1,
+          useADSR:  this.useADSR || false,
+          requireReleaseTrigger: this.requireReleaseTrigger || false,
+        },
+        synth = new Gibberish.Synth2( props ).connect( this );
+
+        this.children.push(synth);
+      }
+    },
   });
   
   this.amp = 1 / this.maxVoices;
@@ -4492,24 +4529,8 @@ param **amp** Number. Optional. The volume to use.
     this.useADSR = typeof arguments[0].useADSR !== 'undefined' ? arguments[ 0 ].useADSR : false
     this.requireReleaseTrigger = typeof arguments[0].requireReleaseTrigger !== 'undefined' ? arguments[ 0 ].requireReleaseTrigger : false
   }
-  
-  this.dirty = true;
-  for(var i = 0; i < this.maxVoices; i++) {
-    var props = {
-      attack:   this.attack,
-      decay:    this.decay,
-      pulsewidth: this.pulsewidth,
-      channels: 2,
-      amp:      1,
-      useADSR:  this.useADSR || false,
-      requireReleaseTrigger: this.requireReleaseTrigger || false,
-    };
-    var synth = new Gibberish.Synth2(props);
-    synth.connect(this);
+  this.initVoices()
 
-    this.children.push(synth);
-  }
-  
   this.processProperties(arguments);
   Gibberish._synth.oscillatorInit.call(this);
 };
@@ -4711,11 +4732,31 @@ param **amp** Number. Optional. The volume to use.
           idx = lastNoteIndex > -1 ? lastNoteIndex : this.voiceCount++,
           synth = this.children[ idx ];
       
+      //console.log( _frequency, lastNoteIndex, idx, synth )
       synth.note(_frequency, amp);
             
       this.frequencies[ idx ] = _frequency;
       
       if(this.voiceCount >= this.maxVoices) this.voiceCount = 0;
+    },
+    
+    initVoices : function() {
+    	for(var i = 0; i < this.maxVoices; i++) {
+    		var props = {
+    			attack: 	this.attack,
+    			decay:		this.decay,
+    			cmRatio:	this.cmRatio,
+    			index:		this.index,
+          channels: 2,
+          useADSR : this.useADSR || false,      
+          requireReleaseTrigger: this.requireReleaseTrigger || false,
+    			amp: 		  1,
+    		};
+    		var synth = new Gibberish.FMSynth(props);
+    		synth.connect(this);
+
+    		this.children.push(synth);
+    	}
     },
 	}); 
      
@@ -4730,23 +4771,13 @@ param **amp** Number. Optional. The volume to use.
     this.useADSR = typeof arguments[0].useADSR !== 'undefined' ? arguments[ 0 ].useADSR : false    
     this.requireReleaseTrigger = typeof arguments[0].requireReleaseTrigger !== 'undefined' ? arguments[ 0 ].requireReleaseTrigger : false    
   }
+  this.initVoices()
   
-	for(var i = 0; i < this.maxVoices; i++) {
-		var props = {
-			attack: 	this.attack,
-			decay:		this.decay,
-			cmRatio:	this.cmRatio,
-			index:		this.index,
-      channels: 2,
-      useADSR : this.useADSR || false,      
-      requireReleaseTrigger: this.requireReleaseTrigger || false,
-			amp: 		  1,
-		};
-		var synth = new Gibberish.FMSynth(props);
-		synth.connect(this);
-
-		this.children.push(synth);
-	}
+  // var maxVoices = this.maxVoices
+  // Object.defineProperty( this, 'maxVoices', {
+  //   get: function() { return maxVoices },
+  //   set: function(v) { maxVoices = v; this.initVoices() }
+  // })
   
 	this.processProperties(arguments);
   Gibberish._synth.oscillatorInit.call(this);
@@ -6232,7 +6263,7 @@ Gibberish.PolySeq = function() {
           //     that.isRunning = false;
           //     that.repeatCount = 0;
           //   }
-          // }
+          // }  
         }
       
         phase += rate;

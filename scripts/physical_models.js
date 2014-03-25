@@ -91,7 +91,19 @@ Gibberish.PolyKarplusStrong = function() {
       synth.note(_frequency, amp);
       //this.frequency = _frequency;
     },
-    
+    initVoices: function() {
+      for(var i = 0; i < this.maxVoices; i++) {
+        var props = {
+          blend:   this.blend,
+          damping: this.damping,
+          channels: 2,
+          amp:      1,
+        };
+        var synth = new Gibberish.KarplusStrong(props).connect(this);
+
+        this.children.push(synth);
+      }
+    }
   });
   
   this.amp = 1 / this.maxVoices;
@@ -103,18 +115,7 @@ Gibberish.PolyKarplusStrong = function() {
   if(typeof arguments[0] === 'object') {
     this.maxVoices = arguments[0].maxVoices ? arguments[0].maxVoices : this.maxVoices
   }
-  
-  for(var i = 0; i < this.maxVoices; i++) {
-    var props = {
-      blend:   this.blend,
-      damping: this.damping,
-      channels: 2,
-      amp:      1,
-    };
-    var synth = new Gibberish.KarplusStrong(props).connect(this);
-
-    this.children.push(synth);
-  }
+  this.initVoices()
   
   this.processProperties(arguments);
   

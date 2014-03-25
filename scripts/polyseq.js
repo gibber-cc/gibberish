@@ -127,7 +127,7 @@ Gibberish.PolySeq = function() {
           //     that.isRunning = false;
           //     that.repeatCount = 0;
           //   }
-          // }
+          // }  
         }
       
         phase += rate;
