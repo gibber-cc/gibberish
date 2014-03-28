@@ -120,7 +120,15 @@ Gibberish.Follow = function() {
     
   this.init();
   this.analysisInit();
-  this.processProperties( arguments );  
+  this.processProperties( arguments );
+  
+  var oldBufferSize = this.__lookupSetter__( 'bufferSize' ),
+      bs = this.bufferSize
+      
+  Object.defineProperty( this, 'bufferSize', {
+    get: function() { return bs },
+    set: function(v) { bs = v; sum = 0; history = [0]; index = 0; }
+  })
 };
 Gibberish.Follow.prototype = Gibberish._analysis;
 
