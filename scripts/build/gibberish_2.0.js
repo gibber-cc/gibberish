@@ -925,7 +925,7 @@ Gibberish.rndf = function(min, max, number, canRepeat) {
   canRepeat = typeof canRepeat === "undefined" ? true : canRepeat;
 	if(typeof number === "undefined" && typeof min != "object") {
 		if(arguments.length == 1) {
-			min = 0, max = arguments[0];
+			max = arguments[0]; min = 0;
 		}else if(arguments.length == 2) {
 			min = arguments[0];
 			max = arguments[1];
@@ -973,7 +973,7 @@ Gibberish.Rndf = function() {
   if(arguments.length === 0) {
     min = 0; max = 1;
   }else if(arguments.length === 1) {
-    min = 0; max = arguments[0];
+    max = arguments[0]; min = 0; 
   }else if(arguments.length === 2) {
     min = arguments[0]; max = arguments[1];
   }else{
@@ -1004,7 +1004,7 @@ Gibberish.rndi = function( min, max, number, canRepeat ) {
   if(arguments.length === 0) {
     min = 0; max = 1;
   }else if(arguments.length === 1) {
-    min = 0; max = arguments[0];
+    max = arguments[0]; min = 0;
   }else{
     min = arguments[0]; max = arguments[1];
   }
@@ -1039,7 +1039,7 @@ Gibberish.Rndi = function() {
   if(arguments.length === 0) {
     min = 0; max = 1;
   }else if(arguments.length === 1) {
-    min = 0; max = arguments[0];
+    max = arguments[0]; min = 0;
   }else if(arguments.length === 2) {
     min = arguments[0]; max = arguments[1];
   }else{
