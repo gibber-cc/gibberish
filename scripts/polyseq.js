@@ -1,3 +1,5 @@
+// TODO: must fix scale seq
+
 /*
 c = new Gibberish.Synth({ pan:-1 }).connect();
 b = new Gibberish.Synth({ pan:1 }).connect(); 
@@ -26,7 +28,6 @@ Gibberish.PolySeq = function() {
     add           : function( seq ) {
       seq.valuesIndex = seq.durationsIndex = 0
       that.seqs.push( seq )
-      
       
       if( typeof that.timeline[ phase ] !== 'undefined' ) {
         that.timeline[ phase ].push( seq )
@@ -58,22 +59,21 @@ Gibberish.PolySeq = function() {
           for( var j = 0; j < seqs.length; j++ ) {
             var seq = seqs[ j ]
             if( seq.shouldStop ) continue;
+
+            var idx = seq.values.pick ? seq.values.pick() : seq.valuesIndex++ % seq.values.length,
+                val = seq.values[ idx ];
+    
+            if(typeof val === 'function') { val = val(); } // will also call anonymous function
+    
             if( seq.target ) {
-              var idx = seq.values.pick ? seq.values.pick() : seq.valuesIndex++ % seq.values.length,
-                  val = seq.values[ idx ];
-      
-              if(typeof val === 'function') { val = val(); }
-      
               if(typeof seq.target[ seq.key ] === 'function') {
                 seq.target[ seq.key ]( val );
               }else{
                 seq.target[ seq.key ] = val;
               }
-            }else{
-              if(typeof seq.values[ seq.valuesIndex ] === 'function') {
-                seq.values[ seq.valuesIndex++ % seq.values.length ]();
-              }
             }
+            
+            if( that.chose ) that.chose( seq.key, idx )
               
             if( Array.isArray( seq.durations ) ) {
               var idx = seq.durations.pick ? seq.durations.pick() : seq.durationsIndex++,
@@ -83,6 +83,7 @@ Gibberish.PolySeq = function() {
               if( seq.durationsIndex >= seq.durations.length ) {
                 seq.durationsIndex = 0;
               }
+              if( that.chose ) that.chose( 'durations', idx )
             }else{
               var next = seq.durations;
               newNextTime = typeof next === 'function' ? next() : next;
@@ -178,9 +179,17 @@ Gibberish.PolySeq = function() {
       return this;
     },
     
-    shuffle : function() {
-      for( key in this.keysAndValues ) {
-        this.shuffleArray( this.keysAndValues[ key ] )
+    shuffle : function( seqName ) {
+      if( typeof seqName !== 'undefined' ) {
+        for( var i = 0; i < this.seqs.length; i++ ) {
+          if( this.seqs[i].key === seqName ) {
+            this.shuffleArray( this.seqs[i].values )
+          }
+        }
+      }else{
+        for( var i = 0; i < this.seqs.length; i++ ) {
+          this.shuffleArray( this.seqs[i].values )
+        }
       }
     },
     

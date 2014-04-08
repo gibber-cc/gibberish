@@ -347,6 +347,7 @@ Create a callback and start it running. Note that in iOS audio callbacks can onl
       }else{
         alert('Your browser does not support javascript audio synthesis. Please download a modern web browser that is not Internet Explorer.')
       }
+      if( Gibberish.onstart ) Gibberish.onstart()
     }
     
     if('ontouchstart' in document.documentElement) {
@@ -361,25 +362,60 @@ Create a callback and start it running. Note that in iOS audio callbacks can onl
 /**###Gibberish.makePanner : method
 Create and return an object that can be used to pan a stereo source.
 **/ 
-  makePanner : function() {
-		var sin = Math.sin;
-		var cos = Math.cos;
-		var sqrtTwoOverTwo = Math.sqrt(2) / 2;
-			
-		var f = function(val, pan, array) {
-      var isObject = typeof val === 'object';
-      var l = isObject ? val[0] : val;
-      var r = isObject ? val[1] : val;
-          
-  		array[0] = l * (sqrtTwoOverTwo * (cos(pan) - sin(pan)) );
-    	array[1] = r * (sqrtTwoOverTwo * (cos(pan) + sin(pan)) );
-          
-			return array;
-		};
-        
-		return f;
-	},
+  //   makePanner : function() {
+  //   var sin = Math.sin;
+  //   var cos = Math.cos;
+  //   var sqrtTwoOverTwo = Math.sqrt(2) / 2;
+  //     
+  //   var f = function(val, pan, array) {
+  //       var isObject = typeof val === 'object';
+  //       var l = isObject ? val[0] : val;
+  //       var r = isObject ? val[1] : val;
+  //           
+  //       array[0] = l * (sqrtTwoOverTwo * (cos(pan) - sin(pan)) );
+  //       array[1] = r * (sqrtTwoOverTwo * (cos(pan) + sin(pan)) );
+  //           
+  //     return array;
+  //   };
+  //         
+  //   return f;
+  // },
   
+makePanner : function() {
+  // thanks to grrrwaaa for this
+  // create pan curve arrays (once-only): 
+	var panTableL = [], panTableR = [];
+	var sqrtTwoOverTwo = Math.sqrt(2) / 2;
+
+	for( var i = 0; i < 1024; i++ ) { 
+		var pan = -1 + ( i / 1024 ) * 2;
+		panTableL[i] = (sqrtTwoOverTwo * (Math.cos(pan) - Math.sin(pan)) );
+		panTableR[i] = (sqrtTwoOverTwo * (Math.cos(pan) + Math.sin(pan)) );
+	}
+
+  return function(val, pan, output) {
+    var isObject = typeof val === 'object',
+        l = isObject ? val[0] : val,
+        r = isObject ? val[1] : val,
+        _index, index, frac, index2, val1, val2;
+      
+    _index  = ((pan + 1) * 1023) / 2
+    index   = _index | 0
+    frac    = _index - index;
+    index   = index & 1023;
+    index2  = index === 1023 ? 0 : index + 1;
+    
+    val1    = panTableL[index];
+    val2    = panTableL[index2];
+    output[0] = ( val1 + ( frac * (val2 - val1) ) ) * l;
+    
+    val1    = panTableR[index];
+    val2    = panTableR[index2];
+    output[1] = ( val1 + ( frac * (val2 - val1) ) ) * r;
+    
+    return output;
+	}
+},
   // IMPORTANT: REMEMBER THIS IS OVERRIDDEN IN GIBBER
   defineUgenProperty : function(key, initValue, obj) {
     var prop = obj.properties[key] = {
@@ -1115,6 +1151,13 @@ Gibberish.future = function(func, time) {
     ],
     durations:[ time ]
   }).start()
+  
+  seq.cancel = function() {
+    seq.stop();
+    seq.disconnect();
+  }
+  
+  return seq
 }
 Gibberish.Proxy = function() {
   var value = 0;
@@ -2183,14 +2226,24 @@ Gibberish.Line = function(start, end, time, loops) {
   		end:		isNaN(end) ? 1 : end,
   		time:		time || Gibberish.context.sampleRate,
   		loops:	loops || false,
+    },
+    
+    retrigger: function( end, time ) {
+      phase = 0;
+      this.start = out
+      this.end = end
+      this.time = time
+      
+      incr = (end - out) / time
     }
 	};
 
-	var phase = 0;
-	var incr = (end - start) / time;
+	var phase = 0,
+	    incr = (end - start) / time,
+      out
   
 	this.callback = function(start, end, time, loops) {
-		var out = phase < time ? start + ( phase++ * incr) : end;
+		out = phase < time ? start + ( phase++ * incr) : end;
 				
 		phase = (out >= end && loops) ? 0 : phase;
 		
@@ -4779,6 +4832,7 @@ param **amp** Number. Optional. The volume to use.
     this.useADSR = typeof arguments[0].useADSR !== 'undefined' ? arguments[ 0 ].useADSR : false    
     this.requireReleaseTrigger = typeof arguments[0].requireReleaseTrigger !== 'undefined' ? arguments[ 0 ].requireReleaseTrigger : false    
   }
+
   this.initVoices()
   
   // var maxVoices = this.maxVoices
@@ -5808,6 +5862,7 @@ Gibberish.Sequencer2 = function() {
               if(that.counts[key] >= that.keysAndValues[key].length) {
                 that.counts[key] = 0;
               }
+              if( that.chose ) that.chose( key, index )
             }
           }else if(typeof that.target[that.key] === 'function') {
             that.target[that.key]();
@@ -5818,6 +5873,7 @@ Gibberish.Sequencer2 = function() {
           if(Array.isArray(that.durations)) {
             var next = that.durations[ that.durationsIndex++ ];
             that.nextTime = typeof next === 'function' ? next() : next;
+            if( that.chose ) that.chose( 'durations', that.durationsIndex - 1 )
             if( that.durationsIndex >= that.durations.length) {
               that.durationsIndex = 0;
             }
@@ -6142,6 +6198,8 @@ method is called automatically when the sequencer is first created; you should o
   //this.processProperties( arguments );
 };
 Gibberish.Sequencer.prototype = Gibberish._oscillator
+// TODO: must fix scale seq
+
 /*
 c = new Gibberish.Synth({ pan:-1 }).connect();
 b = new Gibberish.Synth({ pan:1 }).connect(); 
@@ -6170,7 +6228,6 @@ Gibberish.PolySeq = function() {
     add           : function( seq ) {
       seq.valuesIndex = seq.durationsIndex = 0
       that.seqs.push( seq )
-      
       
       if( typeof that.timeline[ phase ] !== 'undefined' ) {
         that.timeline[ phase ].push( seq )
@@ -6202,22 +6259,21 @@ Gibberish.PolySeq = function() {
           for( var j = 0; j < seqs.length; j++ ) {
             var seq = seqs[ j ]
             if( seq.shouldStop ) continue;
+
+            var idx = seq.values.pick ? seq.values.pick() : seq.valuesIndex++ % seq.values.length,
+                val = seq.values[ idx ];
+    
+            if(typeof val === 'function') { val = val(); } // will also call anonymous function
+    
             if( seq.target ) {
-              var idx = seq.values.pick ? seq.values.pick() : seq.valuesIndex++ % seq.values.length,
-                  val = seq.values[ idx ];
-      
-              if(typeof val === 'function') { val = val(); }
-      
               if(typeof seq.target[ seq.key ] === 'function') {
                 seq.target[ seq.key ]( val );
               }else{
                 seq.target[ seq.key ] = val;
               }
-            }else{
-              if(typeof seq.values[ seq.valuesIndex ] === 'function') {
-                seq.values[ seq.valuesIndex++ % seq.values.length ]();
-              }
             }
+            
+            if( that.chose ) that.chose( seq.key, idx )
               
             if( Array.isArray( seq.durations ) ) {
               var idx = seq.durations.pick ? seq.durations.pick() : seq.durationsIndex++,
@@ -6227,6 +6283,7 @@ Gibberish.PolySeq = function() {
               if( seq.durationsIndex >= seq.durations.length ) {
                 seq.durationsIndex = 0;
               }
+              if( that.chose ) that.chose( 'durations', idx )
             }else{
               var next = seq.durations;
               newNextTime = typeof next === 'function' ? next() : next;
@@ -6322,9 +6379,17 @@ Gibberish.PolySeq = function() {
       return this;
     },
     
-    shuffle : function() {
-      for( key in this.keysAndValues ) {
-        this.shuffleArray( this.keysAndValues[ key ] )
+    shuffle : function( seqName ) {
+      if( typeof seqName !== 'undefined' ) {
+        for( var i = 0; i < this.seqs.length; i++ ) {
+          if( this.seqs[i].key === seqName ) {
+            this.shuffleArray( this.seqs[i].values )
+          }
+        }
+      }else{
+        for( var i = 0; i < this.seqs.length; i++ ) {
+          this.shuffleArray( this.seqs[i].values )
+        }
       }
     },
     

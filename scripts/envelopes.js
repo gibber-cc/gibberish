@@ -37,14 +37,24 @@ Gibberish.Line = function(start, end, time, loops) {
   		end:		isNaN(end) ? 1 : end,
   		time:		time || Gibberish.context.sampleRate,
   		loops:	loops || false,
+    },
+    
+    retrigger: function( end, time ) {
+      phase = 0;
+      this.start = out
+      this.end = end
+      this.time = time
+      
+      incr = (end - out) / time
     }
 	};
 
-	var phase = 0;
-	var incr = (end - start) / time;
+	var phase = 0,
+	    incr = (end - start) / time,
+      out
   
 	this.callback = function(start, end, time, loops) {
-		var out = phase < time ? start + ( phase++ * incr) : end;
+		out = phase < time ? start + ( phase++ * incr) : end;
 				
 		phase = (out >= end && loops) ? 0 : phase;
 		

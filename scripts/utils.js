@@ -304,4 +304,11 @@ Gibberish.future = function(func, time) {
     ],
     durations:[ time ]
   }).start()
+  
+  seq.cancel = function() {
+    seq.stop();
+    seq.disconnect();
+  }
+  
+  return seq
 }

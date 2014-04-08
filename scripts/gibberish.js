@@ -347,6 +347,7 @@ Create a callback and start it running. Note that in iOS audio callbacks can onl
       }else{
         alert('Your browser does not support javascript audio synthesis. Please download a modern web browser that is not Internet Explorer.')
       }
+      if( Gibberish.onstart ) Gibberish.onstart()
     }
     
     if('ontouchstart' in document.documentElement) {
@@ -361,25 +362,60 @@ Create a callback and start it running. Note that in iOS audio callbacks can onl
 /**###Gibberish.makePanner : method
 Create and return an object that can be used to pan a stereo source.
 **/ 
-  makePanner : function() {
-		var sin = Math.sin;
-		var cos = Math.cos;
-		var sqrtTwoOverTwo = Math.sqrt(2) / 2;
-			
-		var f = function(val, pan, array) {
-      var isObject = typeof val === 'object';
-      var l = isObject ? val[0] : val;
-      var r = isObject ? val[1] : val;
-          
-  		array[0] = l * (sqrtTwoOverTwo * (cos(pan) - sin(pan)) );
-    	array[1] = r * (sqrtTwoOverTwo * (cos(pan) + sin(pan)) );
-          
-			return array;
-		};
-        
-		return f;
-	},
+  //   makePanner : function() {
+  //   var sin = Math.sin;
+  //   var cos = Math.cos;
+  //   var sqrtTwoOverTwo = Math.sqrt(2) / 2;
+  //     
+  //   var f = function(val, pan, array) {
+  //       var isObject = typeof val === 'object';
+  //       var l = isObject ? val[0] : val;
+  //       var r = isObject ? val[1] : val;
+  //           
+  //       array[0] = l * (sqrtTwoOverTwo * (cos(pan) - sin(pan)) );
+  //       array[1] = r * (sqrtTwoOverTwo * (cos(pan) + sin(pan)) );
+  //           
+  //     return array;
+  //   };
+  //         
+  //   return f;
+  // },
   
+makePanner : function() {
+  // thanks to grrrwaaa for this
+  // create pan curve arrays (once-only): 
+	var panTableL = [], panTableR = [];
+	var sqrtTwoOverTwo = Math.sqrt(2) / 2;
+
+	for( var i = 0; i < 1024; i++ ) { 
+		var pan = -1 + ( i / 1024 ) * 2;
+		panTableL[i] = (sqrtTwoOverTwo * (Math.cos(pan) - Math.sin(pan)) );
+		panTableR[i] = (sqrtTwoOverTwo * (Math.cos(pan) + Math.sin(pan)) );
+	}
+
+  return function(val, pan, output) {
+    var isObject = typeof val === 'object',
+        l = isObject ? val[0] : val,
+        r = isObject ? val[1] : val,
+        _index, index, frac, index2, val1, val2;
+      
+    _index  = ((pan + 1) * 1023) / 2
+    index   = _index | 0
+    frac    = _index - index;
+    index   = index & 1023;
+    index2  = index === 1023 ? 0 : index + 1;
+    
+    val1    = panTableL[index];
+    val2    = panTableL[index2];
+    output[0] = ( val1 + ( frac * (val2 - val1) ) ) * l;
+    
+    val1    = panTableR[index];
+    val2    = panTableR[index2];
+    output[1] = ( val1 + ( frac * (val2 - val1) ) ) * r;
+    
+    return output;
+	}
+},
   // IMPORTANT: REMEMBER THIS IS OVERRIDDEN IN GIBBER
   defineUgenProperty : function(key, initValue, obj) {
     var prop = obj.properties[key] = {

@@ -86,6 +86,7 @@ Gibberish.Sequencer2 = function() {
               if(that.counts[key] >= that.keysAndValues[key].length) {
                 that.counts[key] = 0;
               }
+              if( that.chose ) that.chose( key, index )
             }
           }else if(typeof that.target[that.key] === 'function') {
             that.target[that.key]();
@@ -96,6 +97,7 @@ Gibberish.Sequencer2 = function() {
           if(Array.isArray(that.durations)) {
             var next = that.durations[ that.durationsIndex++ ];
             that.nextTime = typeof next === 'function' ? next() : next;
+            if( that.chose ) that.chose( 'durations', that.durationsIndex - 1 )
             if( that.durationsIndex >= that.durations.length) {
               that.durationsIndex = 0;
             }

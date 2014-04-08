@@ -234,6 +234,7 @@ param **amp** Number. Optional. The volume to use.
     this.useADSR = typeof arguments[0].useADSR !== 'undefined' ? arguments[ 0 ].useADSR : false    
     this.requireReleaseTrigger = typeof arguments[0].requireReleaseTrigger !== 'undefined' ? arguments[ 0 ].requireReleaseTrigger : false    
   }
+
   this.initVoices()
   
   // var maxVoices = this.maxVoices
