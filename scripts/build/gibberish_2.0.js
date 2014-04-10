@@ -1004,22 +1004,25 @@ Gibberish.rndf = function(min, max, number, canRepeat) {
 };
   
 Gibberish.Rndf = function() {
-  var min, max, quantity, random = Math.random, round = Math.round, range;
+  var _min, _max, quantity, random = Math.random, canRepeat = true;
     
   if(arguments.length === 0) {
-    min = 0; max = 1;
+    _min = 0; _max = 1;
   }else if(arguments.length === 1) {
-    max = arguments[0]; min = 0; 
+    _max = arguments[0]; _min = 0;
   }else if(arguments.length === 2) {
-    min = arguments[0]; max = arguments[1];
+    _min = arguments[0]; _max = arguments[1];
   }else{
-    min = arguments[0]; max = arguments[1]; quantity = arguments[2];
-  }
-  
-  range = max - min;
+    _min = arguments[0]; _max = arguments[1]; quantity = arguments[2];
+  }  
   
   return function() {
-    var value;
+    var value, min, max, range;
+    
+    min = typeof _min === 'function' ? _min() : _min
+    max = typeof _max === 'function' ? _max() : _max
+  
+    range = max - min
     
     if( typeof quantity === 'undefined' ) {
       value = min + random() * range ;
@@ -1070,22 +1073,25 @@ Gibberish.rndi = function( min, max, number, canRepeat ) {
 };
 
 Gibberish.Rndi = function() {
-  var min, max, quantity, random = Math.random, round = Math.round, canRepeat = true, range;
+  var _min, _max, quantity, random = Math.random, round = Math.round, canRepeat = true;
     
   if(arguments.length === 0) {
-    min = 0; max = 1;
+    _min = 0; _max = 1;
   }else if(arguments.length === 1) {
-    max = arguments[0]; min = 0;
+    _max = arguments[0]; _min = 0;
   }else if(arguments.length === 2) {
-    min = arguments[0]; max = arguments[1];
+    _min = arguments[0]; _max = arguments[1];
   }else{
-    min = arguments[0]; max = arguments[1]; quantity = arguments[2];
-  }
-  
-  range = max - min
+    _min = arguments[0]; _max = arguments[1]; quantity = arguments[2];
+  }  
   
   return function() {
-    var value;
+    var value, min, max, range;
+    
+    min = typeof _min === 'function' ? _min() : _min
+    max = typeof _max === 'function' ? _max() : _max
+  
+    range = max - min
     
     if( typeof quantity === 'undefined') {
       value = round( min + random() * range );
@@ -4921,7 +4927,7 @@ Gibberish.Sampler = function() {
 		file: 			null,
 		isLoaded: 	false,
     playOnLoad :  0,
-    
+    buffers: {},
     properties : {
     	pitch:			  1,
   		amp:			    1,
@@ -4949,15 +4955,31 @@ param **buffer** Object. The decoded sampler buffers from the audio file
       self.length = phase = bufferLength;
       self.isPlaying = true;
 					
-			console.log("LOADED ", self.file, bufferLength);
+			//console.log("LOADED ", self.file, bufferLength);
 			Gibberish.audioFiles[self.file] = buffer;
-			
+			self.buffers[ self.file ] = buffer;
+      
       if(self.onload) self.onload();
       
       if(self.playOnLoad !== 0) self.note(self.playOnLoad);
       
 			self.isLoaded = true;
 		},
+    
+    switchBuffer: function( bufferID ) { // accepts either number or string
+      if( typeof bufferID === 'string' ) {
+        if( typeof self.buffers[ bufferID ] !== 'undefined' ) {
+          buffer = self.buffers[ bufferID ]
+          bufferLength = self.end = self.length = buffer.length
+        }
+      }else if( typeof bufferID === 'number' ){
+        var keys = Object.keys( self.buffers )
+        if( keys.length === 0 ) return 
+        //console.log( "KEY", keys, keys[ bufferID ], bufferID )
+        buffer = self.buffers[ keys[ bufferID ] ]
+        bufferLength = self.end = self.length = buffer.length
+      }
+    },
     
     floatTo16BitPCM : function(output, offset, input){
       //console.log(output.length, offset, input.length )
@@ -5114,6 +5136,8 @@ Returns a pointer to the Sampler's internal buffer.
     setBuffer : function(b) { buffer = b },
     getPhase : function() { return phase },
     setPhase : function(p) { phase = p },
+    getNumberOfBuffers: function() { return Object.keys( self.buffers ).length - 1 },
+    
 /**###Gibberish.Sampler.callback : method  
 Return a single sample. It's a pretty lengthy method signature, they are all properties that have already been listed:  
 
@@ -5188,11 +5212,11 @@ _pitch, amp, isRecording, isPlaying, input, length, start, end, loops, pan
 		}
 	});
   */
-
   
 	if(typeof Gibberish.audioFiles[this.file] !== "undefined") {
 		buffer =  Gibberish.audioFiles[this.file];
 		this.end = this.bufferLength = buffer.length;
+		this.buffers[ this.file ] = buffer;
     
     phase = this.bufferLength;
     Gibberish.dirty(this);
@@ -5211,8 +5235,9 @@ _pitch, amp, isRecording, isPlaying, input, length, start, end, loops, pan
         buffer = _buffer.getChannelData(0)
   			self.length = phase = self.end = bufferLength = buffer.length
         self.isPlaying = true;
-					
-  			console.log("LOADED", self.file, bufferLength);
+  			self.buffers[ self.file ] = buffer;
+
+  			//console.log("LOADED", self.file, bufferLength);
   			Gibberish.audioFiles[self.file] = buffer;
 			
         if(self.onload) self.onload();

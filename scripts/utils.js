@@ -157,22 +157,25 @@ Gibberish.rndf = function(min, max, number, canRepeat) {
 };
   
 Gibberish.Rndf = function() {
-  var min, max, quantity, random = Math.random, round = Math.round, range;
+  var _min, _max, quantity, random = Math.random, canRepeat = true;
     
   if(arguments.length === 0) {
-    min = 0; max = 1;
+    _min = 0; _max = 1;
   }else if(arguments.length === 1) {
-    max = arguments[0]; min = 0; 
+    _max = arguments[0]; _min = 0;
   }else if(arguments.length === 2) {
-    min = arguments[0]; max = arguments[1];
+    _min = arguments[0]; _max = arguments[1];
   }else{
-    min = arguments[0]; max = arguments[1]; quantity = arguments[2];
-  }
-  
-  range = max - min;
+    _min = arguments[0]; _max = arguments[1]; quantity = arguments[2];
+  }  
   
   return function() {
-    var value;
+    var value, min, max, range;
+    
+    min = typeof _min === 'function' ? _min() : _min
+    max = typeof _max === 'function' ? _max() : _max
+  
+    range = max - min
     
     if( typeof quantity === 'undefined' ) {
       value = min + random() * range ;
@@ -223,22 +226,25 @@ Gibberish.rndi = function( min, max, number, canRepeat ) {
 };
 
 Gibberish.Rndi = function() {
-  var min, max, quantity, random = Math.random, round = Math.round, canRepeat = true, range;
+  var _min, _max, quantity, random = Math.random, round = Math.round, canRepeat = true;
     
   if(arguments.length === 0) {
-    min = 0; max = 1;
+    _min = 0; _max = 1;
   }else if(arguments.length === 1) {
-    max = arguments[0]; min = 0;
+    _max = arguments[0]; _min = 0;
   }else if(arguments.length === 2) {
-    min = arguments[0]; max = arguments[1];
+    _min = arguments[0]; _max = arguments[1];
   }else{
-    min = arguments[0]; max = arguments[1]; quantity = arguments[2];
-  }
-  
-  range = max - min
+    _min = arguments[0]; _max = arguments[1]; quantity = arguments[2];
+  }  
   
   return function() {
-    var value;
+    var value, min, max, range;
+    
+    min = typeof _min === 'function' ? _min() : _min
+    max = typeof _max === 'function' ? _max() : _max
+  
+    range = max - min
     
     if( typeof quantity === 'undefined') {
       value = round( min + random() * range );
