@@ -228,7 +228,6 @@ Create an object that returns the first argument raised to the power of the seco
     me = {
       name : 'map',
       properties : { input:prop, outputMin:_outputMin, outputMax:_outputMax, inputMin:_inputMin, inputMax:_inputMax, curve:_curve || LINEAR, wrap: _wrap || false },
-
       callback : function( v, v1Min, v1Max, v2Min, v2Max, curve, wrap ) {
         var range1 = v1Max-v1Min,
             range2 = v2Max - v2Min,
@@ -240,15 +239,20 @@ Create an object that returns the first argument raised to the power of the seco
         }else if( percent < 0 ) {
           percent = wrap ? 1 + (percent % 1) : 0
         }
-
+        
         val = curve === 0 ? v1Min + ( percent * range1 ) : v1Min + pow( percent, 1.5 ) * range1
-
+        
         _value = val
         // if(phase++ % 22050 === 0 ) console.log( _value, percent, v )
         return val
       },
-
-      getValue: function() { return _value }
+      // map_22(v_28, 0, 255, -1, 1, 0, false);
+      getValue: function() { return _value },
+      invert: function() {
+        var tmp = me.outputMin
+        me.outputMin = me.outputMax
+        me.outputMax = tmp
+      }
     }
   
     me.__proto__ = new Gibberish.ugen()

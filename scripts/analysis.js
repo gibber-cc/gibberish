@@ -87,6 +87,7 @@ Gibberish.Follow = function() {
     input : 0,
     bufferSize : 4410,
     mult : 1,
+    useAbsoluteValue:true // for amplitude following, false for other values
   };
     
   var abs = Math.abs,
@@ -96,16 +97,13 @@ Gibberish.Follow = function() {
       value = 0,
       phase = 0;
       
-  this.analysisCallback = function(input, bufferSize, mult) {
-
+  this.analysisCallback = function(input, bufferSize, mult, useAbsoluteValue ) {
     if( typeof input === 'object' ) input = input[0] + input[1]
     
-    //if( phase++ % 44100 === 0) console.log( "FOLLOW INPUT:", input )
-    
-  	sum += abs(input);
+  	sum += useAbsoluteValue ? abs(input) : input;
   	sum -= history[index];
     
-  	history[index] = abs(input);
+  	history[index] = useAbsoluteValue ? abs(input) : input;
     
   	index = (index + 1) % bufferSize;
 			

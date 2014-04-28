@@ -76,7 +76,7 @@ Gibberish.MonoSynth = function() {
       glide:      0,
   		pan:			  0,
   		frequency:	0,
-      channels:   1,
+      channels:   2,
     },
     
 		waveform:		"Saw3",
