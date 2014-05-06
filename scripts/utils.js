@@ -122,7 +122,7 @@ Gibberish.rndf = function(min, max, number, canRepeat) {
 			min = 0;
 			max = 1;
 		}
-	
+
 		var diff = max - min,
 		    r = Math.random(),
 		    rr = diff * r
@@ -157,7 +157,7 @@ Gibberish.rndf = function(min, max, number, canRepeat) {
 };
   
 Gibberish.Rndf = function() {
-  var _min, _max, quantity, random = Math.random, canRepeat = true;
+  var _min, _max, quantity, random = Math.random, canRepeat;
     
   if(arguments.length === 0) {
     _min = 0; _max = 1;
@@ -165,25 +165,22 @@ Gibberish.Rndf = function() {
     _max = arguments[0]; _min = 0;
   }else if(arguments.length === 2) {
     _min = arguments[0]; _max = arguments[1];
-  }else{
+  }else if(arguments.length === 3) {
     _min = arguments[0]; _max = arguments[1]; quantity = arguments[2];
-  }  
+  }else{
+    _min = arguments[0]; _max = arguments[1]; quantity = arguments[2]; canRepeat = arguments[3];
+  }    
   
   return function() {
     var value, min, max, range;
     
     min = typeof _min === 'function' ? _min() : _min
     max = typeof _max === 'function' ? _max() : _max
-  
-    range = max - min
-    
-    if( typeof quantity === 'undefined' ) {
-      value = min + random() * range ;
+      
+    if( typeof quantity === 'undefined') {
+      value = Gibberish.rndf( min, max )
     }else{
-      value = []
-      for( var i = 0; i < quantity; i++ ) {
-        value.push( min + random() * range )
-      }
+      value = Gibberish.rndf( min, max, quantity, canRepeat )
     }
     
     return value;
@@ -197,9 +194,11 @@ Gibberish.rndi = function( min, max, number, canRepeat ) {
     min = 0; max = 1;
   }else if(arguments.length === 1) {
     max = arguments[0]; min = 0;
-  }else{
+  }else if( arguments.length === 2 ){
     min = arguments[0]; max = arguments[1];
-  }
+  }else{
+    min = arguments[0]; max = arguments[1]; number = arguments[2]; canRepeat = arguments[3];
+  }    
   
   if( typeof number === 'undefined' ) {
     range = max - min
@@ -226,7 +225,7 @@ Gibberish.rndi = function( min, max, number, canRepeat ) {
 };
 
 Gibberish.Rndi = function() {
-  var _min, _max, quantity, random = Math.random, round = Math.round, canRepeat = true;
+  var _min, _max, quantity, random = Math.random, round = Math.round, canRepeat;
     
   if(arguments.length === 0) {
     _min = 0; _max = 1;
@@ -234,8 +233,10 @@ Gibberish.Rndi = function() {
     _max = arguments[0]; _min = 0;
   }else if(arguments.length === 2) {
     _min = arguments[0]; _max = arguments[1];
-  }else{
+  }else if(arguments.length === 3) {
     _min = arguments[0]; _max = arguments[1]; quantity = arguments[2];
+  }else{
+    _min = arguments[0]; _max = arguments[1]; quantity = arguments[2]; canRepeat = arguments[3];
   }  
   
   return function() {
@@ -243,16 +244,11 @@ Gibberish.Rndi = function() {
     
     min = typeof _min === 'function' ? _min() : _min
     max = typeof _max === 'function' ? _max() : _max
-  
-    range = max - min
     
     if( typeof quantity === 'undefined') {
-      value = round( min + random() * range );
+      value = Gibberish.rndi( min, max )
     }else{
-      value = []
-      for( var i = 0; i < quantity; i++ ) {
-        value.push( round( min + random() * range ) )
-      }
+      value = Gibberish.rndi( min, max, quantity, canRepeat )
     }
     
     return value;
