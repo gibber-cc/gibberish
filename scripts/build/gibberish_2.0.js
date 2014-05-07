@@ -1047,6 +1047,9 @@ Gibberish.rndi = function( min, max, number, canRepeat ) {
     min = arguments[0]; max = arguments[1]; number = arguments[2]; canRepeat = arguments[3];
   }    
   
+  range = max - min
+  if( range < number ) canRepeat = true
+  
   if( typeof number === 'undefined' ) {
     range = max - min
     return Math.round( min + Math.random() * range );
@@ -1072,7 +1075,7 @@ Gibberish.rndi = function( min, max, number, canRepeat ) {
 };
 
 Gibberish.Rndi = function() {
-  var _min, _max, quantity, random = Math.random, round = Math.round, canRepeat;
+  var _min, _max, quantity, random = Math.random, round = Math.round, canRepeat, range;
     
   if(arguments.length === 0) {
     _min = 0; _max = 1;
@@ -1085,6 +1088,9 @@ Gibberish.Rndi = function() {
   }else{
     _min = arguments[0]; _max = arguments[1]; quantity = arguments[2]; canRepeat = arguments[3];
   }  
+  
+  range = _max - _min
+  if( typeof quantity === 'number' && range < quantity ) canRepeat = true
   
   return function() {
     var value, min, max, range;
@@ -2039,7 +2045,15 @@ Gibberish.bus = function(){
   
   this.inputCodegen = function() {
     var val = this.value.codegen();
-    var str = this.amp === 1 ? val : val + ' * ' + this.amp;
+    var str;
+    
+    /*if( this.value.name === 'Drums' ) {
+      str = '[ ' + val + '[0] * ' + this.amp + ', ' + val + '[1] * ' + this.amp + ']'  // works!
+    }else{
+      str = this.amp === 1 ? val : val + ' * ' + this.amp;
+    }*/
+      
+    str = val + ', ' + this.amp 
     this.codeblock = str;
     return str;
   };
@@ -2082,14 +2096,17 @@ Gibberish.bus = function(){
     
     output[0] = output[1] = 0;
     
-    for(var i = 0; i < arguments.length - 2; i++) {
-      var isObject = typeof arguments[i] === 'object';
-      output[0] += isObject ? arguments[i][0] : arguments[i];
-      output[1] += isObject ? arguments[i][1] : arguments[i];
+    for(var i = 0; i < arguments.length - 2; i+=2) {
+      var isObject = typeof arguments[i] === 'object',
+          _amp = arguments[i + 1]
+          
+      output[0] += isObject ? arguments[i][0] * _amp :arguments[i] * _amp;
+      output[1] += isObject ? arguments[i][1] * _amp: arguments[i] * _amp;
     }
     
     output[0] *= amp;
     output[1] *= amp;
+    
     return panner(output, pan, output);
   };
 };
@@ -2168,10 +2185,12 @@ Gibberish.Bus2 = function() {
     output[0] = output[1] = 0;
     
     //if(phase++ % 44100 === 0) console.log(args)
-    for(var i = 0, l = length - 2; i < l; i++) {
-      var isObject = typeof args[i] === 'object';
-      output[0] += isObject ? args[i][0] || 0 : args[i] || 0;
-      output[1] += isObject ? args[i][1] || 0 : args[i] || 0;
+    for(var i = 0, l = length - 2; i < l; i+= 2) {
+      var isObject = typeof args[i] === 'object',
+          _amp = args[i + 1]
+          
+      output[0] += isObject ? args[i][0] * _amp || 0 : args[i] * _amp || 0;
+      output[1] += isObject ? args[i][1] * _amp || 0 : args[i] * _amp || 0;
     }
     
     output[0] *= amp;

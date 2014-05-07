@@ -200,6 +200,9 @@ Gibberish.rndi = function( min, max, number, canRepeat ) {
     min = arguments[0]; max = arguments[1]; number = arguments[2]; canRepeat = arguments[3];
   }    
   
+  range = max - min
+  if( range < number ) canRepeat = true
+  
   if( typeof number === 'undefined' ) {
     range = max - min
     return Math.round( min + Math.random() * range );
@@ -225,7 +228,7 @@ Gibberish.rndi = function( min, max, number, canRepeat ) {
 };
 
 Gibberish.Rndi = function() {
-  var _min, _max, quantity, random = Math.random, round = Math.round, canRepeat;
+  var _min, _max, quantity, random = Math.random, round = Math.round, canRepeat, range;
     
   if(arguments.length === 0) {
     _min = 0; _max = 1;
@@ -238,6 +241,9 @@ Gibberish.Rndi = function() {
   }else{
     _min = arguments[0]; _max = arguments[1]; quantity = arguments[2]; canRepeat = arguments[3];
   }  
+  
+  range = _max - _min
+  if( typeof quantity === 'number' && range < quantity ) canRepeat = true
   
   return function() {
     var value, min, max, range;
