@@ -114,7 +114,6 @@ Gibberish.Follow = function() {
   };
     
   this.callback = this.getValue = function() { return value; };
-  
     
   this.init();
   this.analysisInit();

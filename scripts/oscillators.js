@@ -35,11 +35,14 @@ Number. A linear value specifying relative amplitude, ostensibly from 0..1 but c
 Gibberish.Wavetable = function() {
   var phase = 0,
       table = null,
-      tableFreq = Gibberish.context.sampleRate / 1024;
+      tableFreq = Gibberish.context.sampleRate / 1024,
+      signHistory = 0,
+      flip = 0;
   
   this.properties = {
     frequency : 440,
-    amp :       .25,
+    amp : .25,
+    sync: 0
   };
   
 /**###Gibberish.Wavetable.setTable : method  
@@ -62,8 +65,8 @@ Returns a single sample of output.
 param **frequency** Number. The frequency to be used to calculate output.  
 param **amp** Number. The amplitude to be used to calculate output.  
 **/   
-  this.callback = function(frequency, amp) { 
-    var index, frac, index2, val1, val2;
+  this.callback = function(frequency, amp, sync) { 
+    var index, frac, index2, val1, val2, sign;
             
     phase += frequency / tableFreq;
     while(phase >= 1024) phase -= 1024;  
@@ -74,7 +77,19 @@ param **amp** Number. The amplitude to be used to calculate output.
     index2  = index === 1023 ? 0 : index + 1;
     val1    = table[index];
     val2    = table[index2];
-        
+    
+    sign = typeof sync == 'number' ? sync ? sync < 0 ? -1 : 1 : isNaN(sync) ? NaN : 0 : NaN;
+    if( sign !== signHistory && sign !== 0) {
+      flip++
+      
+      if( flip === 2 ){
+        phase = 0
+        flip = 0
+      }
+      //console.log( "FLIP", sign, signHistory, count, sync )
+    }
+    if( sign !== 0 ) signHistory = sign
+    
     return ( val1 + ( frac * (val2 - val1) ) ) * amp;
   }
 }
@@ -480,6 +495,9 @@ Gibberish.Saw3 = function() {
       sin = Math.sin,
       scale = 11;
       pi_2 = Math.PI * 2,
+      flip = 0,
+      signHistory = 0,
+      ignore = false,
       sr = Gibberish.context.sampleRate;
       
   Gibberish.extend(this, {
@@ -487,6 +505,7 @@ Gibberish.Saw3 = function() {
     properties : {
       frequency: 440,
       amp: .15,
+      sync:0,
       sr: Gibberish.context.sampleRate,
     },
 /**###Gibberish.Saw3.callback : method  
@@ -495,13 +514,14 @@ Returns a single sample of output.
 param **frequency** Number. The frequency to be used to calculate output.  
 param **amp** Number. The amplitude to be used to calculate output.  
 **/    
-    callback : function(frequency, amp) {
+    callback : function(frequency, amp, sync) {
       var w = frequency / sr,
           n = .5 - w,
           scaling = scale * n * n * n * n,
           DC = .376 - w * .752,
           norm = 1 - 2 * w,
-          out = 0;
+          out = 0,
+          sign;
           
       phase += w;
       phase -= phase > 1 ? 2 : 0;
@@ -510,10 +530,30 @@ param **amp** Number. The amplitude to be used to calculate output.
       out = a0 * osc + a1 * history;
       history = osc;
       out += DC;
+      out *= norm;
+
+      // sign = typeof sync == 'number' ? sync ? sync < 0 ? -1 : 1 : isNaN(sync) ? NaN : 0 : NaN;
+      // if( sign !== signHistory && sign !== 0) {
+      //   flip++
+      //   
+      //   if( flip === 2 ){
+      //     phase = 0
+      //     flip = 0
+      //   }
+      //   //console.log( "FLIP", sign, signHistory, count, sync )
+      // }
+      // if( sign !== 0 ) signHistory = sign
       
-      return out * norm;
+      return out;
     }
   });
+  
+  /*
+    .1 : 1 1
+    0  : 0 1   // ignored
+  -.1  : -1 1  // flip
+  -.2  : -1 -1 
+  */
   
   Object.defineProperty(this, 'scale', {
     get : function() { return scale; },
