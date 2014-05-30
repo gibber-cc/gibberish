@@ -126,15 +126,13 @@ param **amp** Number. Optional. The volume to use.
       if( envstate() < 2 ) {
   			env = envelope(attack, decay);
   			mod = modulator(frequency * cmRatio, frequency * index) * env;
-          
   			val = carrier( frequency + mod, 1 ) * env * amp;
 
-  			out[0] = out[1] = val;
-    
+        //if( phase++ % 44105 === 0 ) console.log( panner(val, pan, out) channels )
   			return channels === 1 ? val : panner(val, pan, out);
       }else{
   		  val = out[0] = out[1] = 0;
-        return channels === 1 ? val : panner(val, pan, out);
+        return channels === 1 ? val : out;
       }
     }
 	};

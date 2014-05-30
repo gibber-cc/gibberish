@@ -20,7 +20,8 @@ Gibberish.bus = function(){
   this.type = 'bus';
   
   this.inputCodegen = function() {
-    var val = this.value.codegen();
+    //console.log( this, this.value, this.value.valueOf() )
+    var val = this.value.valueOf();
     var str;
     
     /*if( this.value.name === 'Drums' ) {
@@ -39,6 +40,7 @@ Gibberish.bus = function(){
       value:	      arguments[0], 
       amp:		      arguments[1], 
       codegen:      this.inputCodegen,
+      valueOf:      function() { return this.codegen() }
     };
     
     this.inputs.push( arg );

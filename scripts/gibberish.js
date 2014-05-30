@@ -555,6 +555,12 @@ param **argumentList** : Array. A list of arguments (may be a single dictionary)
         }
         return this;
       },
+      
+      valueOf: function() {
+        this.codegen()
+        //console.log( "VALUEOF", this.variable )
+        return this.variable
+      },
 /**###Ugen.codegen : method
 Generates output code (as a string) used inside audio callback
 **/   
@@ -586,7 +592,7 @@ Generates output code (as a string) used inside audio callback
             for(var i = 0; i < property.value.length; i++) {
               var member = property.value[i];
               if( typeof member === 'object' ) {
-            		value += member !== null ? member.codegen() : 'null';
+            		value += member !== null ? member.valueOf() : 'null';
               }else{
                 if(typeof property.value === 'function') {
                   value += property.value();
@@ -599,7 +605,7 @@ Generates output code (as a string) used inside audio callback
             
           }else if( typeof property.value === 'object' ) {
             if( property.value !== null) {
-              value = property.value.codegen ? property.value.codegen() : property.value
+              value = property.value.codegen ? property.value.valueOf() : property.value
             }
           }else if( property.name !== 'undefined'){
             if(typeof property.value === 'function') {
@@ -621,7 +627,7 @@ Generates output code (as a string) used inside audio callback
               if( typeof op.ugen === 'number') {
                   val = op.ugen;
               }else{
-                  val = op.ugen !== null ? op.ugen.codegen() : 'null';
+                  val = op.ugen !== null ? op.ugen.valueOf() : 'null';
               }
               
               if(op.binop === "=") {

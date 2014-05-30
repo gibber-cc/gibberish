@@ -68,6 +68,8 @@ param **target** object, default window. The object to export the Gibberish.Bino
       
       return out;
     };
+    
+    me.valueOf = function() { return me.codegen() }
         
     //me.processProperties.apply( me, args );
 

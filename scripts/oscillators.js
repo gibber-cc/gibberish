@@ -78,16 +78,16 @@ param **amp** Number. The amplitude to be used to calculate output.
     val1    = table[index];
     val2    = table[index2];
     
-    sign = typeof sync == 'number' ? sync ? sync < 0 ? -1 : 1 : isNaN(sync) ? NaN : 0 : NaN;
-    if( sign !== signHistory && sign !== 0) {
-      flip++
-      
-      if( flip === 2 ){
-        phase = 0
-        flip = 0
-      }
-      //console.log( "FLIP", sign, signHistory, count, sync )
-    }
+    // sign = typeof sync == 'number' ? sync ? sync < 0 ? -1 : 1 : isNaN(sync) ? NaN : 0 : NaN;
+    // if( sign !== signHistory && sign !== 0) {
+    //   flip++
+    //   
+    //   if( flip === 2 ){
+    //     phase = 0
+    //     flip = 0
+    //   }
+    //   //console.log( "FLIP", sign, signHistory, count, sync )
+    // }
     if( sign !== 0 ) signHistory = sign
     
     return ( val1 + ( frac * (val2 - val1) ) ) * amp;
@@ -147,7 +147,7 @@ Gibberish.asmSine = function (stdlib, foreign, heap) {
           val2 = 0.0;
       
       phase = +(phase + freq / tableFreq);
-      if(phase >= 1024.0) phase = +(phase - 1024.0);  
+      if(phase >= 1024.0) phase = +(phase - 1024.0);
           
       index = +floor(phase);
       frac = phase - index;

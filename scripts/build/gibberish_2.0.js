@@ -555,6 +555,12 @@ param **argumentList** : Array. A list of arguments (may be a single dictionary)
         }
         return this;
       },
+      
+      valueOf: function() {
+        this.codegen()
+        //console.log( "VALUEOF", this.variable )
+        return this.variable
+      },
 /**###Ugen.codegen : method
 Generates output code (as a string) used inside audio callback
 **/   
@@ -586,7 +592,7 @@ Generates output code (as a string) used inside audio callback
             for(var i = 0; i < property.value.length; i++) {
               var member = property.value[i];
               if( typeof member === 'object' ) {
-            		value += member !== null ? member.codegen() : 'null';
+            		value += member !== null ? member.valueOf() : 'null';
               }else{
                 if(typeof property.value === 'function') {
                   value += property.value();
@@ -599,7 +605,7 @@ Generates output code (as a string) used inside audio callback
             
           }else if( typeof property.value === 'object' ) {
             if( property.value !== null) {
-              value = property.value.codegen ? property.value.codegen() : property.value
+              value = property.value.codegen ? property.value.valueOf() : property.value
             }
           }else if( property.name !== 'undefined'){
             if(typeof property.value === 'function') {
@@ -621,7 +627,7 @@ Generates output code (as a string) used inside audio callback
               if( typeof op.ugen === 'number') {
                   val = op.ugen;
               }else{
-                  val = op.ugen !== null ? op.ugen.codegen() : 'null';
+                  val = op.ugen !== null ? op.ugen.valueOf() : 'null';
               }
               
               if(op.binop === "=") {
@@ -1336,16 +1342,16 @@ param **amp** Number. The amplitude to be used to calculate output.
     val1    = table[index];
     val2    = table[index2];
     
-    sign = typeof sync == 'number' ? sync ? sync < 0 ? -1 : 1 : isNaN(sync) ? NaN : 0 : NaN;
-    if( sign !== signHistory && sign !== 0) {
-      flip++
-      
-      if( flip === 2 ){
-        phase = 0
-        flip = 0
-      }
-      //console.log( "FLIP", sign, signHistory, count, sync )
-    }
+    // sign = typeof sync == 'number' ? sync ? sync < 0 ? -1 : 1 : isNaN(sync) ? NaN : 0 : NaN;
+    // if( sign !== signHistory && sign !== 0) {
+    //   flip++
+    //   
+    //   if( flip === 2 ){
+    //     phase = 0
+    //     flip = 0
+    //   }
+    //   //console.log( "FLIP", sign, signHistory, count, sync )
+    // }
     if( sign !== 0 ) signHistory = sign
     
     return ( val1 + ( frac * (val2 - val1) ) ) * amp;
@@ -1405,7 +1411,7 @@ Gibberish.asmSine = function (stdlib, foreign, heap) {
           val2 = 0.0;
       
       phase = +(phase + freq / tableFreq);
-      if(phase >= 1024.0) phase = +(phase - 1024.0);  
+      if(phase >= 1024.0) phase = +(phase - 1024.0);
           
       index = +floor(phase);
       frac = phase - index;
@@ -2084,7 +2090,8 @@ Gibberish.bus = function(){
   this.type = 'bus';
   
   this.inputCodegen = function() {
-    var val = this.value.codegen();
+    //console.log( this, this.value, this.value.valueOf() )
+    var val = this.value.valueOf();
     var str;
     
     /*if( this.value.name === 'Drums' ) {
@@ -2103,6 +2110,7 @@ Gibberish.bus = function(){
       value:	      arguments[0], 
       amp:		      arguments[1], 
       codegen:      this.inputCodegen,
+      valueOf:      function() { return this.codegen() }
     };
     
     this.inputs.push( arg );
@@ -4782,15 +4790,13 @@ param **amp** Number. Optional. The volume to use.
       if( envstate() < 2 ) {
   			env = envelope(attack, decay);
   			mod = modulator(frequency * cmRatio, frequency * index) * env;
-          
   			val = carrier( frequency + mod, 1 ) * env * amp;
 
-  			out[0] = out[1] = val;
-    
+        //if( phase++ % 44105 === 0 ) console.log( panner(val, pan, out) channels )
   			return channels === 1 ? val : panner(val, pan, out);
       }else{
   		  val = out[0] = out[1] = 0;
-        return channels === 1 ? val : panner(val, pan, out);
+        return channels === 1 ? val : out;
       }
     }
 	};
@@ -5599,6 +5605,8 @@ param **target** object, default window. The object to export the Gibberish.Bino
       
       return out;
     };
+    
+    me.valueOf = function() { return me.codegen() }
         
     //me.processProperties.apply( me, args );
 
@@ -6304,14 +6312,25 @@ Gibberish.PolySeq = function() {
     isConnected   : false,
     properties    : { rate: 1, isRunning:false, nextTime:0 },
     offset        : 0,
+    autofire      : [],
     name          : 'polyseq',
     getPhase      : function() { return phase },
     add           : function( seq ) {
       seq.valuesIndex = seq.durationsIndex = 0
       that.seqs.push( seq )
       
+      //console.log("PRIORITY", seq.priority )
+      
+      if( seq.durations === null ) {
+        that.autofire.push( seq )
+      }
+      
       if( typeof that.timeline[ phase ] !== 'undefined' ) {
-        that.timeline[ phase ].push( seq )
+        if( seq.priority ) {
+          that.timeline[ phase ].unshift( seq )
+        }else{
+          that.timeline[ phase ].push( seq )
+        }
       }else{
         that.timeline[ phase ] = [ seq ]
       }
@@ -6337,6 +6356,8 @@ Gibberish.PolySeq = function() {
               
           if( typeof seqs === 'undefined') return
           
+          if( that.autofire.length ) seqs = seqs.concat( that.autofire )
+          
           for( var j = 0; j < seqs.length; j++ ) {
             var seq = seqs[ j ]
             if( seq.shouldStop ) continue;
@@ -6355,36 +6376,42 @@ Gibberish.PolySeq = function() {
             }
             
             if( that.chose ) that.chose( seq.key, idx )
-              
-            if( Array.isArray( seq.durations ) ) {
-              var idx = seq.durations.pick ? seq.durations.pick() : seq.durationsIndex++,
-                  next = seq.durations[ idx ]
+            
+            if( seq.durations !== null ) { 
+              if( Array.isArray( seq.durations ) ) {
+                var idx = seq.durations.pick ? seq.durations.pick() : seq.durationsIndex++,
+                    next = seq.durations[ idx ]
 
-              newNextTime = typeof next === 'function' ? next() : next;
-              if( seq.durationsIndex >= seq.durations.length ) {
-                seq.durationsIndex = 0;
+                newNextTime = typeof next === 'function' ? next() : next;
+                if( seq.durationsIndex >= seq.durations.length ) {
+                  seq.durationsIndex = 0;
+                }
+                if( that.chose ) that.chose( 'durations', idx )
+              }else{
+                var next = seq.durations;
+                newNextTime = typeof next === 'function' ? next() : next;
               }
-              if( that.chose ) that.chose( 'durations', idx )
-            }else{
-              var next = seq.durations;
-              newNextTime = typeof next === 'function' ? next() : next;
-            }
           
-            var t;
+              var t;
             
-            if( typeof Gibber !== 'undefined' ) {
-              t = Gibber.Clock.time( newNextTime ) + phase // TODO: remove Gibber link... how?
-            }else{
-              t = newNextTime + phase
-            }
+              if( typeof Gibber !== 'undefined' ) {
+                t = Gibber.Clock.time( newNextTime ) + phase // TODO: remove Gibber link... how?
+              }else{
+                t = newNextTime + phase
+              }
             
-            t -= phaseDiff
-            newNextTime -= phaseDiff
+              t -= phaseDiff
+              newNextTime -= phaseDiff
             
-            if( typeof that.timeline[ t ] === 'undefined' ) {
-              that.timeline[ t ] = [ seq ]
-            }else{
-              that.timeline[ t ].push( seq )
+              if( typeof that.timeline[ t ] === 'undefined' ) {
+                that.timeline[ t ] = [ seq ]
+              }else{
+                if( seq.priority ) {
+                  that.timeline[ t ].unshift( seq )
+                }else{
+                  that.timeline[ t ].push( seq )
+                }
+              }
             }
           }
           
@@ -6432,7 +6459,7 @@ Gibberish.PolySeq = function() {
     
           _seq.valuesIndex = _seq.durationsIndex = _seq.shouldStop = 0
     
-          this.timeline[0].push( _seq )
+          this.timeline[ 0 ].push( _seq )
         }
       }
       
