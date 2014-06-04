@@ -36,6 +36,7 @@ Gibberish.bus = function(){
   };
 
   this.addConnection = function() {
+    var position = arguments[2]
     var arg = { 
       value:	      arguments[0], 
       amp:		      arguments[1], 
@@ -43,7 +44,11 @@ Gibberish.bus = function(){
       valueOf:      function() { return this.codegen() }
     };
     
-    this.inputs.push( arg );
+    if( typeof position !== 'undefined' ) {
+      this.inputs.splice( position,0,arg );
+    }else{
+      this.inputs.push( arg );
+    }
 
     Gibberish.dirty( this );
   };

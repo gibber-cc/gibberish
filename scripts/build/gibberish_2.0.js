@@ -783,11 +783,11 @@ Connect the output of a ugen to a bus.
   
 param **bus** : Bus ugen. Optional. The bus to connect the ugen to. If no argument is passed the ugen is connect to Gibberish.out. Gibberish.out is automatically created when Gibberish.init() is called and can be thought of as the master stereo output for Gibberish.
 **/      
-      connect : function(bus) {
+      connect : function(bus, position) {
         if(typeof bus === 'undefined') bus = Gibberish.out;
         
         if(this.destinations.indexOf(bus) === -1 ){
-          bus.addConnection( this, 1 );
+          bus.addConnection( this, 1, position );
           this.destinations.push( bus );
         }
         return this;
@@ -2106,6 +2106,7 @@ Gibberish.bus = function(){
   };
 
   this.addConnection = function() {
+    var position = arguments[2]
     var arg = { 
       value:	      arguments[0], 
       amp:		      arguments[1], 
@@ -2113,7 +2114,11 @@ Gibberish.bus = function(){
       valueOf:      function() { return this.codegen() }
     };
     
-    this.inputs.push( arg );
+    if( typeof position !== 'undefined' ) {
+      this.inputs.splice( position,0,arg );
+    }else{
+      this.inputs.push( arg );
+    }
 
     Gibberish.dirty( this );
   };
@@ -6301,7 +6306,8 @@ a = new Gibberish.PolySeq({
 */
 Gibberish.PolySeq = function() {
   var that = this,
-      phase = 0;
+      phase = 0,
+      sort = function(a,b) { if( a < b ) return -1; if( a > b ) return 1; return 0; } ;
   
   Gibberish.extend(this, {
     seqs          : [],
@@ -6425,7 +6431,7 @@ Gibberish.PolySeq = function() {
               times[ i ] = parseFloat( times[i] )
             }
           
-            times = times.sort( function(a,b) { if( a < b ) return -1; if( a > b ) return 1; return 0; })
+            times = times.sort( sort )
             that.nextTime = times[0]
           }else{
             that.nextTime = parseFloat( times[0] )
@@ -6448,7 +6454,7 @@ Gibberish.PolySeq = function() {
       return 0;
     },
   
-    start : function(shouldKeepOffset) {
+    start : function(shouldKeepOffset, priority) {
       if(!shouldKeepOffset) {
         phase = 0;
         this.nextTime = 0;
@@ -6464,7 +6470,7 @@ Gibberish.PolySeq = function() {
       }
       
       if( !this.isConnected ) {
-        this.connect()
+        this.connect( Gibberish.Master, priority )
         this.isConnected = true
       }
       

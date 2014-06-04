@@ -783,11 +783,11 @@ Connect the output of a ugen to a bus.
   
 param **bus** : Bus ugen. Optional. The bus to connect the ugen to. If no argument is passed the ugen is connect to Gibberish.out. Gibberish.out is automatically created when Gibberish.init() is called and can be thought of as the master stereo output for Gibberish.
 **/      
-      connect : function(bus) {
+      connect : function(bus, position) {
         if(typeof bus === 'undefined') bus = Gibberish.out;
         
         if(this.destinations.indexOf(bus) === -1 ){
-          bus.addConnection( this, 1 );
+          bus.addConnection( this, 1, position );
           this.destinations.push( bus );
         }
         return this;
