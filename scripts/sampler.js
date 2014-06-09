@@ -215,8 +215,9 @@ param **amp** Number. Optional. The volume to use.
           this.pitch = pitch()
           break;
         case 'object' :
-          this.pitch = pitch[ 0 ]
-          //if( isNaN(__pitch) ) __pitch = __pitch()
+          if( Array.isArray(pitch) ) {
+            this.pitch = pitch[ 0 ]
+          }
           break;
       }
       // if(typeof this.pitch === 'number' || typeof this.pitch === 'function' ){
@@ -241,12 +242,12 @@ param **amp** Number. Optional. The volume to use.
             __pitch = this.pitch()
             break;
           case 'object' :
-            __pitch = this.pitch[ 0 ]
-            if( isNaN(__pitch) ) __pitch = __pitch()
+            __pitch = Array.isArray( this.pitch ) ? this.pitch[ 0 ] : this.pitch
+            if( typeof __pitch === 'function' ) __pitch = __pitch()
             break;
         }
 
-        if( __pitch > 0 ) {
+        if( __pitch > 0 || typeof __pitch === 'object' ) {
           phase = this.start;
 				}else{
           phase = this.end;
