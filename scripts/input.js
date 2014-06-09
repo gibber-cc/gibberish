@@ -1,14 +1,19 @@
 var _hasInput = false; // wait until requested to ask for permissions so annoying popup doesn't appear automatically
 
 function createInput() {
+  console.log("connecting audio input...");
+  
   navigator.webkitGetUserMedia(
 		{audio:true}, 
 		function (stream) {
-      console.log("CONNECTING INPUT");
+      console.log( 'audio input connected' )
 	    Gibberish.mediaStreamSource = Gibberish.context.createMediaStreamSource( stream );
 	    Gibberish.mediaStreamSource.connect( Gibberish.node );
 			_hasInput = true;
-		}
+		},
+    function() { 
+      console.log( 'error opening audio input')
+    }
 	)
 }
 /**#Gibberish.Input - Oscillator

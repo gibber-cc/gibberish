@@ -2024,6 +2024,7 @@ Gibberish.PolyKarplusStrong = function() {
     name:     "poly_karplus_strong",
     maxVoices:    5,
     voiceCount:   0,
+    _frequency: 0,
     
     polyProperties : {
   		blend:			1,
@@ -2034,7 +2035,7 @@ Gibberish.PolyKarplusStrong = function() {
       var synth = this.children[this.voiceCount++];
       if(this.voiceCount >= this.maxVoices) this.voiceCount = 0;
       synth.note(_frequency, amp);
-      //this.frequency = _frequency;
+      this._frequency = _frequency;
     },
     initVoices: function() {
       for(var i = 0; i < this.maxVoices; i++) {
@@ -4338,6 +4339,7 @@ Gibberish.PolySynth = function() {
     maxVoices:    5,
     voiceCount:   0,
     frequencies:  [],
+    _frequency: 0,
     
     polyProperties : {
       frequency: 0,
@@ -4362,6 +4364,7 @@ param **amp** Number. Optional. The volume to use.
       synth.note(_frequency, amp);
             
       this.frequencies[ idx ] = _frequency;
+      this._frequency = _frequency
       
       if(this.voiceCount >= this.maxVoices) this.voiceCount = 0;
     },
@@ -4600,6 +4603,7 @@ Gibberish.PolySynth2 = function() {
     maxVoices:    5,
     voiceCount:   0,
     frequencies:  [],
+    _frequency: 0,
     
     polyProperties : {
       frequency: 0,
@@ -4627,6 +4631,8 @@ param **amp** Number. Optional. The volume to use.
       synth.note(_frequency, amp);
             
       this.frequencies[ idx ] = _frequency;
+      
+      this._frequency = _frequency
       
       if(this.voiceCount >= this.maxVoices) this.voiceCount = 0;
     },
@@ -4843,6 +4849,7 @@ Gibberish.PolyFM = function() {
 		voiceCount:		0,
     children: [],
     frequencies: [],
+    _frequency: 0,
     
     polyProperties : {
       glide:		 0,
@@ -4866,6 +4873,7 @@ param **amp** Number. Optional. The volume to use.
       synth.note(_frequency, amp);
             
       this.frequencies[ idx ] = _frequency;
+      this._frequency = _frequency
       
       if(this.voiceCount >= this.maxVoices) this.voiceCount = 0;
     },
@@ -6522,14 +6530,19 @@ Gibberish.PolySeq.prototype = Gibberish._oscillator
 var _hasInput = false; // wait until requested to ask for permissions so annoying popup doesn't appear automatically
 
 function createInput() {
+  console.log("connecting audio input...");
+  
   navigator.webkitGetUserMedia(
 		{audio:true}, 
 		function (stream) {
-      console.log("CONNECTING INPUT");
+      console.log( 'audio input connected' )
 	    Gibberish.mediaStreamSource = Gibberish.context.createMediaStreamSource( stream );
 	    Gibberish.mediaStreamSource.connect( Gibberish.node );
 			_hasInput = true;
-		}
+		},
+    function() { 
+      console.log( 'error opening audio input')
+    }
 	)
 }
 /**#Gibberish.Input - Oscillator

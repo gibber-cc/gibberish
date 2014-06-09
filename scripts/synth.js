@@ -194,6 +194,7 @@ Gibberish.PolySynth = function() {
     maxVoices:    5,
     voiceCount:   0,
     frequencies:  [],
+    _frequency: 0,
     
     polyProperties : {
       frequency: 0,
@@ -218,6 +219,7 @@ param **amp** Number. Optional. The volume to use.
       synth.note(_frequency, amp);
             
       this.frequencies[ idx ] = _frequency;
+      this._frequency = _frequency
       
       if(this.voiceCount >= this.maxVoices) this.voiceCount = 0;
     },
@@ -456,6 +458,7 @@ Gibberish.PolySynth2 = function() {
     maxVoices:    5,
     voiceCount:   0,
     frequencies:  [],
+    _frequency: 0,
     
     polyProperties : {
       frequency: 0,
@@ -483,6 +486,8 @@ param **amp** Number. Optional. The volume to use.
       synth.note(_frequency, amp);
             
       this.frequencies[ idx ] = _frequency;
+      
+      this._frequency = _frequency
       
       if(this.voiceCount >= this.maxVoices) this.voiceCount = 0;
     },

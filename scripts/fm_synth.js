@@ -174,6 +174,7 @@ Gibberish.PolyFM = function() {
 		voiceCount:		0,
     children: [],
     frequencies: [],
+    _frequency: 0,
     
     polyProperties : {
       glide:		 0,
@@ -197,6 +198,7 @@ param **amp** Number. Optional. The volume to use.
       synth.note(_frequency, amp);
             
       this.frequencies[ idx ] = _frequency;
+      this._frequency = _frequency
       
       if(this.voiceCount >= this.maxVoices) this.voiceCount = 0;
     },

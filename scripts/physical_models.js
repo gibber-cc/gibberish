@@ -79,6 +79,7 @@ Gibberish.PolyKarplusStrong = function() {
     name:     "poly_karplus_strong",
     maxVoices:    5,
     voiceCount:   0,
+    _frequency: 0,
     
     polyProperties : {
   		blend:			1,
@@ -89,7 +90,7 @@ Gibberish.PolyKarplusStrong = function() {
       var synth = this.children[this.voiceCount++];
       if(this.voiceCount >= this.maxVoices) this.voiceCount = 0;
       synth.note(_frequency, amp);
-      //this.frequency = _frequency;
+      this._frequency = _frequency;
     },
     initVoices: function() {
       for(var i = 0; i < this.maxVoices; i++) {
