@@ -161,7 +161,7 @@ Gibberish.PolySeq = function() {
     },
   
     start : function(shouldKeepOffset, priority) {
-      if(!shouldKeepOffset) {
+      if(!shouldKeepOffset || ! this.offset ) {
         phase = 0;
         this.nextTime = 0;
         
@@ -172,6 +172,22 @@ Gibberish.PolySeq = function() {
           _seq.valuesIndex = _seq.durationsIndex = _seq.shouldStop = 0
     
           this.timeline[ 0 ].push( _seq )
+        }
+      }else{
+        phase = 0;
+        this.nextTime = this.offset;
+        
+        var ___key = ''+this.offset
+        
+        this.timeline = {}
+        this.timeline[ ___key ] = []
+
+        for( var i = 0; i < this.seqs.length; i++ ) {
+          var _seq = this.seqs[ i ]
+    
+          _seq.valuesIndex = _seq.durationsIndex = _seq.shouldStop = 0
+    
+          this.timeline[ ___key ].push( _seq )
         }
       }
       
