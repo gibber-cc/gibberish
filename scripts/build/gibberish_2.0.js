@@ -2053,14 +2053,13 @@ Gibberish.PolyKarplusStrong = function() {
   });
   
   this.amp = 1 / this.maxVoices;
-  
-  Gibberish.polyInit(this);
-  
   this.children = [];
   
   if(typeof arguments[0] === 'object') {
     this.maxVoices = arguments[0].maxVoices ? arguments[0].maxVoices : this.maxVoices
   }
+  
+  Gibberish.polyInit(this);
   this.initVoices()
   
   this.processProperties(arguments);
@@ -4222,8 +4221,9 @@ param **amp** Number. Optional. The volume to use.
 **/    
 	this.note = function(frequency, amp) {
     if( amp !== 0 ) {
-  		if(typeof this.frequency !== 'object'){
+  		if( typeof this.frequency !== 'object' ){
         if( useADSR && frequency === lastFrequency ) {
+          console.log("RELEASE")
           this.releaseTrigger = 1;
           return;
         }
@@ -4361,7 +4361,7 @@ param **amp** Number. Optional. The volume to use.
           idx = lastNoteIndex > -1 ? lastNoteIndex : this.voiceCount++,
           synth = this.children[ idx ];
       
-      synth.note(_frequency, amp);
+      synth.note( _frequency, amp);
             
       this.frequencies[ idx ] = _frequency;
       this._frequency = _frequency
@@ -4389,9 +4389,7 @@ param **amp** Number. Optional. The volume to use.
   });
   
   this.amp = 1 / this.maxVoices;
-  
-  Gibberish.polyInit(this);
-  
+    
   this.children = [];
   
   if(typeof arguments[0] === 'object') {
@@ -4399,6 +4397,8 @@ param **amp** Number. Optional. The volume to use.
     this.useADSR = typeof arguments[0].useADSR !== 'undefined' ? arguments[ 0 ].useADSR : false
     this.requireReleaseTrigger = typeof arguments[0].requireReleaseTrigger !== 'undefined' ? arguments[ 0 ].requireReleaseTrigger : false    
   }
+  
+  Gibberish.polyInit(this);
   this.initVoices()
   
   this.processProperties(arguments);
@@ -4657,9 +4657,7 @@ param **amp** Number. Optional. The volume to use.
   });
   
   this.amp = 1 / this.maxVoices;
-  
-  Gibberish.polyInit(this);
-  
+    
   this.children = [];
   
   if(typeof arguments[0] === 'object') {
@@ -4667,6 +4665,9 @@ param **amp** Number. Optional. The volume to use.
     this.useADSR = typeof arguments[0].useADSR !== 'undefined' ? arguments[ 0 ].useADSR : false
     this.requireReleaseTrigger = typeof arguments[0].requireReleaseTrigger !== 'undefined' ? arguments[ 0 ].requireReleaseTrigger : false
   }
+  
+  Gibberish.polyInit(this);
+  
   this.initVoices()
 
   this.processProperties(arguments);
@@ -4737,7 +4738,9 @@ param **amp** Number. Optional. The volume to use.
 	this.note = function(frequency, amp) {
     if( amp !== 0 ) {
   		if(typeof this.frequency !== 'object'){
+        console.log( useADSR, frequency, lastFrequency )
         if( useADSR && frequency === lastFrequency ) {
+          console.log("RELEASE")
           this.releaseTrigger = 1;
           return;
         }
@@ -4890,6 +4893,7 @@ param **amp** Number. Optional. The volume to use.
           requireReleaseTrigger: this.requireReleaseTrigger || false,
     			amp: 		  1,
     		};
+        console.log( "prop", props.useADSR )
     		var synth = new Gibberish.FMSynth(props);
     		synth.connect(this);
 
@@ -4899,9 +4903,7 @@ param **amp** Number. Optional. The volume to use.
 	}); 
      
   this.amp = 1 / this.maxVoices;
-  
-  Gibberish.polyInit(this);
-  
+    
   this.children = [];
   
   if(typeof arguments[0] === 'object') {
@@ -4909,14 +4911,9 @@ param **amp** Number. Optional. The volume to use.
     this.useADSR = typeof arguments[0].useADSR !== 'undefined' ? arguments[ 0 ].useADSR : false    
     this.requireReleaseTrigger = typeof arguments[0].requireReleaseTrigger !== 'undefined' ? arguments[ 0 ].requireReleaseTrigger : false    
   }
-
-  this.initVoices()
   
-  // var maxVoices = this.maxVoices
-  // Object.defineProperty( this, 'maxVoices', {
-  //   get: function() { return maxVoices },
-  //   set: function(v) { maxVoices = v; this.initVoices() }
-  // })
+  Gibberish.polyInit(this);
+  this.initVoices()
   
 	this.processProperties(arguments);
   Gibberish._synth.oscillatorInit.call(this);

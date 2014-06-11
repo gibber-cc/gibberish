@@ -108,14 +108,13 @@ Gibberish.PolyKarplusStrong = function() {
   });
   
   this.amp = 1 / this.maxVoices;
-  
-  Gibberish.polyInit(this);
-  
   this.children = [];
   
   if(typeof arguments[0] === 'object') {
     this.maxVoices = arguments[0].maxVoices ? arguments[0].maxVoices : this.maxVoices
   }
+  
+  Gibberish.polyInit(this);
   this.initVoices()
   
   this.processProperties(arguments);
