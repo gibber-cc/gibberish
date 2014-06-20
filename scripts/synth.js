@@ -79,7 +79,6 @@ param **amp** Number. Optional. The volume to use.
     if( amp !== 0 ) {
   		if( typeof this.frequency !== 'object' ){
         if( useADSR && frequency === lastFrequency ) {
-          console.log("RELEASE")
           this.releaseTrigger = 1;
           return;
         }
@@ -219,10 +218,13 @@ param **amp** Number. Optional. The volume to use.
       
       synth.note( _frequency, amp);
             
-      this.frequencies[ idx ] = _frequency;
-      this._frequency = _frequency
-      
-      if(this.voiceCount >= this.maxVoices) this.voiceCount = 0;
+      if( lastNoteIndex === -1) {
+        this.frequencies[ idx ] = _frequency;
+        this._frequency = _frequency
+        if(this.voiceCount >= this.maxVoices) this.voiceCount = 0;
+      }else{
+        delete this.frequencies[ idx ]
+      }
     },
     
     initVoices: function() {
@@ -486,11 +488,13 @@ param **amp** Number. Optional. The volume to use.
       
       synth.note(_frequency, amp);
             
-      this.frequencies[ idx ] = _frequency;
-      
-      this._frequency = _frequency
-      
-      if(this.voiceCount >= this.maxVoices) this.voiceCount = 0;
+      if( lastNoteIndex === -1) {
+        this.frequencies[ idx ] = _frequency;
+        this._frequency = _frequency
+        if(this.voiceCount >= this.maxVoices) this.voiceCount = 0;
+      }else{
+        delete this.frequencies[ idx ]
+      }
     },
     
     initVoices: function() {

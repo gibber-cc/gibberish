@@ -75,7 +75,9 @@ Perform codegen on all dirty ugens and re-create the audio callback. This method
     this.dirtied.length = 0;
     
     this.codestring = 'Gibberish.callback = function(input,'
-
+    
+    this.args = ['input']
+    
     this.memo = {};
     
     this.out.codegen()
@@ -93,6 +95,7 @@ Perform codegen on all dirty ugens and re-create the audio callback. This method
 
     for(var i = 0; i < this.callbackArgs.length; i++) {
       this.codestring += this.callbackArgs[i]
+      this.args.push( this.callbackArgs[i] )
       if(i < this.callbackArgs.length - 1)
         this.codestring += ', '
     }
@@ -100,6 +103,7 @@ Perform codegen on all dirty ugens and re-create the audio callback. This method
     for( var i = 0; i < this.analysisCallbackArgs.length; i++ ) {
       this.codestring += ', '
       this.codestring += this.analysisCallbackArgs[i]
+      this.args.push( this.analysisCallbackArgs[i] )
     }
     this.codestring += '){\n\t';
 
@@ -132,7 +136,7 @@ Perform codegen on all dirty ugens and re-create the audio callback. This method
     this.callbackString = this.codestring;
     if( this.debug ) console.log( this.callbackString );
     
-    return this.codestring;    
+    return [this.args, this.codestring];
   },
 
 /**###Gibberish.audioProcess : method
@@ -149,7 +153,7 @@ param **Audio Event** : Object. The HTML5 audio event object.
         sequencers = me.sequencers,
         out = Gibberish.out.callback,
         objs = me.callbackObjects.slice(0),
-        _callback
+        callbackArgs, callbackBody, _callback, val
 
         objs.unshift(0)
         
@@ -160,8 +164,13 @@ param **Audio Event** : Object. The HTML5 audio event object.
       if(me.isDirty) {
         _callback = me.createCallback();
         
+        callbackBody = _callback[1]
+        callbackBody = callbackBody.slice( callbackBody.indexOf('{') + 1 )
+        callbackBody = callbackBody.slice(0, callbackBody.indexOf('}') )
+        
+        console.log( "CALLBACK", _callback[0], callbackBody  )
         try{
-          callback = eval( _callback )
+          callback = me.callback = new Function( _callback[0], callbackBody )//eval( _callback )
         }catch( e ) {
           console.error( "ERROR WITH CALLBACK : \n\n", _callback )
         }
@@ -171,6 +180,7 @@ param **Audio Event** : Object. The HTML5 audio event object.
         objs.unshift(0)
       }
       
+      //console.log( "CB", callback )
       objs[0] = input[i]
       val = callback.apply( null, objs );
       
@@ -4223,7 +4233,6 @@ param **amp** Number. Optional. The volume to use.
     if( amp !== 0 ) {
   		if( typeof this.frequency !== 'object' ){
         if( useADSR && frequency === lastFrequency ) {
-          console.log("RELEASE")
           this.releaseTrigger = 1;
           return;
         }
@@ -4363,10 +4372,13 @@ param **amp** Number. Optional. The volume to use.
       
       synth.note( _frequency, amp);
             
-      this.frequencies[ idx ] = _frequency;
-      this._frequency = _frequency
-      
-      if(this.voiceCount >= this.maxVoices) this.voiceCount = 0;
+      if( lastNoteIndex === -1) {
+        this.frequencies[ idx ] = _frequency;
+        this._frequency = _frequency
+        if(this.voiceCount >= this.maxVoices) this.voiceCount = 0;
+      }else{
+        delete this.frequencies[ idx ]
+      }
     },
     
     initVoices: function() {
@@ -4630,11 +4642,13 @@ param **amp** Number. Optional. The volume to use.
       
       synth.note(_frequency, amp);
             
-      this.frequencies[ idx ] = _frequency;
-      
-      this._frequency = _frequency
-      
-      if(this.voiceCount >= this.maxVoices) this.voiceCount = 0;
+      if( lastNoteIndex === -1) {
+        this.frequencies[ idx ] = _frequency;
+        this._frequency = _frequency
+        if(this.voiceCount >= this.maxVoices) this.voiceCount = 0;
+      }else{
+        delete this.frequencies[ idx ]
+      }
     },
     
     initVoices: function() {
@@ -4738,9 +4752,7 @@ param **amp** Number. Optional. The volume to use.
 	this.note = function(frequency, amp) {
     if( amp !== 0 ) {
   		if(typeof this.frequency !== 'object'){
-        console.log( useADSR, frequency, lastFrequency )
         if( useADSR && frequency === lastFrequency ) {
-          console.log("RELEASE")
           this.releaseTrigger = 1;
           return;
         }
@@ -4872,13 +4884,15 @@ param **amp** Number. Optional. The volume to use.
           idx = lastNoteIndex > -1 ? lastNoteIndex : this.voiceCount++,
           synth = this.children[ idx ];
       
-      //console.log( _frequency, lastNoteIndex, idx, synth )
       synth.note(_frequency, amp);
-            
-      this.frequencies[ idx ] = _frequency;
-      this._frequency = _frequency
       
-      if(this.voiceCount >= this.maxVoices) this.voiceCount = 0;
+      if( lastNoteIndex === -1) {
+        this.frequencies[ idx ] = _frequency;
+        this._frequency = _frequency
+        if(this.voiceCount >= this.maxVoices) this.voiceCount = 0;
+      }else{
+        delete this.frequencies[ idx ]
+      }
     },
     
     initVoices : function() {
@@ -4893,7 +4907,7 @@ param **amp** Number. Optional. The volume to use.
           requireReleaseTrigger: this.requireReleaseTrigger || false,
     			amp: 		  1,
     		};
-        console.log( "prop", props.useADSR )
+
     		var synth = new Gibberish.FMSynth(props);
     		synth.connect(this);
 

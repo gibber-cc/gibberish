@@ -62,9 +62,7 @@ param **amp** Number. Optional. The volume to use.
 	this.note = function(frequency, amp) {
     if( amp !== 0 ) {
   		if(typeof this.frequency !== 'object'){
-        console.log( useADSR, frequency, lastFrequency )
         if( useADSR && frequency === lastFrequency ) {
-          console.log("RELEASE")
           this.releaseTrigger = 1;
           return;
         }
@@ -196,13 +194,15 @@ param **amp** Number. Optional. The volume to use.
           idx = lastNoteIndex > -1 ? lastNoteIndex : this.voiceCount++,
           synth = this.children[ idx ];
       
-      //console.log( _frequency, lastNoteIndex, idx, synth )
       synth.note(_frequency, amp);
-            
-      this.frequencies[ idx ] = _frequency;
-      this._frequency = _frequency
       
-      if(this.voiceCount >= this.maxVoices) this.voiceCount = 0;
+      if( lastNoteIndex === -1) {
+        this.frequencies[ idx ] = _frequency;
+        this._frequency = _frequency
+        if(this.voiceCount >= this.maxVoices) this.voiceCount = 0;
+      }else{
+        delete this.frequencies[ idx ]
+      }
     },
     
     initVoices : function() {
@@ -217,7 +217,7 @@ param **amp** Number. Optional. The volume to use.
           requireReleaseTrigger: this.requireReleaseTrigger || false,
     			amp: 		  1,
     		};
-        console.log( "prop", props.useADSR )
+
     		var synth = new Gibberish.FMSynth(props);
     		synth.connect(this);
 
