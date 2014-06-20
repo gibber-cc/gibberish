@@ -74,7 +74,7 @@ Perform codegen on all dirty ugens and re-create the audio callback. This method
     }*/
     this.dirtied.length = 0;
     
-    this.codestring = 'Gibberish.callback = function(input,'
+    this.codestring = ''
     
     this.args = ['input']
     
@@ -92,20 +92,10 @@ Perform codegen on all dirty ugens and re-create the audio callback. This method
         this.analysisCallbackArgs.push( this.analysisUgens[i].analysisSymbol )
       }
     }
-
-    for(var i = 0; i < this.callbackArgs.length; i++) {
-      this.codestring += this.callbackArgs[i]
-      this.args.push( this.callbackArgs[i] )
-      if(i < this.callbackArgs.length - 1)
-        this.codestring += ', '
-    }
     
-    for( var i = 0; i < this.analysisCallbackArgs.length; i++ ) {
-      this.codestring += ', '
-      this.codestring += this.analysisCallbackArgs[i]
-      this.args.push( this.analysisCallbackArgs[i] )
-    }
-    this.codestring += '){\n\t';
+    this.args = this.args.concat( this.callbackArgs )
+    
+    this.args = this.args.concat( this.analysisCallbackArgs )
 
     /* concatenate code for all ugens */
     //this.memo = {};
@@ -131,7 +121,6 @@ Perform codegen on all dirty ugens and re-create the audio callback. This method
       this.codestring += '\n\t';
     }
     this.codestring += 'return ' + this.out.variable +';\n';
-    this.codestring += '}';
     
     this.callbackString = this.codestring;
     if( this.debug ) console.log( this.callbackString );
@@ -164,13 +153,8 @@ param **Audio Event** : Object. The HTML5 audio event object.
       if(me.isDirty) {
         _callback = me.createCallback();
         
-        callbackBody = _callback[1]
-        callbackBody = callbackBody.slice( callbackBody.indexOf('{') + 1 )
-        callbackBody = callbackBody.slice(0, callbackBody.indexOf('}') )
-        
-        console.log( "CALLBACK", _callback[0], callbackBody  )
         try{
-          callback = me.callback = new Function( _callback[0], callbackBody )//eval( _callback )
+          callback = me.callback = new Function( _callback[0], _callback[1] )
         }catch( e ) {
           console.error( "ERROR WITH CALLBACK : \n\n", _callback )
         }
@@ -197,7 +181,8 @@ param **Sound Data** : Object. The buffer of audio data to be filled
     var me = Gibberish,
         callback = me.callback,
         sequencers = me.sequencers,
-        objs = me.callbackObjects.slice(0)
+        objs = me.callbackObjects.slice(0),
+        _callback
         
     objs.unshift(0)
     for (var i=0, size=soundData.length; i<size; i+=2) {
@@ -205,9 +190,10 @@ param **Sound Data** : Object. The buffer of audio data to be filled
       for(var j = 0; j < sequencers.length; j++) { sequencers[j].tick(); }
       
       if(me.isDirty) {
-        callback = me.createCallback();
+        _callback = me.createCallback();
+        
         try {
-          callback = eval( callback );
+          callback = me.callback = new Function( _callback[0], _callback[1] )
         }catch( e ) {
           console.error( 'ERROR WITH CALLBACK : \n\n', callback )
         }
