@@ -1,0 +1,40 @@
+{
+  "name": "Gibberish",
+  "version": "2.0.0",
+  "description": "Gibberish is designed to be a fast audio API for browser based audio content. Gibberish is different from other JavaScript audio libraries (such as audiolib.js or Audiolet) in that it generates code that is heavily optimized for JIT compilation. The code that is generated is arguably not human-readble, hence the name Gibberish.",
+  "main": "./gibberish.js",
+  "scripts": {
+    "install": "node ./build/build.js;",
+    "postinstall": " ./node_modules/.bin/uglifyjs gibberish.js -o  ./build/gibberish.min.js -c -m --screw-ie8; echo \" \n\n\n==========================\nThere are a bunch of warnings that happen in post-install...\n\nHakuna Matata.\n(don't worry about the errors. it's fine.)\n\nRun $ npm start to run the server; \n\nGo to http://localhost:5000/ \nto play. \n\nGo to http://localhost:5000/docs.html\nto learn.\n\nLive long and prosper.\n==========================\n\n\n \"",
+    "start" : "node ./server.js",
+    "test": "echo \"see index.html for tests.\""
+  },
+  "engines": {
+    "node": ">=0.10.26"
+  },
+  "dependencies": {
+    "connect": "^2.25.7",
+    "serve-static": "^1.5.3",
+    "uglify-js": "^2.4.15"
+
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/charlieroberts/Gibberish"
+  },
+  "keywords": [
+    "audio",
+    "midi",
+    "sine",
+    "music",
+    "JIT",
+    "DSP",
+    "html5"
+  ],
+  "author": "Charlie Roberts",
+  "license": "DO WHAT THE FUCK YOU WANT TO PUBLIC LICENSE; see: ./licenses/audiofile.js.txt",
+  "bugs": {
+    "url": "https://github.com/charlieroberts/Gibberish/issues"
+  },
+  "homepage": "https://github.com/charlieroberts/Gibberish"
+}
