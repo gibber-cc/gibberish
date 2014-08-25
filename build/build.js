@@ -6,16 +6,26 @@ var FILE_ENCODING = 'utf-8',
     EOL = '\n';
  
 // setup
-var _fs = require('fs');
+var _fs = require('fs'),
+    uglify = require('uglify-js')
  
 function concat(opts) {
-    var fileList = opts.src;
-    var distPath = opts.dest;
-    var out = fileList.map(function(filePath){
-      return _fs.readFileSync(filePath, FILE_ENCODING);
-    });
-    _fs.writeFileSync(distPath, out.join(EOL), FILE_ENCODING);
+    var fileList = opts.src,
+        distPath = opts.dest,
+        out = fileList.map(function(filePath){
+          return _fs.readFileSync(filePath, FILE_ENCODING);
+        });
+    
+    out = out.join(EOL);
+    
+    _fs.writeFileSync(distPath + '.js', out, FILE_ENCODING);
+    
+    var ugly = uglify.minify( out, {fromString: true} );
+    
+    _fs.writeFileSync(distPath + '.min.js', ugly.code, FILE_ENCODING);
+    
     console.log(' '+ distPath +' built.');
+    
     return out
 }
  
@@ -45,7 +55,7 @@ var out = concat({
         //__dirname + '/../documentation_output.js',
     ],
   // setting gibberish.js to be output to root directory so it's easier to locate so people don't have to search for it if they just want to include it
-    dest : __dirname + '/../gibberish.js'
+    dest : __dirname + '/gibberish'
 });
 
 //_fs.writeFileSync(__dirname + '/../../../gibber/js/external/gibberish.2.0.min.js', out.join(EOL), FILE_ENCODING);
