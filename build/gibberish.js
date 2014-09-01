@@ -6327,6 +6327,7 @@ Gibberish.PolySeq = function() {
     autofire      : [],
     name          : 'polyseq',
     getPhase      : function() { return phase },
+    timeModifier  : null,
     add           : function( seq ) {
       seq.valuesIndex = seq.durationsIndex = 0
       that.seqs.push( seq )
@@ -6406,8 +6407,8 @@ Gibberish.PolySeq = function() {
           
               var t;
             
-              if( typeof Gibber !== 'undefined' ) {
-                t = Gibber.Clock.time( newNextTime ) + phase // TODO: remove Gibber link... how?
+              if( that.timeModifier !== null ) {
+                t = that.timeModifier( newNextTime ) + phase // TODO: remove Gibber link... how?
               }else{
                 t = newNextTime + phase
               }
