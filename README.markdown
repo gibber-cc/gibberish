@@ -39,6 +39,9 @@ Gibberish.callback = function(input,sine_2, sine_4, delay_5, reverb_6, bus2_0){
 
 As you can see, there are no calls to any objects in the generated callback, just functional, JIT-optimizable goodness.
 
+##Usage
+Gibberish uses the UMD pattern, so it can be used in node, with AMD, or via simple script tags. If used with script tags the `Gibberish` object will be exported into the global namespace.
+
 ##Ugens
 Gibberish has a long list of oscillators, fx, and synthesis algorithms built in.
 
