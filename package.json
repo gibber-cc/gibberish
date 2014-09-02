@@ -1,6 +1,6 @@
 {
   "name": "gibberish-dsp",
-  "version": "2.1.1",
+  "version": "2.1.2",
   "description": "Gibberish is designed to be a fast audio API for browser-based synthesis. It currently runs in Chrome, Safari 6+ and Firefox. It is 73 KB after minification.",
   "main": "./build/gibberish.min.js",
   "scripts": {
