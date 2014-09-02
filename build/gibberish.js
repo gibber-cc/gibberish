@@ -1,3 +1,12 @@
+!function (root, factory) {
+  if (typeof define === "function" && define.amd) {
+    define([], factory);
+  } else if (typeof exports === "object") {
+    module.exports = factory();
+  } else {
+  root.Gibberish = factory();
+  }
+}(this, function () {
 /**#Gibberish - Miscellaneous
 Gibberish is the main object used to manage the audio graph and perform codegen functions. All constructors are also inside of the Gibberish object. Gibberish can automatically generate an appropriate web audio callback for you; if you want to use this you must execute the Gibberish.init() command before creating any Gibberish ugens.
 
@@ -38,7 +47,7 @@ Object. Used in the codegen process to make sure codegen for each ugen is only p
 **/
 
 
-Gibberish = {
+var Gibberish = {
   memo              : {},
   codeblock         : [],
   analysisCodeblock : [],
@@ -6978,3 +6987,5 @@ Gibberish.Hat = function() {
   _eg2.trigger(1);
 };
 Gibberish.Hat.prototype = Gibberish._oscillator;
+return Gibberish; 
+})

@@ -7,7 +7,20 @@ var FILE_ENCODING = 'utf-8',
  
 // setup
 var _fs = require('fs'),
-    uglify = require('uglify-js')
+    uglify = require('uglify-js'),
+    umdStart, umdEnd = "return Gibberish; \n})"
+    
+umdStart = [
+  '!function (root, factory) {',
+  '  if (typeof define === "function" && define.amd) {',
+  '    define([], factory);',
+  '  } else if (typeof exports === "object") {',
+  '    module.exports = factory();',
+  '  } else {',
+  '  root.Gibberish = factory();',
+  '  }',
+  '}(this, function () {\n'
+].join('\n')
  
 function concat(opts) {
     var fileList = opts.src,
@@ -16,7 +29,7 @@ function concat(opts) {
           return _fs.readFileSync(filePath, FILE_ENCODING);
         });
     
-    out = out.join(EOL);
+    out = umdStart + out.join(EOL) + umdEnd;
     
     _fs.writeFileSync(distPath + '.js', out, FILE_ENCODING);
     
@@ -42,7 +55,6 @@ var out = concat({
         __dirname + '/../scripts/effects.js',
         __dirname + '/../scripts/synth.js',
         __dirname + '/../scripts/fm_synth.js',
-        //__dirname + '/../scripts/externals/audiofile.js',
         __dirname + '/../scripts/sampler.js',
         __dirname + '/../scripts/monosynth.js',
         __dirname + '/../scripts/binops.js',
@@ -57,8 +69,3 @@ var out = concat({
   // setting gibberish.js to be output to root directory so it's easier to locate so people don't have to search for it if they just want to include it
     dest : __dirname + '/gibberish'
 });
-
-//_fs.writeFileSync(__dirname + '/../../../gibber/js/external/gibberish.2.0.min.js', out.join(EOL), FILE_ENCODING);
-
-//uglifyjs gibberish_2.0.js -o gibberish.2.0.min.js -c -m
-
