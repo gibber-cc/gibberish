@@ -312,7 +312,7 @@ Create a callback and start it running. Note that in iOS audio callbacks can onl
   init : function() {
     // TODO: GET A BETTER TEST FOR THIS. The problem is that browserify adds a process object... not sure how robust
     // testing for the presence of the version property will be
-    var isNode = typeof process !== 'undefined' && typeof process.version !== 'undefined'
+    var isNode = typeof global !== 'undefined'
     
     Gibberish.out = new Gibberish.Bus2();
     Gibberish.out.codegen(); // make sure bus is first upvalue so that clearing works correctly
