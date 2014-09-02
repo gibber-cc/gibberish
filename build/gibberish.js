@@ -319,7 +319,9 @@ param **readFn** : Function. The audio callback to use.
 Create a callback and start it running. Note that in iOS audio callbacks can only be created in response to user events. Thus, in iOS this method assigns an event handler to the HTML body that creates the callback as soon as the body is touched; at that point the event handler is removed. 
 **/   
   init : function() {
-    var isNode = typeof process !== 'undefined' && process.argv[0] === "node"
+    // TODO: GET A BETTER TEST FOR THIS. The problem is that browserify adds a process object... not sure how robust
+    // testing for the presence of the version property will be
+    var isNode = typeof process !== 'undefined' && typeof process.version !== 'undefined'
     
     Gibberish.out = new Gibberish.Bus2();
     Gibberish.out.codegen(); // make sure bus is first upvalue so that clearing works correctly
@@ -327,14 +329,10 @@ Create a callback and start it running. Note that in iOS audio callbacks can onl
     
     var bufferSize = typeof arguments[0] === 'undefined' ? 1024 : arguments[0], audioContext
     
-    if( !isNode ) {
-      if( typeof webkitAudioContext !== 'undefined' ) {
-        audioContext = webkitAudioContext
-      }else if ( typeof AudioContext !== 'undefined' ) {
-        audioContext = AudioContext
-      }
-    }else{
-      audioContext = require('web-audio-api').AudioContext
+    if( typeof webkitAudioContext !== 'undefined' ) {
+      audioContext = webkitAudioContext
+    }else if ( typeof AudioContext !== 'undefined' ) {
+      audioContext = AudioContext
     }
 
     // we will potentially delay start of audio until touch of screen for iOS devices
