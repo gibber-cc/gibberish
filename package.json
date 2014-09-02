@@ -13,7 +13,8 @@
   },
   "dependencies": {
     "connect": "^2.25.7",
-    "serve-static": "^1.5.3"
+    "serve-static": "^1.5.3",
+    "web-audio-api": "~0.1.5"
   },
   "devDependencies": {
     "uglify-js": "^2.4.15"

@@ -319,32 +319,40 @@ param **readFn** : Function. The audio callback to use.
 Create a callback and start it running. Note that in iOS audio callbacks can only be created in response to user events. Thus, in iOS this method assigns an event handler to the HTML body that creates the callback as soon as the body is touched; at that point the event handler is removed. 
 **/   
   init : function() {
+    var isNode = typeof process !== 'undefined' && process.argv[0] === "node"
+    
     Gibberish.out = new Gibberish.Bus2();
     Gibberish.out.codegen(); // make sure bus is first upvalue so that clearing works correctly
     Gibberish.dirty(Gibberish.out);
     
     var bufferSize = typeof arguments[0] === 'undefined' ? 1024 : arguments[0], audioContext
     
-    if( typeof webkitAudioContext !== 'undefined' ) {
-      audioContext = webkitAudioContext
-    }else if ( typeof AudioContext !== 'undefined' ) {
-      audioContext = AudioContext
+    if( !isNode ) {
+      if( typeof webkitAudioContext !== 'undefined' ) {
+        audioContext = webkitAudioContext
+      }else if ( typeof AudioContext !== 'undefined' ) {
+        audioContext = AudioContext
+      }
+    }else{
+      audioContext = require('web-audio-api').AudioContext
     }
 
     // we will potentially delay start of audio until touch of screen for iOS devices
     start = function() {
       
       if( typeof audioContext !== 'undefined' ) {
-        document.getElementsByTagName('body')[0].removeEventListener('touchstart', start);
+        if( !isNode ) document.getElementsByTagName('body')[0].removeEventListener('touchstart', start);
         Gibberish.context = new audioContext();
         Gibberish.node = Gibberish.context.createScriptProcessor(bufferSize, 2, 2, Gibberish.context.sampleRate);	
         Gibberish.node.onaudioprocess = Gibberish.audioProcess;
         Gibberish.node.connect(Gibberish.context.destination);
-    
-        if('ontouchstart' in document.documentElement){ // required to start audio under iOS 6
-          var mySource = Gibberish.context.createBufferSource();
-          mySource.connect(Gibberish.context.destination);
-          mySource.noteOn(0);
+        
+        if( !isNode ) {
+          if('ontouchstart' in document.documentElement){ // required to start audio under iOS 6
+            var mySource = Gibberish.context.createBufferSource();
+            mySource.connect(Gibberish.context.destination);
+            mySource.noteOn(0);
+          }
         }
       }else if( navigator.userAgent.indexOf( 'Firefox' ) === -1 ){
         Gibberish.AudioDataDestination(44100, Gibberish.audioProcessFirefox);
@@ -355,7 +363,7 @@ Create a callback and start it running. Note that in iOS audio callbacks can onl
       if( Gibberish.onstart ) Gibberish.onstart()
     }
     
-    if('ontouchstart' in document.documentElement) {
+    if( !isNode && 'ontouchstart' in document.documentElement) {
       document.getElementsByTagName('body')[0].addEventListener('touchstart', start);
     }else{
       start();
