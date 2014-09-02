@@ -4,8 +4,7 @@
   "description": "Gibberish is designed to be a fast audio API for browser-based synthesis. It currently runs in Chrome, Safari 6+ and Firefox. It is 73 KB after minification.",
   "main": "./build/gibberish.min.js",
   "scripts": {
-    "install": "node ./build/build.js;",
-    "postinstall": "echo \"Run $ npm start to run the server; \n\nGo to http://localhost:5000/ \nto play. \n\nGo to http://localhost:5000/docs.html\nto learn.\n\nLive long and prosper.\n==========================\n\n\n \"",
+    "postinstall": "echo \"Run $ npm start to run the server; \n\nGo to http://localhost:5000/ \nto play. \n\nGo to http://localhost:5000/docs.html\nto learn.\"",
     "start": "node ./server.js",
     "test": "echo \"see index.html for tests.\""
   },
