@@ -2806,6 +2806,47 @@ Gibberish.Distortion = function() {
 };
 Gibberish.Distortion.prototype = Gibberish._effect;
 
+/**#Gibberish.Gain - FX
+Amplitude attenutation / gain.
+  
+## Example Usage##
+`a = new Gibberish.Synth({ attack:44, decay:44100 });  
+b = new Gibberish.Distortion({ input:a, amount:30 })
+c = new Gibberish.Gain({ input:b, amount:.5 }).connect()
+`  
+## Constructor   
+**param** *properties*: Object. A dictionary of property values (see below) to set for the synth on initialization.
+- - - -
+**/
+/**###Gibberish.Gain.amount : property  
+Number. The amount of gain to multiply the inpyt signal by.
+**/
+console.log("GAIN")
+Gibberish.Gain = function() {  
+  Gibberish.extend(this, {
+    name : 'gain',
+    
+    properties : {
+      input  : 0,
+      amount : 1,
+    },
+    
+    callback : function(input, amount) {
+      if(typeof input === 'number') {
+        input *= amount;
+      }else{
+        input[0] *=amount;
+        input[1] *=amount;
+      }
+  		return input;
+    },
+  })
+  .init()
+  .processProperties(arguments);
+  
+};
+Gibberish.Gain.prototype = Gibberish._effect;
+
 /**#Gibberish.Delay - FX
 A simple echo effect.
   
