@@ -321,13 +321,10 @@ Create a callback and start it running. Note that in iOS audio callbacks can onl
   init : function() {
     // TODO: GET A BETTER TEST FOR THIS. The problem is that browserify adds a process object... not sure how robust
     // testing for the presence of the version property will be
-    var isNode = typeof global !== 'undefined'
-    
-    Gibberish.out = new Gibberish.Bus2();
-    Gibberish.out.codegen(); // make sure bus is first upvalue so that clearing works correctly
-    Gibberish.dirty(Gibberish.out);
-    
-    var bufferSize = typeof arguments[0] === 'undefined' ? 1024 : arguments[0], audioContext
+    var isNode = typeof global !== 'undefined',
+        bufferSize = typeof arguments[0] === 'undefined' ? 1024 : arguments[0], 
+        audioContext,
+        start
     
     if( typeof webkitAudioContext !== 'undefined' ) {
       audioContext = webkitAudioContext
@@ -337,32 +334,34 @@ Create a callback and start it running. Note that in iOS audio callbacks can onl
 
     // we will potentially delay start of audio until touch of screen for iOS devices
     start = function() {
-      
       if( typeof audioContext !== 'undefined' ) {
-        if( !isNode ) document.getElementsByTagName('body')[0].removeEventListener('touchstart', start);
-        Gibberish.context = new audioContext();
-        Gibberish.node = Gibberish.context.createScriptProcessor(bufferSize, 2, 2, Gibberish.context.sampleRate);	
-        Gibberish.node.onaudioprocess = Gibberish.audioProcess;
-        Gibberish.node.connect(Gibberish.context.destination);
-        
-        if( !isNode ) {
+        if( document && document.documentElement && 'ontouchstart' in document.documentElement ) {
+          window.removeEventListener('touchstart', start);
+
           if('ontouchstart' in document.documentElement){ // required to start audio under iOS 6
             var mySource = Gibberish.context.createBufferSource();
             mySource.connect(Gibberish.context.destination);
             mySource.noteOn(0);
           }
         }
-      }else if( navigator.userAgent.indexOf( 'Firefox' ) === -1 ){
-        Gibberish.AudioDataDestination(44100, Gibberish.audioProcessFirefox);
-        Gibberish.context = { sampleRate: 44100 } // needed hack to determine samplerate in ugens
       }else{
         alert('Your browser does not support javascript audio synthesis. Please download a modern web browser that is not Internet Explorer.')
       }
+      
       if( Gibberish.onstart ) Gibberish.onstart()
     }
     
-    if( !isNode && 'ontouchstart' in document.documentElement) {
-      document.getElementsByTagName('body')[0].addEventListener('touchstart', start);
+    Gibberish.context = new audioContext();
+    Gibberish.node = Gibberish.context.createScriptProcessor(bufferSize, 2, 2, Gibberish.context.sampleRate);	
+    Gibberish.node.onaudioprocess = Gibberish.audioProcess;
+    Gibberish.node.connect(Gibberish.context.destination);
+    
+    Gibberish.out = new Gibberish.Bus2();
+    Gibberish.out.codegen(); // make sure bus is first upvalue so that clearing works correctly
+    Gibberish.dirty(Gibberish.out);
+    
+    if( document && document.documentElement && 'ontouchstart' in document.documentElement ) {
+      window.addEventListener('touchstart', start);
     }else{
       start();
     }
@@ -2821,8 +2820,8 @@ c = new Gibberish.Gain({ input:b, amount:.5 }).connect()
 /**###Gibberish.Gain.amount : property  
 Number. The amount of gain to multiply the inpyt signal by.
 **/
-console.log("GAIN")
 Gibberish.Gain = function() {  
+  
   Gibberish.extend(this, {
     name : 'gain',
     

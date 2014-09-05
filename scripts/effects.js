@@ -67,8 +67,8 @@ c = new Gibberish.Gain({ input:b, amount:.5 }).connect()
 /**###Gibberish.Gain.amount : property  
 Number. The amount of gain to multiply the inpyt signal by.
 **/
-console.log("GAIN")
 Gibberish.Gain = function() {  
+  
   Gibberish.extend(this, {
     name : 'gain',
     
