@@ -4273,8 +4273,9 @@ param **amp** Number. Optional. The volume to use.
 	this.note = function(frequency, amp) {
     if( amp !== 0 ) {
   		if( typeof this.frequency !== 'object' ){
-        if( useADSR && frequency === lastFrequency ) {
+        if( useADSR && frequency === lastFrequency && properties.requireReleaseTrigger ) {
           this.releaseTrigger = 1;
+          lastFrequency = null
           return;
         }
         
@@ -4396,6 +4397,8 @@ Gibberish.PolySynth = function() {
   		glide:			0,
       attack: 22050,
       decay:  22050,
+      sustain:22050,
+      release:22050,
       pulsewidth:.5,
       waveform:"PWM",
     },
@@ -4538,8 +4541,9 @@ param **amp** Number. Optional. The volume to use.
 	this.note = function(frequency, amp) {
     if( amp !== 0 ) {
   		if(typeof this.frequency !== 'object'){
-        if( useADSR && frequency === lastFrequency ) {
+        if( useADSR && frequency === lastFrequency && properties.requireReleaseTrigger ) {
           this.releaseTrigger = 1;
+          lastFrequency = null
           return;
         }
         
@@ -4663,6 +4667,8 @@ Gibberish.PolySynth2 = function() {
       glide:			0,
       attack: 22050,
       decay:  22050,
+      sustain:22050,
+      release:22050,
       pulsewidth:.5,
       resonance: 3.5,
       cutoff:.25,
@@ -4791,10 +4797,12 @@ param **amp** Number. Optional. The volume to use.
 **/
 
 	this.note = function(frequency, amp) {
+    //console.log( frequency, lastFrequency, this.releaseTrigger, amp )
     if( amp !== 0 ) {
   		if(typeof this.frequency !== 'object'){
-        if( useADSR && frequency === lastFrequency ) {
+        if( useADSR && frequency === lastFrequency && properties.requireReleaseTrigger ) {
           this.releaseTrigger = 1;
+          lastFrequency = null
           return;
         }
         
@@ -4911,6 +4919,8 @@ Gibberish.PolyFM = function() {
       glide:		 0,
       attack: 22050,
       decay:  22050,
+      sustain:22050,
+      release:22050,
       index:  5,
       cmRatio:2,
     },
@@ -5509,6 +5519,7 @@ param **amp** : Optional. Float. The volume of the note, usually between 0..1. T
   		if(typeof this.frequency !== 'object'){
         if( useADSR && frequency === lastFrequency && amp === 0) {
           this.releaseTrigger = 1;
+          lastFrequency = null
           return;
         }
         if( amp !== 0 ) {

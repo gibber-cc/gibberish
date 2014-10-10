@@ -103,6 +103,7 @@ param **amp** : Optional. Float. The volume of the note, usually between 0..1. T
   		if(typeof this.frequency !== 'object'){
         if( useADSR && frequency === lastFrequency && amp === 0) {
           this.releaseTrigger = 1;
+          lastFrequency = null
           return;
         }
         if( amp !== 0 ) {

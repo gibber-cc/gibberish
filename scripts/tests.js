@@ -242,14 +242,14 @@ window.ADSRTest2 = function() {
   a.note(990)
   a.note(1100)
   
-  Gibberish.future( function() { a.note(440,0) }, seconds(3) )
-  Gibberish.future( function() { a.note(660,0) }, seconds(4) )
-  Gibberish.future( function() { a.note(770,0) }, seconds(5) )
-  Gibberish.future( function() { a.note(990,0) }, seconds(6) )
-  Gibberish.future( function() { a.note(1100,0) }, seconds(7) )  
+  Gibberish.future( function() { a.note(440) }, seconds(3) )
+  Gibberish.future( function() { a.note(660) }, seconds(4) )
+  Gibberish.future( function() { a.note(770) }, seconds(5) )
+  Gibberish.future( function() { a.note(990) }, seconds(6) )
+  Gibberish.future( function() { a.note(1100) }, seconds(7) )  
   
-	var inputString = "// test of ADSR envelope in PolyFM. Send a note message\n// with 0 amplitude to trigger release.\n"+
-  "// if requireReleaseTrigger is false the release portion will trigger automatically.\n\n"+
+	var inputString = "// test of ADSR envelope in PolyFM. Send a note message\n// with the same frequency to release.\n"+
+  "// if requireReleaseTrigger is false (default) \n//the release portion will trigger automatically.\n\n"+
   "a = new Gibberish.PolyFM({ useADSR:true, requireReleaseTrigger:true }).connect()\n"+
   "a.note(440)\n"+
   "a.note(660)\n"+
@@ -257,11 +257,11 @@ window.ADSRTest2 = function() {
   "a.note(990)\n"+
   "a.note(1100)\n"+
   "\n"+
-  "Gibberish.future( function() { a.note(440,0) }, seconds(3) )\n"+
-  "Gibberish.future( function() { a.note(660,0) }, seconds(4) )\n"+
-  "Gibberish.future( function() { a.note(770,0) }, seconds(5) )\n"+
-  "Gibberish.future( function() { a.note(990,0) }, seconds(6) )\n"+
-  "Gibberish.future( function() { a.note(1100,0) }, seconds(7) )";
+  "Gibberish.future( function() { a.note(440) }, seconds(3) )\n"+
+  "Gibberish.future( function() { a.note(660) }, seconds(4) )\n"+
+  "Gibberish.future( function() { a.note(770) }, seconds(5) )\n"+
+  "Gibberish.future( function() { a.note(990) }, seconds(6) )\n"+
+  "Gibberish.future( function() { a.note(1100) }, seconds(7) )";
 
 	var input = document.getElementById("input");
 	input.innerHTML = inputString;
