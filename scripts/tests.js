@@ -249,7 +249,7 @@ window.ADSRTest2 = function() {
   Gibberish.future( function() { a.note(1100) }, seconds(7) )  
   
 	var inputString = "// test of ADSR envelope in PolyFM. Send a note message\n// with the same frequency to release.\n"+
-  "// if requireReleaseTrigger is false (default) \n//the release portion will trigger automatically.\n\n"+
+  "// if requireReleaseTrigger is false (default) \n// the release portion will trigger automatically.\n\n"+
   "a = new Gibberish.PolyFM({ useADSR:true, requireReleaseTrigger:true }).connect()\n"+
   "a.note(440)\n"+
   "a.note(660)\n"+

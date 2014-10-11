@@ -6610,10 +6610,15 @@ Gibberish.PolySeq = function() {
 Gibberish.PolySeq.prototype = Gibberish._oscillator
 var _hasInput = false; // wait until requested to ask for permissions so annoying popup doesn't appear automatically
 
+navigator.getUserMedia = ( navigator.getUserMedia       ||
+                           navigator.webkitGetUserMedia ||
+                           navigator.mozGetUserMedia    ||
+                           navigator.msGetUserMedia )
+                           
 function createInput() {
   console.log("connecting audio input...");
   
-  navigator.webkitGetUserMedia(
+  navigator.getUserMedia(
 		{audio:true}, 
 		function (stream) {
       console.log( 'audio input connected' )
