@@ -204,6 +204,8 @@ Gibberish.PolySynth = function() {
       decay:  22050,
       sustain:22050,
       release:22050,
+      attackLevel: 1,
+      sustainLevel: .5,      
       pulsewidth:.5,
       waveform:"PWM",
     },
@@ -234,8 +236,12 @@ param **amp** Number. Optional. The volume to use.
       for(var i = 0; i < this.maxVoices; i++) {
         var props = {
           waveform: this.waveform,
-          attack:   this.attack,
-          decay:    this.decay,
+    			attack: 	this.attack,
+    			decay:		this.decay,
+          sustain:  this.sustain,
+          release:  this.release,
+          attackLevel: this.attackLevel,
+          sustainLevel: this.sustainLevel,
           pulsewidth: this.pulsewidth,
           channels: 2,
           amp:      1,
@@ -474,6 +480,8 @@ Gibberish.PolySynth2 = function() {
       decay:  22050,
       sustain:22050,
       release:22050,
+      attackLevel: 1,
+      sustainLevel: .5,      
       pulsewidth:.5,
       resonance: 3.5,
       cutoff:.25,
@@ -507,8 +515,12 @@ param **amp** Number. Optional. The volume to use.
       this.dirty = true;
       for(var i = 0; i < this.maxVoices; i++) {
         var props = {
-          attack:   this.attack,
-          decay:    this.decay,
+    			attack: 	this.attack,
+    			decay:		this.decay,
+          sustain:  this.sustain,
+          release:  this.release,
+          attackLevel: this.attackLevel,
+          sustainLevel: this.sustainLevel,
           pulsewidth: this.pulsewidth,
           channels: 2,
           amp:      1,

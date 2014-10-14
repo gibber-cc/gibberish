@@ -2419,7 +2419,7 @@ Gibberish.ADSR = function(attack, decay, sustain, release, attackLevel, sustainL
     rt = rt === 1 ? 1 : releaseTrigger;
 		if(state === 0){
 			val = phase / attack * attackLevel;
-			if(++phase / attack === 1) {
+			if(++phase / attack >= 1) {
 				state++;
 				phase = decay;
 			}
@@ -2441,7 +2441,7 @@ Gibberish.ADSR = function(attack, decay, sustain, release, attackLevel, sustainL
         phase = release;
         obj.releaseTrigger = 0;
         rt = 0;
-      }else if(phase-- === 0 && !obj.requireReleaseTrigger) {
+      }else if(phase-- <= 0 && !obj.requireReleaseTrigger) {
 				state++;
 				phase = release;
 			}
@@ -4399,6 +4399,8 @@ Gibberish.PolySynth = function() {
       decay:  22050,
       sustain:22050,
       release:22050,
+      attackLevel: 1,
+      sustainLevel: .5,      
       pulsewidth:.5,
       waveform:"PWM",
     },
@@ -4429,8 +4431,12 @@ param **amp** Number. Optional. The volume to use.
       for(var i = 0; i < this.maxVoices; i++) {
         var props = {
           waveform: this.waveform,
-          attack:   this.attack,
-          decay:    this.decay,
+    			attack: 	this.attack,
+    			decay:		this.decay,
+          sustain:  this.sustain,
+          release:  this.release,
+          attackLevel: this.attackLevel,
+          sustainLevel: this.sustainLevel,
           pulsewidth: this.pulsewidth,
           channels: 2,
           amp:      1,
@@ -4669,6 +4675,8 @@ Gibberish.PolySynth2 = function() {
       decay:  22050,
       sustain:22050,
       release:22050,
+      attackLevel: 1,
+      sustainLevel: .5,      
       pulsewidth:.5,
       resonance: 3.5,
       cutoff:.25,
@@ -4702,8 +4710,12 @@ param **amp** Number. Optional. The volume to use.
       this.dirty = true;
       for(var i = 0; i < this.maxVoices; i++) {
         var props = {
-          attack:   this.attack,
-          decay:    this.decay,
+    			attack: 	this.attack,
+    			decay:		this.decay,
+          sustain:  this.sustain,
+          release:  this.release,
+          attackLevel: this.attackLevel,
+          sustainLevel: this.sustainLevel,
           pulsewidth: this.pulsewidth,
           channels: 2,
           amp:      1,
@@ -4921,6 +4933,8 @@ Gibberish.PolyFM = function() {
       decay:  22050,
       sustain:22050,
       release:22050,
+      attackLevel: 1,
+      sustainLevel: .5,
       index:  5,
       cmRatio:2,
     },
@@ -4951,6 +4965,10 @@ param **amp** Number. Optional. The volume to use.
     		var props = {
     			attack: 	this.attack,
     			decay:		this.decay,
+          sustain:  this.sustain,
+          release:  this.release,
+          attackLevel: this.attackLevel,
+          sustainLevel: this.sustainLevel,
     			cmRatio:	this.cmRatio,
     			index:		this.index,
           channels: 2,

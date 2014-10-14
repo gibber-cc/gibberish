@@ -146,7 +146,7 @@ Gibberish.ADSR = function(attack, decay, sustain, release, attackLevel, sustainL
     rt = rt === 1 ? 1 : releaseTrigger;
 		if(state === 0){
 			val = phase / attack * attackLevel;
-			if(++phase / attack === 1) {
+			if(++phase / attack >= 1) {
 				state++;
 				phase = decay;
 			}
@@ -168,7 +168,7 @@ Gibberish.ADSR = function(attack, decay, sustain, release, attackLevel, sustainL
         phase = release;
         obj.releaseTrigger = 0;
         rt = 0;
-      }else if(phase-- === 0 && !obj.requireReleaseTrigger) {
+      }else if(phase-- <= 0 && !obj.requireReleaseTrigger) {
 				state++;
 				phase = release;
 			}
