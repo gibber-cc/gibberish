@@ -228,7 +228,7 @@ param **amp** Number. Optional. The volume to use.
       // }
       
 			if(typeof amp === 'number') this.amp = amp;
-					
+			
 			if(this.function !== null) {
 				this.isPlaying = true;	// needed to allow playback after recording
         
@@ -246,12 +246,15 @@ param **amp** Number. Optional. The volume to use.
             if( typeof __pitch === 'function' ) __pitch = __pitch()
             break;
         }
-
-        if( __pitch > 0 || typeof __pitch === 'object' ) {
+        
+        if( __pitch > 0 ) { //|| typeof __pitch === 'object' || typeof this.pitch === 'function' ) {
           phase = this.start;
+          //console.log("PHASE :: ", phase, this.start )
 				}else{
           phase = this.end;
 				}
+        
+        Gibberish.dirty( this )
         
         //this.pitch = __pitch;
 			}

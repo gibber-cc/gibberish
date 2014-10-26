@@ -131,9 +131,9 @@ param **amp** : Optional. Float. The volume of the note, usually between 0..1. T
 			if(waveform !== value) {
 				waveform = value;
 						
-				osc1 = new Gibberish[value]().callback;
-				osc2 = new Gibberish[value]().callback;
-				osc3 = new Gibberish[value]().callback;
+				osc1 = new Gibberish[ value ]().callback;
+				osc2 = new Gibberish[ value ]().callback;
+				osc3 = new Gibberish[ value ]().callback;
 			}
 		},
 	});
@@ -148,7 +148,9 @@ param **amp** : Optional. Float. The volume of the note, usually between 0..1. T
       lag       = new Gibberish.OnePole().callback,      
     	panner    = Gibberish.makePanner(),
     	out       = [0,0];
-    
+  
+  this.envelope = _envelope
+  
   this.callback = function(attack, decay, cutoff, resonance, amp1, amp2, amp3, filterMult, isLowPass, pulsewidth, masterAmp, detune2, detune3, octave2, octave3, glide, pan, frequency, channels) {
 		if(envstate() < 2) {
       if(glide >= 1) glide = .9999;

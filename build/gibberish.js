@@ -5231,7 +5231,7 @@ param **amp** Number. Optional. The volume to use.
       // }
       
 			if(typeof amp === 'number') this.amp = amp;
-					
+			
 			if(this.function !== null) {
 				this.isPlaying = true;	// needed to allow playback after recording
         
@@ -5249,12 +5249,15 @@ param **amp** Number. Optional. The volume to use.
             if( typeof __pitch === 'function' ) __pitch = __pitch()
             break;
         }
-
-        if( __pitch > 0 || typeof __pitch === 'object' ) {
+        
+        if( __pitch > 0 ) { //|| typeof __pitch === 'object' || typeof this.pitch === 'function' ) {
           phase = this.start;
+          //console.log("PHASE :: ", phase, this.start )
 				}else{
           phase = this.end;
 				}
+        
+        Gibberish.dirty( this )
         
         //this.pitch = __pitch;
 			}
@@ -5565,9 +5568,9 @@ param **amp** : Optional. Float. The volume of the note, usually between 0..1. T
 			if(waveform !== value) {
 				waveform = value;
 						
-				osc1 = new Gibberish[value]().callback;
-				osc2 = new Gibberish[value]().callback;
-				osc3 = new Gibberish[value]().callback;
+				osc1 = new Gibberish[ value ]().callback;
+				osc2 = new Gibberish[ value ]().callback;
+				osc3 = new Gibberish[ value ]().callback;
 			}
 		},
 	});
@@ -5582,7 +5585,9 @@ param **amp** : Optional. Float. The volume of the note, usually between 0..1. T
       lag       = new Gibberish.OnePole().callback,      
     	panner    = Gibberish.makePanner(),
     	out       = [0,0];
-    
+  
+  this.envelope = _envelope
+  
   this.callback = function(attack, decay, cutoff, resonance, amp1, amp2, amp3, filterMult, isLowPass, pulsewidth, masterAmp, detune2, detune3, octave2, octave3, glide, pan, frequency, channels) {
 		if(envstate() < 2) {
       if(glide >= 1) glide = .9999;
