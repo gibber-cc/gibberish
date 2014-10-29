@@ -217,6 +217,8 @@ param **amp** Number. Optional. The volume to use.
         case 'object' :
           if( Array.isArray(pitch) ) {
             this.pitch = pitch[ 0 ]
+          }else{
+            this.pitch = pitch
           }
           break;
       }
@@ -233,17 +235,23 @@ param **amp** Number. Optional. The volume to use.
 				this.isPlaying = true;	// needed to allow playback after recording
         
         var __pitch;// = typeof this.pitch === 'number' || typeof this.pitch === 'function' ? this.pitch : this.pitch[0];  // account for modulations
-        
+                
         switch( typeof this.pitch ) {
           case 'number' :
             __pitch = this.pitch
             break;
           case 'function' :
-            __pitch = this.pitch()
+            __pitch = this.pitch.getValue ? this.pitch.getValue() : this.pitch()
             break;
           case 'object' :
-            __pitch = Array.isArray( this.pitch ) ? this.pitch[ 0 ] : this.pitch
+            if( Array.isArray( this.pitch ) ) {
+              __pitch = this.pitch[ 0 ]
+            } else {
+              __pitch = this.pitch.getValue ? this.pitch.getValue() : this.pitch.input.getValue()              
+            }
+            
             if( typeof __pitch === 'function' ) __pitch = __pitch()
+            
             break;
         }
         
