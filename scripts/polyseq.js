@@ -30,32 +30,34 @@ Gibberish.PolySeq = function() {
     timeModifier  : null,
     add           : function( seq ) {
       seq.valuesIndex = seq.durationsIndex = 0
-      that.seqs.push( seq )
       
-      //console.log("PRIORITY", seq.priority )
       
       if( seq.durations === null ) {
+        seq.autofire = true
         that.autofire.push( seq )
-      }
-      
-      if( typeof that.timeline[ phase ] !== 'undefined' ) {
-        if( seq.priority ) {
-          that.timeline[ phase ].unshift( seq )
-        }else{
-          that.timeline[ phase ].push( seq )
-        }
+        console.log( "AUTOFIRE", seq.key )
       }else{
-        that.timeline[ phase ] = [ seq ]
+        that.seqs.push( seq )
+        
+        if( typeof that.timeline[ phase ] !== 'undefined' ) {
+          if( seq.priority ) {
+            that.timeline[ phase ].unshift( seq )
+          }else{
+            that.timeline[ phase ].push( seq )
+          }
+        }else{
+          that.timeline[ phase ] = [ seq ]
+        }
+        
+        that.nextTime = phase
       }
-      
       // for Gibber... TODO: remove from Gibberish
       if( that.scale && (seq.key === 'frequency' || seq.key === 'note') ) {
         if( that.applyScale ) {
           that.applyScale()
         }
       }
-      
-      that.nextTime = phase
+
       seq.shouldStop = false
     },
     
@@ -68,9 +70,7 @@ Gibberish.PolySeq = function() {
               phaseDiff = phase - nextTime
               
           if( typeof seqs === 'undefined') return
-          
-          if( that.autofire.length ) seqs = seqs.concat( that.autofire )
-          
+                    
           for( var j = 0; j < seqs.length; j++ ) {
             var seq = seqs[ j ]
             if( seq.shouldStop ) continue;
@@ -89,43 +89,61 @@ Gibberish.PolySeq = function() {
             }
             
             if( that.chose ) that.chose( seq.key, idx )
-            
-            if( seq.durations !== null ) { 
-              if( Array.isArray( seq.durations ) ) {
-                var idx = seq.durations.pick ? seq.durations.pick() : seq.durationsIndex++,
-                    next = seq.durations[ idx ]
+             
+            if( Array.isArray( seq.durations ) ) {
+              var idx = seq.durations.pick ? seq.durations.pick() : seq.durationsIndex++,
+                  next = seq.durations[ idx ]
 
-                newNextTime = typeof next === 'function' ? next() : next;
-                if( seq.durationsIndex >= seq.durations.length ) {
-                  seq.durationsIndex = 0;
-                }
-                if( that.chose ) that.chose( 'durations', idx )
-              }else{
-                var next = seq.durations;
-                newNextTime = typeof next === 'function' ? next() : next;
+              newNextTime = typeof next === 'function' ? next() : next;
+              if( seq.durationsIndex >= seq.durations.length ) {
+                seq.durationsIndex = 0;
               }
+              if( that.chose ) that.chose( 'durations', idx )
+            }else{
+              var next = seq.durations;
+              newNextTime = typeof next === 'function' ? next() : next;
+            }
+        
+            var t;
           
-              var t;
-            
-              if( that.timeModifier !== null ) {
-                t = that.timeModifier( newNextTime ) + phase // TODO: remove Gibber link... how?
+            if( that.timeModifier !== null ) {
+              t = that.timeModifier( newNextTime ) + phase // TODO: remove Gibber link... how?
+            }else{
+              t = newNextTime + phase
+            }
+          
+            t -= phaseDiff
+            newNextTime -= phaseDiff
+          
+            if( typeof that.timeline[ t ] === 'undefined' ) {
+              that.timeline[ t ] = [ seq ]
+            }else{
+              if( seq.priority ) {
+                that.timeline[ t ].unshift( seq )
               }else{
-                t = newNextTime + phase
-              }
-            
-              t -= phaseDiff
-              newNextTime -= phaseDiff
-            
-              if( typeof that.timeline[ t ] === 'undefined' ) {
-                that.timeline[ t ] = [ seq ]
-              }else{
-                if( seq.priority ) {
-                  that.timeline[ t ].unshift( seq )
-                }else{
-                  that.timeline[ t ].push( seq )
-                }
+                that.timeline[ t ].push( seq )
               }
             }
+          }
+          
+          for( var j = 0, l = that.autofire.length; j < l; j++ ) {
+            var seq = that.autofire[ j ]
+            if( seq.shouldStop ) continue;
+
+            var idx = seq.values.pick ? seq.values.pick() : seq.valuesIndex++ % seq.values.length,
+                val = seq.values[ idx ];
+    
+            if(typeof val === 'function') { val = val(); } // will also call anonymous function
+    
+            if( seq.target ) {
+              if(typeof seq.target[ seq.key ] === 'function') {
+                seq.target[ seq.key ]( val );
+              }else{
+                seq.target[ seq.key ] = val;
+              }
+            }
+            
+            if( that.chose ) that.chose( seq.key, idx )
           }
           
           delete that.timeline[ nextTime ]

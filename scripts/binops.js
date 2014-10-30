@@ -40,21 +40,21 @@ param **target** object, default window. The object to export the Gibberish.Bino
       //if(typeof Gibberish.memo[this.symbol] !== 'undefined') { return Gibberish.memo[this.symbol]; }
       
       keys = Object.keys(this.properties);
-
+      
+      var shouldSkip = false;
       for(var i = 0; i < keys.length; i++) {
+        if( shouldSkip ) { shouldSkip = false; continue; }
+                
         var isObject = typeof this[i] === 'object';
         
         var shouldPush = false;
         if(isObject) {
-          //if(!Gibberish.memo[ this[i].symbol ]) {
-          //  shouldPush = true;
-            out += this[i].codegen();
-            //}else{
-          //  out += Gibberish.memo[ this[i].symbol ];
-          //}
+          out += this[i].codegen();
         }else{
           out += this[i];
         }
+        
+        if( op === '*' || '/' && this[ i + 1 ] === 1 ) { shouldSkip = true; continue; }
         
         if(i < keys.length - 1) { out += " " + op + " "; }
         
