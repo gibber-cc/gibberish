@@ -5332,7 +5332,7 @@ _pitch, amp, isRecording, isPlaying, input, length, start, end, loops, pan
   .init()
   .oscillatorInit()
   .processProperties(arguments);
-
+  
 	if(typeof arguments[0] !== "undefined") {
 		if(typeof arguments[0] === "string") {
 			this.file = arguments[0];
@@ -5393,6 +5393,8 @@ _pitch, amp, isRecording, isPlaying, input, length, start, end, loops, pan
     xhr.onload = function( e ) { initSound( this.response ) }
     xhr.send()
     
+    console.log("now loading sample", self.file )
+    xhr.onerror = function( e ) { console.error( "Sampler file loading error", e )}
     function initSound( arrayBuffer ) {
       Gibberish.context.decodeAudioData(arrayBuffer, function(_buffer) {
         buffer = _buffer.getChannelData(0)
@@ -5400,7 +5402,7 @@ _pitch, amp, isRecording, isPlaying, input, length, start, end, loops, pan
         self.isPlaying = true;
   			self.buffers[ self.file ] = buffer;
 
-  			//console.log("LOADED", self.file, bufferLength);
+  			console.log("sample loaded | ", self.file, " | length | ", bufferLength);
   			Gibberish.audioFiles[self.file] = buffer;
 			
         if(self.onload) self.onload();
@@ -5679,13 +5681,13 @@ param **target** object, default window. The object to export the Gibberish.Bino
     }
     me.init.apply( me, args );
     
-    me.codegen = function() {
+    me.codegen = function() {      
       var keys, out = "( ";
       
-      //if(typeof Gibberish.memo[this.symbol] !== 'undefined') { return Gibberish.memo[this.symbol]; }
+      if(typeof Gibberish.memo[this.symbol] !== 'undefined') { return Gibberish.memo[this.symbol]; }
       
       keys = Object.keys(this.properties);
-      
+            
       var shouldSkip = false;
       for(var i = 0; i < keys.length; i++) {
         if( shouldSkip ) { shouldSkip = false; continue; }
@@ -5699,7 +5701,9 @@ param **target** object, default window. The object to export the Gibberish.Bino
           out += this[i];
         }
         
-        if( op === '*' || '/' && this[ i + 1 ] === 1 ) { shouldSkip = true; continue; }
+        if( ( op === '*' || op === '/' ) && this[ i + 1 ] === 1 ) { 
+          shouldSkip = true; continue; 
+        }
         
         if(i < keys.length - 1) { out += " " + op + " "; }
         
@@ -6432,7 +6436,6 @@ Gibberish.PolySeq = function() {
       if( seq.durations === null ) {
         seq.autofire = true
         that.autofire.push( seq )
-        console.log( "AUTOFIRE", seq.key )
       }else{
         that.seqs.push( seq )
         
@@ -6467,9 +6470,7 @@ Gibberish.PolySeq = function() {
               phaseDiff = phase - nextTime
               
           if( typeof seqs === 'undefined') return
-          
-          //if( that.autofire.length ) seqs = seqs.concat( that.autofire )
-          
+                    
           for( var j = 0; j < seqs.length; j++ ) {
             var seq = seqs[ j ]
             if( seq.shouldStop ) continue;
@@ -6525,7 +6526,7 @@ Gibberish.PolySeq = function() {
             }
           }
           
-          for( var j = 0; j < that.autofire.length; j++ ) {
+          for( var j = 0, l = that.autofire.length; j < l; j++ ) {
             var seq = that.autofire[ j ]
             if( seq.shouldStop ) continue;
 

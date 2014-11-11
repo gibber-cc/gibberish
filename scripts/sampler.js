@@ -329,7 +329,7 @@ _pitch, amp, isRecording, isPlaying, input, length, start, end, loops, pan
   .init()
   .oscillatorInit()
   .processProperties(arguments);
-
+  
 	if(typeof arguments[0] !== "undefined") {
 		if(typeof arguments[0] === "string") {
 			this.file = arguments[0];
@@ -390,6 +390,8 @@ _pitch, amp, isRecording, isPlaying, input, length, start, end, loops, pan
     xhr.onload = function( e ) { initSound( this.response ) }
     xhr.send()
     
+    console.log("now loading sample", self.file )
+    xhr.onerror = function( e ) { console.error( "Sampler file loading error", e )}
     function initSound( arrayBuffer ) {
       Gibberish.context.decodeAudioData(arrayBuffer, function(_buffer) {
         buffer = _buffer.getChannelData(0)
@@ -397,7 +399,7 @@ _pitch, amp, isRecording, isPlaying, input, length, start, end, loops, pan
         self.isPlaying = true;
   			self.buffers[ self.file ] = buffer;
 
-  			//console.log("LOADED", self.file, bufferLength);
+  			console.log("sample loaded | ", self.file, " | length | ", bufferLength);
   			Gibberish.audioFiles[self.file] = buffer;
 			
         if(self.onload) self.onload();

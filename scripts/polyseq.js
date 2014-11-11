@@ -35,7 +35,6 @@ Gibberish.PolySeq = function() {
       if( seq.durations === null ) {
         seq.autofire = true
         that.autofire.push( seq )
-        console.log( "AUTOFIRE", seq.key )
       }else{
         that.seqs.push( seq )
         

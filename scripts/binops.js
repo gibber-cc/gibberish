@@ -34,13 +34,13 @@ param **target** object, default window. The object to export the Gibberish.Bino
     }
     me.init.apply( me, args );
     
-    me.codegen = function() {
+    me.codegen = function() {      
       var keys, out = "( ";
       
-      //if(typeof Gibberish.memo[this.symbol] !== 'undefined') { return Gibberish.memo[this.symbol]; }
+      if(typeof Gibberish.memo[this.symbol] !== 'undefined') { return Gibberish.memo[this.symbol]; }
       
       keys = Object.keys(this.properties);
-      
+            
       var shouldSkip = false;
       for(var i = 0; i < keys.length; i++) {
         if( shouldSkip ) { shouldSkip = false; continue; }
@@ -54,7 +54,9 @@ param **target** object, default window. The object to export the Gibberish.Bino
           out += this[i];
         }
         
-        if( op === '*' || '/' && this[ i + 1 ] === 1 ) { shouldSkip = true; continue; }
+        if( ( op === '*' || op === '/' ) && this[ i + 1 ] === 1 ) { 
+          shouldSkip = true; continue; 
+        }
         
         if(i < keys.length - 1) { out += " " + op + " "; }
         
