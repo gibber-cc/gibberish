@@ -86,6 +86,10 @@ param **amp** Number. Optional. The volume to use.
         
         this.frequency = lastFrequency = frequency;
         this.releaseTrigger = 0;
+        
+        if( typeof frequency === 'object' ) {
+          Gibberish.dirty( this )
+        }
       }else{
         this.frequency[0] = lastFrequency = frequency;
         this.releaseTrigger = 0;
@@ -357,9 +361,12 @@ param **amp** Number. Optional. The volume to use.
           lastFrequency = null
           return;
         }
-        
+
         this.frequency = lastFrequency = frequency;
         this.releaseTrigger = 0;
+        if( typeof frequency === 'object' ) {
+          Gibberish.dirty( this )
+        }
       }else{
         this.frequency[0] = lastFrequency = frequency;
         this.releaseTrigger = 0;

@@ -48,7 +48,7 @@ Gibberish.Line = function(start, end, time, loops) {
       incr = (end - out) / time
     }
 	};
-
+  
 	var phase = 0,
 	    incr = (end - start) / time,
       out
