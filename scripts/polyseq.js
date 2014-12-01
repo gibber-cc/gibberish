@@ -30,8 +30,7 @@ Gibberish.PolySeq = function() {
     timeModifier  : null,
     add           : function( seq ) {
       seq.valuesIndex = seq.durationsIndex = 0
-      
-      
+
       if( seq.durations === null ) {
         seq.autofire = true
         that.autofire.push( seq )
@@ -74,8 +73,9 @@ Gibberish.PolySeq = function() {
             var seq = seqs[ j ]
             if( seq.shouldStop ) continue;
 
-            var idx = seq.values.pick ? seq.values.pick() : seq.valuesIndex++ % seq.values.length,
-                val = seq.values[ idx ];
+            var idx = seq.values.pick ? seq.values.pick() : seq.valuesIndex++ % seq.values.length
+            
+            var val = typeof seq.values === 'function' ? seq.values() : seq.values[ idx ];
     
             if(typeof val === 'function') { val = val(); } // will also call anonymous function
     
@@ -91,15 +91,17 @@ Gibberish.PolySeq = function() {
              
             if( Array.isArray( seq.durations ) ) {
               var idx = seq.durations.pick ? seq.durations.pick() : seq.durationsIndex++,
-                  next = seq.durations[ idx ]
+                  next = typeof seq.durations === 'function' ? seq.durations() : seq.durations[ idx ]
 
               newNextTime = typeof next === 'function' ? next() : next;
-              if( seq.durationsIndex >= seq.durations.length ) {
+              if( typeof seq.durations === 'function' && seq.durationsIndex >= seq.durations.length ) {
                 seq.durationsIndex = 0;
               }
               if( that.chose ) that.chose( 'durations', idx )
             }else{
-              var next = seq.durations;
+              var next = typeof seq.durations === 'function' ? seq.durations() : seq.durations;
+              
+              console.log( "NEXT TIME ", next )
               newNextTime = typeof next === 'function' ? next() : next;
             }
         
