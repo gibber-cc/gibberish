@@ -197,9 +197,8 @@
         
       }.bind( this ) )
     }else{
-      console.log( this, this.onload )
       this.buffers = SF.instruments[ this.instrumentFileName ]
-      if( this.onload ) this.onload()
+      setTimeout( function() { if( this.onload ) this.onload() }.bind( this ), 0 )
     }
     return this
   }
