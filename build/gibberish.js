@@ -7349,11 +7349,12 @@ Gibberish.Hat.prototype = Gibberish._oscillator;
       buffers:{},
       onload: null,
       out:[0,0],
+      isLoaded: false,
       resourcePath: pathToResources || './resources/soundfonts/',
       
       callback: function( amp, pan ) {
         var val = 0
-        for( var i = 0; i < this.playing.length; i++ ) {
+        for( var i = this.playing.length -1; i >= 0; i-- ) {
           var note = this.playing[ i ]
           
           val += this.interpolate( note.buffer, note.phase )
@@ -7367,14 +7368,16 @@ Gibberish.Hat.prototype = Gibberish._oscillator;
         return this.panner( val * amp, pan, this.out );
       }.bind( this ),
       
-      note: function( name, amp ) {
-        this.playing.push({
-          buffer:this.buffers[ name ],
-          phase:0,
-          increment: 1, //cents(1, _cents),
-          length:this.buffers[ name ].length,
-          'amp': isNaN( amp ) ? 1 : amp
-        })
+      note: function( name, amp, cents ) {
+        if( this.isLoaded ) {
+          this.playing.push({
+            buffer:this.buffers[ name ],
+            phase:0,
+            increment: cents || 0,
+            length:this.buffers[ name ].length,
+            'amp': isNaN( amp ) ? 1 : amp
+          })
+        }
       },
       interpolate: Gibberish.interpolate.bind( this ),
       panner: Gibberish.makePanner()
@@ -7412,6 +7415,7 @@ Gibberish.Hat.prototype = Gibberish._oscillator;
               count--
               if( count <= 0 ) { 
                 console.log("Soundfont " + this.instrumentFileName + " is loaded.")
+                this.isLoaded = true
                 if( this.onload ) this.onload()
               }
             }.bind( this ), function(e) { console.log("ERROR", e.err, arguments, _note ) } )
@@ -7422,6 +7426,7 @@ Gibberish.Hat.prototype = Gibberish._oscillator;
       }.bind( this ) )
     }else{
       this.buffers = SF.instruments[ this.instrumentFileName ]
+      this.isLoaded = true
       setTimeout( function() { if( this.onload ) this.onload() }.bind( this ), 0 )
     }
     return this
