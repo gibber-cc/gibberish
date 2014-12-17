@@ -1,6 +1,53 @@
 Gibberish.Binops.export();
 Gibberish.Time.export();
 
+window.soundfont = function() {
+  Gibberish.clear();
+  
+  choir = new Gibberish.SoundFont( 'choir_aahs' ).connect();
+  
+  choir.onload = function() {
+    seq = new Gibberish.Sequencer({
+      values:[ function() {
+        choir.note('F4'); choir.note('Ab4'); choir.note('C5');
+      } ],
+      durations:[ seconds(4) ],
+    }).start()
+  }
+  
+  var inputString = [
+  "/*",
+  "* Gibberish uses the FluidSynth soundfont, as wrapped ",
+  "* for use with MIDI.js:",
+  "* https://github.com/gleitz/midi-js-soundfonts",
+  "*",
+  "* For a list of sounds, try:",
+  "* https://en.wikipedia.org/wiki/General_MIDI",
+  "*/",
+  "",
+  "choir = new Gibberish.SoundFont( 'choir_aahs' ).connect();",
+  "",
+  "choir.onload = function() {",
+  "  seq = new Gibberish.Sequencer({",
+  "    values:[ function() {",
+  "      choir.note('F4');",
+  "      choir.note('Ab4');",
+  "      choir.note('C5');",
+  "    } ],",
+  "    durations:[ seconds(4) ],",
+  "  }).start()",
+  "}",
+  ].join('\n')
+  
+	var input = document.getElementById("input");
+	input.innerHTML = inputString;
+			
+	codeTimeout = setTimeout(function() { 
+		var codegen = document.getElementById("output");
+		codegen.innerHTML = Gibberish.callbackString;
+	}, 250);
+}
+
 window.routingTest = function() {
   Gibberish.clear();
   

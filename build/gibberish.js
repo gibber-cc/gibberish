@@ -7398,7 +7398,9 @@ Gibberish.Hat.prototype = Gibberish._oscillator;
         
         this.buffers = SF.instruments[ this.instrumentFileName ]
         
+        var count = 0
         for( var note in font ) {
+          count++
           !function() {
             var _note = note
             
@@ -7407,15 +7409,21 @@ Gibberish.Hat.prototype = Gibberish._oscillator;
             
             Gibberish.context.decodeAudioData( arrayBuffer, function( _buffer ) {
               SF.instruments[ this.instrumentFileName ][ _note ] = _buffer.getChannelData( 0 )
+              count--
+              if( count <= 0 ) { 
+                console.log("Soundfont " + this.instrumentFileName + " is loaded.")
+                if( this.onload ) this.onload()
+              }
             }.bind( this ), function(e) { console.log("ERROR", e.err, arguments, _note ) } )
             
           }.bind( this )()
         }
         
-        console.log("SOUND FONT " + this.instrumentFileName + " LOADED")
       }.bind( this ) )
     }else{
+      console.log( this, this.onload )
       this.buffers = SF.instruments[ this.instrumentFileName ]
+      if( this.onload ) this.onload()
     }
     return this
   }
