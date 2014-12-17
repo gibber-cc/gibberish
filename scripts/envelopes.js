@@ -46,12 +46,18 @@ Gibberish.Line = function(start, end, time, loops) {
       this.time = time
       
       incr = (end - out) / time
-    }
+    },
+    
+    getPhase: function() { return phase },
+    getIncr: function() { return incr },
+    getOut: function() { return out }
 	};
   
 	var phase = 0,
 	    incr = (end - start) / time,
       out
+  
+  //console.log("INCREMENT", incr, end, start, time )
   
 	this.callback = function(start, end, time, loops) {
 		out = phase < time ? start + ( phase++ * incr) : end;
@@ -184,6 +190,7 @@ Gibberish.ADSR = function(attack, decay, sustain, release, attackLevel, sustainL
   this.call = function() {
     return this.callback( this.attack, this.decay, this.sustain, this.release, this.attackLevel, this.sustainLevel, this.releaseTrigger )
   };
+  this.getPhase = function() { return phase; };
 	this.setPhase = function(newPhase) { phase = newPhase; };
 	this.setState = function(newState) { state = newState; phase = 0; };
 	this.getState = function() { return state; };		

@@ -94,14 +94,13 @@ Gibberish.PolySeq = function() {
                   next = typeof seq.durations === 'function' ? seq.durations() : seq.durations[ idx ]
 
               newNextTime = typeof next === 'function' ? next() : next;
-              if( typeof seq.durations === 'function' && seq.durationsIndex >= seq.durations.length ) {
+              if( typeof seq.durations !== 'function' && seq.durationsIndex >= seq.durations.length ) {
                 seq.durationsIndex = 0;
               }
               if( that.chose ) that.chose( 'durations', idx )
             }else{
               var next = typeof seq.durations === 'function' ? seq.durations() : seq.durations;
               
-              console.log( "NEXT TIME ", next )
               newNextTime = typeof next === 'function' ? next() : next;
             }
         
