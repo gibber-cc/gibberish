@@ -7,6 +7,7 @@ window.soundfont = function() {
   choir = new Gibberish.SoundFont( 'choir_aahs' ).connect();
   
   choir.onload = function() {
+    console.log('LOADED, STARTING SEQ')
     seq = new Gibberish.Sequencer({
       values:[ function() {
         choir.note('F4'); choir.note('Ab4'); choir.note('C5');

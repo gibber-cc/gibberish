@@ -24,8 +24,11 @@
       MIDI = { Soundfont: { instruments: {} } },
       SF = MIDI.Soundfont
   
-  // TODO: GET RID OF THIS GLOBAL!!!! It's in there because we're using soundfonts meant for MIDI.js
-  window.MIDI = MIDI
+  // TODO: GET RID OF THIS GLOBAL!!!! It's unfortunately in there because we're using soundfonts meant for MIDI.js
+  if( typeof window === 'object' )
+    window.MIDI = MIDI
+  else
+    global.MIDI = MIDI
   
   var getScript = function( scriptPath, handler ) {
     var oReq = new XMLHttpRequest();
@@ -111,7 +114,39 @@
   		return uarray;	
   	}
   }
+  
+  var decodeBuffers = function( obj ) {
+    var count = 0,
+        font = SF[ obj.instrumentFileName ]
+        
+    if( typeof SF.instruments[ obj.instrumentFileName ] === 'undefined' ) {
+      SF.instruments[ obj.instrumentFileName ] = {}
+    }
     
+    obj.buffers = SF.instruments[ obj.instrumentFileName ]
+    
+    for( var note in font ) {
+      count++
+      !function() {
+        var _note = note
+        
+        var base = font[ _note ].split(",")[1]
+        var arrayBuffer = Base64Binary.decodeArrayBuffer( base );
+        
+        Gibberish.context.decodeAudioData( arrayBuffer, function( _buffer ) {
+          SF.instruments[ obj.instrumentFileName ][ _note ] = _buffer.getChannelData( 0 )
+          count--
+          if( count <= 0 ) { 
+            console.log("Soundfont " + obj.instrumentFileName + " is loaded.")
+            obj.isLoaded = true
+            if( obj.onload ) obj.onload()
+          }
+        }, function(e) { console.log("ERROR", e.err, arguments, _note ) } )
+        
+      }()
+    }
+  }
+  
   Gibberish.SoundFont = function( instrumentFileName, pathToResources ) {
     var that = this
     Gibberish.extend(this, {
@@ -149,7 +184,7 @@
           this.playing.push({
             buffer:this.buffers[ name ],
             phase:0,
-            increment: cents || 0,
+            increment: isNaN( cents ) ? 1 : 1 + cents,
             length:this.buffers[ name ].length,
             'amp': isNaN( amp ) ? 1 : amp
           })
@@ -165,48 +200,22 @@
       this.instrumentFileName = arguments[0].instrumentFileName
     }
     
-    if( !SF.instruments[ this.instrumentFileName ] ) {
-    
-      getScript( 'resources/soundfonts/' + this.instrumentFileName + '-mp3.js', function() {
-        
-        var font = SF[ this.instrumentFileName ]
-        
-        if( typeof SF.instruments[ this.instrumentFileName ] === 'undefined' ) {
-          SF.instruments[ this.instrumentFileName ] = {}
-        }
-        
-        this.buffers = SF.instruments[ this.instrumentFileName ]
-        
-        var count = 0
-        for( var note in font ) {
-          count++
-          !function() {
-            var _note = note
-            
-            var base = SF[ this.instrumentFileName ][ _note ].split(",")[1]
-            var arrayBuffer = Base64Binary.decodeArrayBuffer( base );
-            
-            Gibberish.context.decodeAudioData( arrayBuffer, function( _buffer ) {
-              SF.instruments[ this.instrumentFileName ][ _note ] = _buffer.getChannelData( 0 )
-              count--
-              if( count <= 0 ) { 
-                console.log("Soundfont " + this.instrumentFileName + " is loaded.")
-                this.isLoaded = true
-                if( this.onload ) this.onload()
-              }
-            }.bind( this ), function(e) { console.log("ERROR", e.err, arguments, _note ) } )
-            
-          }.bind( this )()
-        }
-        
-      }.bind( this ) )
+    // if already loaded, or if passed a buffer to use...
+    if( !SF.instruments[ this.instrumentFileName ] && typeof pathToResources !== 'object' ) {
+      getScript( 'resources/soundfonts/' + this.instrumentFileName + '-mp3.js', decodeBuffers.bind( null, this ) )
     }else{
-      this.buffers = SF.instruments[ this.instrumentFileName ]
-      this.isLoaded = true
-      setTimeout( function() { if( this.onload ) this.onload() }.bind( this ), 0 )
+      if( typeof pathToResources === 'object' ) {
+        SF[ this.instrumentFileName ] = pathToResources
+        decodeBuffers( this )
+      }else{
+        this.buffers = SF.instruments[ this.instrumentFileName ]
+        this.isLoaded = true
+        setTimeout( function() { if( this.onload ) this.onload() }.bind( this ), 0 )
+      }
     }
     return this
   }
+  Gibberish.SoundFont.storage = SF
   Gibberish.SoundFont.prototype = Gibberish._oscillator;
 })()
   
