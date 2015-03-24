@@ -18,7 +18,8 @@ function createInput() {
 	    Gibberish.mediaStreamSource.connect( Gibberish.node );
 			_hasInput = true;
 		},
-    function() { 
+    function( e ) { 
+      console.log( e )
       console.log( 'error opening audio input')
     }
 	)

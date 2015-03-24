@@ -67,7 +67,8 @@ Gibberish.Sampler = function() {
 	    out = [0,0],
       buffer = null,
       bufferLength = 1,
-      self = this;
+      self = this,
+      count = 0;
       
 	Gibberish.extend(this, {
 		name: 			"sampler",
@@ -98,7 +99,7 @@ param **buffer** Object. The decoded sampler buffers from the audio file
 		_onload : 		function(decoded) {
 			buffer = decoded.channels[0]; 
 			bufferLength = decoded.length;
-					
+			self.length = bufferLength
 			self.end = bufferLength;
       self.length = phase = bufferLength;
       self.isPlaying = true;
@@ -317,7 +318,11 @@ _pitch, amp, isRecording, isPlaying, input, length, start, end, loops, pan
   					phase = loops ? end : phase;
   				}
   			}
-  			return panner(val * amp, pan, out);
+        // var __out = panner(val * amp, pan, out);
+        // if( count++ % 22050 === 0 ) console.log( __out )
+        // if( ! isNaN( __out ) ) {console.log("CRAP", __out )}
+        // return __out
+        return panner(val * amp, pan, out);
   		}
   		phase = loops && _pitch > 0 ? start : phase;
   		phase = loops && _pitch < 0 ? end : phase;

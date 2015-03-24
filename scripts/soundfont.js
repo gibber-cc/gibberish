@@ -1,11 +1,11 @@
 /* IMPORTANT README
 *
 * This class depends on having access to a folder of soundfonts that have been converted to
-* binary string representations. More specifically, soundfonts designed to work with MIDI.js:
+* binary string representations. More specifically, soundfonts designed to work with GenMIDI.js:
 *
 * https://github.com/gleitz/midi-js-soundfonts
 *
-* At some point it would be nice to make another soundfont system, as MIDI.js does not support
+* At some point it would be nice to make another soundfont system, as GenMIDI.js does not support
 * defining loop points.
 *
 * By default soundfonts should be found in a folder named 'resources/soundfonts' one level above
@@ -21,19 +21,18 @@
 
 (function() {
   var cents = function(base, _cents) { return base * Math.pow(2,_cents/1200) },
-      MIDI = { Soundfont: { instruments: {} } },
-      SF = MIDI.Soundfont
+      GenMIDI = { Soundfont: { instruments: {} } },
+      SF = GenMIDI.Soundfont
   
-  // TODO: GET RID OF THIS GLOBAL!!!! It's unfortunately in there because we're using soundfonts meant for MIDI.js
+  // TODO: GET RID OF THIS GLOBAL!!!! It's unfortunately in there because we're using soundfonts meant for GenMIDI.js
   if( typeof window === 'object' )
-    window.MIDI = MIDI
+    window.GenMIDI = GenMIDI
   else
-    global.MIDI = MIDI
+    global.GenMIDI = GenMIDI
   
   var getScript = function( scriptPath, handler ) {
     var oReq = new XMLHttpRequest();
-
-    // oReq.addEventListener("progress", updateProgress, false);
+    
     oReq.addEventListener("load", transferComplete, false);
     oReq.addEventListener("error", function(e){ console.log( "SF load error", e ) }, false);
 
@@ -48,12 +47,15 @@
         var sizeString = new String( "" + oEvent.total )
         sizeString = sizeString[0] + '.' + sizeString[1] + ' MB'
         size.innerHTML = sizeString
+        
+        console.log( percentComplete, "%" )
       } else {
         // Unable to compute progress information since the total size is unknown
       }
     }
 
     function transferComplete( evt ) {
+      console.log("COMPLETE", scriptPath)
       var script = document.createElement('script')
       script.innerHTML = evt.srcElement ? evt.srcElement.responseText : evt.target.responseText
       document.querySelector( 'head' ).appendChild( script )
@@ -202,6 +204,7 @@
     
     // if already loaded, or if passed a buffer to use...
     if( !SF.instruments[ this.instrumentFileName ] && typeof pathToResources !== 'object' ) {
+      console.log("DOWNLOADING SOUNDFONT")
       getScript( 'resources/soundfonts/' + this.instrumentFileName + '-mp3.js', decodeBuffers.bind( null, this ) )
     }else{
       if( typeof pathToResources === 'object' ) {

@@ -55,7 +55,7 @@ var Gibberish = {
   callbackObjects   : [],        // ugen function callbacks used in main audio callback
   analysisCallbackArgs    : [],
   analysisCallbackObjects : [],
-  
+  onBlock: null,
 /**###Gibberish.createCallback : method
 Perform codegen on all dirty ugens and re-create the audio callback. This method is called automatically in the default Gibberish sample loop whenever Gibberish.isDirty is true.
 **/
@@ -144,7 +144,9 @@ param **Audio Event** : Object. The HTML5 audio event object.
         objs = me.callbackObjects.slice(0),
         callbackArgs, callbackBody, _callback, val
 
-        objs.unshift(0)
+    if( me.onBlock !== null ) me.onBlock( me.context )
+    
+    objs.unshift(0)
         
 		for(var i = 0, _bl = e.outputBuffer.length; i < _bl; i++){
       

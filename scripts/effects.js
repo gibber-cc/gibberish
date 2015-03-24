@@ -660,11 +660,14 @@ Number. 0..50. Values above 4.5 are likely to produce shrieking feedback. You ar
 Number. 0..3. "LP" = lowpass, "HP" = highpass, "BP" = bandpass
 **/
 Gibberish.Biquad = function() {
-  var _x1 = [0,0],
-      _x2 = [0,0],
-      _y1 = [0,0],
-      _y2 = [0,0],
-      x1 = x2 = y1 = y2 = 0,
+  var x1L = 0,
+      x2L = 0,
+      y1L = 0,
+      y2L = 0,
+      x1R = 0,
+      x2R = 0,
+      y1R = 0,
+      y2R = 0,
       out = [0,0],
 	    b0 = 0.001639,
 	    b1 = 0.003278,
@@ -736,32 +739,28 @@ Gibberish.Biquad = function() {
     },
 
     callback: function( x ) {
-      var channels = typeof x === 'number' ? 1 : 2,
+      var channels = isNaN( x ) ? 2 : 1,
           outL = 0,
           outR = 0,
           inL = channels === 1 ? x : x[0];
       
-      //outL = b0 * inL + b1 * x1[0] + b2 * x2[0] - a1 * y1[0] - a2 * y2[0];
-      outL = b0 * inL + b1 * x1 + b2 * x2 - a1 * y1 - a2 * y2;
-      
-      // x2[0] = x1[0];
-      // x1[0] = x[0];
-      // y2[0] = y1[0];
-      // y1[0] = outL;
-      
-      x2 = x1;
-      x1 = x;
-      y2 = y1;
-      y1 = outL;
-            
+      //if( _phase++ % 22050 === 0 ) console.log( "X IS ", typeof x )
+
+      outL = b0 * inL + b1 * x1L + b2 * x2L - a1 * y1L - a2 * y2L;
+
+      x2L = x1L;
+      x1L = inL;
+      y2L = y1L;
+      y1L = outL;
+
       if(channels === 2) {
         inR = x[1];
-        outR = b0 * inR + b1 * x1[1] + b2 * x2[1] - a1 * y1[1] - a2 * y2[1];
-        x2[1] = x1[1];
-        x1[1] = x[1];
-        y2[1] = y1[1];
-        y1[1] = outR;
-        
+        outR = b0 * inR + b1 * x1R + b2 * x2R - a1 * y1R - a2 * y2R;
+        x2R = x1R;
+        x1R = inR;
+        y2R = y1R;
+        y1R = outR;
+
         out[0] = outL;
         out[1] = outR;
       }

@@ -27,6 +27,8 @@ Gibberish.PolySeq = function() {
     autofire      : [],
     name          : 'polyseq',
     getPhase      : function() { return phase },
+    setPhase      : function(v) { phase = v },
+    adjustPhase   : function(v) { phase += v },
     timeModifier  : null,
     add           : function( seq ) {
       seq.valuesIndex = seq.durationsIndex = 0

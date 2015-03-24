@@ -64,7 +64,8 @@ var out = concat({
         __dirname + '/../scripts/polyseq.js',
         __dirname + '/../scripts/input.js',
         __dirname + '/../scripts/drums.js',
-        __dirname + '/../scripts/soundfont.js'
+        __dirname + '/../scripts/soundfont.js',
+        __dirname + '/../scripts/vocoder.js'
         //__dirname + '/../documentation_output.js',
     ],
   // setting gibberish.js to be output to root directory so it's easier to locate so people don't have to search for it if they just want to include it
