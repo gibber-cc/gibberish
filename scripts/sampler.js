@@ -258,7 +258,6 @@ param **amp** Number. Optional. The volume to use.
         
         if( __pitch > 0 ) { //|| typeof __pitch === 'object' || typeof this.pitch === 'function' ) {
           phase = this.start;
-          //console.log("PHASE :: ", phase, this.start )
 				}else{
           phase = this.end;
 				}
@@ -397,6 +396,7 @@ _pitch, amp, isRecording, isPlaying, input, length, start, end, loops, pan
     
     console.log("now loading sample", self.file )
     xhr.onerror = function( e ) { console.error( "Sampler file loading error", e )}
+    
     function initSound( arrayBuffer ) {
       Gibberish.context.decodeAudioData(arrayBuffer, function(_buffer) {
         buffer = _buffer.getChannelData(0)

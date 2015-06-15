@@ -129,17 +129,21 @@ Gibberish.Ease.prototype = Gibberish._envelope;
 
 // quadratic bezier
 // adapted from http://www.flong.com/texts/code/shapers_bez/
-Gibberish.Curve = function( start, end, time, a, b, loops ) {
+Gibberish.Curve = function( start, end, time, a, b, fadeIn, loops ) {
   var sqrt = Math.sqrt, 
       out = 0,
       phase = 0
       
+      console.log("FDAE IN ", fadeIn )
   start = start || 0
   end = end || 1
   time = time || Gibberish.context.sampleRate
   a = a || .940
   b = b || .260
   loops = loops || false
+  fadeIn = typeof fadeIn === 'undefined' ? 1 : fadeIn
+  
+  console.log("FADE IN", fadeIn )
   
 	var that = { 
 		name:		'curve',
@@ -167,6 +171,8 @@ Gibberish.Curve = function( start, end, time, a, b, loops ) {
     
     out = phase < time ? start + ( y * ( end - start ) ) : end
     
+    if( !fadeIn ) out =  1 - out
+    
 		//out = phase < time ? start + ( phase++ * incr) : end;
 				
 		phase = (out >= end && loops) ? 0 : phase;
@@ -193,15 +199,16 @@ Gibberish.Lines = function( values, times, loops ) {
       targetTime = 0,
       end = false,
       incr
-      
+  
+  
   if( typeof values === 'undefined' ) values = [ 0,1 ]
   if( typeof times  === 'undefined' ) times  = [ 44100 ]  
-  
+    
   targetValue = values[ valuesPhase ]
   targetTime  = times[ 0 ]
   
   incr = ( targetValue - values[0] ) / targetTime
-  console.log( "current", out, "target", targetValue, "incr", incr )
+  //console.log( "current", out, "target", targetValue, "incr", incr )
   
   loops = loops || false
   
@@ -224,6 +231,8 @@ Gibberish.Lines = function( values, times, loops ) {
     getPhase: function() { return phase },
     getOut:   function() { return out }
 	};
+  
+  that.run = that.retrigger
   
 	this.callback = function() {
     if( phase >= targetTime && !end ) {

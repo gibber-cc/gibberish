@@ -2405,17 +2405,21 @@ Gibberish.Ease.prototype = Gibberish._envelope;
 
 // quadratic bezier
 // adapted from http://www.flong.com/texts/code/shapers_bez/
-Gibberish.Curve = function( start, end, time, a, b, loops ) {
+Gibberish.Curve = function( start, end, time, a, b, fadeIn, loops ) {
   var sqrt = Math.sqrt, 
       out = 0,
       phase = 0
       
+      console.log("FDAE IN ", fadeIn )
   start = start || 0
   end = end || 1
   time = time || Gibberish.context.sampleRate
   a = a || .940
   b = b || .260
   loops = loops || false
+  fadeIn = typeof fadeIn === 'undefined' ? 1 : fadeIn
+  
+  console.log("FADE IN", fadeIn )
   
 	var that = { 
 		name:		'curve',
@@ -2443,6 +2447,8 @@ Gibberish.Curve = function( start, end, time, a, b, loops ) {
     
     out = phase < time ? start + ( y * ( end - start ) ) : end
     
+    if( !fadeIn ) out =  1 - out
+    
 		//out = phase < time ? start + ( phase++ * incr) : end;
 				
 		phase = (out >= end && loops) ? 0 : phase;
@@ -2469,15 +2475,16 @@ Gibberish.Lines = function( values, times, loops ) {
       targetTime = 0,
       end = false,
       incr
-      
+  
+  
   if( typeof values === 'undefined' ) values = [ 0,1 ]
   if( typeof times  === 'undefined' ) times  = [ 44100 ]  
-  
+    
   targetValue = values[ valuesPhase ]
   targetTime  = times[ 0 ]
   
   incr = ( targetValue - values[0] ) / targetTime
-  console.log( "current", out, "target", targetValue, "incr", incr )
+  //console.log( "current", out, "target", targetValue, "incr", incr )
   
   loops = loops || false
   
@@ -2500,6 +2507,8 @@ Gibberish.Lines = function( values, times, loops ) {
     getPhase: function() { return phase },
     getOut:   function() { return out }
 	};
+  
+  that.run = that.retrigger
   
 	this.callback = function() {
     if( phase >= targetTime && !end ) {
@@ -3077,21 +3086,22 @@ Gibberish.Delay = function() {
   
   Gibberish.extend(this, {
   	name:"delay",
-  	properties:{ input:0, time: 22050, feedback: .5, wet:1, dry:1 },
+  	properties:{ input:0, time: 22050, feedback: .5, wet:1, dry:1, rate:1 },
 				
-  	callback : function(sample, time, feedback, wet, dry) {
+  	callback : function(sample, time, feedback, wet, dry, rate ) {
       var channels = typeof sample === 'number' ? 1 : 2;
       
   		var _phase = phase++ % 88200;
+      time = time / rate;
+  		var delayPos = (_phase + ( time | 0 )) % 88200;
       
-  		var delayPos = (_phase + (time | 0)) % 88200;
       if(channels === 1) {
-  			buffers[0][delayPos] =  ( sample + buffers[0][_phase] ) * feedback;
+  			buffers[0][delayPos] =  sample + (buffers[0][_phase] ) * feedback;
         sample = (sample * dry) + (buffers[0][_phase] * wet);
       }else{
-  			buffers[0][delayPos] =  (sample[0] + buffers[0][_phase]) * feedback;
+  			buffers[0][delayPos] =  sample[0] + buffers[0][_phase] * feedback;
         sample[0] = (sample[0] * dry) + (buffers[0][_phase] * wet);
-  			buffers[1][delayPos] =  (sample[1] + buffers[1][_phase]) * feedback;
+  			buffers[1][delayPos] =  sample[1] + buffers[1][_phase] * feedback;
         sample[1] = (sample[1] * dry) + (buffers[1][_phase] * wet);
       }
       
@@ -4386,7 +4396,9 @@ Gibberish.Granulator = function(properties) {
       _out        = [0,0],
       rndf        = Gibberish.rndf,
       numberOfGrains = properties.numberOfGrains || 20;
-      
+  
+      console.log( "NUMBER OF GRAINS", numberOfGrains )
+  
 	Gibberish.extend(this, { 
 		name:		        "granulator",
 		bufferLength:   88200,
@@ -4469,6 +4481,8 @@ Gibberish.Granulator = function(properties) {
   .init()
   .processProperties(arguments);
   
+  
+  
 	for(var i = 0; i < numberOfGrains; i++) {
 		grains[i] = {
 			pos : self.position + Gibberish.rndf(self.positionMin, self.positionMax),
@@ -4478,7 +4492,11 @@ Gibberish.Granulator = function(properties) {
 		grains[i].end = grains[i].pos + self.grainSize;
 		grains[i].fadeAmount = grains[i]._speed * (self.fade * self.grainSize);
 		grains[i].pan = Gibberish.rndf(self.spread * -1, self.spread);
+    
+    console.log( "GRAIN", i, "POS", grains[i].pos, "SPEED", grains[i]._speed )
 	}
+  
+  this.grains = grains
 			
 	/*if(typeof properties.input !== "undefined") { 
 			this.shouldWrite = true;
@@ -5574,7 +5592,6 @@ param **amp** Number. Optional. The volume to use.
         
         if( __pitch > 0 ) { //|| typeof __pitch === 'object' || typeof this.pitch === 'function' ) {
           phase = this.start;
-          //console.log("PHASE :: ", phase, this.start )
 				}else{
           phase = this.end;
 				}
@@ -5713,6 +5730,7 @@ _pitch, amp, isRecording, isPlaying, input, length, start, end, loops, pan
     
     console.log("now loading sample", self.file )
     xhr.onerror = function( e ) { console.error( "Sampler file loading error", e )}
+    
     function initSound( arrayBuffer ) {
       Gibberish.context.decodeAudioData(arrayBuffer, function(_buffer) {
         buffer = _buffer.getChannelData(0)
@@ -5889,7 +5907,7 @@ param **amp** : Optional. Float. The volume of the note, usually between 0..1. T
   	},
 	});
   
-	var waveform = this.waveform;
+	var waveform = waveform1 = waveform2 = waveform3 = this.waveform;
 	Object.defineProperty(this, "waveform", {
 		get: function() { return waveform; },
 		set: function(value) {
@@ -5902,6 +5920,22 @@ param **amp** : Optional. Float. The volume of the note, usually between 0..1. T
 			}
 		},
 	});
+  
+  Object.defineProperties( this, {
+    waveform1: {
+      get: function() { return waveform1 },
+      set: function(v) { waveform1 = v; osc1 = new Gibberish[ v ]().callback; }
+    },
+    waveform2: {
+      get: function() { return waveform2 },
+      set: function(v) { waveform2 = v; osc2 = new Gibberish[ v ]().callback; }
+    },
+    waveform3: {
+      get: function() { return waveform3 },
+      set: function(v) { waveform3 = v; osc3 = new Gibberish[ v ]().callback; }
+    },
+  })
+  
   
 	var _envelope = new Gibberish.AD(this.attack, this.decay),
       envstate  = _envelope.getState,
