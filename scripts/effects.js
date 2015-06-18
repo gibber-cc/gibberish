@@ -122,7 +122,7 @@ Gibberish.Delay = function() {
   	name:"delay",
   	properties:{ input:0, time: 22050, feedback: .5, wet:1, dry:1, rate:1 },
 				
-  	callback : function(sample, time, feedback, wet, dry, rate ) {
+  	callback : function( sample, time, feedback, wet, dry, rate ) {
       var channels = typeof sample === 'number' ? 1 : 2;
       
   		var _phase = phase++ % 88200;

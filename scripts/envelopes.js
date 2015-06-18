@@ -143,8 +143,6 @@ Gibberish.Curve = function( start, end, time, a, b, fadeIn, loops ) {
   loops = loops || false
   fadeIn = typeof fadeIn === 'undefined' ? 1 : fadeIn
   
-  console.log("FADE IN", fadeIn )
-  
 	var that = { 
 		name:		'curve',
 
