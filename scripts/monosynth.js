@@ -85,6 +85,8 @@ param **note or frequency** : String or Integer. You can pass a note name, such 
 param **amp** : Optional. Float. The volume of the note, usually between 0..1. The main amp property of the Synth will also affect note amplitude.
 **/				
 		note : function(_frequency, amp) {
+      if( typeof _frequency === 'undefined' ) return
+
       if(typeof amp !== 'undefined' && amp !== 0) this.amp = amp;
       
       if( amp !== 0 ) {
@@ -100,6 +102,8 @@ param **amp** : Optional. Float. The volume of the note, usually between 0..1. T
       }
 		},
   	_note : function(frequency, amp) {
+      if( typeof frequency === 'undefined' ) return
+        
   		if(typeof this.frequency !== 'object'){
         if( useADSR && frequency === lastFrequency && amp === 0) {
           this.releaseTrigger = 1;

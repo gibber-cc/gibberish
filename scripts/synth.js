@@ -76,6 +76,7 @@ param **frequency** Number. The frequency for the oscillator.
 param **amp** Number. Optional. The volume to use.  
 **/    
 	this.note = function(frequency, amp) {
+    if( typeof frequency === 'undefined' ) return
     if( amp !== 0 ) {
   		if( typeof this.frequency !== 'object' ){
         if( useADSR && frequency === lastFrequency && properties.requireReleaseTrigger ) {
@@ -221,6 +222,8 @@ param **frequency** Number. The frequency for the oscillator.
 param **amp** Number. Optional. The volume to use.  
 **/  
     note : function(_frequency, amp) {
+      if( typeof _frequency === 'undefined' ) return
+
       var lastNoteIndex = this.frequencies.indexOf( _frequency ),
           idx = lastNoteIndex > -1 ? lastNoteIndex : this.voiceCount++,
           synth = this.children[ idx ];
@@ -354,6 +357,7 @@ param **frequency** Number. The frequency for the oscillator.
 param **amp** Number. Optional. The volume to use.  
 **/      
 	this.note = function(frequency, amp) {
+    if( typeof frequency === 'undefined' ) return
     if( amp !== 0 ) {
   		if(typeof this.frequency !== 'object'){
         if( useADSR && frequency === lastFrequency && properties.requireReleaseTrigger ) {
@@ -503,6 +507,8 @@ param **frequency** Number. The frequency for the oscillator.
 param **amp** Number. Optional. The volume to use.  
 **/  
     note : function(_frequency, amp) {
+      if( typeof _frequency === 'undefined' ) return
+
       var lastNoteIndex = this.frequencies.indexOf( _frequency ),
           idx = lastNoteIndex > -1 ? lastNoteIndex : this.voiceCount++,
           synth = this.children[ idx ];

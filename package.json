@@ -11,12 +11,10 @@
   "engines": {
     "node": ">=0.10.26"
   },
-  "dependencies": {
-    "connect": "^2.25.7",
-    "serve-static": "^1.5.3",
-    "web-audio-api": "~0.1.5"
-  },
+  "dependencies": {},
   "devDependencies": {
+    "connect": "^2.25.7",
+    "serve-static": "^1.5.3"
     "uglify-js": "^2.4.15"
   },
   "repository": {

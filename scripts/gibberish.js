@@ -154,7 +154,6 @@ param **Audio Event** : Object. The HTML5 audio event object.
       
       if(me.isDirty) {
         _callback = me.createCallback();
-        
         try{
           callback = me.callback = new Function( _callback[0], _callback[1] )
         }catch( e ) {

@@ -207,7 +207,8 @@ param **pitch** Number. The speed the sample is played back at.
 param **amp** Number. Optional. The volume to use.
 **/    
 		note: function(pitch, amp) {
-      
+      if( typeof pitch === 'undefined' ) return
+
       switch( typeof pitch ) {
         case 'number' :
           this.pitch = pitch

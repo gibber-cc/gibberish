@@ -40,6 +40,8 @@ Gibberish.KarplusStrong = function() {
     properties: { blend:1, damping:0, amp:1, channels:2, pan:0  },
   
     note : function(frequency) {
+      if( typeof frequency === 'undefined' ) return
+
       var _size = Math.floor(sr / frequency);
       buffer.length = 0;
     
