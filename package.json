@@ -14,7 +14,7 @@
   "dependencies": {},
   "devDependencies": {
     "connect": "^2.25.7",
-    "serve-static": "^1.5.3"
+    "serve-static": "^1.5.3",
     "uglify-js": "^2.4.15"
   },
   "repository": {
