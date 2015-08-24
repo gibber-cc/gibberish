@@ -15,7 +15,7 @@ b.record(a, 88200); // record two seconds of a playing
 a.note(8);  
 // wait a bit    
 b.note(1);`
-`
+
 ## Constructor
 ###syntax 1  
 **param** *filepath*: String. A path to the audiofile to be opened by the sampler.  

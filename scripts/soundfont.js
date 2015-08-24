@@ -170,7 +170,7 @@
         for( var i = this.playing.length -1; i >= 0; i-- ) {
           var note = this.playing[ i ]
           
-          val += this.interpolate( note.buffer, note.phase )
+          val += this.interpolate( note.buffer, note.phase ) * note.velocity
           
           note.phase += note.increment
           if( note.phase > note.length ) {
@@ -181,14 +181,14 @@
         return this.panner( val * amp, pan, this.out );
       }.bind( this ),
       
-      note: function( name, amp, cents ) {
+      note: function( name, velocity, cents ) {
         if( this.isLoaded ) {
           this.playing.push({
             buffer:this.buffers[ name ],
             phase:0,
             increment: isNaN( cents ) ? 1 : 1 + cents,
             length:this.buffers[ name ].length,
-            'amp': isNaN( amp ) ? 1 : amp
+            velocity: isNaN( velocity ) ? 1 : velocity
           })
         }
       },

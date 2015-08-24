@@ -37,9 +37,9 @@ Gibberish.KarplusStrong = function() {
   Gibberish.extend(this, {
     name:"karplus_strong",
     frequency : 0,
-    properties: { blend:1, damping:0, amp:1, channels:2, pan:0  },
+    properties: { blend:1, damping:0, amp:1, channels:2, pan:0, velocity:1  },
   
-    note : function(frequency) {
+    note : function( frequency, velocity ) {
       if( typeof frequency === 'undefined' ) return
 
       var _size = Math.floor(sr / frequency);
@@ -49,10 +49,12 @@ Gibberish.KarplusStrong = function() {
         buffer[i] = rnd() * 2 - 1; // white noise
       }
       
+      if( velocity ) this.velocity = velocity
+
       this.frequency = frequency;
     },
 
-    callback : function(blend, damping, amp, channels, pan) { 
+    callback : function(blend, damping, amp, channels, pan, velocity ) { 
       var val = buffer.shift();
       var rndValue = (rnd() > blend) ? -1 : 1;
 				
@@ -64,7 +66,7 @@ Gibberish.KarplusStrong = function() {
 
       buffer.push(value);
 				
-      value *= amp;
+      value *= amp * velocity;
       return channels === 1 ? value : panner(value, pan, out);
     },
   })
@@ -88,10 +90,10 @@ Gibberish.PolyKarplusStrong = function() {
       damping:    0,
     },
 
-    note : function(_frequency, amp) {
+    note : function(_frequency, velocity) {
       var synth = this.children[this.voiceCount++];
       if(this.voiceCount >= this.maxVoices) this.voiceCount = 0;
-      synth.note(_frequency, amp);
+      synth.note(_frequency, velocity);
       this._frequency = _frequency;
     },
     initVoices: function() {

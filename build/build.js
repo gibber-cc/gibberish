@@ -33,8 +33,13 @@ function concat(opts) {
     
     _fs.writeFileSync(distPath + '.js', out, FILE_ENCODING);
     
-    var ugly = uglify.minify( out, {fromString: true} );
-    
+    var ugly
+   
+    try {
+     ugly =  uglify.minify( out, {fromString: true} );
+    }catch(e) {
+     console.log(e)
+    }
     _fs.writeFileSync(distPath + '.min.js', ugly.code, FILE_ENCODING);
     
     console.log(' '+ distPath +' built.');

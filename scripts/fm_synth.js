@@ -36,7 +36,7 @@ Number. Default 0. If the synth has two channels, this determines its position i
 Gibberish.FMSynth = function(properties) {
 	this.name =	"fmSynth";
 
-	this.properties = {
+  this.properties = {
 	  frequency:0,
 	  cmRatio:	2,
 	  index:		5,			
@@ -50,6 +50,7 @@ Gibberish.FMSynth = function(properties) {
     glide:    .15,
     amp:		  .25,
     channels: 2,
+    velocity: 1,
 	  pan:		  0,
   };
 /**###Gibberish.FMSynth.note : method  
@@ -59,10 +60,11 @@ param **frequency** Number. The frequency for the carrier oscillator. The modula
 param **amp** Number. Optional. The volume to use.  
 **/
 
-	this.note = function(frequency, amp) {
+	this.note = function(frequency, velocity) {
     if( typeof frequency === 'undefined' ) return
-    //console.log( frequency, lastFrequency, this.releaseTrigger, amp )
-    if( amp !== 0 ) {
+    //console.log( frequency, lastFrequency, this.releaseTrigger, velocity )
+    console.log( "VELOCITY", velocity )
+    if( velocity !== 0 ) {
   		if(typeof this.frequency !== 'object'){
         if( useADSR && frequency === lastFrequency && properties.requireReleaseTrigger ) {
           this.releaseTrigger = 1;
@@ -82,7 +84,7 @@ param **amp** Number. Optional. The volume to use.
         Gibberish.dirty(this);
       }
 					
-  		if( typeof amp !== 'undefined') this.amp = amp;
+  		if( typeof velocity !== 'undefined') this.velocity = velocity;
 	  
       _envelope.run();
     }else{
@@ -108,14 +110,14 @@ param **amp** Number. Optional. The volume to use.
 
   _envelope.requireReleaseTrigger = properties.requireReleaseTrigger || false;
 
-  this.callback = function(frequency, cmRatio, index, attack, decay, sustain, release, attackLevel, sustainLevel, releaseTrigger, glide, amp, channels, pan) {
+  this.callback = function(frequency, cmRatio, index, attack, decay, sustain, release, attackLevel, sustainLevel, releaseTrigger, glide, amp, channels, velocity, pan) {
     var env, val, mod
         
     if(glide >= 1) glide = .9999;
     frequency = lag(frequency, 1-glide, glide);
     
     if( useADSR ) {
-      env = envelope( attack, decay, sustain, release, attackLevel, sustainLevel, releaseTrigger );
+      env = envelope( attack, decay, sustain, release, attackLevel, sustainLevel, releaseTrigger ) * velocity;
       if( releaseTrigger ) {
         obj.releaseTrigger = 0
       }
@@ -123,7 +125,7 @@ param **amp** Number. Optional. The volume to use.
       if( envstate() < 4 ) {
         mod = modulator(frequency * cmRatio, frequency * index) * env;
   			val = carrier( frequency + mod, 1 ) * env * amp;
-    
+
   			return channels === 1 ? val : panner(val, pan, out);
       }else{
   		  val = out[0] = out[1] = 0;
@@ -131,11 +133,11 @@ param **amp** Number. Optional. The volume to use.
       }
     }else{
       if( envstate() < 2 ) {
-  			env = envelope(attack, decay);
+  			env = envelope(attack, decay) * velocity;
   			mod = modulator(frequency * cmRatio, frequency * index) * env;
   			val = carrier( frequency + mod, 1 ) * env * amp;
 
-        //if( phase++ % 44105 === 0 ) console.log( panner(val, pan, out) channels )
+        //if( phase++ % 44105 === 0 ) console.log( panner(val, pan, out) , channels )
   			return channels === 1 ? val : panner(val, pan, out);
       }else{
   		  val = out[0] = out[1] = 0;
@@ -182,7 +184,8 @@ Gibberish.PolyFM = function() {
     children: [],
     frequencies: [],
     _frequency: 0,
-    
+    velocity: 1,
+
     polyProperties : {
       glide:		 0,
       attack: 22050,
@@ -200,14 +203,16 @@ Generate an enveloped note at the provided frequency using a simple voice alloca
 param **frequency** Number. The frequency for the carrier oscillator. The modulator frequency will be calculated automatically from this value in conjunction with the synth's  
 param **amp** Number. Optional. The volume to use.  
 **/
-    note : function(_frequency, amp) {
+    note : function(_frequency, velocity ) {
       if( typeof _frequency === 'undefined' ) return
 
       var lastNoteIndex = this.frequencies.indexOf( _frequency ),
           idx = lastNoteIndex > -1 ? lastNoteIndex : this.voiceCount++,
           synth = this.children[ idx ];
       
-      synth.note(_frequency, amp);
+      if( typeof velocity === 'undefined' ) velocity = this.velocity
+
+      synth.note(_frequency, velocity);
       
       if( lastNoteIndex === -1) {
         this.frequencies[ idx ] = _frequency;

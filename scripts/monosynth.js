@@ -75,6 +75,7 @@ Gibberish.MonoSynth = function() {
   		octave3:		-1,
       glide:      0,
   		pan:			  0,
+      velocity:   1,
   		frequency:	0,
       channels:   2,
     },
@@ -84,12 +85,12 @@ Gibberish.MonoSynth = function() {
 param **note or frequency** : String or Integer. You can pass a note name, such as "A#4", or a frequency value, such as 440.
 param **amp** : Optional. Float. The volume of the note, usually between 0..1. The main amp property of the Synth will also affect note amplitude.
 **/				
-		note : function(_frequency, amp) {
+		note : function(_frequency, velocity) {
       if( typeof _frequency === 'undefined' ) return
 
-      if(typeof amp !== 'undefined' && amp !== 0) this.amp = amp;
+      if(typeof velocity !== 'undefined' && velocity !== 0) this.velocity = velocity;
       
-      if( amp !== 0 ) {
+      if( velocity !== 0 ) {
     		if(typeof this.frequency !== 'object'){
       
           this.frequency = _frequency;
@@ -101,31 +102,33 @@ param **amp** : Optional. Float. The volume of the note, usually between 0..1. T
   			if(envstate() > 0 ) _envelope.run();
       }
 		},
-  	_note : function(frequency, amp) {
+  	/*
+    note : function(frequency, velocity) {
       if( typeof frequency === 'undefined' ) return
         
   		if(typeof this.frequency !== 'object'){
-        if( useADSR && frequency === lastFrequency && amp === 0) {
+        if( useADSR && frequency === lastFrequency && velocity === 0) {
           this.releaseTrigger = 1;
           lastFrequency = null
           return;
         }
-        if( amp !== 0 ) {
+        if( velocity !== 0 ) {
           this.frequency = lastFrequency = frequency;
         }
         this.releaseTrigger = 0;
       }else{
-        if( amp !== 0 ) {
+        if( velocity !== 0 ) {
           this.frequency[0] = lastFrequency = frequency;
         }
         this.releaseTrigger = 0;
         Gibberish.dirty(this);
       }
 					
-  		if(typeof amp !== 'undefined' && amp !== 0) this.amp = amp;
+  		if(typeof velocity !== 'undefined' && velocity !== 0) this.velocity = velocity;
 	  
-      if( amp !== 0 ) { _envelope.run(); }
+      if( velocity !== 0 ) { _envelope.run(); }
   	},
+    */
 	});
   
 	var waveform = waveform1 = waveform2 = waveform3 = this.waveform;
@@ -171,7 +174,7 @@ param **amp** : Optional. Float. The volume of the note, usually between 0..1. T
   
   this.envelope = _envelope
   
-  this.callback = function(attack, decay, cutoff, resonance, amp1, amp2, amp3, filterMult, isLowPass, pulsewidth, masterAmp, detune2, detune3, octave2, octave3, glide, pan, frequency, channels) {
+  this.callback = function(attack, decay, cutoff, resonance, amp1, amp2, amp3, filterMult, isLowPass, pulsewidth, masterAmp, detune2, detune3, octave2, octave3, glide, pan, velocity, frequency, channels) {
 		if(envstate() < 2) {
       if(glide >= 1) glide = .9999;
       frequency = lag(frequency, 1-glide, glide);
@@ -202,7 +205,7 @@ param **amp** : Optional. Float. The volume of the note, usually between 0..1. T
 			frequency3 += detune3 > 0 ? ((frequency * 2) - frequency) * detune3 : (frequency - (frequency / 2)) * detune3;
 							
 			var oscValue = osc1(frequency, amp1, pulsewidth) + osc2(frequency2, amp2, pulsewidth) + osc3(frequency3, amp3, pulsewidth);
-			var envResult = envelope(attack, decay);
+			var envResult = envelope(attack, decay) * velocity;
 			var val = filter( oscValue, cutoff + filterMult * envResult, resonance, isLowPass, 1) * envResult;
 			val *= masterAmp;
 			out[0] = out[1] = val;
