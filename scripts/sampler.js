@@ -100,7 +100,7 @@ param **buffer** Object. The decoded sampler buffers from the audio file
 			buffer = decoded.channels[0]; 
 			bufferLength = decoded.length;
 			self.length = bufferLength
-			self.end = bufferLength;
+			//self.end = bufferLength;
       self.length = phase = bufferLength;
       self.isPlaying = true;
 					
@@ -117,16 +117,20 @@ param **buffer** Object. The decoded sampler buffers from the audio file
     
     switchBuffer: function( bufferID ) { // accepts either number or string
       if( typeof bufferID === 'string' ) {
-        if( typeof self.buffers[ bufferID ] !== 'undefined' ) {
-          buffer = self.buffers[ bufferID ]
-          bufferLength = self.end = self.length = buffer.length
+        if( typeof this.buffers[ bufferID ] !== 'undefined' ) {
+          buffer = this.buffers[ bufferID ]
+          //bufferLength = this.end = this.length = buffer.length
+          bufferLength = this.length = buffer.length
         }
       }else if( typeof bufferID === 'number' ){
-        var keys = Object.keys( self.buffers )
+        var keys = Object.keys( this.buffers )
         if( keys.length === 0 ) return 
         //console.log( "KEY", keys, keys[ bufferID ], bufferID )
-        buffer = self.buffers[ keys[ bufferID ] ]
-        bufferLength = self.end = self.length = buffer.length
+        buffer = this.buffers[ keys[ bufferID ] ]
+        bufferLength  = this.length = buffer.length
+        //this.end( bufferLength )
+        this.setPhase( 0 )
+        //console.log( bufferLength, this.end, this.length )
       }
     },
     
@@ -205,7 +209,30 @@ Trigger playback of the samplers buffer
   
 param **pitch** Number. The speed the sample is played back at.  
 param **amp** Number. Optional. The volume to use.
-**/    
+**/   
+
+/**###Gibberish.Sampler.range : method  
+Set the start and end points in a single method call
+  
+param **start** Number. The start point for sample playback, 0..1
+param **end** Number. The end point for sample playback, 0..1
+**/  
+    range: function( start, end ) {
+      if( Array.isArray( start ) ) {
+        end = start[1]
+        start = start[0] 
+      }
+      
+      if( end < start ) {
+        var tmp = start
+        start = end
+        end = tmp
+      }
+      
+      this.start = start
+      this.end = end
+    },
+
 		note: function(pitch, amp) {
       if( typeof pitch === 'undefined' ) return
 
@@ -257,11 +284,12 @@ param **amp** Number. Optional. The volume to use.
             break;
         }
         
-        if( __pitch > 0 ) { //|| typeof __pitch === 'object' || typeof this.pitch === 'function' ) {
-          phase = this.start;
-				}else{
-          phase = this.end;
-				}
+        //         if( __pitch > 0 ) { //|| typeof __pitch === 'object' || typeof this.pitch === 'function' ) {
+        //           phase = this.start;
+        // }else{
+        //           phase = this.end;
+        // }
+        phase = 0
         
         Gibberish.dirty( this )
         
@@ -305,28 +333,29 @@ Return a single sample. It's a pretty lengthy method signature, they are all pro
 _pitch, amp, isRecording, isPlaying, input, length, start, end, loops, pan
 **/    
   	callback :function(_pitch, amp, isRecording, isPlaying, input, length, start, end, loops, pan) {
-  		var val = 0;
-  		phase += _pitch;				
-
-  		if(phase < end && phase > 0) {
-  			if(_pitch > 0) {
-					val = buffer !== null && isPlaying ? interpolate(buffer, phase) : 0;
-  			}else{
-  				if(phase > start) {
-  					val = buffer !== null && isPlaying ? interpolate(buffer, phase) : 0;
-  				}else{
-  					phase = loops ? end : phase;
-  				}
-  			}
-        // var __out = panner(val * amp, pan, out);
-        // if( count++ % 22050 === 0 ) console.log( __out )
-        // if( ! isNaN( __out ) ) {console.log("CRAP", __out )}
-        // return __out
-        return panner(val * amp, pan, out);
-  		}
-  		phase = loops && _pitch > 0 ? start : phase;
-  		phase = loops && _pitch < 0 ? end : phase;
-				
+  		var val = 0, startInSamples = start * length, endInSamples = end * length;
+  		phase += _pitch;
+      
+      // if( count++ % 44100 === 0 ) console.log( _pitch, startInSamples, endInSamples )
+      
+      if( buffer !== null && isPlaying ) {
+        if( _pitch > 0 ) {
+          if( startInSamples + phase < endInSamples ) {
+            val = interpolate( buffer, startInSamples + phase )
+          }else{
+            if( loops ) phase = 0
+          }
+        }else{
+          if( endInSamples + phase > startInSamples ) {
+            val = interpolate( buffer, endInSamples + phase )
+          }else{
+            if( loops ) phase = 0
+          }
+        }
+        
+        return panner( val * amp, pan, out )
+      }
+	
   		out[0] = out[1] = val;
   		return out;
   	},
@@ -380,10 +409,10 @@ _pitch, amp, isRecording, isPlaying, input, length, start, end, loops, pan
   
 	if(typeof Gibberish.audioFiles[this.file] !== "undefined") {
 		buffer =  Gibberish.audioFiles[this.file];
-		this.end = this.bufferLength = buffer.length;
+		this.end = 1;
 		this.buffers[ this.file ] = buffer;
     
-    phase = this.bufferLength;
+    this.length = phase = this.bufferLength = buffer.length;
     Gibberish.dirty(this);
     
     if(this.onload) this.onload();
@@ -401,7 +430,8 @@ _pitch, amp, isRecording, isPlaying, input, length, start, end, loops, pan
     function initSound( arrayBuffer ) {
       Gibberish.context.decodeAudioData(arrayBuffer, function(_buffer) {
         buffer = _buffer.getChannelData(0)
-  			self.length = phase = self.end = bufferLength = buffer.length
+        // self.length = phase = self.end = bufferLength = buffer.length
+        self.length = phase = bufferLength = buffer.length
         self.isPlaying = true;
   			self.buffers[ self.file ] = buffer;
 
@@ -421,7 +451,8 @@ _pitch, amp, isRecording, isPlaying, input, length, start, end, loops, pan
 		this.isLoaded = true;
 					
 		buffer = this.buffer;
-    this.end = this.bufferLength = buffer.length || 88200;
+    //this.end = this.bufferLength = buffer.length || 88200;
+    this.bufferLength = buffer.length || 88200;
 		    
 		phase = this.bufferLength;
 		if(arguments[0] && arguments[0].loops) {
@@ -440,7 +471,7 @@ Gibberish.Sampler.prototype.record = function(input, recordLength) {
   
   this.recorder = new Gibberish.Record(input, recordLength, function() {
     self.setBuffer( this.getBuffer() );
-    self.end = bufferLength = self.getBuffer().length;
+    bufferLength = self.getBuffer().length;
     self.setPhase( self.end )
     self.isRecording = false;
   })

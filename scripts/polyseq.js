@@ -17,6 +17,7 @@ Gibberish.PolySeq = function() {
   
   Gibberish.extend(this, {
     seqs          : [],
+    autofire      : [], // seqs with no scheduling that fire everytime a scheduled seq is triggered    
     timeline      : {},
     playOnce      : false,
     repeatCount   : 0,
@@ -24,20 +25,23 @@ Gibberish.PolySeq = function() {
     isConnected   : false,
     properties    : { rate: 1, isRunning:false, nextTime:0 },
     offset        : 0,
-    autofire      : [],
     name          : 'polyseq',
     getPhase      : function() { return phase },
     setPhase      : function(v) { phase = v },
     adjustPhase   : function(v) { phase += v },
     timeModifier  : null,
-    add           : function( seq ) {
+    add           : function( seq, pos ) {
       seq.valuesIndex = seq.durationsIndex = 0
 
       if( seq.durations === null ) {
         seq.autofire = true
         that.autofire.push( seq )
       }else{
-        that.seqs.push( seq )
+        if( typeof pos === 'undefined' ) {
+          that.seqs.push( seq )
+        }else{
+          that.seqs.splice( pos, 0, seq )
+        }
         
         if( typeof that.timeline[ phase ] !== 'undefined' ) {
           if( seq.priority ) {
@@ -82,7 +86,7 @@ Gibberish.PolySeq = function() {
             if(typeof val === 'function') { val = val(); } // will also call anonymous function
     
             if( seq.target ) {
-              if(typeof seq.target[ seq.key ] === 'function') {
+              if( typeof seq.target[ seq.key ] === 'function' ) {
                 seq.target[ seq.key ]( val );
               }else{
                 seq.target[ seq.key ] = val;

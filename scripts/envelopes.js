@@ -134,7 +134,6 @@ Gibberish.Curve = function( start, end, time, a, b, fadeIn, loops ) {
       out = 0,
       phase = 0
       
-      console.log("FDAE IN ", fadeIn )
   start = start || 0
   end = end || 1
   time = time || Gibberish.context.sampleRate
