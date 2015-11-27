@@ -4763,6 +4763,7 @@ param **amp** Number. Optional. The volume to use.
       }else{
         delete this.frequencies[ idx ]
       }
+      this.lastChild = idx
     },
  
     initVoices: function() {
@@ -5050,6 +5051,7 @@ param **amp** Number. Optional. The volume to use.
       }else{
         delete this.frequencies[ idx ]
       }
+      this.lastChild = idx
     },
     
     initVoices: function() {
@@ -7834,7 +7836,7 @@ Gibberish.Hat.prototype = Gibberish._oscillator;
     // if already loaded, or if passed a buffer to use...
     if( !SF.instruments[ this.instrumentFileName ] && typeof pathToResources !== 'object' ) {
       console.log("DOWNLOADING SOUNDFONT")
-      getScript( 'resources/soundfonts/' + this.instrumentFileName + '-mp3.js', decodeBuffers.bind( null, this ) )
+      getScript( pathToResources + this.instrumentFileName + '-mp3.js', decodeBuffers.bind( null, this ) )
     }else{
       if( typeof pathToResources === 'object' ) {
         SF[ this.instrumentFileName ] = pathToResources

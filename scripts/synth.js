@@ -247,6 +247,7 @@ param **amp** Number. Optional. The volume to use.
       }else{
         delete this.frequencies[ idx ]
       }
+      this.lastChild = idx
     },
  
     initVoices: function() {
@@ -534,6 +535,7 @@ param **amp** Number. Optional. The volume to use.
       }else{
         delete this.frequencies[ idx ]
       }
+      this.lastChild = idx
     },
     
     initVoices: function() {
