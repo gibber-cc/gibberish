@@ -1,6 +1,6 @@
 {
   "name": "gibberish-dsp",
-  "version": "2.4.1",
+  "version": "2.4.2",
   "description": "Gibberish is designed to be a fast audio API for browser-based synthesis. It currently runs in Chrome, Safari 6+ and Firefox. It is 73 KB after minification.",
   "main": "./build/gibberish.js",
   "scripts": {
@@ -12,14 +12,17 @@
     "node": ">=0.10.26"
   },
   "devDependencies": {
-    "connect": "^2.25.7",
-    "serve-static": "^1.5.3",
-    "uglify-js": "^2.4.15"
+    "connect": "^3.4.1",
+    "serve-static": "^1.10.2",
+    "speaker": "^0.2.6",
+    "uglify-js": "^2.6.1",
+    "web-audio-api": "^0.2.2"
   },
   "repository": {
     "type": "git",
     "url": "https://github.com/charlieroberts/Gibberish"
   },
+  "tonicExampleFilename": "./node_tonic_example.js",
   "keywords": [
     "audio",
     "music",
