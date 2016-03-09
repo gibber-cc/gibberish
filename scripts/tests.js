@@ -45,7 +45,7 @@ window.soundfont = function() {
 			
 	codeTimeout = setTimeout(function() { 
 		var codegen = document.getElementById("output");
-		codegen.innerHTML = Gibberish.callbackString;
+		codegen.innerHTML = Gibberish.callback.toString();
 	}, 250);
 }
 
@@ -117,7 +117,7 @@ window.routingTest = function() {
 			
 	codeTimeout = setTimeout(function() { 
 		var codegen = document.getElementById("output");
-		codegen.innerHTML = Gibberish.callbackString;
+		codegen.innerHTML = Gibberish.callback.toString();
 	}, 250);
 };
 
@@ -159,7 +159,7 @@ window.wavetable = function() {
 			
 	codeTimeout = setTimeout(function() { 
 		var codegen = document.getElementById("output");
-		codegen.innerHTML = Gibberish.callbackString;
+		codegen.innerHTML = Gibberish.callback.toString();
 	}, 250);
 }
 
@@ -184,7 +184,7 @@ window.vibratoTest = function() {
 			
 	codeTimeout = setTimeout(function() { 
 		var codegen = document.getElementById("output");
-		codegen.innerHTML = Gibberish.callbackString;
+		codegen.innerHTML = Gibberish.callback.toString();
 	}, 250);
 };
 
@@ -203,7 +203,7 @@ window.lineTest = function() {
 			
 	codeTimeout = setTimeout(function() { 
 		var codegen = document.getElementById("output");
-		codegen.innerHTML = Gibberish.callbackString;
+		codegen.innerHTML = Gibberish.callback.toString();
 	}, 250);
 };
 
@@ -223,7 +223,7 @@ window.input = function() {
 			
 	codeTimeout = setTimeout(function() { 
 		var codegen = document.getElementById("output");
-		codegen.innerHTML = Gibberish.callbackString;
+		codegen.innerHTML = Gibberish.callback.toString();
 	}, 250);
 }
 
@@ -245,7 +245,7 @@ window.twoOscsOneMod = function() {
 			
 	codeTimeout = setTimeout(function() { 
 		var codegen = document.getElementById("output");
-		codegen.innerHTML = Gibberish.callbackString;
+		codegen.innerHTML = Gibberish.callback.toString();
 	}, 250);
 };
 
@@ -276,7 +276,7 @@ window.ADSRTest = function() {
 			
 	codeTimeout = setTimeout(function() { 
 		var codegen = document.getElementById("output");
-		codegen.innerHTML = Gibberish.callbackString;
+		codegen.innerHTML = Gibberish.callback.toString();
 	}, 250);
 };
 
@@ -316,7 +316,7 @@ window.ADSRTest2 = function() {
 			
 	codeTimeout = setTimeout(function() { 
 		var codegen = document.getElementById("output");
-		codegen.innerHTML = Gibberish.callbackString;
+		codegen.innerHTML = Gibberish.callback.toString();
 	}, 250);
 };
 
@@ -348,7 +348,7 @@ window.distortion = function() {
 			
 	codeTimeout = setTimeout(function() { 
 		var codegen = document.getElementById("output");
-		codegen.innerHTML = Gibberish.callbackString;
+		codegen.innerHTML = Gibberish.callback.toString();
 	}, 250);
 };
 
@@ -379,7 +379,7 @@ window.delay = function() {
 			
 	codeTimeout = setTimeout(function() { 
 		var codegen = document.getElementById("output");
-		codegen.innerHTML = Gibberish.callbackString;
+		codegen.innerHTML = Gibberish.callback.toString();
 	}, 250);
 };
 
@@ -415,7 +415,7 @@ window.reverb = function() {
 			
 	codeTimeout = setTimeout(function() { 
 		var codegen = document.getElementById("output");
-		codegen.innerHTML = Gibberish.callbackString;
+		codegen.innerHTML = Gibberish.callback.toString();
 	}, 250);
 };
 
@@ -445,7 +445,7 @@ window.flanger = function() {
 			
 	codeTimeout = setTimeout(function() { 
 		var codegen = document.getElementById("output");
-		codegen.innerHTML = Gibberish.callbackString;
+		codegen.innerHTML = Gibberish.callback.toString();
 	}, 250);
 };
 
@@ -474,7 +474,7 @@ window.vibrato = function() {
 			
 	codeTimeout = setTimeout(function() { 
 		var codegen = document.getElementById("output");
-		codegen.innerHTML = Gibberish.callbackString;
+		codegen.innerHTML = Gibberish.callback.toString();
 	}, 250);
 };
 
@@ -504,7 +504,7 @@ window.decimator = function() {
 			
 	codeTimeout = setTimeout(function() { 
 		var codegen = document.getElementById("output");
-		codegen.innerHTML = Gibberish.callbackString;
+		codegen.innerHTML = Gibberish.callback.toString();
 	}, 250);
 };
 
@@ -533,7 +533,7 @@ window.ringModulation = function() {
 			
 	codeTimeout = setTimeout(function() { 
 		var codegen = document.getElementById("output");
-		codegen.innerHTML = Gibberish.callbackString;
+		codegen.innerHTML = Gibberish.callback.toString();
 	}, 250);
 };
 
@@ -572,7 +572,7 @@ window.ladderFilter = function() {
 			
 	codeTimeout = setTimeout(function() { 
 		var codegen = document.getElementById("output");
-		codegen.innerHTML = Gibberish.callbackString;
+		codegen.innerHTML = Gibberish.callback.toString();
 	}, 250);
 };
 
@@ -614,7 +614,7 @@ window.stateVariableFilter = function() {
 			
 	codeTimeout = setTimeout(function() { 
 		var codegen = document.getElementById("output");
-		codegen.innerHTML = Gibberish.callbackString;
+		codegen.innerHTML = Gibberish.callback.toString();
 	}, 250);
 };
 
@@ -641,7 +641,7 @@ window.FMTest = function() {
 			
 	codeTimeout = setTimeout(function() { 
 		var codegen = document.getElementById("output");
-		codegen.innerHTML = Gibberish.callbackString;
+		codegen.innerHTML = Gibberish.callback.toString();
 	}, 250);
 };
 
@@ -680,7 +680,7 @@ window.polyFM = function() {
 			
 	codeTimeout = setTimeout(function() { 
 		var codegen = document.getElementById("output");
-		codegen.innerHTML = Gibberish.callbackString;
+		codegen.innerHTML = Gibberish.callback.toString();
 	}, 250);
 };
 
@@ -716,7 +716,7 @@ window.synth = function() {
 			
 	codeTimeout = setTimeout(function() { 
 		var codegen = document.getElementById("output");
-		codegen.innerHTML = Gibberish.callbackString;
+		codegen.innerHTML = Gibberish.callback.toString();
 	}, 250);
 };
 
@@ -751,7 +751,7 @@ window.synth2 = function() {
 			
 	codeTimeout = setTimeout(function() { 
 		var codegen = document.getElementById("output");
-		codegen.innerHTML = Gibberish.callbackString;
+		codegen.innerHTML = Gibberish.callback.toString();
 	}, 250);
 };
 
@@ -789,7 +789,7 @@ window.monoSynth = function() {
 			
 	codeTimeout = setTimeout(function() { 
 		var codegen = document.getElementById("output");
-		codegen.innerHTML = Gibberish.callbackString;
+		codegen.innerHTML = Gibberish.callback.toString();
 	}, 250);
 };
 
@@ -840,7 +840,7 @@ window.polySynth = function() {
 			
 	codeTimeout = setTimeout(function() { 
 		var codegen = document.getElementById("output");
-		codegen.innerHTML = Gibberish.callbackString;
+		codegen.innerHTML = Gibberish.callback.toString();
 	}, 250);
 };
 
@@ -867,7 +867,7 @@ window.karplusStrong = function() {
 			
 	codeTimeout = setTimeout(function() { 
 		var codegen = document.getElementById("output");
-		codegen.innerHTML = Gibberish.callbackString;
+		codegen.innerHTML = Gibberish.callback.toString();
 	}, 250);
 };
 
@@ -911,7 +911,7 @@ window.polyKarplusStrong = function() {
 			
 	codeTimeout = setTimeout(function() { 
 		var codegen = document.getElementById("output");
-		codegen.innerHTML = Gibberish.callbackString;
+		codegen.innerHTML = Gibberish.callback.toString();
 	}, 250);
 };
 
@@ -956,7 +956,7 @@ window.bufferShuffler = function() {
 			
 	codeTimeout = setTimeout(function() { 
 		var codegen = document.getElementById("output");
-		codegen.innerHTML = Gibberish.callbackString;
+		codegen.innerHTML = Gibberish.callback.toString();
 	}, 250);
 };
 window.sampler = function() {
@@ -985,7 +985,7 @@ window.sampler = function() {
 			
 	codeTimeout = setTimeout(function() { 
 		var codegen = document.getElementById("output");
-		codegen.innerHTML = Gibberish.callbackString;
+		codegen.innerHTML = Gibberish.callback.toString();
 	}, 250);
 }
 
@@ -1033,7 +1033,7 @@ window['time_modulation(Reich)'] = function() {
 			
 	codeTimeout = setTimeout(function() { 
 		var codegen = document.getElementById("output");
-		codegen.innerHTML = Gibberish.callbackString;
+		codegen.innerHTML = Gibberish.callback.toString();
 	}, 250);
 };
 
@@ -1070,7 +1070,7 @@ window.feedbackTest = function() {
 			
 	codeTimeout = setTimeout(function() { 
 		var codegen = document.getElementById("output");
-		codegen.innerHTML = Gibberish.callbackString;
+		codegen.innerHTML = Gibberish.callback.toString();
 	}, 250);
 };
 
@@ -1089,7 +1089,7 @@ window.bandLimitedPWM = function() {
 			
 	codeTimeout = setTimeout(function() { 
 		var codegen = document.getElementById("output");
-		codegen.innerHTML = Gibberish.callbackString;
+		codegen.innerHTML = Gibberish.callback.toString();
 	}, 250);
 };
 
@@ -1133,7 +1133,7 @@ window.granulator = function() {
 			
 	codeTimeout = setTimeout(function() { 
 		var codegen = document.getElementById("output");
-		codegen.innerHTML = Gibberish.callbackString;
+		codegen.innerHTML = Gibberish.callback.toString();
 	}, 250);
 };
 
@@ -1147,7 +1147,7 @@ window.clear = function() {
   
 	codeTimeout = setTimeout(function() { 
 		var codegen = document.getElementById("output");
-		codegen.innerHTML = Gibberish.callbackString;
+		codegen.innerHTML = Gibberish.callback.toString();
 	}, 250);
 };
 
@@ -1188,7 +1188,7 @@ window.biquadFilter = function() {
 			
 	codeTimeout = setTimeout(function() { 
 		var codegen = document.getElementById("output");
-		codegen.innerHTML = Gibberish.callbackString;
+		codegen.innerHTML = Gibberish.callback.toString();
 	}, 250);
 
 }
@@ -1221,7 +1221,7 @@ window.sequencerTest = function() {
 			
 	codeTimeout = setTimeout(function() { 
 		var codegen = document.getElementById("output");
-		codegen.innerHTML = Gibberish.callbackString;
+		codegen.innerHTML = Gibberish.callback.toString();
 	}, 250);
 
 }
@@ -1343,6 +1343,6 @@ window.tr808_emulation = function() {
 			
 	codeTimeout = setTimeout(function() { 
 		var codegen = document.getElementById("output");
-		codegen.innerHTML = Gibberish.callbackString;
+		codegen.innerHTML = Gibberish.callback.toString();
 	}, 250);
 }

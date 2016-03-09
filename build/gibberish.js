@@ -83,7 +83,7 @@ Perform codegen on all dirty ugens and re-create the audio callback. This method
     }*/
     this.dirtied.length = 0;
     
-    this.codestring = ''
+    this.codestring = '\t'
     
     this.args = ['input']
     
@@ -2045,6 +2045,7 @@ Gibberish.PolyKarplusStrong = function() {
     polyProperties : {
   		blend:			1,
       damping:    0,
+      velocity:   1
     },
 
     note : function(_frequency, velocity) {
@@ -5791,7 +5792,7 @@ _pitch, amp, isRecording, isPlaying, input, length, start, end, loops, pan
     console.log("now loading sample", self.file )
     xhr.onerror = function( e ) { console.error( "Sampler file loading error", e )}
     
-    function initSound( arrayBuffer ) {
+    initSound = function( arrayBuffer ) {
       Gibberish.context.decodeAudioData(arrayBuffer, function(_buffer) {
         buffer = _buffer.getChannelData(0)
         // self.length = phase = self.end = bufferLength = buffer.length

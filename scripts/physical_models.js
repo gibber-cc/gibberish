@@ -88,6 +88,7 @@ Gibberish.PolyKarplusStrong = function() {
     polyProperties : {
   		blend:			1,
       damping:    0,
+      velocity:   1
     },
 
     note : function(_frequency, velocity) {
