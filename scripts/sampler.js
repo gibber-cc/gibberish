@@ -424,7 +424,7 @@ _pitch, amp, isRecording, isPlaying, input, length, start, end, loops, pan
     xhr.onload = function( e ) { initSound( this.response ) }
     xhr.send()
     
-    console.log("now loading sample", self.file )
+    //console.log("now loading sample", self.file )
     xhr.onerror = function( e ) { console.error( "Sampler file loading error", e )}
     
     initSound = function( arrayBuffer ) {
@@ -435,7 +435,7 @@ _pitch, amp, isRecording, isPlaying, input, length, start, end, loops, pan
         self.isPlaying = true;
   			self.buffers[ self.file ] = buffer;
 
-  			console.log("sample loaded | ", self.file, " | length | ", bufferLength);
+        //console.log("sample loaded | ", self.file, " | length | ", bufferLength);
   			Gibberish.audioFiles[self.file] = buffer;
 			
         if(self.onload) self.onload();

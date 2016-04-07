@@ -545,7 +545,7 @@ param **amp** Number. The amplitude to be used to calculate output.
       // }
       // if( sign !== 0 ) signHistory = sign
       
-      return out;
+      return out * amp;
     }
   });
   
