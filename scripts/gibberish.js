@@ -78,8 +78,6 @@ Perform codegen on all dirty ugens and re-create the audio callback. This method
     
     this.args = ['input']
     
-    this.memo = {};
-    
     this.out.codegen()
     
     var codeblockStore = this.codeblock.slice(0)
