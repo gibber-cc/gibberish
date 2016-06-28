@@ -63,7 +63,6 @@ param **amp** Number. Optional. The volume to use.
 	this.note = function(frequency, velocity) {
     if( typeof frequency === 'undefined' ) return
     //console.log( frequency, lastFrequency, this.releaseTrigger, velocity )
-    console.log( "VELOCITY", velocity )
     if( velocity !== 0 ) {
   		if(typeof this.frequency !== 'object'){
         if( useADSR && frequency === lastFrequency && properties.requireReleaseTrigger ) {

@@ -203,9 +203,9 @@
     }
     
     // if already loaded, or if passed a buffer to use...
-    if( !SF.instruments[ this.instrumentFileName ] && typeof pathToResources !== 'object' ) {
+    if( !SF.instruments[ this.instrumentFileName ] && typeof this.resourcePath !== 'object' ) {
       console.log("DOWNLOADING SOUNDFONT")
-      getScript( pathToResources + this.instrumentFileName + '-mp3.js', decodeBuffers.bind( null, this ) )
+      getScript( this.resourcePath + this.instrumentFileName + '-mp3.js', decodeBuffers.bind( null, this ) )
     }else{
       if( typeof pathToResources === 'object' ) {
         SF[ this.instrumentFileName ] = pathToResources

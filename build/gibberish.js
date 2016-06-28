@@ -87,8 +87,6 @@ Perform codegen on all dirty ugens and re-create the audio callback. This method
     
     this.args = ['input']
     
-    this.memo = {};
-    
     this.out.codegen()
     
     var codeblockStore = this.codeblock.slice(0)
@@ -5162,7 +5160,6 @@ param **amp** Number. Optional. The volume to use.
 	this.note = function(frequency, velocity) {
     if( typeof frequency === 'undefined' ) return
     //console.log( frequency, lastFrequency, this.releaseTrigger, velocity )
-    console.log( "VELOCITY", velocity )
     if( velocity !== 0 ) {
   		if(typeof this.frequency !== 'object'){
         if( useADSR && frequency === lastFrequency && properties.requireReleaseTrigger ) {
@@ -7836,9 +7833,9 @@ Gibberish.Hat.prototype = Gibberish._oscillator;
     }
     
     // if already loaded, or if passed a buffer to use...
-    if( !SF.instruments[ this.instrumentFileName ] && typeof pathToResources !== 'object' ) {
+    if( !SF.instruments[ this.instrumentFileName ] && typeof this.resourcePath !== 'object' ) {
       console.log("DOWNLOADING SOUNDFONT")
-      getScript( pathToResources + this.instrumentFileName + '-mp3.js', decodeBuffers.bind( null, this ) )
+      getScript( this.resourcePath + this.instrumentFileName + '-mp3.js', decodeBuffers.bind( null, this ) )
     }else{
       if( typeof pathToResources === 'object' ) {
         SF[ this.instrumentFileName ] = pathToResources
