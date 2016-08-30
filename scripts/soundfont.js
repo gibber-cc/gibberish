@@ -31,13 +31,19 @@
     global.GenMIDI = GenMIDI
   
   var getScript = function( scriptPath, handler ) {
-    var oReq = new XMLHttpRequest();
+    //var oReq = new XMLHttpRequest();
     
-    oReq.addEventListener("load", transferComplete, false);
-    oReq.addEventListener("error", function(e){ console.log( "SF load error", e ) }, false);
+    //oReq.addEventListener("load", transferComplete, false);
+    //oReq.addEventListener("error", function(e){ console.log( "SF load error", e ) }, false);
 
-    oReq.open( 'GET', scriptPath, true );
-    oReq.send()
+    //oReq.open( 'GET', scriptPath, true );
+    //oReq.send()
+      console.log("COMPLETE", scriptPath, evt )
+      var script = document.createElement('script')
+      script.innerHTML = evt.srcElement ? evt.srcElement.responseText : evt.target.responseText
+      script.onload = handler
+      script.src = scriptPath
+      document.querySelector( 'head' ).appendChild( script )
 
     function updateProgress (oEvent) {
       if (oEvent.lengthComputable) {
@@ -55,11 +61,13 @@
     }
 
     function transferComplete( evt ) {
-      console.log("COMPLETE", scriptPath)
+      console.log("COMPLETE", scriptPath, evt )
       var script = document.createElement('script')
       script.innerHTML = evt.srcElement ? evt.srcElement.responseText : evt.target.responseText
+      script.onload = handler
       document.querySelector( 'head' ).appendChild( script )
-      handler( script ) 
+      //eval( evt.srcElement.responseText )
+      //setTimeout( handler, 500 )
     }
   }
   
@@ -118,6 +126,7 @@
   }
   
   var decodeBuffers = function( obj ) {
+    console.log('DECODING BUFFERS...', obj)
     var count = 0,
         font = SF[ obj.instrumentFileName ]
         
@@ -203,9 +212,10 @@
     }
     
     // if already loaded, or if passed a buffer to use...
+    var self = this
     if( !SF.instruments[ this.instrumentFileName ] && typeof this.resourcePath !== 'object' ) {
       console.log("DOWNLOADING SOUNDFONT")
-      getScript( this.resourcePath + this.instrumentFileName + '-mp3.js', decodeBuffers.bind( null, this ) )
+      getScript( this.resourcePath + this.instrumentFileName + '-mp3.js', function() { decodeBuffers( self ) } ) //decodeBuffers.bind( null, this ) )
     }else{
       if( typeof pathToResources === 'object' ) {
         SF[ this.instrumentFileName ] = pathToResources
