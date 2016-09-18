@@ -51,6 +51,7 @@ module.exports = function( Gibberish ) {
     template() {
       let ugen = Gibberish.genish.gen.createCallback( this.graph, Gibberish.memory )
 
+      console.log( 'PROPS', props )
       Object.assign( ugen, {
         type: 'ugen',
         id: Gibberish.template.getUID(), 
@@ -63,10 +64,18 @@ module.exports = function( Gibberish ) {
       ugen.ugenName += ugen.id
 
       let propCount = 0
-      for( let param of ugen.inputNames ) {
-        let value = arguments[ ugen.inputNames.indexOf( param ) ]
 
-        if( value === undefined ) value = this.defaults[ propCount ]
+
+      // XXX: "props" is part of the dynamically compiled function signature...
+      let values = Object.assign( {}, this.defaults, props )
+
+      console.log( 'values:', values )
+
+      for( let param of ugen.inputNames ) {
+        let value = values[ param ]
+
+        console.log( param, value )
+        //if( value === undefined ) value = this.defaults[ propCount ]
 
         // TODO: do we need to check for a setter?
         let desc = Object.getOwnPropertyDescriptor( ugen, param ),
@@ -79,20 +88,23 @@ module.exports = function( Gibberish ) {
         Object.defineProperty( ugen, param, {
           get() { return value },
           set( v ) {
-            value = v
-            Gibberish.dirty( ugen )
-            if( setter !== undefined ) setter( v ) 
+            if( value !== v ) {
+              Gibberish.dirty( ugen )
+              if( setter !== undefined ) setter( v )
+              value = v
+            }
           }
         })
 
-        propCount++
+        //propCount++
       }
       return ugen
     },
 
     factory( graph, name, defaults ) {
       let inputs = Gibberish.genish.gen.parameters,//template.getInputsForUgen( graph ),
-          func = new Function( ...inputs, template.templateString )
+        //func = new Function( ...inputs, template.templateString )
+          func = new Function(  'props' , template.templateString )
       
       func.graph = graph
       func.ugenName = name

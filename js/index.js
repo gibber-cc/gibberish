@@ -8,6 +8,7 @@ let Gibberish = {
   callbackNames: [],
   graphIsDirty: false,
   ugens: {},
+  debug: false,
 
   output: null,
 
@@ -120,7 +121,7 @@ let Gibberish = {
     
     callbackBody.push( '\n\treturn ' + lastLine.split('=')[0].split( ' ' )[1] )
 
-    console.log( 'callback:\n', callbackBody.join('\n') )
+    if( this.debug ) console.log( 'callback:\n', callbackBody.join('\n') )
     this.callback = Function( ...this.callbackNames, callbackBody.join( '\n' ) )
     this.callback.out = []
 
