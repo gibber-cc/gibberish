@@ -16,17 +16,28 @@ module.exports = function( Gibberish ) {
       template.templateString = body
     },
 
-    getInputsForUgen( ugen, inputs ) {
-      if( inputs === undefined ) inputs = [] // init  
+    getInputsForChannel( channel, inputs ) {
 
-      if( Array.isArray( ugen.inputs ) ) {
-        for( let input of ugen.inputs ) {
+      if( Array.isArray( channel.inputs ) ) {
+        for( let input of channel.inputs ) {
           if( input.basename === 'in' ) {
             inputs.push( input.name )
           }else{
             template.getInputsForUgen( input, inputs )
           }
         }
+      }
+
+    },
+
+    getInputsForUgen( ugen, inputs ) {
+      if( inputs === undefined ) inputs = [] // init  
+      
+      if( Array.isArray( ugen ) {
+        template.getInputsForChannel( ugen[0], inputs )
+        template.getInputsForChannel( ugen[1], inputs )
+      }else{
+        template.getInputsForChannel( ugen )
       }
 
       return inputs
