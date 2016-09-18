@@ -4,41 +4,32 @@ module.exports = function( Gibberish ) {
 
   let Bus2 = { 
     create() {
-      //let ugen = Gibberish.genish.gen.createCallback( this.graph, Gibberish.memory )
-
-      //Object.assign( ugen, {
-      //  type: 'ugen',
-      //  id: Gibberish.template.getUID(), 
-      //  ugenName: this.ugenName + '_',
-      //  graph: this.graph,
-      //  inputNames: Gibberish.template.getInputsForUgen( this.graph ),
-      //  dirty: true
-      //})
-      let output = new Float32Array( 2 ),
-          floatProto = Float32Array.prototype
+      let output = new Float32Array( 2 )
 
       let bus = function() {
         output[ 0 ] = output[ 1 ] = 0
+
         for( let i = 0; i < arguments.length; i++ ) {
           let input = arguments[ i ],
-              isArray = floatProto.isPrototypeOf( input )
+              isArray = input instanceof Float32Array
 
-          output[ 0 ] = isArray ? input[ 0 ] : input
-          output[ 1 ] = isArray ? input[ 1 ] : input
+          output[ 0 ] += isArray ? input[ 0 ] : input
+          output[ 1 ] += isArray ? input[ 1 ] : input
         }
 
         return output
       }
 
-      bus.binop = true
       bus.id = Gibberish.template.getUID()
       bus.dirty = true
       bus.type = 'ugen'
       bus.ugenName = 'bus2_' + bus.id
       bus.inputs = []
-      bus.op = '+'
+      bus.inputNames = []
 
       bus.connect = ( ugen, level = 1 ) => {
+        bus.inputNames.push( bus.inputs.length )
+        bus[ bus.inputs.length ] = ugen
         bus.inputs.push( ugen )
 
         Gibberish.dirty( bus )

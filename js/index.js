@@ -28,6 +28,7 @@ let Gibberish = {
     this.ugens.binops      = require( './binops.js' )( this )
     this.ugens.bus         = require( './bus.js' )( this )
     this.ugens.bus2        = require( './bus2.js' )( this )
+    this.ugens.synth       = require( './synth.js' )( this )
 
     this.ugens.oscillators.export( this )
     this.ugens.binops.export( this )
@@ -95,8 +96,8 @@ let Gibberish = {
 
         let out = callback.apply( null, gibberish.callbackUgens )
 
-        left[ sample  ] = out
-        right[ sample ] = out
+        left[ sample  ] = out[0]
+        right[ sample ] = out[1]
       }
     }
 

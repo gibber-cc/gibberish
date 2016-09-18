@@ -16,12 +16,15 @@ module.exports = function( Gibberish ) {
       template.templateString = body
     },
 
+    // TODO: delete?
     getInputsForChannel( channel, inputs ) {
-
+      
       if( Array.isArray( channel.inputs ) ) {
         for( let input of channel.inputs ) {
           if( input.basename === 'in' ) {
-            inputs.push( input.name )
+            if( !inputs.includes( input.name ) ) {
+              inputs.push( input.name )
+            }
           }else{
             template.getInputsForUgen( input, inputs )
           }
@@ -30,16 +33,18 @@ module.exports = function( Gibberish ) {
 
     },
 
+    // TODO: delete?
     getInputsForUgen( ugen, inputs ) {
       if( inputs === undefined ) inputs = [] // init  
       
-      if( Array.isArray( ugen ) {
+      if( Array.isArray( ugen ) ) {
         template.getInputsForChannel( ugen[0], inputs )
         template.getInputsForChannel( ugen[1], inputs )
       }else{
-        template.getInputsForChannel( ugen )
+        template.getInputsForChannel( ugen, inputs )
       }
-
+      
+      //console.log( 'INPUTS', inputs )
       return inputs
     },
 
@@ -51,7 +56,7 @@ module.exports = function( Gibberish ) {
         id: Gibberish.template.getUID(), 
         ugenName: this.ugenName + '_',
         graph: this.graph,
-        inputNames: Gibberish.template.getInputsForUgen( this.graph ),
+        inputNames: this.inputNames,//Gibberish.template.getInputsForUgen( this.graph ),
         dirty: true
       })
 
@@ -63,11 +68,20 @@ module.exports = function( Gibberish ) {
 
         if( value === undefined ) value = this.defaults[ propCount ]
 
+        // TODO: do we need to check for a setter?
+        let desc = Object.getOwnPropertyDescriptor( ugen, param ),
+            setter
+        
+        if( desc !== undefined ) {
+          setter = desc.set
+        }
+
         Object.defineProperty( ugen, param, {
           get() { return value },
-          set( v ) { 
+          set( v ) {
             value = v
             Gibberish.dirty( ugen )
+            if( setter !== undefined ) setter( v ) 
           }
         })
 
@@ -77,12 +91,13 @@ module.exports = function( Gibberish ) {
     },
 
     factory( graph, name, defaults ) {
-      let inputs = template.getInputsForUgen( graph ),
+      let inputs = Gibberish.genish.gen.parameters,//template.getInputsForUgen( graph ),
           func = new Function( ...inputs, template.templateString )
       
       func.graph = graph
       func.ugenName = name
       func.defaults = defaults
+      func.inputNames = inputs
 
       return func.bind( func )
     }
