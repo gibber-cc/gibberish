@@ -27,12 +27,14 @@ let Gibberish = {
     this.ugens.oscillators = require( './oscillators.js' )( this )
     this.ugens.binops      = require( './binops.js' )( this )
     this.ugens.bus         = require( './bus.js' )( this )
+    this.ugens.bus2        = require( './bus2.js' )( this )
 
     this.ugens.oscillators.export( this )
     this.ugens.binops.export( this )
     this.Bus = this.ugens.bus
+    this.Bus2 = this.ugens.bus2
 
-    this.output = this.Bus()
+    this.output = this.Bus2()
     this.createContext()
     this.createScriptProcessor()
   },
