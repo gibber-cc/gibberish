@@ -40,6 +40,8 @@ Thumbs.db
 ./node_modules/
 ./node_modules/**
 
+./resources/**
+
 # TextMate #
 ############
 .tm_properties

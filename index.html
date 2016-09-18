@@ -1,8 +1,9 @@
 <html>
+
 <head>
   <title>Gibberish</title>
-  <script src="build/gibberish.js"></script>
-  <script src="scripts/tests.js"></script>
+  <script src="dist/gibberish.js"></script>
+  <!--<script src="scripts/tests.js"></script>-->
     
 	<style>
 	pre, h2 {
@@ -20,91 +21,15 @@
 	</style>
   
 </head>
-<body>
-<div id="header">
-  <h1 style="background:#555; color:white">Gibberish Tests</h1>
-  <a href="docs.html">reference</a>&nbsp;&nbsp;<a href="http://github.com/charlieroberts/Gibberish">github</a>
-  <p style="width:50%">
-    Gibberish is an audio engine that creates code optimized for JIT compilation.
-    Below, after choosing an example, you are shown the input code that the programmer enters and the output code that Gibberish
-    generates for the JIT compiler. It is the audio backend for the live coding environment <a href="http://gibber.mat.ucsb.edu">Gibber</a>.
-    Gibberish works with Chrome, Firefox, Safari(desktop) 6+ (use webkit nightly for best results) and Safari(mobile) under iOS 6+.
-  </p>
-  <p>All examples assume the following three lines are run first:<br>
-<pre>Gibberish.init()
-Gibberish.Time.export()
-Gibberish.Binops.export()
-</pre>
-</p>
-  run: <select onchange="console.log('RUNNING', this.options[this.selectedIndex].text); window[this.options[this.selectedIndex].text]();">
-  	<option>clear</option>	
-    <!-- <option>test</option> -->
-  	<optgroup label="MODULATION">
-  		<option>vibratoTest</option>
-      <option>twoOscsOneMod</option>
-      <option>lineTest</option>
-  		<option>ADSRTest</option>
-      <option>ADSRTest2</option>      
-  	</optgroup>
 
-  	<optgroup label="EFFECTS">
-      <option>distortion</option>
-  		<option>ladderFilter</option>
-      <option>stateVariableFilter</option>
-      <option>biquadFilter</option>    
-  		<option>ringModulation</option>
-  		<option>decimator</option>
-  		<option>delay</option>
-  		<option>flanger</option>
-  		<option>vibrato</option>    
-  		<option>reverb</option>
-  		<option>bufferShuffler</option>
-      <option>granulator</option>    
-  	</optgroup>	
-	
-  	<optgroup label="GENERATORS">
-  		<option>input</option>
-  		<option>wavetable</option>              
-  		<option>bandLimitedPWM</option>  
-  		<option>synth</option>
-  		<option>polySynth</option>
-  		<option>FMTest</option>
-  		<option>polyFM</option>
-  		<option>karplusStrong</option>
-  		<option>polyKarplusStrong</option>
-  		<option>sampler</option>
-      <option>soundfont</option>	
-  		<option>synth2</option>
-      <option>monoSynth</option>
-      <option>tr808_emulation</option>
-  	</optgroup>
-  
-    <option>time_modulation(Reich)</option>  
-    <option>routingTest</option> 
-    <option>sequencerTest</option> 
-  
-  </select>
-</div>
+<body></body>
 
-
-<div style="width:45%; float:left; left:0px; ">
-<h2>Input</h2>
-<pre style="width:45%; left:0px;" id="input"></pre>
-</div>
-
-<div style="width:45%; float:right; ">
-<h2>Output</h2>
-<pre id="output" style="width:45%;"></pre>
-</div>
 <script>
-  ///* uncomment this line (restore block comment) to use with LAB.js
-  Gibberish.init(); 
-  codeTimeout = setTimeout(function() { 
-  	var codegen = document.getElementById("output");
-  	codegen.innerHTML = Gibberish.callback.toString();
-  }, 2000);
-  //*/
+
+Gibberish.init()
+
 </script>
-</body>
+
+
 
 </html>
