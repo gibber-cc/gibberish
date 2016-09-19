@@ -20,7 +20,7 @@ module.exports = function( Gibberish ) {
         return output
       }
 
-      bus.id = Gibberish.template.getUID()
+      bus.id = Gibberish.factory.getUID()
       bus.dirty = true
       bus.type = 'ugen'
       bus.ugenName = 'bus2_' + bus.id

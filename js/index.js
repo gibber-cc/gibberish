@@ -1,7 +1,6 @@
 let MemoryHelper = require( 'memory-helper' ),
-    genish       = require( 'genish.js' ),
-    createUgenTemplate = require( './ugenTemplate.js' )
-
+    genish       = require( 'genish.js' )
+    
 let Gibberish = {
   dirtyUgens: [],
   callbackUgens: [],
@@ -20,8 +19,7 @@ let Gibberish = {
     let numBytes = memAmount === undefined ? 20 * 60 * 44100 : memAmount
 
     this.memory = MemoryHelper.create( numBytes )
-    this.template = createUgenTemplate( this )
-    this.factory  = this.template.factory
+    this.factory = require( './ugenTemplate.js' )( this )
 
     this.genish.export( window )
 
@@ -48,6 +46,7 @@ let Gibberish = {
 
   clear() {
     this.output.inputs = [0]
+    this.output.inputNames.length = 0
     this.dirty( this.output )
   },
 
