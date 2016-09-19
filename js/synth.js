@@ -19,7 +19,10 @@ module.exports = function( Gibberish ) {
         break;
     }
 
-    let syn = Gibberish.factory( g.mul( g.mul( osc, env ), g.in( 'gain' ) ), 'synth', Synth.defaults, props  )
+    let oscAmp = g.mul( g.mul( osc, env ), g.in( 'gain' ) ),
+        panner = g.pan( oscAmp, oscAmp, g.in('pan' ) )
+
+    let syn = Gibberish.factory( [panner.left, panner.right], 'synth', Synth.defaults, props  )
     
     syn.env = env
     syn.note = freq => {
@@ -36,7 +39,8 @@ module.exports = function( Gibberish ) {
     decay: 44100,
     gain: 1,
     pulsewidth:.25,
-    frequency:220
+    frequency:220,
+    pan: .5
   }
 
   return Synth
