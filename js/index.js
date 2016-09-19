@@ -93,7 +93,6 @@ let Gibberish = {
         if( gibberish.graphIsDirty ) { callback = gibberish.generateCallback() }
         
         // XXX cant use destructuring, babel makes it something inefficient...
-
         let out = callback.apply( null, gibberish.callbackUgens )
 
         left[ sample  ] = out[0]

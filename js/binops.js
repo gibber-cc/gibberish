@@ -10,27 +10,27 @@ module.exports = function( Gibberish ) {
     },
     
     Add( ...args ) {
-      let id = Gibberish.template.getUID()
+      let id = Gibberish.factory.getUID()
       return { binop:true, op:'+', inputs:args, ugenName:'add' + id, id }
     },
 
     Sub( ...args ) {
-      let id = Gibberish.template.getUID()
+      let id = Gibberish.factory.getUID()
       return { binop:true, op:'-', inputs:args, ugenName:'sub' + id, id }
     },
 
     Mul( ...args ) {
-      let id = Gibberish.template.getUID()
+      let id = Gibberish.factory.getUID()
       return { binop:true, op:'*', inputs:args, ugenName:'mul' + id, id }
     },
 
     Div( ...args ) {
-      let id = Gibberish.template.getUID()
+      let id = Gibberish.factory.getUID()
       return { binop:true, op:'/', inputs:args, ugenName:'div' + id, id }
     },
 
     Mod( ...args ) {
-      let id = Gibberish.template.getUID()
+      let id = Gibberish.factory.getUID()
       return { binop:true, op:'%', inputs:args, ugenName:'mod' + id, id }
     },   
   }

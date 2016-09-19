@@ -2,9 +2,8 @@ module.exports = function( Gibberish ) {
 
   let uid = 0
 
-  factory = function( graph, name, defaults, props ) {
-    let inputs = Gibberish.genish.gen.parameters,
-        ugen = Gibberish.genish.gen.createCallback( graph, Gibberish.memory ),
+  let factory = function( graph, name, defaults, props ) {
+    let ugen = Gibberish.genish.gen.createCallback( graph, Gibberish.memory ),
         values = Object.assign( {}, defaults, props )
 
     Object.assign( ugen, {
@@ -12,7 +11,7 @@ module.exports = function( Gibberish ) {
       id: factory.getUID(), 
       ugenName: name + '_',
       graph: graph,
-      inputNames: inputs,
+      inputNames: Gibberish.genish.gen.parameters.slice(0),
       dirty: true
     })
 
@@ -23,7 +22,7 @@ module.exports = function( Gibberish ) {
 
       // TODO: do we need to check for a setter?
       let desc = Object.getOwnPropertyDescriptor( ugen, param ),
-        setter
+          setter
 
       if( desc !== undefined ) {
         setter = desc.set
@@ -33,6 +32,8 @@ module.exports = function( Gibberish ) {
         get() { return value },
         set( v ) {
           if( value !== v ) {
+            // only rebuild graph if assignment changes from number to ugen (or vice-versa)
+            //if( isNaN( v ) || isNaN( value ) ) Gibberish.dirty( ugen )
             Gibberish.dirty( ugen )
             if( setter !== undefined ) setter( v )
             value = v
@@ -44,7 +45,7 @@ module.exports = function( Gibberish ) {
     return ugen
   }
 
-  factory.getUID = () => this.uid++
+  factory.getUID = () => uid++
 
   return factory
 }
