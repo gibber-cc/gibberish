@@ -42,14 +42,18 @@ module.exports = function( Gibberish ) {
         for( let i = 0; i < bus.inputs.length; i++ ) {
           let input = bus.inputs[ i ]
 
-          if( isNaN( input ) && ugen === input.inputs[0] ) {
+          if( isNaN( input ) && ugen === input ) {
             removeIdx = i
+            //console.log( 'removing', removeIdx )
             break;
           }
         }
         
         if( removeIdx !== -1 ) {
           bus.inputs.splice( removeIdx, 1 )
+          bus.inputNames.splice( removeIdx, 1 )
+          delete bus[ removeIdx ]
+
           Gibberish.dirty( bus )
         }
       }

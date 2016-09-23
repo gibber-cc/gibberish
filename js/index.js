@@ -2,6 +2,7 @@ let MemoryHelper = require( 'memory-helper' ),
     genish       = require( 'genish.js' )
     
 let Gibberish = {
+  blockCallbacks: [], // called every block
   dirtyUgens: [],
   callbackUgens: [],
   callbackNames: [],
@@ -14,6 +15,7 @@ let Gibberish = {
   memory : null, // 20 minutes by default?
   factory: null, 
   genish,
+  scheduler: require( './scheduler.js' ),
 
   init( memAmount ) {
     let numBytes = memAmount === undefined ? 20 * 60 * 44100 : memAmount
@@ -28,6 +30,7 @@ let Gibberish = {
     this.ugens.bus         = require( './bus.js' )( this )
     this.ugens.bus2        = require( './bus2.js' )( this )
     this.ugens.synth       = require( './synth.js' )( this )
+    this.ugens.polysynth   = require( './polysynth.js' )( this )
 
     this.ugens.oscillators.export( this )
     this.ugens.binops.export( this )
@@ -84,13 +87,32 @@ let Gibberish = {
     this.node.onaudioprocess = function( audioProcessingEvent ) {
       let gibberish = Gibberish,
           callback  = gibberish.callback,
-          outputBuffer = audioProcessingEvent.outputBuffer
+          outputBuffer = audioProcessingEvent.outputBuffer,
+          scheduler = Gibberish.scheduler,
+          objs = gibberish.callbackUgens.slice( 0 ),
+          length
 
       let left = outputBuffer.getChannelData( 0 ),
           right= outputBuffer.getChannelData( 1 )
 
-      for (let sample = 0; sample < left.length; sample++) {
-        if( gibberish.graphIsDirty ) { callback = gibberish.generateCallback() }
+      let callbacklength = Gibberish.blockCallbacks.length
+      
+      if( callbacklength !== 0 ) {
+        for( let i=0; i< callbacklength; i++ ) {
+          Gibberish.blockCallbacks[ i ]()
+        }
+
+        // can't just set length to 0 as callbacks might be added during for loop, so splice pre-existing functions
+        Gibberish.blockCallbacks.splice( 0, callbacklength )
+      }
+
+      for (let sample = 0, length = left.length; sample < length; sample++) {
+        scheduler.tick()
+
+        if( gibberish.graphIsDirty ) { 
+          callback = gibberish.generateCallback()
+          objs = gibberish.callbackUgens.slice( 0 )
+        }
         
         // XXX cant use destructuring, babel makes it something inefficient...
         let out = callback.apply( null, gibberish.callbackUgens )
@@ -109,15 +131,10 @@ let Gibberish = {
     let uid = 0,
         callbackBody, lastLine
 
-    //for( let ugen of this.dirtyUgens ) {
-    //  this.callbackNames.push( ugen.name )
-    //  this.callbackUgens.push( ugen )
-    //}
-
     callbackBody = this.processGraph( this.output )
     lastLine = callbackBody[ callbackBody.length - 1]
     
-    callbackBody.push( '\n\treturn ' + lastLine.split('=')[0].split( ' ' )[1] )
+    callbackBody.push( '\n\treturn ' + lastLine.split( '=' )[0].split( ' ' )[1] )
 
     if( this.debug ) console.log( 'callback:\n', callbackBody.join('\n') )
     this.callback = Function( ...this.callbackNames, callbackBody.join( '\n' ) )
@@ -134,8 +151,6 @@ let Gibberish = {
 
     let body = this.processUgen( output )
     this.callbackNames = this.callbackUgens.map( v => v.ugenName )
-
-    //console.log( this.callbackNames )
 
     this.dirtyUgens.length = 0
     this.graphIsDirty = false
@@ -184,7 +199,7 @@ let Gibberish = {
     }
 
     return block
-  }
+  },
     
 }
 

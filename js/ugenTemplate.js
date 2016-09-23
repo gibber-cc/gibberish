@@ -32,8 +32,6 @@ module.exports = function( Gibberish ) {
         get() { return value },
         set( v ) {
           if( value !== v ) {
-            // only rebuild graph if assignment changes from number to ugen (or vice-versa)
-            //if( isNaN( v ) || isNaN( value ) ) Gibberish.dirty( ugen )
             Gibberish.dirty( ugen )
             if( setter !== undefined ) setter( v )
             value = v
