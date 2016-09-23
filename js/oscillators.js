@@ -12,13 +12,15 @@ module.exports = function( Gibberish ) {
     },
 
     Sine( props ) {
-      return  Gibberish.factory( g.mul( g.cycle( g.in('frequency') ), g.in('gain') ), 'sine', Oscillators.defaults, props )
+      props = Object.assign({}, Oscillators.defaults, props )
+      return  Gibberish.factory( g.mul( g.cycle( g.in('frequency') ), g.in('gain') ), 'sine', props )
     },
     Noise( props ) {
-      return  Gibberish.factory( g.mul( g.noise(), g.in('gain') ), 'noise', { gain:1 }, props  )
+      return  Gibberish.factory( g.mul( g.noise(), g.in('gain') ), 'noise', { gain: isNaN( props.gain ) ? 1 : props.gain }  )
     },
     Saw( props ) { 
-      return Gibberish.factory( g.mul( g.phasor( g.in('frequency') ), g.in('gain' ) ), 'saw',  Oscillators.defaults, props )
+      props = Object.assign({}, Oscillators.defaults, props )
+      return Gibberish.factory( g.mul( g.phasor( g.in('frequency') ), g.in('gain' ) ), 'saw', props )
     }
   }
 

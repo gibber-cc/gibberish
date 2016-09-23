@@ -8,9 +8,11 @@ module.exports = function( Gibberish ) {
         frequency = g.in( 'frequency' ),
         phase
 
+    props = Object.assign( {}, Synth.defaults, props )
+
     switch( props.waveform ) {
       case 'saw':
-        phase = osc = g.phasor( frequency )
+        osc = g.phasor( frequency )
         break;
       case 'square':
         phase = g.phasor( frequency, 0, { min:0 } )
@@ -26,7 +28,8 @@ module.exports = function( Gibberish ) {
     }
 
     let oscWithGain = g.mul( g.mul( osc, env ), g.in( 'gain' ) ),
-        panner = g.pan( oscWithGain, oscWithGain, g.in('pan' ) ),
+        panner = g.pan( oscWithGain, oscWithGain, g.in( 'pan' ) ),
+        //syn = Gibberish.factory( oscWithGain, 'synth', Synth.defaults, props  )
         syn = Gibberish.factory( [panner.left, panner.right], 'synth', Synth.defaults, props  )
     
     syn.env = env
@@ -42,7 +45,7 @@ module.exports = function( Gibberish ) {
       Gibberish.genish.gen.free( [panner.left, panner.right] )
     }
 
-    delete syn.toString()
+    //delete syn.toString()
 
     return syn
   }

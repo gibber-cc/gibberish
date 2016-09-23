@@ -2,9 +2,8 @@ module.exports = function( Gibberish ) {
 
   let uid = 0
 
-  let factory = function( graph, name, defaults, props ) {
-    let ugen = Gibberish.genish.gen.createCallback( graph, Gibberish.memory ),
-        values = Object.assign( {}, defaults, props )
+  let factory = function( graph, name, values ) {
+    let ugen = Gibberish.genish.gen.createCallback( graph, Gibberish.memory )
 
     Object.assign( ugen, {
       type: 'ugen',

@@ -31,6 +31,7 @@ let Gibberish = {
     this.ugens.bus2        = require( './bus2.js' )( this )
     this.ugens.synth       = require( './synth.js' )( this )
     this.ugens.polysynth   = require( './polysynth.js' )( this )
+    this.ugens.freeverb    = require( './freeverb.js' )( this )
 
     this.ugens.oscillators.export( this )
     this.ugens.binops.export( this )
