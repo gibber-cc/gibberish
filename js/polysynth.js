@@ -3,21 +3,33 @@ let g = require( 'genish.js' )
 module.exports = function( Gibberish ) {
 
   let PolySynth = props => {
-    let synth = Gibberish.Bus2()
+    let synth = Gibberish.Bus2(),
+        voices = [],
+        voiceCount = 0
+
+    for( let i = 0; i < 16; i++ ) {
+      voices[i] = Gibberish.ugens.synth( props )
+      voices[i].isConnected = false
+    }
 
     Object.assign( synth, {
 
       note( freq ) {
-        let syn = Gibberish.ugens.synth( props )
+        let syn = voices[ voiceCount++ % voices.length ]//Gibberish.ugens.synth( props )
+        Object.assign( syn, synth.properties )
+
         syn.frequency = freq
         syn.env.trigger()
-
-        this.connect( syn, 1 )
+        
+        if( !syn.isConnected ) {
+          this.connect( syn, 1 )
+          syn.isConnected = true
+        }
 
         let envCheck = ()=> {
           if( syn.env.isComplete() ) {
             synth.disconnect( syn )
-            synth.free()
+            syn.isConnected = false
           }else{
             Gibberish.blockCallbacks.push( envCheck )
           }
@@ -27,7 +39,7 @@ module.exports = function( Gibberish ) {
       },
 
       free() {
-        for( let child of this.inputs ) child.free
+        for( let child of voices ) child.free()
       }
     })
 

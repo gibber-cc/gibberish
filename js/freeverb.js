@@ -19,11 +19,12 @@ let tuning = {
 
 let Freeverb = props => {
   let combsL = [], combsR = []
+
   let input = g.in( 'input' ),
       wet1 = g.in( 'wet1'), wet2 = g.in( 'wet2' ),  dry = g.in( 'dry' ), 
       roomSize = g.in( 'roomSize' ), damping = g.in( 'damping' )
   
-  let summedInput = add( input.left, input.right )
+  let summedInput = add( input.left, input.right ),
       attenuatedInput = g.memo( g.mul( summedInput, tuning.fixedGain ) )
   
   // create comb filters in parallel...

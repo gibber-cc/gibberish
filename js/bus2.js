@@ -22,18 +22,14 @@ module.exports = function( Gibberish ) {
 
       bus.id = Gibberish.factory.getUID()
       bus.dirty = true
-      bus.type = 'ugen'
+      bus.type = 'bus'
       bus.ugenName = 'bus2_' + bus.id
       bus.inputs = []
       bus.inputNames = []
 
       bus.connect = ( ugen, level = 1 ) => {
-        bus.inputNames.push( bus.inputs.length )
-        bus[ bus.inputs.length ] = ugen
         bus.inputs.push( ugen )
-
         Gibberish.dirty( bus )
-
         return bus
       }
 
@@ -51,9 +47,6 @@ module.exports = function( Gibberish ) {
         
         if( removeIdx !== -1 ) {
           bus.inputs.splice( removeIdx, 1 )
-          bus.inputNames.splice( removeIdx, 1 )
-          delete bus[ removeIdx ]
-
           Gibberish.dirty( bus )
         }
       }

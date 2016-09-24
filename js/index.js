@@ -32,6 +32,7 @@ let Gibberish = {
     this.ugens.synth       = require( './synth.js' )( this )
     this.ugens.polysynth   = require( './polysynth.js' )( this )
     this.ugens.freeverb    = require( './freeverb.js' )( this )
+    this.sequencer         = require( './sequencer.js' )( this )
 
     this.ugens.oscillators.export( this )
     this.ugens.binops.export( this )
@@ -90,7 +91,7 @@ let Gibberish = {
           callback  = gibberish.callback,
           outputBuffer = audioProcessingEvent.outputBuffer,
           scheduler = Gibberish.scheduler,
-          objs = gibberish.callbackUgens.slice( 0 ),
+          //objs = gibberish.callbackUgens.slice( 0 ),
           length
 
       let left = outputBuffer.getChannelData( 0 ),
@@ -112,7 +113,7 @@ let Gibberish = {
 
         if( gibberish.graphIsDirty ) { 
           callback = gibberish.generateCallback()
-          objs = gibberish.callbackUgens.slice( 0 )
+          //objs = gibberish.callbackUgens.slice( 0 )
         }
         
         // XXX cant use destructuring, babel makes it something inefficient...
@@ -170,16 +171,18 @@ let Gibberish = {
       
       if( !ugen.binop ) line += `${ugen.ugenName}( `
 
-      let length = ugen.binop ? ugen.inputs.length : ugen.inputNames.length;
+      // must get array so we can keep track of length for comma insertion
+      let keys = ugen.binop || ugen.type === 'bus' ? Object.keys( ugen.inputs ) : Object.keys( ugen.inputNames )
       
-      for( let i = 0; i < length; i++  ) {
+      for( let i = 0; i < keys.length; i++ ) {
+        let key = keys[ i ]
         // binop.inputs is actual values, not just property names
-        let input = ugen.binop ? ugen.inputs[ i ] : ugen[ ugen.inputNames[ i ] ]
+        let input = ugen.binop || ugen.type ==='bus'  ? ugen.inputs[ key ] : ugen[ ugen.inputNames[ key ] ]
 
         if( typeof input === 'number' ) {
           line += input
         }else{
-          if( input === undefined ) console.log( i, ugen )
+          if( input === undefined ) {  console.log( key );}
           Gibberish.processUgen( input, block )
 
           if( !input.binop ) Gibberish.callbackUgens.push( input )
@@ -187,7 +190,7 @@ let Gibberish = {
           line += `v_${input.id}`
         }
 
-        if( i < length - 1 ) {
+        if( i < keys.length - 1 ) {
           line += ugen.binop ? ' ' + ugen.op + ' ' : ', ' 
         }
       }

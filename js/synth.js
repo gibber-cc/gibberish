@@ -29,8 +29,8 @@ module.exports = function( Gibberish ) {
 
     let oscWithGain = g.mul( g.mul( osc, env ), g.in( 'gain' ) ),
         panner = g.pan( oscWithGain, oscWithGain, g.in( 'pan' ) ),
-        //syn = Gibberish.factory( oscWithGain, 'synth', Synth.defaults, props  )
-        syn = Gibberish.factory( [panner.left, panner.right], 'synth', Synth.defaults, props  )
+        //syn = Gibberish.factory( oscWithGain, 'synth', props  )
+        syn = Gibberish.factory( [panner.left, panner.right], 'synth', props  )
     
     syn.env = env
 
