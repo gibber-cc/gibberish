@@ -35,6 +35,7 @@ let Gibberish = {
     this.sequencer         = require( './sequencer.js' )( this )
     this.ugens.karplus     = require( './karplusstrong.js' )( this )
     this.ugens.polykarplus = require( './polykarplusstrong.js' )( this )
+    this.ugens.filter24    = require( './filter24.js' )( this )
 
     this.ugens.oscillators.export( this )
     this.ugens.binops.export( this )

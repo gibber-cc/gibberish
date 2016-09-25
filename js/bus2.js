@@ -9,7 +9,7 @@ module.exports = function( Gibberish ) {
       let bus = function() {
         output[ 0 ] = output[ 1 ] = 0
 
-        for( let i = 0; i < arguments.length; i++ ) {
+        for( let i = 0, length = arguments.length; i < length; i++ ) {
           let input = arguments[ i ],
               isArray = input instanceof Float32Array
 
@@ -27,10 +27,19 @@ module.exports = function( Gibberish ) {
       bus.inputs = []
       bus.inputNames = []
 
-      bus.connect = ( ugen, level = 1 ) => {
-        bus.inputs.push( ugen )
-        Gibberish.dirty( bus )
+      bus.connect = ( target, level = 1 ) => {
+        if( target.inputs )
+          target.inputs.push( bus )
+        else
+          target.input = bus
+
+        Gibberish.dirty( target )
         return bus
+      }
+
+      bus.chain = ( target, level = 1 ) => {
+        bus.connect( target, level )
+        return target
       }
 
       bus.disconnect = ( ugen ) => {
@@ -40,7 +49,6 @@ module.exports = function( Gibberish ) {
 
           if( isNaN( input ) && ugen === input ) {
             removeIdx = i
-            //console.log( 'removing', removeIdx )
             break;
           }
         }

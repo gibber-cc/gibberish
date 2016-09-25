@@ -24,7 +24,7 @@ let Freeverb = props => {
       wet1 = g.in( 'wet1'), wet2 = g.in( 'wet2' ),  dry = g.in( 'dry' ), 
       roomSize = g.in( 'roomSize' ), damping = g.in( 'damping' )
   
-  let summedInput = add( input.left, input.right ),
+  let summedInput = g.add( input.left, input.right ),
       attenuatedInput = g.memo( g.mul( summedInput, tuning.fixedGain ) )
   
   // create comb filters in parallel...
@@ -33,7 +33,7 @@ let Freeverb = props => {
       combFilter( attenuatedInput, tuning.combTuning[i], mul(damping,.4), g.mul( tuning.scaleRoom + tuning.offsetRoom, roomSize ) ) 
     )
     combsR.push( 
-      combFilter( attenuatedInput, tuning.combTuning[i] + tuning.stereoSpread, mul(damping,.4), g.mul( tuning.scaleRoom + tuning.offsetRoom, roomSize ) ) 
+      combFilter( attenuatedInput, tuning.combTuning[i] + tuning.stereoSpread, g.mul(damping,.4), g.mul( tuning.scaleRoom + tuning.offsetRoom, roomSize ) ) 
     )
 
   }
@@ -48,8 +48,8 @@ let Freeverb = props => {
     outR = allPass( outR, tuning.allPassTuning[ 0 ] + tuning.stereoSpread )
   }
   
-  let outputL = add( mul( outL, wet1 ), mul( outR, wet2 ), mul( input.left,  dry ) ),
-      outputR = add( mul( outR, wet1 ), mul( outL, wet2 ), mul( input.right, dry ) )
+  let outputL = g.add( g.mul( outL, wet1 ), g.mul( outR, wet2 ), g.mul( input.left,  dry ) ),
+      outputR = g.add( g.mul( outR, wet1 ), g.mul( outL, wet2 ), g.mul( input.right, dry ) )
 
   let verb = Gibberish.factory( [ outputL, outputR ], 'freeverb', Object.assign({}, Freeverb.defaults, props) )
 
