@@ -4,16 +4,16 @@ module.exports = function( Gibberish ) {
 
   Gibberish.genish.biquad = ( input, cutoff, Q, mode ) => {
     let a0,a1,a2,c,b1,b2,
-        in1a0,x1a1,x2a2,sumLeft,y1b1,y2b2,sumRight,diff
+        in1a0,x1a1,x2a2,y1b1,y2b2
 
     let isStereo = Array.isArray( input ), returnValue
 
     let x1 = ssd(), x2 = ssd(), y1 = ssd(), y2 = ssd()
     
     let w0 = memo( mul( 2 * Math.PI, div( cutoff,  gen.samplerate ) ) ),
-      sinw0 = sin( w0 ),
-      cosw0 = cos( w0 ),
-      alpha = memo( div( sinw0, mul( 2, Q ) ) )
+        sinw0 = sin( w0 ),
+        cosw0 = cos( w0 ),
+        alpha = memo( div( sinw0, mul( 2, Q ) ) )
 
     let oneMinusCosW = sub( 1, cosw0 )
 
@@ -53,14 +53,14 @@ module.exports = function( Gibberish ) {
     x1a1  = mul( x2.in( x1.out ), a1 )
     x2a2  = mul( x2.out,          a0 )
 
-    sumLeft = add( in1a0, x1a1, x2a2 )
+    let sumLeft = add( in1a0, x1a1, x2a2 )
 
     y1b1 = mul( y2.in( y1.out ), b1 )
     y2b2 = mul( y2.out, b2 )
 
-    sumRight = add( y1b1, y2b2 )
+    let sumRight = add( y1b1, y2b2 )
 
-    diff = sub( sumLeft, sumRight )
+    let diff = sub( sumLeft, sumRight )
 
     y1.in( diff )
 
