@@ -47,8 +47,6 @@ module.exports = function( Gibberish ) {
       Gibberish.genish.gen.free( [panner.left, panner.right] )
     }
 
-    //delete syn.toString()
-
     return syn
   }
   
