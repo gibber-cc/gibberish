@@ -31,7 +31,6 @@ module.exports = function( Gibberish ) {
         isLowPass = g.param( 'lowPass', 1 ),
         filteredOsc = g.filter24( oscWithGain, g.in('resonance'), g.mul( g.in('cutoff'), env ), isLowPass ),
         panner = g.pan( filteredOsc, filteredOsc, g.in( 'pan' ) ),
-        //syn = Gibberish.factory( oscWithGain, 'synth', props  )
         syn = Gibberish.factory( [panner.left, panner.right], 'synth', props  )
     
     syn.env = env

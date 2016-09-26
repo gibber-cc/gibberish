@@ -22,7 +22,7 @@ module.exports = function( Gibberish ) {
         syn.env.trigger()
         
         if( !syn.isConnected ) {
-          this.connect( syn, 1 )
+          syn.connect( this, 1 )
           syn.isConnected = true
         }
 
