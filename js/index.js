@@ -30,6 +30,7 @@ let Gibberish = {
     this.ugens.bus         = require( './bus.js' )( this )
     this.ugens.bus2        = require( './bus2.js' )( this )
     this.ugens.synth       = require( './synth.js' )( this )
+    this.ugens.synth2      = require( './synth2.js' )( this )
     this.ugens.polysynth   = require( './polysynth.js' )( this )
     this.ugens.freeverb    = require( './freeverb.js' )( this )
     this.sequencer         = require( './sequencer.js' )( this )
@@ -185,7 +186,7 @@ let Gibberish = {
         if( typeof input === 'number' ) {
           line += input
         }else{
-          if( input === undefined ) {  console.log( key );}
+          if( input === undefined ) {  console.log( key ); continue; }
           Gibberish.processUgen( input, block )
 
           if( !input.binop ) Gibberish.callbackUgens.push( input )
