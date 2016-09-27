@@ -25,26 +25,28 @@ let Gibberish = {
 
     this.genish.export( window )
 
+    this.PolyTemplate      = require( './polytemplate.js' )( this )
     this.ugens.oscillators = require( './oscillators.js' )( this )
     this.ugens.binops      = require( './binops.js' )( this )
     this.ugens.bus         = require( './bus.js' )( this )
-    this.ugens.bus2        = require( './bus2.js' )( this )
-    this.ugens.synth       = require( './synth.js' )( this )
-    this.ugens.synth2      = require( './synth2.js' )( this )
-    this.ugens.polysynth   = require( './polysynth.js' )( this )
-    this.ugens.polysynth2  = require( './polysynth2.js' )( this )
-    this.ugens.monosynth   = require( './monosynth.js' )( this )
-    this.ugens.polymono    = require( './polymono.js' )( this )
-    this.ugens.freeverb    = require( './freeverb.js' )( this )
-    this.sequencer         = require( './sequencer.js' )( this )
-    this.ugens.karplus     = require( './karplusstrong.js' )( this )
-    this.ugens.polykarplus = require( './polykarplusstrong.js' )( this )
+    this.ugens.bus2        = require( './bus2.js' )( this );
+    [ this.ugens.synth, this.ugens.polysynth ] = require( './synth.js' )( this );
+    [ this.ugens.synth2, this.ugens.polysynth2 ] = require( './synth2.js' )( this );
+    //this.ugens.synth2      = require( './synth2.js' )( this )
+    //this.ugens.polysynth   = require( './polysynth.js' )( this )
+    //this.ugens.polysynth2  = require( './polysynth2.js' )( this )
+    [ this.ugens.monosynth, this.ugens.polymono ] = require( './monosynth.js' )( this );
+    //this.ugens.polymono    = require( './polymono.js' )( this )
+    this.ugens.freeverb    = require( './freeverb.js' )( this );
+    this.sequencer         = require( './sequencer.js' )( this );
+    [ this.ugens.karplus, this.ugens.polykarplus ]  = require( './karplusstrong.js' )( this );
+    //this.ugens.polykarplus = require( './polykarplusstrong.js' )( this )
     this.ugens.filter24    = require( './filter24.js' )( this )
     this.ugens.biquad      = require( './biquad.js'   )( this )
 
     this.ugens.oscillators.export( this )
     this.ugens.binops.export( this )
-    this.Bus = this.ugens.bus
+    this.Bus  = this.ugens.bus
     this.Bus2 = this.ugens.bus2
 
     this.output = this.Bus2()

@@ -45,7 +45,7 @@ module.exports = function( Gibberish ) {
       Gibberish.genish.gen.free( [panner.left, panner.right] )
     }
 
-    //delete syn.toString()
+    syn.isStereo = true
 
     return syn
   }
@@ -60,6 +60,8 @@ module.exports = function( Gibberish ) {
     pan: .5
   }
 
-  return Synth
+  let PolySynth = Gibberish.PolyTemplate( Synth, ['frequency','attack','decay','pulsewidth','pan','gain'] ) 
+
+  return [ Synth, PolySynth ]
 
 }

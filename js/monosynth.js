@@ -83,6 +83,10 @@ module.exports = function( Gibberish ) {
     resonance:2,
   }
 
-  return Synth
+  let PolyMono = Gibberish.PolyTemplate( Synth, 
+    ['frequency','attack','decay','cutoff','resonance',
+     'octave2','octave3','detune2','detune3','pulsewidth','pan','gain']
+  ) 
 
+  return [ Synth, PolyMono ]
 }

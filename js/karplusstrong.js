@@ -16,27 +16,32 @@ module.exports = function( Gibberish ) {
 
     feedback.in( damped )
 
-    props = Object.assign( {}, KPS.defaults, props )
+    properties = Object.assign( {}, KPS.defaults, props )
 
     let panner = g.pan( withGain, withGain, g.in( 'pan' ) ),
-        syn = Gibberish.factory( [panner.left, panner.right], 'synth', props  )
+        syn = Gibberish.factory( [panner.left, panner.right], 'karplus', properties  )
 
-    syn.env = trigger
+    Object.assign( syn, {
+      properties : props,
 
-    syn.note = freq => {
-      syn.frequency = freq
-      syn.env.trigger()
-    }
+      env : trigger,
+      phase,
 
-    syn.trigger = syn.env.trigger
-    syn.getPhase = ()=> {
-      return Gibberish.memory.heap[ phase.memory.value.idx ]
-    }
+      note( freq ) {
+        syn.frequency = freq
+        syn.env.trigger()
+      },
 
-    syn.free = () => {
-      Gibberish.genish.gen.free( [panner.left, panner.right] )
-    }
+      trigger : env.trigger,
 
+      getPhase() {
+        return Gibberish.memory.heap[ phase.memory.value.idx ]
+      },
+
+      free() {
+        Gibberish.genish.gen.free( [panner.left, panner.right] )
+      }
+    })
     return syn
   }
   
@@ -48,6 +53,24 @@ module.exports = function( Gibberish ) {
     pan: .5
   }
 
-  return KPS
+  let envCheckFactory = ( syn,synth ) => {
+    let envCheck = ()=> {
+      let phase = syn.getPhase(),
+          endTime = synth.decay * Gibberish.ctx.sampleRate
+
+      if( phase > endTime ) {
+        synth.disconnect( syn )
+        syn.isConnected = false
+        Gibberish.memory.heap[ syn.phase.memory.value.idx ] = 0 // trigger doesn't seem to reset for some reason
+      }else{
+        Gibberish.blockCallbacks.push( envCheck )
+      }
+    }
+    return envCheck
+  }
+
+  let PolyKPS = Gibberish.PolyTemplate( KPS, ['frequency','decay','damping','pan','gain'], envCheckFactory ) 
+
+  return [ KPS, PolyKPS ]
 
 }

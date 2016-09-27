@@ -6,28 +6,43 @@ module.exports = function( Gibberish ) {
     factory: Gibberish.factory( g.add( 0 ) , 'bus', [ 0, 1 ]  ),
 
     create() {
-      let bus = Gibberish.ugens.binops.Add( 0 )  // Bus.factory( 0, 1 )
+      let bus = function() {
+        output[ 0 ] = output[ 1 ] = 0
 
-      bus.connect = ( ugen, level = 1 ) => {
-        //let connectionGain = g.param( 'gain', 1 ),
-        //    signal = g.mul( ugen, level )
+        for( let i = 0, length = arguments.length; i < length; i++ ) {
+          let input = arguments[ i ]
+          output[ 0 ] += input
+          output[ 1 ] += input
+        }
 
-        //bus.inputs = [ ugen ]
-        //bus.inputNames = ['0']
-        //bus[0] = ugen
-        
-        //Object.defineProperty( signal, 'gain', {
-        //  get() { return connectionGain.value },
-        //  set(v){ connectionGain.value = v }
-        //})
-        //
-        let input = level === 1 ? ugen : Gibberish.ugens.binops.Mul( ugen, level )
+        return output
+      }
 
-        bus.inputs.push( input )
+      bus.id = Gibberish.factory.getUID()
+      bus.dirty = true
+      bus.type = 'bus'
+      bus.ugenName = 'bus_' + bus.id
+      bus.inputs = []
+      bus.inputNames = []
 
-        Gibberish.dirty( bus )
+      bus.connect = ( target, level = 1 ) => {
+        if( target.isStereo ) {
+          throw Error( 'You cannot connect a stereo input to a mono bus.' )
+          return
+        }
 
+        if( target.inputs )
+          target.inputs.push( bus )
+        else
+          target.input = bus
+
+        Gibberish.dirty( target )
         return bus
+      }
+
+      bus.chain = ( target, level = 1 ) => {
+        bus.connect( target, level )
+        return target
       }
 
       bus.disconnect = ( ugen ) => {
@@ -35,7 +50,7 @@ module.exports = function( Gibberish ) {
         for( let i = 0; i < bus.inputs.length; i++ ) {
           let input = bus.inputs[ i ]
 
-          if( isNaN( input ) && ugen === input.inputs[0] ) {
+          if( isNaN( input ) && ugen === input ) {
             removeIdx = i
             break;
           }
