@@ -189,18 +189,31 @@ param **buffer** Object. The decoded sampler buffers from the audio file
 Download the sampler buffer as a .wav file. In conjunction with the record method, this enables the Sampler
 to record and downlaod Gibberish sessions.
 **/  
-    download : function() {
+    download : function() { // thanks to Palle and Gunnar for updates!
       var blob = this.encodeWAV();
       var audioBlob = new Blob( [ blob ] );
 
-      var url =  window.webkitURL.createObjectURL( audioBlob );
+      // var url =  window.webkitURL.createObjectURL( audioBlob );
+      var url;
+      if (window.URL !== undefined) {
+        url = window.URL.createObjectURL( audioBlob );
+      } else if (window.webkitURL !== undefined) {
+        url = window.webkitURL.createObjectURL( audioBlob );
+      } else {
+        console.log('Method Unavailable: createObjectURL');
+        return;
+      }
+
       var link = window.document.createElement('a');
       link.href = url;
       link.download = 'output.wav';
-      
-      var click = document.createEvent("Event");
-      click.initEvent("click", true, true);
-      
+
+      var click = new MouseEvent('click', {
+        'view': window,
+        'bubbles': true,
+        'cancelable': true
+      });
+
       link.dispatchEvent(click);
     },
 

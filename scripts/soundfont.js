@@ -31,19 +31,19 @@
     global.GenMIDI = GenMIDI
   
   var getScript = function( scriptPath, handler ) {
-    //var oReq = new XMLHttpRequest();
+    var oReq = new XMLHttpRequest();
     
-    //oReq.addEventListener("load", transferComplete, false);
-    //oReq.addEventListener("error", function(e){ console.log( "SF load error", e ) }, false);
+    oReq.addEventListener("load", transferComplete, false);
+    oReq.addEventListener("error", function(e){ console.log( "SF load error", e ) }, false);
 
-    //oReq.open( 'GET', scriptPath, true );
-    //oReq.send()
-      console.log("COMPLETE", scriptPath, evt )
-      var script = document.createElement('script')
-      script.innerHTML = evt.srcElement ? evt.srcElement.responseText : evt.target.responseText
-      script.onload = handler
-      script.src = scriptPath
-      document.querySelector( 'head' ).appendChild( script )
+    oReq.open( 'GET', scriptPath, true );
+    oReq.send()
+    //console.log("COMPLETE", scriptPath, evt )
+    //var script = document.createElement('script')
+    //script.innerHTML = evt.srcElement ? evt.srcElement.responseText : evt.target.responseText
+    //script.onload = handler
+    //script.src = scriptPath
+    //document.querySelector( 'head' ).appendChild( script )
 
     function updateProgress (oEvent) {
       if (oEvent.lengthComputable) {
@@ -54,20 +54,19 @@
         sizeString = sizeString[0] + '.' + sizeString[1] + ' MB'
         size.innerHTML = sizeString
         
-        console.log( percentComplete, "%" )
+        Gibber.log( percentComplete, "%" )
       } else {
         // Unable to compute progress information since the total size is unknown
       }
     }
 
     function transferComplete( evt ) {
-      console.log("COMPLETE", scriptPath, evt )
       var script = document.createElement('script')
-      script.innerHTML = evt.srcElement ? evt.srcElement.responseText : evt.target.responseText
-      script.onload = handler
+      script.innerText = evt.srcElement ? evt.srcElement.responseText : evt.target.responseText
+      //script.onload = function() { console.log('LOADED FINAL SCRIPT', handler ) }
+      //script.onerror = function( err ) { console.log( 'SCRIPT ERROR', err ) }
       document.querySelector( 'head' ).appendChild( script )
-      //eval( evt.srcElement.responseText )
-      //setTimeout( handler, 500 )
+      setTimeout( handler, 0 )
     }
   }
   
@@ -126,7 +125,7 @@
   }
   
   var decodeBuffers = function( obj ) {
-    console.log('DECODING BUFFERS...', obj)
+    //console.log('DECODING BUFFERS...', obj)
     var count = 0,
         font = SF[ obj.instrumentFileName ]
         
@@ -214,7 +213,7 @@
     // if already loaded, or if passed a buffer to use...
     var self = this
     if( !SF.instruments[ this.instrumentFileName ] && typeof this.resourcePath !== 'object' ) {
-      console.log("DOWNLOADING SOUNDFONT")
+      console.log("Downloading soundfont: " + this.instrumentFileName )
       getScript( this.resourcePath + this.instrumentFileName + '-mp3.js', function() { decodeBuffers( self ) } ) //decodeBuffers.bind( null, this ) )
     }else{
       if( typeof pathToResources === 'object' ) {
