@@ -25,7 +25,10 @@ module.exports = function( Gibberish ) {
       conga.env.trigger()
     }
 
-    conga.trigger = conga.env.trigger
+    conga.trigger = (_gain = 1)  => {
+      conga.gain = _gain
+      conga.env.trigger()
+    }
 
     conga.free = () => {
       Gibberish.genish.gen.free( out )

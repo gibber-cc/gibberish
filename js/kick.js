@@ -27,7 +27,10 @@ module.exports = function( Gibberish ) {
       kick.env.trigger()
     }
 
-    kick.trigger = kick.env.trigger
+    kick.trigger = (_gain = 1) => {
+      kick.gain = _gain
+      kick.env.trigger()
+    }
 
     kick.free = () => {
       Gibberish.genish.gen.free( out )

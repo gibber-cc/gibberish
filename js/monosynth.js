@@ -58,7 +58,10 @@ module.exports = function( Gibberish ) {
       syn.env.trigger()
     }
 
-    syn.trigger = syn.env.trigger
+    syn.trigger = (_gain = 1) => {
+      syn.gain = _gain
+      syn.env.trigger()
+    }
 
     syn.free = () => {
       Gibberish.genish.gen.free( [panner.left, panner.right] )
