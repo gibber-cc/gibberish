@@ -44,6 +44,7 @@ let Gibberish = {
     this.ugens.filter24    = require( './filter24.js' )( this )
     this.ugens.biquad      = require( './biquad.js'   )( this )
     this.ugens.kick        = require( './kick.js' )( this )
+    this.ugens.conga       = require( './conga.js' )( this )
     this.ugens.svf         = require( './svf.js' )( this )
     this.ugens.oscillators.export( this )
     this.ugens.binops.export( this )
