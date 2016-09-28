@@ -1,65 +1,98 @@
 let g = require( 'genish.js' )
 
 module.exports = function( Gibberish ) {
+/*
+ Gibberish.Kick = function() {
+  var trigger = false,
+    	bpf = new Gibberish.SVF().callback,
+    	lpf = new Gibberish.SVF().callback,
+      _decay = .2,
+      _tone = .8;
+      
+  Gibberish.extend(this, {
+  	name:		"kick",
+    properties:	{ pitch:50, __decay:20, __tone: 1000, amp:2, sr: Gibberish.context.sampleRate },
+	
+  	callback: function(pitch, decay, tone, amp, sr) {					
+  		var out = trigger ? 60 : 0;
+			
+  		out = bpf( out, pitch, decay, 2, sr );
+  		out = lpf( out, tone, .5, 0, sr );
+		
+  		out *= amp;
+		
+  		trigger = false;
+		
+  		return out;
+  	},
 
-  let Synth = props => {
-    let osc, 
-        env = g.ad( g.in('attack'), g.in('decay'), { shape:'linear' }),
-        frequency = g.in( 'frequency' ),
-        phase
+  	note : function(p, d, t, amp) {
+  		if(typeof p === 'number') this.pitch = p;
+  		if(typeof d === 'number') this.decay = d;
+  		if(typeof t === 'number') this.tone = t;
+  		if(typeof amp === 'number') this.amp = amp;
+		
+      trigger = true;
+  	},
+  })
+  .init()
+  .oscillatorInit();
+  
+  Object.defineProperties(this, {
+    decay :{
+      get: function() { return _decay; },
+      set: function(val) { _decay = val > 1 ? 1 : val; this.__decay = _decay * 100; }
+    },
+    tone :{
+      get: function() { return _tone; },
+      set: function(val) { _tone = val > 1 ? 1 : val; this.__tone = 220 + val * 1400;  }
+    },
+  });
+  
+  this.processProperties(arguments);
+};
+Gibberish.Kick.prototype = Gibberish._oscillator; 
+*/
+  let Kick = props => {
+    let frequency = g.in( 'frequency' ),
+        decay = g.in( 'decay' ),
+        tone  = g.in( 'tone' ),
+        gain  = g.in( 'gain' )
 
-    props = Object.assign( {}, Synth.defaults, props )
+    props = Object.assign( {}, Kick.defaults, props )
 
-    switch( props.waveform ) {
-      case 'saw':
-        osc = g.phasor( frequency )
-        break;
-      case 'square':
-        phase = g.phasor( frequency, 0, { min:0 } )
-        osc = lt( phase, .5 )
-        break;
-      case 'sine':
-        osc = cycle( frequency )
-        break;
-      case 'pwm':
-        phase = g.phasor( frequency, 0, { min:0 } )
-        osc = lt( phase, g.in( 'pulsewidth' ) )
-        break;
-    }
-
-    let oscWithGain = g.mul( g.mul( osc, env ), g.in( 'gain' ) ),
-        panner = g.pan( oscWithGain, oscWithGain, g.in( 'pan' ) ),
-        //syn = Gibberish.factory( oscWithGain, 'synth', props  )
-        syn = Gibberish.factory( [panner.left, panner.right], 'synth', props  )
+    let trigger = g.bang(),
+        impulse = mul( trigger, 260),
+        bpf = g.biquad( impulse, frequency, decay, 'BP', false ),
+        lpf = g.biquad( bpf, tone, .5, 'LP', false ),
+        out = mul( lpf, gain )
     
-    syn.env = env
+    let kick = Gibberish.factory( out, 'synth', props  )
+    
+    kick.env = trigger
 
-    syn.note = freq => {
-      syn.frequency = freq
-      syn.env.trigger()
+    kick.note = freq => {
+      kick.frequency = freq
+      kick.env.trigger()
     }
 
-    syn.trigger = syn.env.trigger
+    kick.trigger = kick.env.trigger
 
-    syn.free = () => {
-      Gibberish.genish.gen.free( [panner.left, panner.right] )
+    kick.free = () => {
+      Gibberish.genish.gen.free( out )
     }
 
-    //delete syn.toString()
 
-    return syn
+    return kick
   }
   
-  Synth.defaults = {
-    waveform:'saw',
-    attack: 44100,
-    decay: 44100,
+  Kick.defaults = {
     gain: 1,
-    pulsewidth:.25,
-    frequency:220,
-    pan: .5
+    frequency:65,
+    tone: 550,
+    decay:10
   }
 
-  return Synth
+  return Kick
 
 }

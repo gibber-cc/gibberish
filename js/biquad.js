@@ -47,7 +47,7 @@ module.exports = function( Gibberish ) {
     a0 = div( a0, c ); a1 = div( a1, c ); a2 = div( a2, c )
     b1 = div( b1, c ); b2 = div( b2, c )
 
-    in1a0 = mul( x1.in( isStereo ? input[0] : input    ), a0 )
+    in1a0 = mul( x1.in( isStereo ? input[0] : input ), a0 )
     x1a1  = mul( x2.in( x1.out ), a1 )
     x2a2  = mul( x2.out,          a2 )
 
@@ -89,7 +89,7 @@ module.exports = function( Gibberish ) {
   let Biquad = props => {
     let _props = Object.assign( {}, Biquad.defaults, props ) 
 
-    let isStereo = Array.isArray( props.input )
+    let isStereo = props.input.isStereo
 
     let filter = Gibberish.factory( 
       Gibberish.genish.biquad( g.in('input'), g.in('cutoff'), g.in('Q'), _props.mode || 'LP', isStereo ), 

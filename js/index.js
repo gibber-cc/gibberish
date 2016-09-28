@@ -43,7 +43,8 @@ let Gibberish = {
     //this.ugens.polykarplus = require( './polykarplusstrong.js' )( this )
     this.ugens.filter24    = require( './filter24.js' )( this )
     this.ugens.biquad      = require( './biquad.js'   )( this )
-
+    this.ugens.kick        = require( './kick.js' )( this )
+    this.ugens.svf         = require( './svf.js' )( this )
     this.ugens.oscillators.export( this )
     this.ugens.binops.export( this )
     this.Bus  = this.ugens.bus
