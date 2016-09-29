@@ -13,7 +13,8 @@ module.exports = function( Gibberish ) {
       inputNames: Gibberish.genish.gen.parameters.slice(0),
       dirty: true
     })
-
+    
+    console.log( ugen.inputNames )
     ugen.ugenName += ugen.id
 
     for( let param of ugen.inputNames ) {

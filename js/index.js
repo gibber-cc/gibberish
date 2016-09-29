@@ -46,6 +46,7 @@ let Gibberish = {
     this.ugens.kick        = require( './kick.js' )( this )
     this.ugens.conga       = require( './conga.js' )( this )
     this.ugens.clave       = require( './conga.js' )( this )
+    this.ugens.snare       = require( './snare.js' )( this )
     this.ugens.clave.defaults.frequency = 2500
     this.ugens.clave.defaults.decay = .5
     this.ugens.svf         = require( './svf.js' )( this )

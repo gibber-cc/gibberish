@@ -12,7 +12,7 @@ module.exports = function( Gibberish ) {
 
     let trigger = g.bang(),
         impulse = g.mul( trigger, 60 ),
-        _decay =  g.sub( .101, g.div( decay, 10 ) ),
+        _decay =  g.sub( .101, g.div( decay, 10 ) ), // create range of .001 - .099
         bpf = g.svf( impulse, frequency, _decay, 2, false ),
         out = mul( bpf, gain )
     

@@ -12,8 +12,8 @@ module.exports = function( Gibberish ) {
 
     let trigger = g.bang(),
         impulse = g.mul( trigger, 60 ),
-        _decay = g.sub( 1.005, decay ),
-        _tone = g.add( 50, g.mul( tone, 4000 ) ),
+        _decay = g.sub( 1.005, decay ), // range { .005, 1.005 }
+        _tone = g.add( 50, g.mul( tone, 4000 ) ), // range { 50, 4050 }
         bpf = g.svf( impulse, frequency, _decay, 2, false ),
         lpf = g.svf( bpf, _tone, .5, 0, false ),
         out = mul( lpf, gain )
