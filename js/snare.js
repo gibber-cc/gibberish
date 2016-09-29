@@ -15,7 +15,6 @@ module.exports = function( Gibberish ) {
         check = memo( gt( eg, .0005 ) ),
         rnd = g.mul( g.noise(), eg ),
         hpf = g.svf( rnd, g.add( frequency, g.mul( 1, 1000 ) ), .5, 1, false ),
-        //hpf = memo( g.svf( rnd, 500, .5, 1, false ) ),
         snap = gtp( g.mul( hpf, snappy ), 0 ),
         bpf1 = g.svf( eg, g.mul( 180, g.add( tune, 1 ) ), .05, 2, false ),
         bpf2 = g.svf( eg, g.mul( 330, g.add( tune, 1 ) ), .05, 2, false ),
