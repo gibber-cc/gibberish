@@ -19,8 +19,8 @@ module.exports = function( Gibberish ) {
         out = mul( lpf, gain )
     
     let kick = Gibberish.factory( out, 'kick', props  )
-    
     kick.env = trigger
+    kick.graph = out
 
     kick.note = freq => {
       kick.frequency = freq
