@@ -26,6 +26,7 @@ module.exports = function( Gibberish ) {
       bus.ugenName = 'bus2_' + bus.id
       bus.inputs = []
       bus.inputNames = []
+      bus.graph = bus
 
       bus.connect = ( target, level = 1 ) => {
         if( target.inputs )

@@ -202,7 +202,7 @@ let Gibberish = {
           if( input === undefined ) {  console.log( key ); continue; }
           Gibberish.processUgen( input, block )
 
-          if( !input.binop ) Gibberish.callbackUgens.push( input )
+          if( !input.binop ) Gibberish.callbackUgens.push( input.callback )
 
           line += `v_${input.id}`
         }

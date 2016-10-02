@@ -1,12 +1,15 @@
-let g = require( 'genish.js' )
+let g = require( 'genish.js' ),
+    ugen = require( './ugen.js' )
 
 module.exports = function( Gibberish ) {
 
   let Bus = { 
-    factory: Gibberish.factory( g.add( 0 ) , 'bus', [ 0, 1 ]  ),
+    factory: null,//Gibberish.factory( g.add( 0 ) , 'bus', [ 0, 1 ]  ),
 
     create() {
-      let bus = function() {
+      let bus = Object.create( ugen )
+      
+      bus.callback = function() {
         output[ 0 ] = output[ 1 ] = 0
 
         for( let i = 0, length = arguments.length; i < length; i++ ) {

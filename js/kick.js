@@ -1,40 +1,33 @@
-let g = require( 'genish.js' )
+let g = require( 'genish.js' ),
+    instrument = require( './instrument.js' )
 
 module.exports = function( Gibberish ) {
 
-  let Kick = props => {
+  let Kick = inputProps => {
+    // establish prototype chain
+    let kick = Object.create( instrument )
+
+    // define inputs
     let frequency = g.in( 'frequency' ),
         decay = g.in( 'decay' ),
         tone  = g.in( 'tone' ),
         gain  = g.in( 'gain' )
+    
+    // create initial property set
+    let props = Object.assign( {}, Kick.defaults, inputProps )
 
-    props = Object.assign( {}, Kick.defaults, props )
-
+    // create DSP graph
     let trigger = g.bang(),
         impulse = g.mul( trigger, 60 ),
-        _decay = g.sub( 1.005, decay ), // range { .005, 1.005 }
-        _tone = g.add( 50, g.mul( tone, 4000 ) ), // range { 50, 4050 }
-        bpf = g.svf( impulse, frequency, _decay, 2, false ),
-        lpf = g.svf( bpf, _tone, .5, 0, false ),
-        out = mul( lpf, gain )
+        scaledDecay = g.sub( 1.005, decay ), // -> range { .005, 1.005 }
+        scaledTone = g.add( 50, g.mul( tone, 4000 ) ), // -> range { 50, 4050 }
+        bpf = g.svf( impulse, frequency, scaledDecay, 2, false ),
+        lpf = g.svf( bpf, scaledTone, .5, 0, false ),
+        graph = mul( lpf, gain )
     
-    let kick = Gibberish.factory( out, 'kick', props  )
+    Gibberish.factory( kick, graph, 'kick', props  )
+
     kick.env = trigger
-    kick.graph = out
-
-    kick.note = freq => {
-      kick.frequency = freq
-      kick.env.trigger()
-    }
-
-    kick.trigger = (_gain = 1) => {
-      kick.gain = _gain
-      kick.env.trigger()
-    }
-
-    kick.free = () => {
-      Gibberish.genish.gen.free( out )
-    }
 
     return kick
   }

@@ -1,9 +1,8 @@
 module.exports = function( Gibberish ) {
-
   let uid = 0
 
-  let factory = function( graph, name, values ) {
-    let ugen = Gibberish.genish.gen.createCallback( graph, Gibberish.memory )
+  let factory = function( ugen, graph, name, values ) {
+    ugen.callback = Gibberish.genish.gen.createCallback( graph, Gibberish.memory )
 
     Object.assign( ugen, {
       type: 'ugen',
@@ -14,8 +13,8 @@ module.exports = function( Gibberish ) {
       dirty: true
     })
     
-    console.log( ugen.inputNames )
     ugen.ugenName += ugen.id
+    ugen.callback.ugenName = ugen.ugenName // XXX hacky
 
     for( let param of ugen.inputNames ) {
       let value = values[ param ]
