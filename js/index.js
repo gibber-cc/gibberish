@@ -30,17 +30,15 @@ let Gibberish = {
     this.ugens.binops      = require( './binops.js' )( this )
     this.ugens.bus         = require( './bus.js' )( this )
     this.ugens.bus2        = require( './bus2.js' )( this );
+
     [ this.ugens.synth, this.ugens.polysynth ] = require( './synth.js' )( this );
     [ this.ugens.synth2, this.ugens.polysynth2 ] = require( './synth2.js' )( this );
-    //this.ugens.synth2      = require( './synth2.js' )( this )
-    //this.ugens.polysynth   = require( './polysynth.js' )( this )
-    //this.ugens.polysynth2  = require( './polysynth2.js' )( this )
     [ this.ugens.monosynth, this.ugens.polymono ] = require( './monosynth.js' )( this );
-    //this.ugens.polymono    = require( './polymono.js' )( this )
+    
     this.ugens.freeverb    = require( './freeverb.js' )( this );
     this.sequencer         = require( './sequencer.js' )( this );
     [ this.ugens.karplus, this.ugens.polykarplus ]  = require( './karplusstrong.js' )( this );
-    //this.ugens.polykarplus = require( './polykarplusstrong.js' )( this )
+    
     this.ugens.filter24    = require( './filter24.js' )( this )
     this.ugens.biquad      = require( './biquad.js'   )( this )
     this.ugens.kick        = require( './kick.js' )( this )
@@ -166,7 +164,7 @@ let Gibberish = {
     this.callbackUgens.length = 0
     this.callbackNames.length = 0
 
-    this.callbackUgens.push( output )
+    this.callbackUgens.push( output.callback )
 
     let body = this.processUgen( output )
     this.callbackNames = this.callbackUgens.map( v => v.ugenName )
@@ -199,7 +197,7 @@ let Gibberish = {
         if( typeof input === 'number' ) {
           line += input
         }else{
-          if( input === undefined ) {  console.log( key ); continue; }
+          if( input === undefined ) { console.log( key ); continue; }
           Gibberish.processUgen( input, block )
 
           if( !input.binop ) Gibberish.callbackUgens.push( input.callback )

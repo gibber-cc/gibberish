@@ -6,37 +6,37 @@ module.exports = function( Gibberish ) {
     create() {
       let output = new Float32Array( 2 )
 
-      let bus = function() {
-        output[ 0 ] = output[ 1 ] = 0
+      let bus = {
+        callback() {
+          output[ 0 ] = output[ 1 ] = 0
 
-        for( let i = 0, length = arguments.length; i < length; i++ ) {
-          let input = arguments[ i ],
+          for( let i = 0, length = arguments.length; i < length; i++ ) {
+            let input = arguments[ i ],
               isArray = input instanceof Float32Array
 
-          output[ 0 ] += isArray ? input[ 0 ] : input
-          output[ 1 ] += isArray ? input[ 1 ] : input
-        }
+            output[ 0 ] += isArray ? input[ 0 ] : input
+            output[ 1 ] += isArray ? input[ 1 ] : input
+          }
 
-        return output
+          return output
+        },
+        id : Gibberish.factory.getUID(),
+        dirty : true,
+        type : 'bus',
+        inputs : [],
+        inputNames : [],
+        connect( target, level = 1 ) {
+          if( target.inputs )
+            target.inputs.push( bus )
+          else
+            target.input = bus
+
+          Gibberish.dirty( target )
+          return bus
+        },
       }
 
-      bus.id = Gibberish.factory.getUID()
-      bus.dirty = true
-      bus.type = 'bus'
-      bus.ugenName = 'bus2_' + bus.id
-      bus.inputs = []
-      bus.inputNames = []
-      bus.graph = bus
-
-      bus.connect = ( target, level = 1 ) => {
-        if( target.inputs )
-          target.inputs.push( bus )
-        else
-          target.input = bus
-
-        Gibberish.dirty( target )
-        return bus
-      }
+      bus.ugenName = bus.callback.ugenName = 'bus2_' + bus.id
 
       bus.chain = ( target, level = 1 ) => {
         bus.connect( target, level )
