@@ -1,14 +1,15 @@
-let g = require( 'genish.js' )
+let g = require( 'genish.js' ),
+    instrument = require( './instrument.js' )
 
 module.exports = function( Gibberish ) {
 
-  let Synth2 = props => {
-    let osc, 
+  let Synth2 = initialProps => {
+    let syn = Object.create( instrument ),
         env = g.ad( g.in('attack'), g.in('decay'), { shape:'linear' }),
         frequency = g.in( 'frequency' ),
-        phase
+        phase, osc
 
-    props = Object.assign( {}, Synth2.defaults, props )
+    let props = Object.assign( {}, Synth2.defaults, initialProps )
 
     switch( props.waveform ) {
       case 'saw':
@@ -30,26 +31,11 @@ module.exports = function( Gibberish ) {
     let oscWithGain = g.mul( g.mul( osc, env ), g.in( 'gain' ) ),
         isLowPass = g.param( 'lowPass', 1 ),
         filteredOsc = g.filter24( oscWithGain, g.in('resonance'), g.mul( g.in('cutoff'), env ), isLowPass ),
-        panner = g.pan( filteredOsc, filteredOsc, g.in( 'pan' ) ),
-        syn = Gibberish.factory( [panner.left, panner.right], 'synth', props  )
+        panner = g.pan( filteredOsc, filteredOsc, g.in( 'pan' ) )
+      
+    Gibberish.factory( syn, [panner.left, panner.right], 'synth', props  )
     
     syn.env = env
-
-    syn.note = freq => {
-      syn.frequency = freq
-      syn.env.trigger()
-    }
-
-    syn.trigger = (_gain = 1) => {
-      syn.gain = _gain
-      syn.env.trigger()
-    }
-
-    syn.free = () => {
-      Gibberish.genish.gen.free( [panner.left, panner.right] )
-    }
-
-    syn.isStereo = true
     
     return syn
   }

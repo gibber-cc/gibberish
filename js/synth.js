@@ -36,8 +36,6 @@ module.exports = function( Gibberish ) {
     
     syn.env = env
 
-    syn.isStereo = true
-
     return syn
   }
   

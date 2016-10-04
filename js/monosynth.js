@@ -1,14 +1,16 @@
-let g = require( 'genish.js' )
+let g = require( 'genish.js' ),
+    instrument = require( './instrument.js' )
 
 module.exports = function( Gibberish ) {
 
-  let Synth = props => {
-    let oscs = [], 
+  let Synth = argumentProps => {
+    let syn = Object.create( instrument ),
+        oscs = [], 
         env = g.ad( g.in( 'attack' ), g.in( 'decay' ), { shape:'linear' }),
         frequency = g.in( 'frequency' ),
         phase
 
-    props = Object.assign( {}, Synth.defaults, props )
+    let props = Object.assign( {}, Synth.defaults, argumentProps )
 
     for( let i = 0; i < 3; i++ ) {
       let osc, freq
@@ -16,10 +18,10 @@ module.exports = function( Gibberish ) {
       //freq = i === 0 ? frequency : mul( frequency, i + 1 )
       switch( i ) {
         case 1:
-          freq = mul( frequency, add( g.in('octave2'), g.in('detune2')  ) )
+          freq = g.mul( frequency, g.add( g.in('octave2'), g.in('detune2')  ) )
           break;
         case 2:
-          freq = mul( frequency, add( g.in('octave3'), g.in('detune3')  ) )
+          freq = g.mul( frequency, g.add( g.in('octave3'), g.in('detune3')  ) )
           break;
         default:
           freq = frequency
@@ -31,41 +33,29 @@ module.exports = function( Gibberish ) {
           break;
         case 'square':
           phase = g.phasor( freq, 0, { min:0 } )
-          osc = lt( phase, .5 )
+          osc = g.lt( phase, .5 )
           break;
         case 'sine':
           osc = cycle( freq )
           break;
         case 'pwm':
           phase = g.phasor( freq, 0, { min:0 } )
-          osc = lt( phase, g.in( 'pulsewidth' ) )
+          osc = g.lt( phase, g.in( 'pulsewidth' ) )
           break;
       }
-      oscs[i] = osc
+
+      oscs[ i ] = osc
     }
 
-    let oscSum = add( ...oscs ),
+    let oscSum = g.add( ...oscs ),
         oscWithGain = g.mul( g.mul( oscSum, env ), g.in( 'gain' ) ),
         isLowPass = g.param( 'lowPass', 1 ),
         filteredOsc = g.filter24( oscWithGain, g.in('resonance'), g.mul( g.in('cutoff'), env ), isLowPass ),
-        panner = g.pan( filteredOsc,filteredOsc, g.in( 'pan' ) ),
-        syn = Gibberish.factory( [panner.left, panner.right], 'synth', props  )
+        panner = g.pan( filteredOsc,filteredOsc, g.in( 'pan' ) )
+
+    Gibberish.factory( syn, [panner.left, panner.right], 'synth', props  )
     
     syn.env = env
-
-    syn.note = freq => {
-      syn.frequency = freq
-      syn.env.trigger()
-    }
-
-    syn.trigger = (_gain = 1) => {
-      syn.gain = _gain
-      syn.env.trigger()
-    }
-
-    syn.free = () => {
-      Gibberish.genish.gen.free( [panner.left, panner.right] )
-    }
 
     return syn
   }

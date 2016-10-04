@@ -1,9 +1,11 @@
-let g = require( 'genish.js' )
+let g = require( 'genish.js' ),
+    instrument = require( './instrument.js' )
 
 module.exports = function( Gibberish ) {
 
   let KPS = props => {
-    let trigger = g.bang(),
+    let syn = Object.create( instrument ),
+        trigger = g.bang(),
         phase = g.accum( 1, trigger, { max:Infinity } ),
         env = g.gtp( g.sub( 1, g.div( phase, 200 ) ), 0 ),
         impulse = g.mul( g.noise(), env ),
@@ -18,8 +20,9 @@ module.exports = function( Gibberish ) {
 
     properties = Object.assign( {}, KPS.defaults, props )
 
-    let panner = g.pan( withGain, withGain, g.in( 'pan' ) ),
-        syn = Gibberish.factory( [panner.left, panner.right], 'karplus', properties  )
+    let panner = g.pan( withGain, withGain, g.in( 'pan' ) )
+    
+    Gibberish.factory( syn, [panner.left, panner.right], 'karplus', properties  )
 
     Object.assign( syn, {
       properties : props,
@@ -27,27 +30,16 @@ module.exports = function( Gibberish ) {
       env : trigger,
       phase,
 
-      note( freq ) {
-        syn.frequency = freq
-        syn.env.trigger()
-      },
-
-      trigger : env.trigger,
-
       getPhase() {
         return Gibberish.memory.heap[ phase.memory.value.idx ]
       },
-
-      free() {
-        Gibberish.genish.gen.free( [panner.left, panner.right] )
-      }
     })
     return syn
   }
   
   KPS.defaults = {
     decay: .97,
-    damping:.6,
+    damping:.2,
     gain: 1,
     frequency:220,
     pan: .5

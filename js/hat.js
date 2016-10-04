@@ -1,13 +1,15 @@
-let g = require( 'genish.js' )
+let g = require( 'genish.js' ),
+    instrument = require( './instrument.js' )
 
 module.exports = function( Gibberish ) {
 
-  let Hat = props => {
-    let tune  = g.in( 'tune' ),
+  let Hat = argumentProps => {
+    let hat = Object.create( instrument ),
+        tune  = g.in( 'tune' ),
         decay  = g.in( 'decay' ),
         gain  = g.in( 'gain' )
 
-    props = Object.assign( {}, Hat.defaults, props )
+    let props = Object.assign( {}, Hat.defaults, argumentProps )
 
     let baseFreq = g.mul( 325, tune ),
         bpfCutoff = g.mul( g.param( 'bpfc', 7000), tune ),
@@ -25,23 +27,9 @@ module.exports = function( Gibberish ) {
         hpf = g.filter24( envBpf, 0, hpfCutoff, 0 ),
         out = g.mul( hpf, gain )
 
-    let hat = Gibberish.factory( out, 'hat', props  )
+    Gibberish.factory( hat, out, 'hat', props  )
     
     hat.env = eg 
-
-    hat.note = tune => {
-      hat.tune = tune
-      hat.env.trigger()
-    }
-
-    hat.trigger = ( _gain ) => {
-      if( _gain === undefined ) hat.gain = _gain
-      hat.env.trigger()
-    }
-
-    hat.free = () => {
-      Gibberish.genish.gen.free( ife )
-    }
 
     hat.isStereo = false
     return hat

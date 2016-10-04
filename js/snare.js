@@ -1,15 +1,17 @@
-let g = require( 'genish.js' )
-
+let g = require( 'genish.js' ),
+    instrument = require( './instrument.js' )
+  
 module.exports = function( Gibberish ) {
 
-  let Snare = props => {
-    let frequency = g.in( 'frequency' ),
+  let Snare = argumentProps => {
+    let snare = Object.create( instrument ),
+        frequency = g.in( 'frequency' ),
         decay = g.in( 'decay' ),
         snappy= g.in( 'snappy' ),
         tune  = g.in( 'tune' ),
         gain  = g.in( 'gain' )
 
-    props = Object.assign( {}, Snare.defaults, props )
+    let props = Object.assign( {}, Snare.defaults, argumentProps )
 
     let eg = g.decay( decay ), 
         check = memo( gt( eg, .0005 ) ),
@@ -27,23 +29,9 @@ module.exports = function( Gibberish ) {
     let ife = g.switch( check, scaledOut, 0 )
     //let ife = g.ifelse( g.gt( eg, .005 ), cycle(440), 0 )
     
-    let snare = Gibberish.factory( ife, 'snare', props  )
+    Gibberish.factory( snare, ife, 'snare', props  )
     
     snare.env = eg 
-
-    snare.note = tune => {
-      snare.tune = tune
-      snare.env.trigger()
-    }
-
-    snare.trigger = ( _gain ) => {
-      if( _gain === undefined ) snare.gain = _gain
-      snare.env.trigger()
-    }
-
-    snare.free = () => {
-      Gibberish.genish.gen.free( ife )
-    }
 
     return snare
   }

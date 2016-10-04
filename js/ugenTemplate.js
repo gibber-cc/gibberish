@@ -10,6 +10,7 @@ module.exports = function( Gibberish ) {
       ugenName: name + '_',
       graph: graph,
       inputNames: Gibberish.genish.gen.parameters.slice(0),
+      isStereo: Array.isArray( graph ),
       dirty: true
     })
     
