@@ -1,5 +1,6 @@
 let g = require( 'genish.js' ),
-    instrument = require( './instrument.js' )
+  instrument = require( './instrument.js' ),
+  feedbackOsc = require( './fmfeedbackosc.js' )
 
 module.exports = function( Gibberish ) {
 
@@ -14,18 +15,31 @@ module.exports = function( Gibberish ) {
 
     switch( props.waveform ) {
       case 'saw':
-        osc = g.phasor( frequency )
+        if( props.antialias === false ) {
+          osc = g.phasor( frequency )
+        }else{
+          osc = feedbackOsc( frequency, 1 )
+        }
         break;
       case 'square':
-        phase = g.phasor( frequency, 0, { min:0 } )
-        osc = lt( phase, .5 )
+        if( props.antialias === true ) {
+          osc = feedbackOsc( frequency, 1, .5, { type:1 })
+        }else{
+          phase = g.phasor( frequency, 0, { min:0 } )
+          osc = lt( phase, .5 )
+        }
         break;
       case 'sine':
         osc = cycle( frequency )
         break;
       case 'pwm':
-        phase = g.phasor( frequency, 0, { min:0 } )
-        osc = lt( phase, g.in( 'pulsewidth' ) )
+        let pulsewidth = g.in('pulsewidth')
+        if( props.antialias === true ) {
+          osc = feedbackOsc( frequency, 1, pulsewidth, { type:1 })
+        }else{
+          phase = g.phasor( frequency, 0, { min:0 } )
+          osc = lt( phase, pulsewidth )
+        }
         break;
     }
 
@@ -46,7 +60,8 @@ module.exports = function( Gibberish ) {
     gain: 1,
     pulsewidth:.25,
     frequency:220,
-    pan: .5
+    pan: .5,
+    antialias:false
   }
 
   let PolySynth = Gibberish.PolyTemplate( Synth, ['frequency','attack','decay','pulsewidth','pan','gain'] ) 
