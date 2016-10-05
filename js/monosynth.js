@@ -1,5 +1,6 @@
 let g = require( 'genish.js' ),
-    instrument = require( './instrument.js' )
+    instrument = require( './instrument.js' ),
+    feedbackOsc = require( './fmfeedbackosc.js' )
 
 module.exports = function( Gibberish ) {
 
@@ -29,18 +30,31 @@ module.exports = function( Gibberish ) {
 
       switch( props.waveform ) {
         case 'saw':
-          osc = g.phasor( freq )
+          if( props.antialias === false ) {
+            osc = g.phasor( freq )
+          }else{
+            osc = feedbackOsc( freq, 1 )
+          }
           break;
         case 'square':
-          phase = g.phasor( freq, 0, { min:0 } )
-          osc = g.lt( phase, .5 )
+          if( props.antialias === true ) {
+            osc = feedbackOsc( freq, 1, .5, { type:1 })
+          }else{
+            phase = g.phasor( freq, 0, { min:0 } )
+            osc = lt( phase, .5 )
+          }
           break;
         case 'sine':
           osc = cycle( freq )
           break;
         case 'pwm':
-          phase = g.phasor( freq, 0, { min:0 } )
-          osc = g.lt( phase, g.in( 'pulsewidth' ) )
+          let pulsewidth = g.in('pulsewidth')
+          if( props.antialias === true ) {
+            osc = feedbackOsc( freq, 1, pulsewidth, { type:1 })
+          }else{
+            phase = g.phasor( freq, 0, { min:0 } )
+            osc = lt( phase, pulsewidth )
+          }
           break;
       }
 
@@ -51,9 +65,14 @@ module.exports = function( Gibberish ) {
         oscWithGain = g.mul( g.mul( oscSum, env ), g.in( 'gain' ) ),
         isLowPass = g.param( 'lowPass', 1 ),
         filteredOsc = g.filter24( oscWithGain, g.in('resonance'), g.mul( g.in('cutoff'), env ), isLowPass ),
-        panner = g.pan( filteredOsc,filteredOsc, g.in( 'pan' ) )
+        panner
 
-    Gibberish.factory( syn, [panner.left, panner.right], 'synth', props  )
+    if( props.panVoices ) {  
+      panner = g.pan( filteredOsc,filteredOsc, g.in( 'pan' ) )
+      Gibberish.factory( syn, [panner.left, panner.right], 'mono', props  )
+    }else{
+      Gibberish.factory( syn, filteredOsc , 'mono', props )
+    }
     
     syn.env = env
 
@@ -74,6 +93,7 @@ module.exports = function( Gibberish ) {
     detune3:-.01,
     cutoff: .25,
     resonance:2,
+    panVoices:false
   }
 
   let PolyMono = Gibberish.PolyTemplate( Synth, 

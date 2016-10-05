@@ -1,6 +1,6 @@
 let g = require( 'genish.js' ),
-  instrument = require( './instrument.js' ),
-  feedbackOsc = require( './fmfeedbackosc.js' )
+    instrument = require( './instrument.js' ),
+    feedbackOsc = require( './fmfeedbackosc.js' )
 
 module.exports = function( Gibberish ) {
 
@@ -44,9 +44,14 @@ module.exports = function( Gibberish ) {
     }
 
     let oscWithGain = g.mul( g.mul( osc, env ), g.in( 'gain' ) ),
-        panner = g.pan( oscWithGain, oscWithGain, g.in( 'pan' ) )
+        panner
 
-    Gibberish.factory( syn, [panner.left, panner.right], 'synth', props  )
+    if( props.panVoices ) {  
+      panner = g.pan( oscWithGain, oscWithGain, g.in( 'pan' ) ) 
+      Gibberish.factory( syn, [panner.left, panner.right], 'synth', props  )
+    }else{
+      Gibberish.factory( syn, oscWithGain , 'synth', props )
+    }
     
     syn.env = env
 
@@ -61,7 +66,8 @@ module.exports = function( Gibberish ) {
     pulsewidth:.25,
     frequency:220,
     pan: .5,
-    antialias:false
+    antialias:false,
+    panVoices:false
   }
 
   let PolySynth = Gibberish.PolyTemplate( Synth, ['frequency','attack','decay','pulsewidth','pan','gain'] ) 

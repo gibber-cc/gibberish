@@ -27,7 +27,7 @@ let feedbackOsc = function( frequency, filter, pulsewidth=.5, argumentProps ) {
         g.sin(
           g.mul(
             Math.PI * 2,
-            g.add( osc1Phase, g.mul( lastSample.out, scaling ) )
+            g.memo( g.add( osc1Phase, g.mul( lastSample.out, scaling ) ) )
           )
         )
       ),
@@ -46,7 +46,7 @@ let feedbackOsc = function( frequency, filter, pulsewidth=.5, argumentProps ) {
         g.sin(
           g.mul(
             Math.PI * 2,
-            g.add( osc1Phase, g.mul( lastSample.out, scaling ), pulsewidth )
+            g.memo( g.add( osc1Phase, g.mul( lastSample.out, scaling ), pulsewidth ) )
           )
         )
       ),
@@ -54,8 +54,8 @@ let feedbackOsc = function( frequency, filter, pulsewidth=.5, argumentProps ) {
     )
 
     lastSample2.in( osc2 )
-    out = g.sub( lastSample.out, lastSample2.out ) 
-    out = g.add( g.mul( 2.5, out ), g.mul( -1.5, lastSampleMaster.out ) )
+    out = g.memo( g.sub( lastSample.out, lastSample2.out ) )
+    out = g.memo( g.add( g.mul( 2.5, out ), g.mul( -1.5, lastSampleMaster.out ) ) )
 
     lastSampleMaster.in( g.sub( osc1, osc2 ) )
 
@@ -67,7 +67,7 @@ let feedbackOsc = function( frequency, filter, pulsewidth=.5, argumentProps ) {
     out = osc1
   }
 
-  return g.mul( g.mul( out, norm ), .15 )
+  return g.mul( out, norm )
 }
 
 module.exports = feedbackOsc

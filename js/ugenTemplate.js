@@ -4,6 +4,10 @@ module.exports = function( Gibberish ) {
   let factory = function( ugen, graph, name, values ) {
     ugen.callback = Gibberish.genish.gen.createCallback( graph, Gibberish.memory )
 
+    //if( graph.basename === 'pan' ) {
+    //  graph = [ graph.left, graph.right ]
+    //}
+
     Object.assign( ugen, {
       type: 'ugen',
       id: factory.getUID(), 

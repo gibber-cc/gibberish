@@ -20,9 +20,12 @@ module.exports = function( Gibberish ) {
 
     properties = Object.assign( {}, KPS.defaults, props )
 
-    let panner = g.pan( withGain, withGain, g.in( 'pan' ) )
-    
-    Gibberish.factory( syn, [panner.left, panner.right], 'karplus', properties  )
+    if( properties.panVoices ) {  
+      let panner = g.pan( withGain, withGain, g.in( 'pan' ) )
+      Gibberish.factory( syn, [panner.left, panner.right], 'karplus', props  )
+    }else{
+      Gibberish.factory( syn, withGain , 'karpuls', props )
+    }
 
     Object.assign( syn, {
       properties : props,
@@ -42,7 +45,8 @@ module.exports = function( Gibberish ) {
     damping:.2,
     gain: 1,
     frequency:220,
-    pan: .5
+    pan: .5,
+    panVoices:false
   }
 
   let envCheckFactory = ( syn,synth ) => {
