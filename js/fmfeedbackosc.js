@@ -71,20 +71,3 @@ let feedbackOsc = function( frequency, filter, pulsewidth=.5, argumentProps ) {
 }
 
 module.exports = feedbackOsc
-
-/*
-
-// waveform 1
-osc = (osc  + sin( pi_2 * (phase + osc  * scaling ) ) ) * .5;
-
-// waveform 2
-osc2 =(osc2 + sin( pi_2 * (phase + osc2 * scaling + pulsewidth) ) ) * .5;
-out = osc2 - osc;
-
-out = a0 * out + a1 * (_osc - _osc2);
-_osc = osc;
-_osc2 = osc2;
-
-return out * norm * amp;
-
-*/

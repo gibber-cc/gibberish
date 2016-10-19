@@ -35,7 +35,8 @@ let Gibberish = {
     [ this.ugens.synth2, this.ugens.polysynth2 ] = require( './synth2.js' )( this );
     [ this.ugens.monosynth, this.ugens.polymono ] = require( './monosynth.js' )( this );
     
-    this.ugens.freeverb    = require( './freeverb.js' )( this );
+    this.ugens.freeverb    = require( './freeverb.js'  )( this );
+    this.ugens.flanger     = require( './flanger.js'   )( this );
     this.sequencer         = require( './sequencer.js' )( this );
     [ this.ugens.karplus, this.ugens.polykarplus ]  = require( './karplusstrong.js' )( this );
     

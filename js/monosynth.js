@@ -16,7 +16,6 @@ module.exports = function( Gibberish ) {
     for( let i = 0; i < 3; i++ ) {
       let osc, freq
 
-      //freq = i === 0 ? frequency : mul( frequency, i + 1 )
       switch( i ) {
         case 1:
           freq = g.mul( frequency, g.add( g.in('octave2'), g.in('detune2')  ) )
