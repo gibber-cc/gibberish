@@ -4,10 +4,6 @@ module.exports = function( Gibberish ) {
   let factory = function( ugen, graph, name, values ) {
     ugen.callback = Gibberish.genish.gen.createCallback( graph, Gibberish.memory )
 
-    //if( graph.basename === 'pan' ) {
-    //  graph = [ graph.left, graph.right ]
-    //}
-
     Object.assign( ugen, {
       type: 'ugen',
       id: factory.getUID(), 
@@ -42,24 +38,6 @@ module.exports = function( Gibberish ) {
           }
         }
       })
-    }
-    
-    ugen.connect = ( target,level=1 ) => {
-      let input = level === 1 ? ugen : Gibberish.Mul( ugen, level )
-
-      if( target.inputs )
-        target.inputs.push( ugen )
-      else
-        target.input = ugen
-
-      Gibberish.dirty( target )
-      
-      return ugen
-    }
-
-    ugen.chain = (target,level=1) => {
-      ugen.connect( target,level )
-      return target
     }
 
     return ugen

@@ -1,6 +1,7 @@
 let g = require( 'genish.js' ),
     allPass = require( './allpass.js' ),
-    combFilter = require( './combfilter.js' )
+    combFilter = require( './combfilter.js' ),
+    effect = require( './effect.js' )
 
 module.exports = function( Gibberish ) {
  
@@ -17,18 +18,19 @@ let tuning = {
   stereoSpread:   23
 }
 
-let Freeverb = props => {
-  let isStereo = Array.isArray( props.input )
+let Freeverb = inputProps => {
+  let props = Object.assign( {}, Freeverb.defaults, inputProps ),
+      reverb = Object.create( effect ) 
+   
+  let isStereo = props.input.isStereo !== undefined ? props.input.isStereo : true 
   
-  console.log('isStereo:', isStereo, props.input )
-
   let combsL = [], combsR = []
 
   let input = g.in( 'input' ),
       wet1 = g.in( 'wet1'), wet2 = g.in( 'wet2' ),  dry = g.in( 'dry' ), 
       roomSize = g.in( 'roomSize' ), damping = g.in( 'damping' )
   
-  let summedInput = isStereo === false ? g.add( input[0], input[1] ) : input,
+  let summedInput = isStereo === true ? g.add( input[0], input[1] ) : input,
       attenuatedInput = g.memo( g.mul( summedInput, tuning.fixedGain ) )
   
   // create comb filters in parallel...
@@ -47,16 +49,16 @@ let Freeverb = props => {
   
   // run through allpass filters in series
   for( let i = 0; i < 4; i++ ) { 
-    outL = allPass( outL, tuning.allPassTuning[ 0 ] + tuning.stereoSpread )
-    outR = allPass( outR, tuning.allPassTuning[ 0 ] + tuning.stereoSpread )
+    outL = allPass( outL, tuning.allPassTuning[ i ] + tuning.stereoSpread )
+    outR = allPass( outR, tuning.allPassTuning[ i ] + tuning.stereoSpread )
   }
   
-  let outputL = g.add( g.mul( outL, wet1 ), g.mul( outR, wet2 ), g.mul( isStereo === false ? input[0] : input, dry ) ),
-      outputR = g.add( g.mul( outR, wet1 ), g.mul( outL, wet2 ), g.mul( isStereo === false ? input[1] : input, dry ) )
+  let outputL = g.add( g.mul( outL, wet1 ), g.mul( outR, wet2 ), g.mul( isStereo === true ? input[0] : input, dry ) ),
+      outputR = g.add( g.mul( outR, wet1 ), g.mul( outL, wet2 ), g.mul( isStereo === true ? input[1] : input, dry ) )
 
-  let verb = Gibberish.factory( [ outputL, outputR ], 'freeverb', Object.assign({}, Freeverb.defaults, props) )
+  Gibberish.factory( reverb, [ outputL, outputR ], 'freeverb', props )
 
-  return verb
+  return reverb
 }
 
 

@@ -4,14 +4,14 @@ let g = require( 'genish.js' ),
 
 module.exports = function( Gibberish ) {
 
-  let Synth = props => {
+  let Synth = inputProps => {
     let syn = Object.create( instrument )
 
     let env = g.ad( g.in('attack'), g.in('decay'), { shape:'linear' }),
         frequency = g.in( 'frequency' ),
         phase, osc
 
-    props = Object.assign( {}, Synth.defaults, props )
+    props = Object.assign( {}, Synth.defaults, inputProps )
 
     switch( props.waveform ) {
       case 'saw':
@@ -46,7 +46,7 @@ module.exports = function( Gibberish ) {
     let oscWithGain = g.mul( g.mul( osc, env ), g.in( 'gain' ) ),
         panner
 
-    if( props.panVoices ) {  
+    if( props.panVoices === true ) { 
       panner = g.pan( oscWithGain, oscWithGain, g.in( 'pan' ) ) 
       Gibberish.factory( syn, [panner.left, panner.right], 'synth', props  )
     }else{

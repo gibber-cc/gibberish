@@ -1,4 +1,5 @@
-let g = require( 'genish.js' )
+let g = require( 'genish.js' ),
+    ugen = require( './ugen.js' )
 
 module.exports = function( Gibberish ) {
 
@@ -6,7 +7,9 @@ module.exports = function( Gibberish ) {
     create() {
       let output = new Float32Array( 2 )
 
-      let bus = {
+      let bus = Object.create( ugen )
+
+      Object.assign( bus, {
         callback() {
           output[ 0 ] = output[ 1 ] = 0
 
@@ -25,23 +28,9 @@ module.exports = function( Gibberish ) {
         type : 'bus',
         inputs : [],
         inputNames : [],
-        connect( target, level = 1 ) {
-          if( target.inputs )
-            target.inputs.push( bus )
-          else
-            target.input = bus
-
-          Gibberish.dirty( target )
-          return bus
-        },
-      }
+      })
 
       bus.ugenName = bus.callback.ugenName = 'bus2_' + bus.id
-
-      bus.chain = ( target, level = 1 ) => {
-        bus.connect( target, level )
-        return target
-      }
 
       bus.disconnect = ( ugen ) => {
         let removeIdx = -1

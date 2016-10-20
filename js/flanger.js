@@ -4,10 +4,10 @@ let g = require( 'genish.js' ),
 module.exports = function( Gibberish ) {
  
 let Flanger = inputProps => {
-  let props = Object.assign( {}, Flanger.defaults, inputProps ),
+  let props   = Object.assign( {}, Flanger.defaults, inputProps ),
       flanger = Object.create( effect )
 
-  let isStereo = props.input.isStereo 
+  let isStereo = props.input.isStereo !== undefined ? props.input.isStereo : true 
   
   let input = g.in( 'input' ),
       delayLength = 44100,
@@ -39,7 +39,8 @@ let Flanger = inputProps => {
   let left = add( leftInput, delayedOutL ),
       right
 
-  if( isStereo ) {
+  if( isStereo === true ) {
+    console.log( 'STEREO:', isStereo, props.input.isStereo )
     rightInput = input[1]
     delayBufferR = g.data( delayLength )
     
@@ -56,6 +57,7 @@ let Flanger = inputProps => {
     )
 
   }else{
+    console.log( 'NOT STEREO', isStereo )
     Gibberish.factory( flanger, left, 'flanger', props )
   }
   
