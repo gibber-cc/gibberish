@@ -3,9 +3,9 @@ let g = require( 'genish.js' ),
 
 module.exports = function( Gibberish ) {
  
-let Flanger = inputProps => {
-  let props   = Object.assign( {}, Flanger.defaults, inputProps ),
-      flanger = Object.create( effect )
+let Vibrato = inputProps => {
+  let props   = Object.assign( {}, Vibrato.defaults, inputProps ),
+      vibrato = Object.create( effect )
 
   let isStereo = props.input.isStereo !== undefined ? props.input.isStereo : true 
   
@@ -36,7 +36,7 @@ let Flanger = inputProps => {
   
   g.poke( delayBufferL, g.add( leftInput, g.mul( delayedOutL, feedbackCoeff ) ), writeIdx )
 
-  let left = add( leftInput, delayedOutL ),
+  let left = delayedOutL,
       right
 
   if( isStereo === true ) {
@@ -46,30 +46,28 @@ let Flanger = inputProps => {
     let delayedOutR = g.peek( delayBufferR, readIdx, { interp:'linear', mode:'samples' })
 
     g.poke( delayBufferR, g.add( rightInput, mul( delayedOutR, feedbackCoeff ) ), writeIdx )
-    right = g.add( rightInput, delayedOutR )
+    right = delayedOutR
 
     Gibberish.factory( 
-      flanger,
+      vibrato,
       [ left, right ], 
-      'flanger', 
+      'vibrato', 
       props 
     )
-
   }else{
-    console.log( 'NOT STEREO', isStereo )
-    Gibberish.factory( flanger, left, 'flanger', props )
+    Gibberish.factory( vibrato, left, 'vibrato', props )
   }
   
-  return flanger
+  return vibrato
 }
 
-Flanger.defaults = {
+Vibrato.defaults = {
   input:0,
   feedback:.01,
-  offset:.25,
-  frequency:.5
+  offset:.5,
+  frequency:4
 }
 
-return Flanger
+return Vibrato
 
 }

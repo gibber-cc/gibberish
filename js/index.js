@@ -37,6 +37,7 @@ let Gibberish = {
     
     this.ugens.freeverb    = require( './freeverb.js'  )( this );
     this.ugens.flanger     = require( './flanger.js'   )( this );
+    this.ugens.vibrato     = require( './vibrato.js'   )( this );
     this.sequencer         = require( './sequencer.js' )( this );
     [ this.ugens.karplus, this.ugens.polykarplus ]  = require( './karplusstrong.js' )( this );
     
