@@ -4,7 +4,7 @@ let g = require( 'genish.js' ),
 module.exports = function( Gibberish ) {
  
 let Delay = inputProps => {
-  let props  = Object.assign( { delayLength: 44100 }, Delay.defaults, inputProps ),
+  let props = Object.assign( { delayLength: 44100 }, Delay.defaults, inputProps ),
       delay = Object.create( effect )
 
   let isStereo = props.input.isStereo !== undefined ? props.input.isStereo : true 
@@ -19,15 +19,12 @@ let Delay = inputProps => {
   // left channel
   let feedbackHistoryL = g.history()
   let echoL = g.delay( g.add( leftInput, g.mul( feedbackHistoryL.out, feedback ) ), delayTime, { size:props.delayLength })
-  //let mixerL = g.mix( echoL, feedbackHistoryL.out, feedback ) 
-  //feedbackHistoryL.in( mixerL )
   feedbackHistoryL.in( echoL )
 
   if( isStereo ) {
+    // right channel
     let feedbackHistoryR = g.history()
     let echoR = g.delay( g.add( rightInput, g.mul( feedbackHistoryR.out, feedback ) ), delayTime, { size:props.delayLength })
-    //let mixerR = g.mix( echoR, feedbackHistoryR.out, feedback )
-    //feedbackHistoryR.in( mixerR )
     feedbackHistoryR.in( echoR )
 
     Gibberish.factory( 
@@ -37,7 +34,6 @@ let Delay = inputProps => {
       props 
     )
   }else{
-    //Gibberish.factory( delay, mixerL, 'delay', props )
     Gibberish.factory( delay, echoL, 'delay', props )
   }
   
