@@ -18,25 +18,27 @@ let Delay = inputProps => {
 
   // left channel
   let feedbackHistoryL = g.history()
-  let echoL = g.delay( g.add( leftInput, feedbackHistoryL.out ), delayTime, { size:props.delayLength })
-  let mixerL = g.mix( echoL, feedbackHistoryL.out, feedback ) 
-  feedbackHistoryL.in( mixerL )
+  let echoL = g.delay( g.add( leftInput, g.mul( feedbackHistoryL.out, feedback ) ), delayTime, { size:props.delayLength })
+  //let mixerL = g.mix( echoL, feedbackHistoryL.out, feedback ) 
+  //feedbackHistoryL.in( mixerL )
+  feedbackHistoryL.in( echoL )
 
   if( isStereo ) {
-    console.log('stereo delay!')
     let feedbackHistoryR = g.history()
-    let echoR = g.delay( g.add( rightInput,feedbackHistoryR.out ), delayTime, { size:props.delayLength })
-    let mixerR = g.mix( echoR, feedbackHistoryR.out, feedback )
-    feedbackHistoryR.in( mixerR )
+    let echoR = g.delay( g.add( rightInput, g.mul( feedbackHistoryR.out, feedback ) ), delayTime, { size:props.delayLength })
+    //let mixerR = g.mix( echoR, feedbackHistoryR.out, feedback )
+    //feedbackHistoryR.in( mixerR )
+    feedbackHistoryR.in( echoR )
 
     Gibberish.factory( 
       delay,
-      [ mixerL, mixerR ], 
+      [ echoL, echoR ], 
       'delay', 
       props 
     )
   }else{
-    Gibberish.factory( delay, mixerL, 'delay', props )
+    //Gibberish.factory( delay, mixerL, 'delay', props )
+    Gibberish.factory( delay, echoL, 'delay', props )
   }
   
   return delay
@@ -51,17 +53,3 @@ Delay.defaults = {
 return Delay
 
 }
-
-
-/*
-feedback = ssd()
- 
-// feed our oscillator and our ssd into a delay with a delay time of 11025 samples
-echo = delay( add( osc, feedback.out ), 11025, { size: 22050 } )
- 
-// control the mix between feedback and echo; this also damps the feedback.
-mixer = mix( echo, feedback.out, .925 )
- 
-// record output of mixer to process next sample
-feedback.in( mixer )
-*/
