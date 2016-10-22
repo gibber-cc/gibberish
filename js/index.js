@@ -17,6 +17,8 @@ let Gibberish = {
   genish,
   scheduler: require( './scheduler.js' ),
 
+  memoed: {},
+
   init( memAmount ) {
     let numBytes = memAmount === undefined ? 20 * 60 * 44100 : memAmount
 
@@ -38,6 +40,7 @@ let Gibberish = {
     this.ugens.freeverb    = require( './freeverb.js'  )( this );
     this.ugens.flanger     = require( './flanger.js'   )( this );
     this.ugens.vibrato     = require( './vibrato.js'   )( this );
+    this.ugens.delay       = require( './delay.js'     )( this );
     this.sequencer         = require( './sequencer.js' )( this );
     [ this.ugens.karplus, this.ugens.polykarplus ]  = require( './karplusstrong.js' )( this );
     
@@ -64,6 +67,9 @@ let Gibberish = {
   dirty( ugen ) {
     this.dirtyUgens.push( ugen )
     this.graphIsDirty = true
+    if( this.memoed[ ugen.ugenName ] ) {
+      delete this.memoed[ ugen.ugenName ]
+    } 
   },
 
   clear() {
@@ -150,6 +156,8 @@ let Gibberish = {
     let uid = 0,
         callbackBody, lastLine
 
+    this.memoed = {}
+
     callbackBody = this.processGraph( this.output )
     lastLine = callbackBody[ callbackBody.length - 1]
     
@@ -181,8 +189,12 @@ let Gibberish = {
     if( block === undefined ) block = []
 
     let dirtyIdx = Gibberish.dirtyUgens.indexOf( ugen )
-    
-    if( ugen.block === undefined || dirtyIndex !== -1 ) {
+
+    let memo = Gibberish.memoed[ ugen.ugenName ]
+
+    if( memo !== undefined ) {
+      return memo 
+    } else if( ugen.block === undefined || dirtyIndex !== -1 ) {
   
       let line = `\tvar v_${ugen.id} = ` 
       
@@ -215,6 +227,13 @@ let Gibberish = {
       line += ugen.binop ? '' : ' )'
 
       block.push( line )
+
+      Gibberish.memoed[ ugen.ugenName ] = `v_${ugen.id}`
+
+      if( dirtyIdx !== -1 ) {
+        Gibberish.dirtyUgens.splice( dirtyIdx, 1 )
+      }
+
     }else if( ugen.block ) {
       return ugen.block
     }
