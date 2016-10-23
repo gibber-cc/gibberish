@@ -42,6 +42,7 @@ let Gibberish = {
     this.ugens.vibrato     = require( './fx/vibrato.js'   )( this );
     this.ugens.delay       = require( './fx/delay.js'     )( this );
     this.ugens.bitCrusher  = require( './fx/bitCrusher.js')( this );
+    this.ugens.ringMod     = require( './fx/ringMod.js'   )( this );
     this.sequencer         = require( './scheduling/sequencer.js' )( this );
     [ this.ugens.karplus, this.ugens.polykarplus ]  = require( './instruments/karplusstrong.js' )( this );
     
