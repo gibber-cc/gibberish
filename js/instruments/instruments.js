@@ -11,9 +11,10 @@ const instruments = {
 instruments.Clave.defaults.frequency = 2500
 instruments.Clave.defaults.decay = .5;
 
-[ instruments.Synth, instruments.PolySynth ] = require( './synth.js' )( Gibberish );
-[ instruments.Synth2, instruments.PolySynth2 ] = require( './synth2.js' )( Gibberish );
-[ instruments.Monosynth, instruments.PolyMono ] = require( './monosynth.js' )( Gibberish );
+[ instruments.Synth, instruments.PolySynth ]     = require( './synth.js' )( Gibberish );
+[ instruments.Synth2, instruments.PolySynth2 ]   = require( './synth2.js' )( Gibberish );
+[ instruments.Monosynth, instruments.PolyMono ]  = require( './monosynth.js' )( Gibberish );
+[ instruments.FM, instruments.PolyFM ]           = require( './fm.js' )( Gibberish );
 [ instruments.Karplus, instruments.PolyKarplus ] = require( './karplusstrong.js' )( Gibberish );
 
 instruments.export = target => {

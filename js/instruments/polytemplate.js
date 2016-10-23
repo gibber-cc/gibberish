@@ -20,15 +20,48 @@ module.exports = function( Gibberish ) {
         properties,
         voices,
         isStereo: properties.isStereo,
+        triggerChord: null,
+        lastNote: null,
 
         note( freq ) {
-          let voice = voices[ voiceCount++ % voices.length ]
+          let voice = this.__getVoice__()
           Object.assign( voice, synth.properties )
-
           voice.note( freq )
+          this.__runVoice__( voice, this )
+          this.triggerNote = freq
+        },
 
+        // XXX this is not particularly satisfying...
+        trigger( gain ) {
+          if( this.triggerChord !== null ) {
+            this.triggerChord.forEach( v => {
+              let voice = this.__getVoice__()
+              Object.assign( voice, synth.properties )
+              voice.note( v )
+              voice.gain = gain
+              this.__runVoice__( voice, this )
+            })
+          }else if( this.triggerNote !== null ) {
+            let voice = this.__getVoice__()
+            Object.assign( voice, synth.properties )
+            voice.note( this.triggerNote )
+            voice.gain = gain
+            this.__runVoice__( voice, this )
+          }else{
+            let voice = this.__getVoice__()
+            Object.assign( voice, synth.properties )
+            voice.trigger( gain )
+            this.__runVoice__( voice, this )
+          }
+        },
+
+        __getVoice__() {
+          return voices[ voiceCount++ % voices.length ]
+        },
+
+        __runVoice__( voice, poly ) {
           if( !voice.isConnected ) {
-            voice.connect( this, 1 )
+            voice.connect( poly, 1 )
             voice.isConnected = true
           }
           
@@ -36,14 +69,14 @@ module.exports = function( Gibberish ) {
           if( _envCheck === undefined ) {
             envCheck = ()=> {
               if( voice.env.isComplete() ) {
-                synth.disconnect( voice )
+                poly.disconnect( voice )
                 voice.isConnected = false
               }else{
                 Gibberish.blockCallbacks.push( envCheck )
               }
             }
           }else{
-            envCheck = _envCheck( voice, synth )
+            envCheck = _envCheck( voice, poly )
           }
 
           Gibberish.blockCallbacks.push( envCheck )
@@ -51,6 +84,7 @@ module.exports = function( Gibberish ) {
 
         chord( frequencies ) {
           frequencies.forEach( (v) => synth.note(v) )
+          this.triggerChord = frequencies
         },
 
         free() {
