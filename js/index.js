@@ -54,6 +54,9 @@ let Gibberish = {
     this.fx.export( target )
     this.oscillators.export( target )
     this.binops.export( target )
+    target.Sequencer = this.sequencer
+    target.Bus = this.Bus
+    target.Bus2 = this.Bus2
   },
 
   print() {

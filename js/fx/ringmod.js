@@ -41,7 +41,7 @@ RingMod.defaults = {
   input:0,
   frequency:220,
   amount: 1, 
-  mix:.5
+  mix:1
 }
 
 return RingMod

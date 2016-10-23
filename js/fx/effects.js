@@ -9,7 +9,8 @@ const effects = {
   RingMod     : require( './ringMod.js'   )( Gibberish ),
   Filter24    : require( './filter24.js'  )( Gibberish ),
   Biquad      : require( './biquad.js'    )( Gibberish ),
-  SVF         : require( './svf.js'       )( Gibberish )
+  SVF         : require( './svf.js'       )( Gibberish ),
+  Tremolo     : require( './tremolo.js'   )( Gibberish )
 }
 
 effects.export = target => {
