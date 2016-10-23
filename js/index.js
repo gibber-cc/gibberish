@@ -23,47 +23,41 @@ let Gibberish = {
     let numBytes = memAmount === undefined ? 20 * 60 * 44100 : memAmount
 
     this.memory = MemoryHelper.create( numBytes )
-    this.factory = require( './ugenTemplate.js' )( this )
 
-    this.genish.export( window )
-
-    this.PolyTemplate      = require( './instruments/polytemplate.js' )( this )
-    this.ugens.oscillators = require( './oscillators/oscillators.js' )( this )
-    this.ugens.binops      = require( './misc/binops.js' )( this )
-    this.ugens.bus         = require( './misc/bus.js' )( this )
-    this.ugens.bus2        = require( './misc/bus2.js' )( this );
-
-    [ this.ugens.synth, this.ugens.polysynth ] = require( './instruments/synth.js' )( this );
-    [ this.ugens.synth2, this.ugens.polysynth2 ] = require( './instruments/synth2.js' )( this );
-    [ this.ugens.monosynth, this.ugens.polymono ] = require( './instruments/monosynth.js' )( this );
+    this.load()
     
-    this.ugens.freeverb    = require( './fx/freeverb.js'  )( this );
-    this.ugens.flanger     = require( './fx/flanger.js'   )( this );
-    this.ugens.vibrato     = require( './fx/vibrato.js'   )( this );
-    this.ugens.delay       = require( './fx/delay.js'     )( this );
-    this.ugens.bitCrusher  = require( './fx/bitCrusher.js')( this );
-    this.ugens.ringMod     = require( './fx/ringMod.js'   )( this );
-    this.sequencer         = require( './scheduling/sequencer.js' )( this );
-    [ this.ugens.karplus, this.ugens.polykarplus ]  = require( './instruments/karplusstrong.js' )( this );
-    
-    this.ugens.filter24    = require( './fx/filter24.js' )( this )
-    this.ugens.biquad      = require( './fx/biquad.js'   )( this )
-    this.ugens.kick        = require( './instruments/kick.js' )( this )
-    this.ugens.conga       = require( './instruments/conga.js' )( this )
-    this.ugens.clave       = require( './instruments/conga.js' )( this )
-    this.ugens.hat         = require( './instruments/hat.js' )( this )
-    this.ugens.snare       = require( './instruments/snare.js' )( this )
-    this.ugens.clave.defaults.frequency = 2500
-    this.ugens.clave.defaults.decay = .5
-    this.ugens.svf         = require( './fx/svf.js' )( this )
-    this.ugens.oscillators.export( this )
-    this.ugens.binops.export( this )
-    this.Bus  = this.ugens.bus
-    this.Bus2 = this.ugens.bus2
-
     this.output = this.Bus2()
+
     this.createContext()
     this.createScriptProcessor()
+
+    // XXX FOR DEVELOPMENT AND TESTING ONLY... REMOVE FOR PRODUCTION
+    this.export( window )
+  },
+
+  load() {
+    this.factory = require( './ugenTemplate.js' )( this )
+
+    this.PolyTemplate = require( './instruments/polytemplate.js' )( this )
+    this.oscillators  = require( './oscillators/oscillators.js' )( this )
+    this.binops       = require( './misc/binops.js' )( this )
+    this.Bus          = require( './misc/bus.js' )( this )
+    this.Bus2         = require( './misc/bus2.js' )( this );
+    this.instruments  = require( './instruments/instruments.js' )( this )
+    this.fx           = require( './fx/effects.js' )( this )
+    this.sequencer    = require( './scheduling/sequencer.js' )( this );
+  },
+
+  export( target ) {
+    this.genish.export( target )
+    this.instruments.export( target )
+    this.fx.export( target )
+    this.oscillators.export( target )
+    this.binops.export( target )
+  },
+
+  print() {
+    console.log( this.callback.toString() )
   },
 
   dirty( ugen ) {
@@ -83,7 +77,7 @@ let Gibberish = {
   createContext() {
     let AC = typeof AudioContext === 'undefined' ? webkitAudioContext : AudioContext
     this.ctx = new AC()
-    gen.samplerate = this.ctx.sampleRate
+    genish.gen.samplerate = this.ctx.sampleRate
 
     let start = () => {
       if( typeof AC !== 'undefined' ) {
