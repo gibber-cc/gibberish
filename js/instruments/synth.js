@@ -1,16 +1,17 @@
 let g = require( 'genish.js' ),
     instrument = require( './instrument.js' ),
-    feedbackOsc = require( './fmfeedbackosc.js' )
+    feedbackOsc = require( '../oscillators/fmfeedbackosc.js' )
 
 module.exports = function( Gibberish ) {
 
-  let Synth2 = initialProps => {
-    let syn = Object.create( instrument ),
-        env = g.ad( g.in('attack'), g.in('decay'), { shape:'linear' }),
+  let Synth = inputProps => {
+    let syn = Object.create( instrument )
+
+    let env = g.ad( g.in('attack'), g.in('decay'), { shape:'linear' }),
         frequency = g.in( 'frequency' ),
         phase, osc
 
-    let props = Object.assign( {}, Synth2.defaults, initialProps )
+    props = Object.assign( {}, Synth.defaults, inputProps )
 
     switch( props.waveform ) {
       case 'saw':
@@ -43,23 +44,21 @@ module.exports = function( Gibberish ) {
     }
 
     let oscWithGain = g.mul( g.mul( osc, env ), g.in( 'gain' ) ),
-        isLowPass = g.param( 'lowPass', 1 ),
-        filteredOsc = g.filter24( oscWithGain, g.in('resonance'), g.mul( g.in('cutoff'), env ), isLowPass ),
         panner
 
-    if( props.panVoices ) {  
-      panner = g.pan( filteredOsc, filteredOsc, g.in( 'pan' ) )
-      Gibberish.factory( syn, [panner.left, panner.right], 'synth2', props  )
+    if( props.panVoices === true ) { 
+      panner = g.pan( oscWithGain, oscWithGain, g.in( 'pan' ) ) 
+      Gibberish.factory( syn, [panner.left, panner.right], 'synth', props  )
     }else{
-      Gibberish.factory( syn, filteredOsc, 'synth2', props )
+      Gibberish.factory( syn, oscWithGain , 'synth', props )
     }
     
     syn.env = env
-    
+
     return syn
   }
   
-  Synth2.defaults = {
+  Synth.defaults = {
     waveform:'saw',
     attack: 44100,
     decay: 44100,
@@ -67,14 +66,12 @@ module.exports = function( Gibberish ) {
     pulsewidth:.25,
     frequency:220,
     pan: .5,
-    cutoff: .35,
-    resonance: 3.5,
-    antialias: false,
-    panVoices: false
+    antialias:false,
+    panVoices:false
   }
 
-  let PolySynth2 = Gibberish.PolyTemplate( Synth2, ['frequency','attack','decay','pulsewidth','cutoff','resonance','pan','gain'] ) 
+  let PolySynth = Gibberish.PolyTemplate( Synth, ['frequency','attack','decay','pulsewidth','pan','gain'] ) 
 
-  return [ Synth2, PolySynth2 ]
+  return [ Synth, PolySynth ]
 
 }

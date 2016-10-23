@@ -1,6 +1,6 @@
 let g = require( 'genish.js' ),
     instrument = require( './instrument.js' ),
-    feedbackOsc = require( './fmfeedbackosc.js' )
+    feedbackOsc = require( '../oscillators/fmfeedbackosc.js' )
 
 module.exports = function( Gibberish ) {
 

@@ -15,7 +15,7 @@ let Gibberish = {
   memory : null, // 20 minutes by default?
   factory: null, 
   genish,
-  scheduler: require( './scheduler.js' ),
+  scheduler: require( './scheduling/scheduler.js' ),
 
   memoed: {},
 
@@ -27,34 +27,34 @@ let Gibberish = {
 
     this.genish.export( window )
 
-    this.PolyTemplate      = require( './polytemplate.js' )( this )
-    this.ugens.oscillators = require( './oscillators.js' )( this )
-    this.ugens.binops      = require( './binops.js' )( this )
-    this.ugens.bus         = require( './bus.js' )( this )
-    this.ugens.bus2        = require( './bus2.js' )( this );
+    this.PolyTemplate      = require( './instruments/polytemplate.js' )( this )
+    this.ugens.oscillators = require( './oscillators/oscillators.js' )( this )
+    this.ugens.binops      = require( './misc/binops.js' )( this )
+    this.ugens.bus         = require( './misc/bus.js' )( this )
+    this.ugens.bus2        = require( './misc/bus2.js' )( this );
 
-    [ this.ugens.synth, this.ugens.polysynth ] = require( './synth.js' )( this );
-    [ this.ugens.synth2, this.ugens.polysynth2 ] = require( './synth2.js' )( this );
-    [ this.ugens.monosynth, this.ugens.polymono ] = require( './monosynth.js' )( this );
+    [ this.ugens.synth, this.ugens.polysynth ] = require( './instruments/synth.js' )( this );
+    [ this.ugens.synth2, this.ugens.polysynth2 ] = require( './instruments/synth2.js' )( this );
+    [ this.ugens.monosynth, this.ugens.polymono ] = require( './instruments/monosynth.js' )( this );
     
-    this.ugens.freeverb    = require( './freeverb.js'  )( this );
-    this.ugens.flanger     = require( './flanger.js'   )( this );
-    this.ugens.vibrato     = require( './vibrato.js'   )( this );
-    this.ugens.delay       = require( './delay.js'     )( this );
-    this.ugens.bitCrusher  = require( './bitCrusher.js')( this );
-    this.sequencer         = require( './sequencer.js' )( this );
-    [ this.ugens.karplus, this.ugens.polykarplus ]  = require( './karplusstrong.js' )( this );
+    this.ugens.freeverb    = require( './fx/freeverb.js'  )( this );
+    this.ugens.flanger     = require( './fx/flanger.js'   )( this );
+    this.ugens.vibrato     = require( './fx/vibrato.js'   )( this );
+    this.ugens.delay       = require( './fx/delay.js'     )( this );
+    this.ugens.bitCrusher  = require( './fx/bitCrusher.js')( this );
+    this.sequencer         = require( './scheduling/sequencer.js' )( this );
+    [ this.ugens.karplus, this.ugens.polykarplus ]  = require( './instruments/karplusstrong.js' )( this );
     
-    this.ugens.filter24    = require( './filter24.js' )( this )
-    this.ugens.biquad      = require( './biquad.js'   )( this )
-    this.ugens.kick        = require( './kick.js' )( this )
-    this.ugens.conga       = require( './conga.js' )( this )
-    this.ugens.clave       = require( './conga.js' )( this )
-    this.ugens.hat         = require( './hat.js' )( this )
-    this.ugens.snare       = require( './snare.js' )( this )
+    this.ugens.filter24    = require( './fx/filter24.js' )( this )
+    this.ugens.biquad      = require( './fx/biquad.js'   )( this )
+    this.ugens.kick        = require( './instruments/kick.js' )( this )
+    this.ugens.conga       = require( './instruments/conga.js' )( this )
+    this.ugens.clave       = require( './instruments/conga.js' )( this )
+    this.ugens.hat         = require( './instruments/hat.js' )( this )
+    this.ugens.snare       = require( './instruments/snare.js' )( this )
     this.ugens.clave.defaults.frequency = 2500
     this.ugens.clave.defaults.decay = .5
-    this.ugens.svf         = require( './svf.js' )( this )
+    this.ugens.svf         = require( './fx/svf.js' )( this )
     this.ugens.oscillators.export( this )
     this.ugens.binops.export( this )
     this.Bus  = this.ugens.bus
