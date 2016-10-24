@@ -1,6 +1,5 @@
 let g = require( 'genish.js' ),
-    instrument = require( './instrument.js' ),
-    feedbackOsc = require( '../oscillators/fmfeedbackosc.js' )
+    instrument = require( './instrument.js' )
 
 module.exports = function( Gibberish ) {
 
@@ -8,40 +7,11 @@ module.exports = function( Gibberish ) {
     let syn = Object.create( instrument )
 
     let env = g.ad( g.in('attack'), g.in('decay'), { shape:'linear' }),
-        frequency = g.in( 'frequency' ),
-        phase, osc
+        frequency = g.in( 'frequency' )
 
-    props = Object.assign( {}, Synth.defaults, inputProps )
+    let props = Object.assign( {}, Synth.defaults, inputProps )
 
-    switch( props.waveform ) {
-      case 'saw':
-        if( props.antialias === false ) {
-          osc = g.phasor( frequency )
-        }else{
-          osc = feedbackOsc( frequency, 1 )
-        }
-        break;
-      case 'square':
-        if( props.antialias === true ) {
-          osc = feedbackOsc( frequency, 1, .5, { type:1 })
-        }else{
-          phase = g.phasor( frequency, 0, { min:0 } )
-          osc = lt( phase, .5 )
-        }
-        break;
-      case 'sine':
-        osc = cycle( frequency )
-        break;
-      case 'pwm':
-        let pulsewidth = g.in('pulsewidth')
-        if( props.antialias === true ) {
-          osc = feedbackOsc( frequency, 1, pulsewidth, { type:1 })
-        }else{
-          phase = g.phasor( frequency, 0, { min:0 } )
-          osc = lt( phase, pulsewidth )
-        }
-        break;
-    }
+    let osc = instrument.__makeOscillator__( props.waveform, frequency, props.antialias )
 
     let oscWithGain = g.mul( g.mul( osc, env ), g.in( 'gain' ) ),
         panner

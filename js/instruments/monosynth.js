@@ -27,36 +27,8 @@ module.exports = function( Gibberish ) {
           freq = frequency
       }
 
-      switch( props.waveform ) {
-        case 'saw':
-          if( props.antialias === false ) {
-            osc = g.phasor( freq )
-          }else{
-            osc = feedbackOsc( freq, 1 )
-          }
-          break;
-        case 'square':
-          if( props.antialias === true ) {
-            osc = feedbackOsc( freq, 1, .5, { type:1 })
-          }else{
-            phase = g.phasor( freq, 0, { min:0 } )
-            osc = lt( phase, .5 )
-          }
-          break;
-        case 'sine':
-          osc = cycle( freq )
-          break;
-        case 'pwm':
-          let pulsewidth = g.in('pulsewidth')
-          if( props.antialias === true ) {
-            osc = feedbackOsc( freq, 1, pulsewidth, { type:1 })
-          }else{
-            phase = g.phasor( freq, 0, { min:0 } )
-            osc = lt( phase, pulsewidth )
-          }
-          break;
-      }
-
+      osc = instrument.__makeOscillator__( props.waveform, freq, props.antialias )
+      
       oscs[ i ] = osc
     }
 

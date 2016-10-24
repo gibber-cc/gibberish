@@ -20,8 +20,6 @@ let tuning = {
 let Freeverb = props => {
   let isStereo = Array.isArray( props.input )
   
-  console.log('isStereo:', isStereo, props.input )
-
   let combsL = [], combsR = []
 
   let input = g.in( 'input' ),
