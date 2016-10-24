@@ -81,6 +81,7 @@ let Gibberish = {
     let AC = typeof AudioContext === 'undefined' ? webkitAudioContext : AudioContext
     this.ctx = new AC()
     genish.gen.samplerate = this.ctx.sampleRate
+    genish.utilities.ctx = this.ctx
 
     let start = () => {
       if( typeof AC !== 'undefined' ) {
