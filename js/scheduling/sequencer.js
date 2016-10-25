@@ -45,4 +45,5 @@ let Sequencer = props => {
 }
 
 return Sequencer
+
 }

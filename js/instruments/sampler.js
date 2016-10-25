@@ -19,10 +19,9 @@ module.exports = function( Gibberish ) {
     let syn = Object.create( proto )
 
     let props = Object.assign( {}, Sampler.defaults, inputProps )
-    
+
     let start = g.in( 'start' ), end = g.in( 'end' ), 
-        rate = g.in( 'rate' ), shouldLoop = g.in( 'loops' ),
-        initialized  = g.param( 'initailied', 0 )
+        rate = g.in( 'rate' ), shouldLoop = g.in( 'loops' )
 
     /* create dummy ugen until data for sampler is loaded...
      * this will be overridden by a call to Gibberish.factory on load */
@@ -56,7 +55,7 @@ module.exports = function( Gibberish ) {
           props 
         ) 
 
-        if( syn.end === -99999 ) syn.end = syn.data.buffer.length - 1
+        if( syn.end === -999999999 ) syn.end = syn.data.buffer.length - 1
         
         Gibberish.dirty( syn )
       }
@@ -66,20 +65,16 @@ module.exports = function( Gibberish ) {
   }
   
   Sampler.defaults = {
-    initialized:false,
-    attack: 44100,
-    decay: 44100,
     gain: 1,
     pan: .5,
     rate: 1,
     panVoices:false,
     loops: 0,
     start:0,
-    end:-99999
+    end:-999999999
   }
 
   let PolySampler = Gibberish.PolyTemplate( Sampler, ['rate','pan','gain','start','end','loops'] ) 
 
   return [ Sampler, PolySampler ]
-
 }

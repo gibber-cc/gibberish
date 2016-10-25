@@ -15,8 +15,8 @@ module.exports = function( Gibberish ) {
     Sine( inputProps ) {
       let sine = Object.create( ugen )
       let props = Object.assign({}, Oscillators.defaults, inputProps )
-      Gibberish.factory( ugen, g.mul( g.cycle( g.in('frequency') ), g.in('gain') ), 'sine', props )
-      return ugen
+      Gibberish.factory( sine, g.mul( g.cycle( g.in('frequency') ), g.in('gain') ), 'sine', props )
+      return sine
     },
     Noise( props ) {
       let noise = Object.create( ugen )
