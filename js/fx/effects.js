@@ -10,7 +10,8 @@ module.exports = function( Gibberish ) {
     Filter24    : require( './filter24.js'  )( Gibberish ),
     Biquad      : require( './biquad.js'    )( Gibberish ),
     SVF         : require( './svf.js'       )( Gibberish ),
-    Tremolo     : require( './tremolo.js'   )( Gibberish )
+    Tremolo     : require( './tremolo.js'   )( Gibberish ),
+    Shuffler    : require( './bufferShuffler.js'  )( Gibberish )
   }
 
   effects.export = target => {
