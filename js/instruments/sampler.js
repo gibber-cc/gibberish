@@ -20,6 +20,8 @@ module.exports = function( Gibberish ) {
 
     let props = Object.assign( {}, Sampler.defaults, inputProps )
 
+    syn.isStereo = props.isStereo !== undefined ? props.isStereo : false
+
     let start = g.in( 'start' ), end = g.in( 'end' ), 
         rate = g.in( 'rate' ), shouldLoop = g.in( 'loops' )
 

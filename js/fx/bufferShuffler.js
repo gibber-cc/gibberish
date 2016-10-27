@@ -19,7 +19,8 @@ module.exports = function( Gibberish ) {
     let bufferShuffler = Object.create( proto )
 
     let props = Object.assign( {}, Shuffler.defaults, inputProps )
-    let isStereo = props.input.isStereo !== undefined ? props.input.isStereo : true 
+
+    let isStereo = props.input.isStereo !== undefined ? props.input.isStereo : false
     let phase = g.accum( 1,0,{max:Infinity})
 
     let input = g.in( 'input' ),
@@ -34,19 +35,19 @@ module.exports = function( Gibberish ) {
         repitchMax = g.in( 'repitchMax' )
 
     let isShuffling = g.sah( g.gt( g.noise(), chanceOfShuffling ), g.eq( g.mod( phase, rateOfShuffling ), 0 ), 0 )
-    //let shuffleCheck = g.switch( g.eq( g.mod( phase, rateOfShuffling ), 0 ),
-    //  isShuffling.in( g.gt( g.noise(), chanceOfShuffling ) ),
-    //  isShuffling.out
-    //)
-    //isShuffling.in( shuffleCheck  )
 
     let bufferL = g.data( 88200 ), bufferR = isStereo ? g.data( 88200 ) : null
     let readPhase = g.mod( phase, 88200 )
-    let peekL = g.peek( bufferL, g.switch( isShuffling, g.wrap( g.sub(readPhase,22050), 0, 88200 ), readPhase ), { mode:'samples' }) 
+    let stutter = g.wrap( g.sub(readPhase,22050), 0, 88200 )
+
+    let peekL = g.peek( 
+      bufferL, 
+      g.switch( isShuffling, stutter, readPhase ), 
+      { mode:'samples' }
+    )
+
     let pokeL = g.poke( bufferL, leftInput, g.mod( g.add( phase, 44100 ), 88200 ) )
     
-    //g.delay( leftInput, g.switch( isShuffling, windowLength, -1 ), { size:props.delayLength })
-
     //bufferShuffler.__bang__ = g.bang()
     //bufferShuffler.trigger = bufferShuffler.__bang__.trigger
 
@@ -95,8 +96,6 @@ module.exports = function( Gibberish ) {
     repitchChance:.5,
     repitchMin:.25,
     repitchMax:4,
-    pan: .5,
-    panVoices:false,
   }
 
   return Shuffler 
