@@ -21,7 +21,7 @@ module.exports = function( Gibberish ) {
     let props = Object.assign( {}, Shuffler.defaults, inputProps )
 
     let isStereo = props.input.isStereo !== undefined ? props.input.isStereo : false
-    let phase = g.accum( 1,0,{max:Infinity})
+    let phase = g.accum( 1,0,{ shouldWrap: false })
 
     let input = g.in( 'input' ),
         leftInput = isStereo ? input[ 0 ] : input,
@@ -31,18 +31,32 @@ module.exports = function( Gibberish ) {
         windowLength = g.in( 'length' ),
         reverseChance = g.in( 'reverseChance' ),
         repitchChance = g.in( 'repitchChance' ),
-        pitchMin = g.in( 'repitchMin' ),
+        repitchMin = g.in( 'repitchMin' ),
         repitchMax = g.in( 'repitchMax' )
 
-    let isShuffling = g.sah( g.gt( g.noise(), chanceOfShuffling ), g.eq( g.mod( phase, rateOfShuffling ), 0 ), 0 )
+    let shuffleMemory = g.history(0)
+    let pitchMemory = g.history(1)
+
+    let isShuffling = g.sah( g.gt( g.noise(), chanceOfShuffling ), g.eq( g.mod( phase, rateOfShuffling ), 0 ), .5 )
+    let shuffleChanged = g.and( g.neq( isShuffling, shuffleMemory.out ), isShuffling )
+
+    let pitch = g.ifelse( 
+      g.and( shuffleChanged, g.lt( g.noise(), repitchChance ) ),
+      g.memo( g.add( repitchMin, g.mul( g.sub( repitchMax, repitchMin ), g.noise() ) ) ),
+      1
+    )
+
+    pitchMemory.in( g.switch( shuffleChanged, pitch, pitchMemory.out ) )
+
+    shuffleMemory.in( isShuffling )
 
     let bufferL = g.data( 88200 ), bufferR = isStereo ? g.data( 88200 ) : null
-    let readPhase = g.mod( phase, 88200 )
-    let stutter = g.wrap( g.sub(readPhase,22050), 0, 88200 )
+    let readPhase = g.accum( pitchMemory.out, 0, { shouldWrap:false }) 
+    let stutter = g.wrap( g.sub( g.mod( readPhase, 88200 ), 22050 ), 0, 88200 )
 
     let peekL = g.peek( 
       bufferL, 
-      g.switch( isShuffling, stutter, readPhase ), 
+      g.switch( isShuffling, stutter, g.mod( readPhase, 88200 ) ), 
       { mode:'samples' }
     )
 
