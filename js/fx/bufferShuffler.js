@@ -37,7 +37,7 @@ module.exports = function( Gibberish ) {
     let shuffleMemory = g.history(0)
     let pitchMemory = g.history(1)
 
-    let isShuffling = g.sah( g.gt( g.noise(), chanceOfShuffling ), g.eq( g.mod( phase, rateOfShuffling ), 0 ), .5 )
+    let isShuffling = g.sah( g.lt( g.noise(), chanceOfShuffling ), g.eq( g.mod( phase, rateOfShuffling ), 0 ), .5 )
     let shuffleChanged = g.and( g.neq( isShuffling, shuffleMemory.out ), isShuffling )
 
     let pitch = g.ifelse( 
@@ -61,13 +61,12 @@ module.exports = function( Gibberish ) {
     )
 
     let pokeL = g.poke( bufferL, leftInput, g.mod( g.add( phase, 44100 ), 88200 ) )
-    
-    //bufferShuffler.__bang__ = g.bang()
-    //bufferShuffler.trigger = bufferShuffler.__bang__.trigger
 
+    let panner = g.pan( peekL, peekL, g.in( 'pan' ) )
+    
     Gibberish.factory( 
       bufferShuffler,
-      peekL,
+      [panner.left, panner.right],
       'shuffler', 
       props 
     ) 
@@ -108,21 +107,10 @@ module.exports = function( Gibberish ) {
     length:22050,
     reverseChance:.5,
     repitchChance:.5,
-    repitchMin:.25,
-    repitchMax:4,
+    repitchMin:.5,
+    repitchMax:2,
+    pan:.5
   }
 
   return Shuffler 
 }
-
-    //let input = g.in( 'input' ),
-    //    leftInput = isStereo ? input[ 0 ] : input,
-    //    rightInput = isStereo ? input[ 1 ] : null,
-    //    rateOfShuffling = g.in( 'rate' ),
-    //    chanceOfShuffling = g.in( 'chance' ),
-    //    windowLength = g.in( 'length' ),
-    //    reverseChance = g.in( 'reverseChance' ),
-    //    repitchChance = g.in( 'repitchChance' ),
-    //    pitchMin = g.in( 'repitchMin' ),
-    //    repitchMax = g.in( 'repitchMax' )
-
