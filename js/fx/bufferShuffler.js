@@ -4,17 +4,6 @@ let g = require( 'genish.js' ),
 module.exports = function( Gibberish ) {
   let proto = Object.create( effect )
 
-  Object.assign( proto, {
-    note( rate ) {
-      this.rate = rate
-      if( rate > 0 ) {
-        this.trigger()
-      }else{
-        this.__accum__.value = this.data.buffer.length - 1 
-      }
-    }
-  })
-
   let Shuffler = inputProps => {
     let bufferShuffler = Object.create( proto ),
         bufferSize = 88200
@@ -29,44 +18,60 @@ module.exports = function( Gibberish ) {
         rightInput = isStereo ? input[ 1 ] : null,
         rateOfShuffling = g.in( 'rate' ),
         chanceOfShuffling = g.in( 'chance' ),
-        windowLength = g.in( 'length' ),
         reverseChance = g.in( 'reverseChance' ),
         repitchChance = g.in( 'repitchChance' ),
         repitchMin = g.in( 'repitchMin' ),
         repitchMax = g.in( 'repitchMax' )
 
-    let shuffleMemory = g.history(0)
     let pitchMemory = g.history(1)
 
-    let isShuffling = g.sah( g.lt( g.noise(), chanceOfShuffling ), g.eq( g.mod( phase, rateOfShuffling ), 0 ), .5 )
-    let shuffleChanged = g.and( g.neq( isShuffling, shuffleMemory.out ), isShuffling )
+    let shouldShuffleCheck = g.eq( g.mod( phase, rateOfShuffling ), 0 )
+    let isShuffling = g.memo( g.sah( g.lt( g.noise(), chanceOfShuffling ), shouldShuffleCheck, 0 ) ) 
+    // if we are shuffling and on a repeat boundary...
+    let shuffleChanged = g.memo( g.and( shouldShuffleCheck, isShuffling ) )
+    let shouldReverse = g.lt( g.noise(), reverseChance ),
+        reverseMod = g.switch( shouldReverse, -1, 1 )
 
     let pitch = g.ifelse( 
       g.and( shuffleChanged, g.lt( g.noise(), repitchChance ) ),
-      g.memo( g.add( repitchMin, g.mul( g.sub( repitchMax, repitchMin ), g.noise() ) ) ),
-      1
+      g.memo( g.mul( g.add( repitchMin, g.mul( g.sub( repitchMax, repitchMin ), g.noise() ) ), reverseMod ) ),
+      reverseMod
     )
-
+    
+    // only switch pitches on repeat boundaries
     pitchMemory.in( g.switch( shuffleChanged, pitch, pitchMemory.out ) )
 
-    shuffleMemory.in( isShuffling )
-
-    let fadeLength = 88
+    let fadeLength = g.memo( g.div( rateOfShuffling, 100 ) ),
+        fadeIncr = g.memo( g.div( 1, fadeLength ) )
 
     let bufferL = g.data( bufferSize ), bufferR = isStereo ? g.data( bufferSize ) : null
     let readPhase = g.accum( pitchMemory.out, 0, { shouldWrap:false }) 
     let stutter = g.wrap( g.sub( g.mod( readPhase, bufferSize ), 22050 ), 0, bufferSize )
 
-    let normalSample = g.peek( bufferL, g.accum( 1, 0, { max:88200 }), { mode:'samples' })
-    let stutterSamplePhase = g.switch( isShuffling, stutter, g.mod( readPhase, bufferSize ) )
+    let normalSample = g.peek( bufferL, g.accum( 1, 0, { max:88200 }), { mode:'simple' })
 
-    let stutterSample = g.peek( 
+    let stutterSamplePhase = g.switch( isShuffling, stutter, g.mod( readPhase, bufferSize ) )
+    let stutterSample = g.memo( g.peek( 
       bufferL, 
       stutterSamplePhase,
       { mode:'samples' }
+    ) )
+    
+    let stutterShouldFadeIn = g.and( shuffleChanged, isShuffling )
+    let stutterPhase = g.accum( 1, shuffleChanged, { shouldWrap: false })
+
+    let fadeInAmount = g.memo( g.div( stutterPhase, fadeLength ) )
+    let fadeOutAmount = g.div( g.sub( rateOfShuffling, stutterPhase ), g.sub( rateOfShuffling, fadeLength ) )
+    
+    let fadedStutter = g.ifelse(
+      g.lt( stutterPhase, fadeLength ),
+      g.memo( g.mul( g.switch( g.lt( fadeInAmount, 1 ), fadeInAmount, 1 ), stutterSample ) ),
+      g.gt( stutterPhase, g.sub( rateOfShuffling, fadeLength ) ),
+      g.memo( g.mul( g.gtp( fadeOutAmount, 0 ), stutterSample ) ),
+      stutterSample
     )
     
-    let outputL = g.mix( normalSample, stutterSample, g.in( 'mix' ) ) 
+    let outputL = g.mix( normalSample, fadedStutter, isShuffling ) 
 
     let pokeL = g.poke( bufferL, leftInput, g.mod( g.add( phase, 44100 ), 88200 ) )
 
@@ -78,6 +83,7 @@ module.exports = function( Gibberish ) {
       'shuffler', 
       props 
     ) 
+
     //if( props.filename ) {
     //  bufferShuffler.data = g.data( props.filename )
 
@@ -112,7 +118,6 @@ module.exports = function( Gibberish ) {
     input:0,
     rate:22050,
     chance:.25,
-    length:22050,
     reverseChance:.5,
     repitchChance:.5,
     repitchMin:.5,

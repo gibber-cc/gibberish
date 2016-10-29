@@ -44,6 +44,7 @@ module.exports = function( Gibberish ) {
 
         Gibberish.factory( 
           syn,
+          g.mul( 
           g.ifelse( 
             g.and( g.gte( syn.__phase__, start ), g.lt( syn.__phase__, end ) ),
             g.peek( 
@@ -52,7 +53,7 @@ module.exports = function( Gibberish ) {
               { mode:'samples' }
             ),
             0
-          ),
+          ), g.in('gain') ),
           'sampler', 
           props 
         ) 
