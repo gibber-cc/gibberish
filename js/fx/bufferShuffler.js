@@ -16,7 +16,8 @@ module.exports = function( Gibberish ) {
   })
 
   let Shuffler = inputProps => {
-    let bufferShuffler = Object.create( proto )
+    let bufferShuffler = Object.create( proto ),
+        bufferSize = 88200
 
     let props = Object.assign( {}, Shuffler.defaults, inputProps )
 
@@ -50,19 +51,26 @@ module.exports = function( Gibberish ) {
 
     shuffleMemory.in( isShuffling )
 
-    let bufferL = g.data( 88200 ), bufferR = isStereo ? g.data( 88200 ) : null
-    let readPhase = g.accum( pitchMemory.out, 0, { shouldWrap:false }) 
-    let stutter = g.wrap( g.sub( g.mod( readPhase, 88200 ), 22050 ), 0, 88200 )
+    let fadeLength = 88
 
-    let peekL = g.peek( 
+    let bufferL = g.data( bufferSize ), bufferR = isStereo ? g.data( bufferSize ) : null
+    let readPhase = g.accum( pitchMemory.out, 0, { shouldWrap:false }) 
+    let stutter = g.wrap( g.sub( g.mod( readPhase, bufferSize ), 22050 ), 0, bufferSize )
+
+    let normalSample = g.peek( bufferL, g.accum( 1, 0, { max:88200 }), { mode:'samples' })
+    let stutterSamplePhase = g.switch( isShuffling, stutter, g.mod( readPhase, bufferSize ) )
+
+    let stutterSample = g.peek( 
       bufferL, 
-      g.switch( isShuffling, stutter, g.mod( readPhase, 88200 ) ), 
+      stutterSamplePhase,
       { mode:'samples' }
     )
+    
+    let outputL = g.mix( normalSample, stutterSample, g.in( 'mix' ) ) 
 
     let pokeL = g.poke( bufferL, leftInput, g.mod( g.add( phase, 44100 ), 88200 ) )
 
-    let panner = g.pan( peekL, peekL, g.in( 'pan' ) )
+    let panner = g.pan( outputL, outputL, g.in( 'pan' ) )
     
     Gibberish.factory( 
       bufferShuffler,
@@ -109,7 +117,8 @@ module.exports = function( Gibberish ) {
     repitchChance:.5,
     repitchMin:.5,
     repitchMax:2,
-    pan:.5
+    pan:.5,
+    mix:.5
   }
 
   return Shuffler 
