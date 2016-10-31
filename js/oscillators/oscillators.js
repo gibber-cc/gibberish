@@ -2,7 +2,6 @@ let g = require( 'genish.js' ),
     ugen = require( '../ugen.js' )
 
 module.exports = function( Gibberish ) {
-
   let Oscillators = {
     export( obj ) {
       for( let key in Oscillators ) {
@@ -34,7 +33,14 @@ module.exports = function( Gibberish ) {
       let props = Object.assign({}, Oscillators.defaults, inputProps )
       Gibberish.factory( saw, g.mul( g.sub( 1, g.phasor( g.in('frequency') ) ), g.in('gain' ) ), 'reversesaw', props )
       return saw
-    }
+    },
+    Square( inputProps ) {
+      let square = Object.create( ugen )
+      let props = Object.assign({}, Oscillators.defaults, inputProps )
+
+      Gibberish.factory( square, Oscillators.Square.__getGraph__( g.in('frequency'), g.in('gain') ), 'square', props )
+      return square
+    },
   }
 
   Oscillators.defaults = {
@@ -42,7 +48,32 @@ module.exports = function( Gibberish ) {
     gain: 1
   }
 
+  let squareBuffer = new Float32Array( 1024 )
+
+  for( let i = 1023; i >= 0; i-- ) { 
+    squareBuffer[ i ] = i / 1024 > .5 ? 1 : -1
+  }
+
+  Oscillators.Square.__buffer__ = g.data( squareBuffer, 1, { immutable:true } )
+
+  g.square = function( freq ) {
+    let sqr = g.peek( Oscillators.Square.__buffer__, g.phasor( freq, 0, { min:0 } ))
+    return sqr
+  }
+
+  Oscillators.Square.__getGraph__ = ( freq, gain ) => {
+    let graph =  g.mul(
+      g.square( freq ), 
+      gain    
+    )
+    graph.name = 'square' + g.gen.getUID()
+
+    return graph
+  }
+
   return Oscillators
 
 }
+
+
 

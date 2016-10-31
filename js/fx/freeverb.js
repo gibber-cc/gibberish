@@ -36,7 +36,7 @@ let Freeverb = inputProps => {
   // create comb filters in parallel...
   for( let i = 0; i < 8; i++ ) { 
     combsL.push( 
-      combFilter( attenuatedInput, tuning.combTuning[i], mul(damping,.4), g.mul( tuning.scaleRoom + tuning.offsetRoom, roomSize ) ) 
+      combFilter( attenuatedInput, tuning.combTuning[i], g.mul(damping,.4), g.mul( tuning.scaleRoom + tuning.offsetRoom, roomSize ) ) 
     )
     combsR.push( 
       combFilter( attenuatedInput, tuning.combTuning[i] + tuning.stereoSpread, g.mul(damping,.4), g.mul( tuning.scaleRoom + tuning.offsetRoom, roomSize ) ) 

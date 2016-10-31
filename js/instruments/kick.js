@@ -23,7 +23,7 @@ module.exports = function( Gibberish ) {
         scaledTone = g.add( 50, g.mul( tone, 4000 ) ), // -> range { 50, 4050 }
         bpf = g.svf( impulse, frequency, scaledDecay, 2, false ),
         lpf = g.svf( bpf, scaledTone, .5, 0, false ),
-        graph = mul( lpf, gain )
+        graph = g.mul( lpf, gain )
     
     Gibberish.factory( kick, graph, 'kick', props  )
 

@@ -23,13 +23,14 @@ let Gibberish = {
     let numBytes = memAmount === undefined ? 20 * 60 * 44100 : memAmount
 
     this.memory = MemoryHelper.create( numBytes )
+    this.utilities = require( './utilities.js' )( this )
 
     this.load()
     
     this.output = this.Bus2()
 
-    this.createContext()
-    this.createScriptProcessor()
+    this.utilities.createContext()
+    this.utilities.createScriptProcessor()
 
     // XXX FOR DEVELOPMENT AND TESTING ONLY... REMOVE FOR PRODUCTION
     this.export( window )
@@ -49,7 +50,7 @@ let Gibberish = {
   },
 
   export( target ) {
-    this.genish.export( target )
+    //this.genish.export( target )
     this.instruments.export( target )
     this.fx.export( target )
     this.oscillators.export( target )
@@ -76,81 +77,6 @@ let Gibberish = {
     this.output.inputNames.length = 0
     this.dirty( this.output )
   },
-
-  createContext() {
-    let AC = typeof AudioContext === 'undefined' ? webkitAudioContext : AudioContext
-    this.ctx = new AC()
-    genish.gen.samplerate = this.ctx.sampleRate
-    genish.utilities.ctx = this.ctx
-
-    let start = () => {
-      if( typeof AC !== 'undefined' ) {
-        if( document && document.documentElement && 'ontouchstart' in document.documentElement ) {
-          window.removeEventListener( 'touchstart', start )
-
-          if( 'ontouchstart' in document.documentElement ){ // required to start audio under iOS 6
-            let mySource = utilities.ctx.createBufferSource()
-            mySource.connect( utilities.ctx.destination )
-            mySource.noteOn( 0 )
-          }
-         }
-      }
-    }
-
-    if( document && document.documentElement && 'ontouchstart' in document.documentElement ) {
-      window.addEventListener( 'touchstart', start )
-    }
-
-    return this
-  },
-
-  createScriptProcessor() {
-    this.node = this.ctx.createScriptProcessor( 1024, 0, 2 ),
-    this.clearFunction = function() { return 0 },
-    this.callback = this.clearFunction
-
-    this.node.onaudioprocess = function( audioProcessingEvent ) {
-      let gibberish = Gibberish,
-          callback  = gibberish.callback,
-          outputBuffer = audioProcessingEvent.outputBuffer,
-          scheduler = Gibberish.scheduler,
-          //objs = gibberish.callbackUgens.slice( 0 ),
-          length
-
-      let left = outputBuffer.getChannelData( 0 ),
-          right= outputBuffer.getChannelData( 1 )
-
-      let callbacklength = Gibberish.blockCallbacks.length
-      
-      if( callbacklength !== 0 ) {
-        for( let i=0; i< callbacklength; i++ ) {
-          Gibberish.blockCallbacks[ i ]()
-        }
-
-        // can't just set length to 0 as callbacks might be added during for loop, so splice pre-existing functions
-        Gibberish.blockCallbacks.splice( 0, callbacklength )
-      }
-
-      for (let sample = 0, length = left.length; sample < length; sample++) {
-        scheduler.tick()
-
-        if( gibberish.graphIsDirty ) { 
-          callback = gibberish.generateCallback()
-          //objs = gibberish.callbackUgens.slice( 0 )
-        }
-        
-        // XXX cant use destructuring, babel makes it something inefficient...
-        let out = callback.apply( null, gibberish.callbackUgens )
-
-        left[ sample  ] = out[0]
-        right[ sample ] = out[1]
-      }
-    }
-
-    this.node.connect( this.ctx.destination )
-
-    return this
-  }, 
 
   generateCallback() {
     let uid = 0,

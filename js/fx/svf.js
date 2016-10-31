@@ -2,12 +2,12 @@ let g = require( 'genish.js' )
 
 module.exports = function( Gibberish ) {
   Gibberish.genish.svf = ( input, cutoff, Q, mode, isStereo ) => {
-    let d1 = data([0,0], 1, { meta:true }), d2 = data([0,0], 1, { meta:true }),
+    let d1 = g.data([0,0], 1, { meta:true }), d2 = g.data([0,0], 1, { meta:true }),
         peekProps = { mode:'simple', interp:'none' }
     
-    let f1 = memo( g.mul( 2 * Math.PI, div( cutoff, g.gen.samplerate ) ) )
-    let oneOverQ = g.memo( div( 1, Q ) )
-    let l = g.memo( g.add( d2[0], mul( f1, d1[0] ) ) ),
+    let f1 = g.memo( g.mul( 2 * Math.PI, g.div( cutoff, g.gen.samplerate ) ) )
+    let oneOverQ = g.memo( g.div( 1, Q ) )
+    let l = g.memo( g.add( d2[0], g.mul( f1, d1[0] ) ) ),
         h = g.memo( g.sub( g.sub( isStereo ? input[0] : input, l ), g.mul( Q, d1[0] ) ) ),
         b = g.memo( g.add( g.mul( f1, h ), d1[0] ) ),
         n = g.memo( g.add( h, l ) )
@@ -19,8 +19,8 @@ module.exports = function( Gibberish ) {
 
     let returnValue
     if( isStereo ) {
-      let d12 = data([0,0], 1, { meta:true }), d22 = data([0,0], 1, { meta:true })
-      let l2 = g.memo( g.add( d22[0], mul( f1, d12[0] ) ) ),
+      let d12 = g.data([0,0], 1, { meta:true }), d22 = g.data([0,0], 1, { meta:true })
+      let l2 = g.memo( g.add( d22[0], g.mul( f1, d12[0] ) ) ),
           h2 = g.memo( g.sub( g.sub( input[1], l2 ), g.mul( Q, d12[0] ) ) ),
           b2 = g.memo( g.add( g.mul( f1, h2 ), d12[0] ) ),
           n2 = g.memo( g.add( h2, l2 ) )
