@@ -7,7 +7,7 @@ let feedbackOsc = function( frequency, filter, pulsewidth=.5, argumentProps ) {
       lastSample2 = g.history(), // for potential osc 2
       lastSampleMaster = g.history(), // for potential sum of osc1,osc2
       // determine phase increment and memoize result
-      w = g.memo( g.div( frequency, g.samplerate ) ),
+      w = g.memo( g.div( frequency, g.gen.samplerate ) ),
       // create scaling factor
       n = g.sub( -.5, w ),
       scaling = g.mul( g.mul( 13, filter ), g.pow( n, 5 ) ),
