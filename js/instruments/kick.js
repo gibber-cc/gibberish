@@ -34,7 +34,7 @@ module.exports = function( Gibberish ) {
   
   Kick.defaults = {
     gain: 1,
-    frequency:55,
+    frequency:85,
     tone: .25,
     decay:.9
   }

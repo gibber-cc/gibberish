@@ -30,8 +30,7 @@ Object.assign( instrument, {
         if( antialias === true ) {
           osc = feedbackOsc( frequency, 1, .5, { type:1 })
         }else{
-          let phase = g.phasor( frequency, 0, { min:0 } )
-          osc = g.lt( phase, .5 )
+          osc = g.square( frequency )
         }
         break;
       case 'sine':

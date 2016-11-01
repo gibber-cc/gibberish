@@ -7,18 +7,20 @@ let Sequencer = props => {
   let seq = {
     phase: 0,
     isRunning:false,
-    key: props.key || 'note',
+    key: props.key, 
     target:  props.target,
-    values:  props.values || [ 440 ],
-    timings: props.timings|| [ 11025 ],
+    values:  props.values,
+    timings: props.timings,
     valuesPhase:  0,
     timingsPhase: 0,
 
     tick() {
       let value  = seq.values[  seq.valuesPhase++  % seq.values.length  ],
           timing = seq.timings[ seq.timingsPhase++ % seq.timings.length ]
-      
-      if( typeof seq.target[ seq.key ] === 'function' ) {
+       
+      if( typeof value === 'function' && seq.target === undefined ) {
+        value()
+      }else if( typeof seq.target[ seq.key ] === 'function' ) {
         seq.target[ seq.key ]( value )
       }else{
         seq.target[ seq.key ] = value
@@ -29,9 +31,9 @@ let Sequencer = props => {
       }
     },
 
-    start() {
+    start( delay = 0 ) {
       seq.isRunning = true
-      Gibberish.scheduler.add( 0, seq.tick )
+      Gibberish.scheduler.add( delay, seq.tick )
       return seq
     },
 

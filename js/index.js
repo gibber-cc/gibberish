@@ -58,6 +58,7 @@ let Gibberish = {
     target.Sequencer = this.sequencer
     target.Bus = this.Bus
     target.Bus2 = this.Bus2
+    target.Scheduler = this.scheduler
   },
 
   print() {
@@ -92,6 +93,8 @@ let Gibberish = {
     if( this.debug ) console.log( 'callback:\n', callbackBody.join('\n') )
     this.callback = Function( ...this.callbackNames, callbackBody.join( '\n' ) )
     this.callback.out = []
+
+    if( this.oncallback ) this.oncallback( this.callback )
 
     return this.callback 
   },
