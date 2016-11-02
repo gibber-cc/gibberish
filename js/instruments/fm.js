@@ -9,16 +9,18 @@ module.exports = function( Gibberish ) {
 
     let env = g.ad( g.in('attack'), g.in('decay'), { shape:'linear' }),
         frequency = g.in( 'frequency' ),
+        glide = g.in( 'glide' ),
+        slidingFreq = g.slide( frequency, glide, glide ),
         cmRatio = g.in( 'cmRatio' ),
         index = g.in( 'index' )
 
     let props = Object.assign( {}, FM.defaults, inputProps )
 
-    let modOsc     = instrument.__makeOscillator__( props.modWaveform, g.mul( frequency, cmRatio ), props.antialias )
-    let modOscWithIndex = g.mul( modOsc, g.mul( frequency, index ) )
+    let modOsc     = instrument.__makeOscillator__( props.modWaveform, g.mul( slidingFreq, cmRatio ), props.antialias )
+    let modOscWithIndex = g.mul( modOsc, g.mul( slidingFreq, index ) )
     let modOscWithEnv   = g.mul( modOscWithIndex, env )
 
-    let carrierOsc = instrument.__makeOscillator__( props.carrierWaveform, g.add( frequency, modOscWithEnv ), props.antialias  )
+    let carrierOsc = instrument.__makeOscillator__( props.carrierWaveform, g.add( slidingFreq, modOscWithEnv ), props.antialias  )
     let carrierOscWithEnv = g.mul( carrierOsc, env )
 
     let synthWithGain = g.mul( carrierOscWithEnv, g.in( 'gain' ) ),
@@ -48,10 +50,11 @@ module.exports = function( Gibberish ) {
     frequency:220,
     pan: .5,
     antialias:false,
-    panVoices:false
+    panVoices:false,
+    glide:1
   }
 
-  let PolyFM = Gibberish.PolyTemplate( FM, ['frequency','attack','decay','pulsewidth','pan','gain','cmRatio','index'] ) 
+  let PolyFM = Gibberish.PolyTemplate( FM, ['glide','frequency','attack','decay','pulsewidth','pan','gain','cmRatio','index'] ) 
 
   return [ FM, PolyFM ]
 

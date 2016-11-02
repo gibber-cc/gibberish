@@ -8,9 +8,10 @@ module.exports = function( Gibberish ) {
 
       let synth = properties.isStereo ? Gibberish.Bus2() : Gibberish.Bus(),
           voices = [],
+          maxVoices = props.maxVoices || 16,
           voiceCount = 0
 
-      for( let i = 0; i < 16; i++ ) {
+      for( let i = 0; i < maxVoices; i++ ) {
         voices[i] = ugen( properties )
         voices[i].callback.ugenName = voices[i].ugenName
         voices[i].isConnected = false

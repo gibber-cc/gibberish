@@ -6,11 +6,13 @@ module.exports = function( Gibberish ) {
   let Synth2 = initialProps => {
     let syn = Object.create( instrument ),
         env = g.ad( g.in('attack'), g.in('decay'), { shape:'linear' }),
-        frequency = g.in( 'frequency' )
+        frequency = g.in( 'frequency' ),
+        glide = g.in( 'glide' ),
+        slidingFreq = g.slide( frequency, glide, glide )
 
     let props = Object.assign( {}, Synth2.defaults, initialProps )
 
-    let osc = instrument.__makeOscillator__( props.waveform, frequency, props.antialias )
+    let osc = instrument.__makeOscillator__( props.waveform, slidingFreq, props.antialias )
 
     let oscWithGain = g.mul( g.mul( osc, env ), g.in( 'gain' ) ),
         isLowPass = g.param( 'lowPass', 1 ),
@@ -40,10 +42,11 @@ module.exports = function( Gibberish ) {
     cutoff: .35,
     resonance: 3.5,
     antialias: false,
-    panVoices: false
+    panVoices: false,
+    glide:1
   }
 
-  let PolySynth2 = Gibberish.PolyTemplate( Synth2, ['frequency','attack','decay','pulsewidth','cutoff','resonance','pan','gain'] ) 
+  let PolySynth2 = Gibberish.PolyTemplate( Synth2, ['frequency','attack','decay','pulsewidth','cutoff','resonance','pan','gain', 'glide'] ) 
 
   return [ Synth2, PolySynth2 ]
 
