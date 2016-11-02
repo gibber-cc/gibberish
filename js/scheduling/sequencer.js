@@ -13,6 +13,7 @@ let Sequencer = props => {
     timings: props.timings,
     valuesPhase:  0,
     timingsPhase: 0,
+    priority: props.priority === undefined ? 0 : props.priority,
 
     tick() {
       let value  = seq.values[  seq.valuesPhase++  % seq.values.length  ],
@@ -27,13 +28,13 @@ let Sequencer = props => {
       }
       
       if( seq.isRunning === true ) {
-        Gibberish.scheduler.add( timing, seq.tick )
+        Gibberish.scheduler.add( timing, seq.tick, seq.priority )
       }
     },
 
     start( delay = 0 ) {
       seq.isRunning = true
-      Gibberish.scheduler.add( delay, seq.tick )
+      Gibberish.scheduler.add( delay, seq.tick, seq.priority )
       return seq
     },
 
