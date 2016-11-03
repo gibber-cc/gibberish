@@ -12,6 +12,11 @@ let Scheduler = {
     }
   }),
 
+  clear() {
+    this.queue.data.length = 0
+    this.queue.length = 0
+  },
+
   add( time, func, priority = 0 ) {
     time += this.phase
 

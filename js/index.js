@@ -76,6 +76,7 @@ let Gibberish = {
   clear() {
     this.output.inputs = [0]
     this.output.inputNames.length = 0
+    this.scheduler.clear()
     this.dirty( this.output )
   },
 
