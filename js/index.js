@@ -47,6 +47,7 @@ let Gibberish = {
     this.instruments  = require( './instruments/instruments.js' )( this )
     this.fx           = require( './fx/effects.js' )( this )
     this.sequencer    = require( './scheduling/sequencer.js' )( this );
+    this.modulation   = require( './misc/modulation.js' )( this );
   },
 
   export( target ) {
