@@ -47,7 +47,7 @@ let Gibberish = {
     this.instruments  = require( './instruments/instruments.js' )( this )
     this.fx           = require( './fx/effects.js' )( this )
     this.sequencer    = require( './scheduling/sequencer.js' )( this );
-    this.modulation   = require( './misc/modulation.js' )( this );
+    this.envelopes    = require( './envelopes/envelopes.js' )( this );
   },
 
   export( target ) {
@@ -56,6 +56,7 @@ let Gibberish = {
     this.fx.export( target )
     this.oscillators.export( target )
     this.binops.export( target )
+    this.envelopes.export( target )
     target.Sequencer = this.sequencer
     target.Bus = this.Bus
     target.Bus2 = this.Bus2
