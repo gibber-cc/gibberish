@@ -3,8 +3,8 @@ let g = require( 'genish.js' ),
 
 module.exports = function( Gibberish ) {
 
-  Gibberish.genish.filter24 = ( input, rez, cutoff, isLowPass ) => {
-    let isStereo = Array.isArray( input ), returnValue
+  Gibberish.genish.filter24 = ( input, rez, cutoff, isLowPass, isStereo=false ) => {
+    let returnValue
 
     let polesL = g.data([ 0,0,0,0 ], 1, { meta:true }),
         peekProps = { interp:'none', mode:'simple' },
@@ -24,12 +24,12 @@ module.exports = function( Gibberish ) {
           rezzR = g.clamp( g.mul( polesR[3], rez ) ),
           outputR = g.sub( input[1], rezzR )         
 
-      polesR[0] = g.add( polesR[0], g.mul( g.add( g.mul(-1, polesR[0] ), outputR ), cutoff ))
+      polesR[0] = g.add( polesR[0], g.mul( g.add( g.mul(-1, polesR[0] ), outputR   ), cutoff ))
       polesR[1] = g.add( polesR[1], g.mul( g.add( g.mul(-1, polesR[1] ), polesR[0] ), cutoff ))
       polesR[2] = g.add( polesR[2], g.mul( g.add( g.mul(-1, polesR[2] ), polesR[1] ), cutoff ))
       polesR[3] = g.add( polesR[3], g.mul( g.add( g.mul(-1, polesR[3] ), polesR[2] ), cutoff ))
 
-      let right =g.switch( isLowPass, polesR[3], g.sub( outputR, polesR[3] ) )
+      let right = g.switch( isLowPass, polesR[3], g.sub( outputR, polesR[3] ) )
 
       returnValue = [left, right]
     }else{
@@ -39,14 +39,16 @@ module.exports = function( Gibberish ) {
     return returnValue
   }
 
-  let Filter24 = props => {
-    let filter = Object.create( effect )
-    
+  let Filter24 = inputProps => {
+    let filter   = Object.create( effect )
+    let props    = Object.assign( {}, Filter24.defaults, inputProps )
+    let isStereo = props.input.isStereo 
+
     Gibberish.factory(
       filter, 
-      Gibberish.genish.filter24( g.in('input'), g.in('resonance'), g.in('cutoff'), g.in('isLowPass') ), 
-      'filter24', 
-      Object.assign( {}, Filter24.defaults, props ) 
+      Gibberish.genish.filter24( g.in('input'), g.in('resonance'), g.in('cutoff'), g.in('isLowPass'), isStereo ), 
+      'filter24',
+      props
     )
 
     return filter
