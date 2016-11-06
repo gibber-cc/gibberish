@@ -1,0 +1,62 @@
+const g = require( 'genish.js' ),
+      ugen = require( '../ugen.js' )
+
+module.exports = function( Gibberish ) {
+
+  const Seq2 = { 
+    create( inputProps ) {
+      const seq = Object.create( ugen ),
+            props = Object.assign({}, Seq2.defaults, inputProps )
+
+      seq.phase = 0
+      seq.inputNames = [ 'rate' ]
+      seq.inputs = [ 1 ]
+      seq.nextTime = 0
+      seq.valuesPhase = 0
+      seq.timingsPhase = 0
+      seq.id = Gibberish.factory.getUID()
+      seq.dirty = true
+      seq.callFunction = typeof props.target[ props.key ] === 'function'
+
+      Object.assign( seq, props )
+
+      seq.callback = function( rate ) {
+        seq.phase += rate
+
+        if( seq.phase > seq.nextTime ) {
+          if( seq.callFunction === false ) {
+            seq.target[ seq.key ] = seq.values[ seq.valuesPhase++ % seq.values.length ]
+          }else{
+            seq.target[ seq.key ]( seq.values[ seq.valuesPhase++ % seq.values.length ] )
+          }
+          seq.phase -= seq.nextTime
+          seq.nextTime = seq.timings[ seq.timingsPhase++ % seq.timings.length ]
+        }
+
+        return 0
+      }
+
+      seq.ugenName = seq.callback.ugenName = 'seq_' + seq.id
+      
+      let value = seq.rate
+      Object.defineProperty( seq, 'rate', {
+        get() { return value },
+        set( v ) {
+          if( value !== v ) {
+            Gibberish.dirty( seq )
+            //if( setter !== undefined ) setter( v )
+            value = v
+          }
+        }
+      })
+
+      return seq
+    }
+  }
+
+  Seq2.defaults = { rate: 1 }
+
+  return Seq2.create
+
+}
+
