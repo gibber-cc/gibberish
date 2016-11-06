@@ -60,7 +60,7 @@ module.exports = function( Gibberish ) {
           endTime = synth.decay * Gibberish.ctx.sampleRate
 
       if( phase > endTime ) {
-        synth.disconnect( syn )
+        synth.disconnectUgen( syn )
         syn.isConnected = false
         Gibberish.memory.heap[ syn.phase.memory.value.idx ] = 0 // trigger doesn't seem to reset for some reason
       }else{

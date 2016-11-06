@@ -8,6 +8,8 @@ let ugen = {
   },
 
   connect( target, level=1 ) {
+    if( this.connected === undefined ) this.connected = []
+
     let input = level === 1 ? this : Gibberish.Mul( this, level )
 
     if( target === undefined ) target = Gibberish.output 
@@ -18,8 +20,23 @@ let ugen = {
       target.input = this
 
     Gibberish.dirty( target )
+
+    this.connected.push( target )
     
     return this
+  },
+
+  disconnect( target ) {
+    if( target === undefined ){
+      for( let bus of this.connected ) {
+        bus.disconnectUgen( this )
+      }
+      this.connected.length = 0
+    }else{
+      target.disconnectUgen( this )
+      const targetIdx = this.connected.indexOf( target )
+      this.connected.splice( targetIdx, 1 )
+    }
   },
 
   chain( target, level=1 ) {

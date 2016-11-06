@@ -32,7 +32,7 @@ module.exports = function( Gibberish ) {
 
       bus.ugenName = bus.callback.ugenName = 'bus2_' + bus.id
 
-      bus.disconnect = ( ugen ) => {
+      bus.disconnectUgen = ( ugen ) => {
         let removeIdx = -1
         for( let i = 0; i < bus.inputs.length; i++ ) {
           let input = bus.inputs[ i ]

@@ -8,7 +8,7 @@ module.exports = function( Gibberish ) {
 
       let synth = properties.isStereo ? Gibberish.Bus2() : Gibberish.Bus(),
           voices = [],
-          maxVoices = props.maxVoices || 16,
+          maxVoices = properties.maxVoices !== undefined ? properties.maxVoices : 16,
           voiceCount = 0
 
       for( let i = 0; i < maxVoices; i++ ) {
@@ -70,7 +70,7 @@ module.exports = function( Gibberish ) {
           if( _envCheck === undefined ) {
             envCheck = ()=> {
               if( voice.env.isComplete() ) {
-                poly.disconnect( voice )
+                poly.disconnectUgen( voice )
                 voice.isConnected = false
               }else{
                 Gibberish.blockCallbacks.push( envCheck )

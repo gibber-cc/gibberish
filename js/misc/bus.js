@@ -48,7 +48,7 @@ module.exports = function( Gibberish ) {
         return target
       }
 
-      bus.disconnect = ( ugen ) => {
+      bus.disconnectUgen = ( ugen ) => {
         let removeIdx = -1
         for( let i = 0; i < bus.inputs.length; i++ ) {
           let input = bus.inputs[ i ]

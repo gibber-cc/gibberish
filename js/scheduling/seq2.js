@@ -2,10 +2,20 @@ const g = require( 'genish.js' ),
       ugen = require( '../ugen.js' )
 
 module.exports = function( Gibberish ) {
+  const __proto__ = Object.create( ugen )
+
+  Object.assign( __proto__, {
+    start() {
+      this.connect()
+    },
+    stop() {
+      this.disconnect()
+    }
+  })
 
   const Seq2 = { 
     create( inputProps ) {
-      const seq = Object.create( ugen ),
+      const seq = Object.create( __proto__ ),
             props = Object.assign({}, Seq2.defaults, inputProps )
 
       seq.phase = 0
@@ -16,22 +26,32 @@ module.exports = function( Gibberish ) {
       seq.timingsPhase = 0
       seq.id = Gibberish.factory.getUID()
       seq.dirty = true
-      seq.callFunction = typeof props.target[ props.key ] === 'function'
+
+      if( props.target === undefined ) {
+        seq.anonFunction = true
+      }else{ 
+        seq.anonFunction = false
+        seq.callFunction = typeof props.target[ props.key ] === 'function'
+      }
 
       Object.assign( seq, props )
 
       seq.callback = function( rate ) {
-        seq.phase += rate
+        if( seq.phase >= seq.nextTime ) {
 
-        if( seq.phase > seq.nextTime ) {
-          if( seq.callFunction === false ) {
+          if( seq.anonFunction === true ) {
+            seq.values[ seq.valuesPhase++ % seq.values.length ]()
+          }else if( seq.callFunction === false ) {
             seq.target[ seq.key ] = seq.values[ seq.valuesPhase++ % seq.values.length ]
           }else{
             seq.target[ seq.key ]( seq.values[ seq.valuesPhase++ % seq.values.length ] )
           }
+
           seq.phase -= seq.nextTime
           seq.nextTime = seq.timings[ seq.timingsPhase++ % seq.timings.length ]
         }
+
+        seq.phase += rate
 
         return 0
       }
@@ -44,7 +64,6 @@ module.exports = function( Gibberish ) {
         set( v ) {
           if( value !== v ) {
             Gibberish.dirty( seq )
-            //if( setter !== undefined ) setter( v )
             value = v
           }
         }
