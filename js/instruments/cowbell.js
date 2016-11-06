@@ -13,10 +13,8 @@ module.exports = function( Gibberish ) {
     const bpfCutoff = g.param( 'bpfc', 1000 ),
           s1 = g.square( 560 ),
           s2 = g.square( 845 ),
-          sum = g.add( s1,s2 ),
-          eg = g.decay( decay ), 
-          bpf = g.svf( sum, bpfCutoff, 3, 2, false ),
-          envBpf = g.mul( bpf, eg ),
+          bpf = g.svf( g.add( s1,s2 ), bpfCutoff, 3, 2, false ),
+          envBpf = g.mul( bpf, g.decay( decay ) ),
           out = g.mul( envBpf, gain )
 
     Gibberish.factory( cowbell, out, 'cowbell', props  )

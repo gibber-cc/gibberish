@@ -1,4 +1,5 @@
-let g = require( 'genish.js' )
+let g = require( 'genish.js' ),
+    effect = require( './effect.js' )
 
 module.exports = function( Gibberish ) {
 
@@ -9,74 +10,76 @@ module.exports = function( Gibberish ) {
 
     let returnValue
 
-    let x1 = ssd(), x2 = ssd(), y1 = ssd(), y2 = ssd()
+    let x1 = g.history(), x2 = g.history(), y1 = g.history(), y2 = g.history()
     
-    let w0 = memo( mul( 2 * Math.PI, div( cutoff,  gen.samplerate ) ) ),
-        sinw0 = sin( w0 ),
-        cosw0 = cos( w0 ),
-        alpha = memo( div( sinw0, mul( 2, Q ) ) )
+    let w0 = g.memo( g.mul( 2 * Math.PI, g.div( cutoff,  g.gen.samplerate ) ) ),
+        sinw0 = g.sin( w0 ),
+        cosw0 = g.cos( w0 ),
+        alpha = g.memo( g.div( sinw0, g.mul( 2, Q ) ) )
 
-    let oneMinusCosW = sub( 1, cosw0 )
+    let oneMinusCosW = g.sub( 1, cosw0 )
 
     switch( mode ) {
       case 'HP':
-        a0 = memo( div( add( 1, cosw0) , 2) )
-        a1 = mul( add( 1, cosw0 ), -1 )
+        a0 = g.memo( g.div( g.add( 1, cosw0) , 2) )
+        a1 = g.mul( g.add( 1, cosw0 ), -1 )
         a2 = a0
-        c  = add( 1, alpha )
-        b1 = mul( -2 , cosw0 )
-        b2 = sub( 1, alpha )
+        c  = g.add( 1, alpha )
+        b1 = g.mul( -2 , cosw0 )
+        b2 = g.sub( 1, alpha )
         break;
       case 'BP':
-        a0 = mul( Q, alpha )
+        a0 = g.mul( Q, alpha )
         a1 = 0
-        a2 = mul( a0, -1 )
-        c  = add( 1, alpha )
-        b1 = mul( -2 , cosw0 )
-        b2 = sub( 1, alpha )
+        a2 = g.mul( a0, -1 )
+        c  = g.add( 1, alpha )
+        b1 = g.mul( -2 , cosw0 )
+        b2 = g.sub( 1, alpha )
         break;
       default: // LP
-        a0 = memo( div( oneMinusCosW, 2) )
+        a0 = g.memo( g.div( oneMinusCosW, 2) )
         a1 = oneMinusCosW
         a2 = a0
-        c  = add( 1, alpha )
-        b1 = mul( -2 , cosw0 )
-        b2 = sub( 1, alpha )
+        c  = g.add( 1, alpha )
+        b1 = g.mul( -2 , cosw0 )
+        b2 = g.sub( 1, alpha )
     }
 
-    a0 = div( a0, c ); a1 = div( a1, c ); a2 = div( a2, c )
-    b1 = div( b1, c ); b2 = div( b2, c )
+    a0 = g.div( a0, c ); a1 = g.div( a1, c ); a2 = g.div( a2, c )
+    b1 = g.div( b1, c ); b2 = g.div( b2, c )
 
-    in1a0 = mul( x1.in( isStereo ? input[0] : input ), a0 )
-    x1a1  = mul( x2.in( x1.out ), a1 )
-    x2a2  = mul( x2.out,          a2 )
+    in1a0 = g.mul( x1.in( isStereo ? input[0] : input ), a0 )
+    x1a1  = g.mul( x2.in( x1.out ), a1 )
+    x2a2  = g.mul( x2.out,          a2 )
 
-    let sumLeft = add( in1a0, x1a1, x2a2 )
+    let sumLeft = g.add( in1a0, x1a1, x2a2 )
 
-    y1b1 = mul( y2.in( y1.out ), b1 )
-    y2b2 = mul( y2.out, b2 )
+    y1b1 = g.mul( y2.in( y1.out ), b1 )
+    y2b2 = g.mul( y2.out, b2 )
 
-    let sumRight = add( y1b1, y2b2 )
+    let sumRight = g.add( y1b1, y2b2 )
 
-    let diff = sub( sumLeft, sumRight )
+    let diff = g.sub( sumLeft, sumRight )
 
     y1.in( diff )
 
     if( isStereo ) {
-      let x1_1 = ssd(), x2_1 = ssd(), y1_1 = ssd(), y2_1 = ssd()
+      let x1_1 = g.history(), x2_1 = g.history(), y1_1 = g.history(), y2_1 = g.history()
 
-      in1a0_1 = mul( x1_1.in( input[1]    ), a0 )
-      x1a1_1  = mul( x2_1.in( x1_1.out ), a1 )
-      x2a2_1  = mul( x2_1.out,          a2 )
+      in1a0_1 = g.mul( x1_1.in( input[1] ), a0 )
+      x1a1_1  = g.mul( x2_1.in( x1_1.out ), a1 )
+      x2a2_1  = g.mul( x2_1.out,            a2 )
 
-      let sumLeft_1 = add( in1a0_1, x1a1_1, x2a2_1 )
+      let sumLeft_1 = g.add( in1a0_1, x1a1_1, x2a2_1 )
 
-      y1b1_1 = mul( y2_1.in( y1_1.out ), b1 )
-      y2b2_1 = mul( y2_1.out, b2 )
+      y1b1_1 = g.mul( y2_1.in( y1_1.out ), b1 )
+      y2b2_1 = g.mul( y2_1.out, b2 )
 
-      let sumRight_1 = add( y1b1_1, y2b2_1 )
+      let sumRight_1 = g.add( y1b1_1, y2b2_1 )
 
-      let diff_1 = sub( sumLeft_1, sumRight_1 )
+      let diff_1 = g.sub( sumLeft_1, sumRight_1 )
+
+      y1_1.in( diff_1 )
       
       returnValue = [ diff, diff_1 ]
     }else{
@@ -86,19 +89,21 @@ module.exports = function( Gibberish ) {
     return returnValue
   }
 
-  let Biquad = props => {
-    let _props = Object.assign( {}, Biquad.defaults, props ) 
+  let Biquad = inputProps => {
+    let biquad = Object.create( effect )
+    let props = Object.assign( {}, Biquad.defaults, inputProps ) 
 
     let isStereo = props.input.isStereo
 
-    let filter = Gibberish.factory( 
-      Gibberish.genish.biquad( g.in('input'), g.in('cutoff'), g.in('Q'), _props.mode || 'LP', isStereo ), 
+    Gibberish.factory(
+      biquad,
+      Gibberish.genish.biquad( g.in('input'), g.in('cutoff'), g.in('Q'), props.mode || 'LP', isStereo ), 
       'biquad', 
-      _props
+      props
     )
-    return filter
-  }
 
+    return biquad
+  }
 
   Biquad.defaults = {
     input:0,

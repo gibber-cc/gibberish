@@ -4,13 +4,11 @@ let g = require( 'genish.js' ),
 module.exports = function( Gibberish ) {
 
   Gibberish.genish.filter24 = ( input, rez, cutoff, isLowPass, isStereo=false ) => {
-    let returnValue
-
-    let polesL = g.data([ 0,0,0,0 ], 1, { meta:true }),
+    let returnValue,
+        polesL = g.data([ 0,0,0,0 ], 1, { meta:true }),
         peekProps = { interp:'none', mode:'simple' },
-        rezzL = g.clamp( g.mul( polesL[3], rez ) )
-
-    let outputL = g.sub( isStereo ? input[0] : input, rezzL ) 
+        rezzL = g.clamp( g.mul( polesL[3], rez ) ),
+        outputL = g.sub( isStereo ? input[0] : input, rezzL ) 
 
     polesL[0] = g.add( polesL[0], g.mul( g.add( g.mul(-1, polesL[0] ), outputL   ), cutoff ))
     polesL[1] = g.add( polesL[1], g.mul( g.add( g.mul(-1, polesL[1] ), polesL[0] ), cutoff ))
