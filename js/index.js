@@ -6,6 +6,7 @@ let Gibberish = {
   dirtyUgens: [],
   callbackUgens: [],
   callbackNames: [],
+  analyzers: [],
   graphIsDirty: false,
   ugens: {},
   debug: false,
@@ -32,6 +33,8 @@ let Gibberish = {
     this.utilities.createContext()
     this.utilities.createScriptProcessor()
 
+    this.analyzers.dirty = false
+
     // XXX FOR DEVELOPMENT AND TESTING ONLY... REMOVE FOR PRODUCTION
     this.export( window )
   },
@@ -49,6 +52,7 @@ let Gibberish = {
     this.sequencer    = require( './scheduling/sequencer.js' )( this );
     this.sequencer2   = require( './scheduling/seq2.js' )( this );
     this.envelopes    = require( './envelopes/envelopes.js' )( this );
+    this.ssd          = require( './analysis/singlesampledelay.js' )( this );
   },
 
   export( target ) {
@@ -63,6 +67,7 @@ let Gibberish = {
     target.Bus = this.Bus
     target.Bus2 = this.Bus2
     target.Scheduler = this.scheduler
+    target.SSD = this.ssd
   },
 
   print() {
@@ -70,10 +75,15 @@ let Gibberish = {
   },
 
   dirty( ugen ) {
-    this.dirtyUgens.push( ugen )
-    this.graphIsDirty = true
-    if( this.memoed[ ugen.ugenName ] ) {
-      delete this.memoed[ ugen.ugenName ]
+    if( ugen === this.analyzers ) {
+      this.graphIsDirty = true
+      this.analyzers.dirty = true
+    } else {
+      this.dirtyUgens.push( ugen )
+      this.graphIsDirty = true
+      if( this.memoed[ ugen.ugenName ] ) {
+        delete this.memoed[ ugen.ugenName ]
+      }
     } 
   },
 
@@ -86,13 +96,29 @@ let Gibberish = {
 
   generateCallback() {
     let uid = 0,
-        callbackBody, lastLine
+        callbackBody, lastLine, analysis=''
 
     this.memoed = {}
 
     callbackBody = this.processGraph( this.output )
     lastLine = callbackBody[ callbackBody.length - 1]
-    
+
+    this.analyzers.forEach( v=> {
+      const analysisBlock = Gibberish.processUgen( v )
+      const analysisLine = analysisBlock.pop()
+
+      analysisBlock.forEach( v=> {
+        callbackBody.splice( callbackBody.length - 1, 0, v )
+      })
+
+      callbackBody.push( analysisLine )
+    })
+
+    this.analyzers.forEach( v => {
+      this.callbackUgens.push( v.callback )
+    })
+    this.callbackNames = this.callbackUgens.map( v => v.ugenName )
+
     callbackBody.push( '\n\treturn ' + lastLine.split( '=' )[0].split( ' ' )[1] )
 
     if( this.debug ) console.log( 'callback:\n', callbackBody.join('\n') )
@@ -111,7 +137,7 @@ let Gibberish = {
     this.callbackUgens.push( output.callback )
 
     let body = this.processUgen( output )
-    this.callbackNames = this.callbackUgens.map( v => v.ugenName )
+    
 
     this.dirtyUgens.length = 0
     this.graphIsDirty = false
@@ -135,18 +161,35 @@ let Gibberish = {
       if( !ugen.binop ) line += `${ugen.ugenName}( `
 
       // must get array so we can keep track of length for comma insertion
-      let keys = ugen.binop || ugen.type === 'bus' ? Object.keys( ugen.inputs ) : Object.keys( ugen.inputNames )
+      let keys,err
       
+      try {
+        keys = ugen.binop || ugen.type === 'bus' ? Object.keys( ugen.inputs ) : Object.keys( ugen.inputNames )
+      }catch( e ){
+
+        console.log( e )
+        err = true
+      }
+      
+      if( err === true ) return
+
       for( let i = 0; i < keys.length; i++ ) {
         let key = keys[ i ]
         // binop.inputs is actual values, not just property names
         let input = ugen.binop || ugen.type ==='bus'  ? ugen.inputs[ key ] : ugen[ ugen.inputNames[ key ] ]
-
+        
+        if( key === 'input' ) console.log( 'INPUT:', input  )
         if( typeof input === 'number' ) {
           line += input
         }else{
-          if( input === undefined ) { console.log( key ); continue; }
+          if( input === undefined ) { 
+            console.log( 'key:', key, 'input:', ugen.inputs, ugen.inputs[ key ] ) 
+            continue
+          }
+
           Gibberish.processUgen( input, block )
+
+          //if( input.callback === undefined ) continue
 
           if( !input.binop ) Gibberish.callbackUgens.push( input.callback )
 

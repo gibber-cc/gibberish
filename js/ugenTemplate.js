@@ -1,8 +1,8 @@
 module.exports = function( Gibberish ) {
   let uid = 0
 
-  let factory = function( ugen, graph, name, values ) {
-    ugen.callback = Gibberish.genish.gen.createCallback( graph, Gibberish.memory )
+  let factory = function( ugen, graph, name, values, cb ) {
+    ugen.callback = cb === undefined ? Gibberish.genish.gen.createCallback( graph, Gibberish.memory ) : cb
 
     Object.assign( ugen, {
       type: 'ugen',
