@@ -92,6 +92,7 @@ let Gibberish = {
   clear() {
     this.output.inputs = [0]
     this.output.inputNames.length = 0
+    this.analyzers.length = 0
     this.scheduler.clear()
     this.dirty( this.output )
   },
@@ -168,7 +169,7 @@ let Gibberish = {
       let keys,err
       
       //try {
-      keys = ugen.binop || ugen.type === 'bus' ? Object.keys( ugen.inputs ) : Object.keys( ugen.inputNames )
+      keys = ugen.binop || ugen.type === 'bus' || ugen.type === 'analysis' ? Object.keys( ugen.inputs ) : Object.keys( ugen.inputNames )
 
       //}catch( e ){
 

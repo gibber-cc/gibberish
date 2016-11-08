@@ -9,6 +9,8 @@ let Delay = inputProps => {
   ssd.in  = Object.create( ugen )
   ssd.out = Object.create( ugen )
 
+  ssd.id = Gibberish.factory.getUID()
+
   let props = Object.assign({}, inputProps )
   let isStereo = false//props.input.isStereo !== undefined ? props.input.isStereo : true 
   
@@ -20,8 +22,8 @@ let Delay = inputProps => {
     // right channel
     let historyR = g.history()
 
-    historyL.in( input[0] )
-    historyR.in( input[1] )
+    //historyL.in( input[0] )
+    //historyR.in( input[1] )
 
     Gibberish.factory( 
       ssd.out,
@@ -30,14 +32,50 @@ let Delay = inputProps => {
       props 
     )
 
-    Gibberish.factory( 
-      ssd.in,
-      [ historyL.in, historyR.in ], 
-      'ssd_in', 
-      props 
-    )
+    //Gibberish.factory( 
+    //  ssd.in,
+    //  [ historyL.in, historyR.in ], 
+    //  'ssd_in', 
+    //  props 
+    //)
+
+    ssd.out.callback.ugenName = ssd.out.ugenName = 'ssd_out_' + ssd.id
+
+    const idxL = ssd.out.graph.memory.value.idx, 
+          idxR = idxL + 1,
+          memory = Gibberish.genish.gen.memory.heap
+
+    const callback = function( input ) {
+      'use strict'
+      memory[ idxL ] = input[0]
+      memory[ idxR ] = input[1]
+      return 0     
+    }
+    
+    Gibberish.factory( ssd.in, [ input[0],input[1] ], 'ssd_in', props, callback )
+
+    callback.ugenName = ssd.in.ugenName = 'ssd_in_' + ssd.id
+    ssd.in.inputNames = [ 'input' ]
+    ssd.in.inputs = [ props.input ]
+    ssd.in.input = props.input
+    ssd.type = 'analysis'
+
+    ssd.in.listen = function( ugen ) {
+      if( ugen !== undefined ) {
+        ssd.in.input = ugen
+        ssd.in.inputs = [ ugen ]
+      }
+
+      if( Gibberish.analyzers.indexOf( ssd.in ) === -1 ) {
+        Gibberish.analyzers.push( ssd.in )
+      }
+
+      Gibberish.dirty( Gibberish.analyzers )
+    }
   }else{
     Gibberish.factory( ssd.out, historyL.out, 'ssd_out', props )
+
+    ssd.out.callback.ugenName = ssd.out.ugenName = 'ssd_out_' + ssd.id
 
     let idx = ssd.out.graph.memory.value.idx 
     let memory = Gibberish.genish.gen.memory.heap
@@ -47,27 +85,26 @@ let Delay = inputProps => {
       memory[ idx ] = input
       return 0     
     }
-    let historyInput = input //historyL.in( input )
-    Gibberish.factory( ssd.in,  historyInput, 'ssd_in', props, callback )
+    
+    Gibberish.factory( ssd.in, input, 'ssd_in', props, callback )
 
-    callback.ugenName = ssd.in.ugenName
-    ssd.in.inputNames = ['input']
-    ssd.in.input =  props.input//historyInput
-    ssd.in.inputs = [ props.input ]//input[ historyInput ]
-    ssd.type = 'bus'
-    ssd.in[0] = props.input//input[0]
+    callback.ugenName = ssd.in.ugenName = 'ssd_in_' + ssd.id
+    ssd.in.inputNames = [ 'input' ]
+    ssd.in.inputs = [ props.input ]
+    ssd.in.input = props.input
+    ssd.type = 'analysis'
 
     ssd.in.listen = function( ugen ) {
       if( ugen !== undefined ) {
         ssd.in.input = ugen
         ssd.in.inputs = [ ugen ]
-        ssd.in[0] = ugen
       }
 
       if( Gibberish.analyzers.indexOf( ssd.in ) === -1 ) {
         Gibberish.analyzers.push( ssd.in )
-        Gibberish.dirty( Gibberish.analyzers )
       }
+
+      Gibberish.dirty( Gibberish.analyzers )
     }
 
   }
