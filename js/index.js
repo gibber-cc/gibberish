@@ -45,6 +45,7 @@ let Gibberish = {
     this.PolyTemplate = require( './instruments/polytemplate.js' )( this )
     this.oscillators  = require( './oscillators/oscillators.js' )( this )
     this.binops       = require( './misc/binops.js' )( this )
+    this.monops       = require( './misc/monops.js' )( this )
     this.Bus          = require( './misc/bus.js' )( this )
     this.Bus2         = require( './misc/bus2.js' )( this );
     this.instruments  = require( './instruments/instruments.js' )( this )
@@ -61,6 +62,7 @@ let Gibberish = {
     this.fx.export( target )
     this.oscillators.export( target )
     this.binops.export( target )
+    this.monops.export( target )
     this.envelopes.export( target )
     target.Sequencer = this.sequencer
     target.Sequencer2 = this.sequencer2
@@ -115,7 +117,8 @@ let Gibberish = {
     })
 
     this.analyzers.forEach( v => {
-      this.callbackUgens.push( v.callback )
+      if( this.callbackUgens.indexOf( v.callback ) === -1 )
+        this.callbackUgens.push( v.callback )
     })
     this.callbackNames = this.callbackUgens.map( v => v.ugenName )
 
@@ -150,6 +153,7 @@ let Gibberish = {
 
     let dirtyIdx = Gibberish.dirtyUgens.indexOf( ugen )
 
+    //console.log( 'ugenName:', ugen.ugenName )
     let memo = Gibberish.memoed[ ugen.ugenName ]
 
     if( memo !== undefined ) {
@@ -163,15 +167,16 @@ let Gibberish = {
       // must get array so we can keep track of length for comma insertion
       let keys,err
       
-      try {
-        keys = ugen.binop || ugen.type === 'bus' ? Object.keys( ugen.inputs ) : Object.keys( ugen.inputNames )
-      }catch( e ){
+      //try {
+      keys = ugen.binop || ugen.type === 'bus' ? Object.keys( ugen.inputs ) : Object.keys( ugen.inputNames )
 
-        console.log( e )
-        err = true
-      }
+      //}catch( e ){
+
+      //  console.log( e )
+      //  err = true
+      //}
       
-      if( err === true ) return
+      //if( err === true ) return
 
       for( let i = 0; i < keys.length; i++ ) {
         let key = keys[ i ]
@@ -191,7 +196,13 @@ let Gibberish = {
 
           //if( input.callback === undefined ) continue
 
-          if( !input.binop ) Gibberish.callbackUgens.push( input.callback )
+          if( !input.binop ) {
+            // check is needed so that graphs with ssds that refer to themselves
+            // don't add the ssd in more than once
+            if( Gibberish.callbackUgens.indexOf( input.callback ) === -1 ) {
+              Gibberish.callbackUgens.push( input.callback )
+            }
+          }
 
           line += `v_${input.id}`
         }
@@ -204,7 +215,8 @@ let Gibberish = {
       line += ugen.binop ? '' : ' )'
 
       block.push( line )
-
+      
+      //console.log( 'memo:', ugen.ugenName )
       Gibberish.memoed[ ugen.ugenName ] = `v_${ugen.id}`
 
       if( dirtyIdx !== -1 ) {
