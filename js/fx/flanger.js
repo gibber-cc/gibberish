@@ -56,7 +56,6 @@ let Flanger = inputProps => {
     )
 
   }else{
-    console.log( 'NOT STEREO', isStereo )
     Gibberish.factory( flanger, left, 'flanger', props )
   }
   

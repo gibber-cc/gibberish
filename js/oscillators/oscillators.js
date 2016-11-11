@@ -48,7 +48,9 @@ module.exports = function( Gibberish ) {
       Gibberish.factory( saw, graph, 'reversesaw', props )
       
       return saw
-    }
+    },
+
+    Wavetable: require( './wavetable.js' )( Gibberish )
   }
 
   Oscillators.defaults = {
