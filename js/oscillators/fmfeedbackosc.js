@@ -4,8 +4,6 @@ let feedbackOsc = function( frequency, filter, pulsewidth=.5, argumentProps ) {
   if( argumentProps === undefined ) argumentProps = { type: 0 }
 
   let lastSample = g.history(),
-      lastSample2 = g.history(), // for potential osc 2
-      lastSampleMaster = g.history(), // for potential sum of osc1,osc2
       // determine phase increment and memoize result
       w = g.memo( g.div( frequency, g.gen.samplerate ) ),
       // create scaling factor
@@ -16,7 +14,7 @@ let feedbackOsc = function( frequency, filter, pulsewidth=.5, argumentProps ) {
       norm = g.sub( 1, g.mul( 2, w ) ),
       // determine phase
       osc1Phase = g.accum( w, 0, { min:-1 }),
-      osc1, osc2, out
+      osc1, out
 
   // create current sample... from the paper:
   // osc = (osc + sin(2*pi*(phase + osc*scaling)))*0.5f;
@@ -40,13 +38,16 @@ let feedbackOsc = function( frequency, filter, pulsewidth=.5, argumentProps ) {
 
   // if pwm / square waveform instead of sawtooth...
   if( argumentProps.type === 1 ) { 
-    osc2 = g.mul(
+    const lastSample2 = g.history() // for osc 2
+    const lastSampleMaster = g.history() // for sum of osc1,osc2
+
+    const osc2 = g.mul(
       g.add(
         lastSample2.out,
         g.sin(
           g.mul(
             Math.PI * 2,
-            g.memo( g.add( osc1Phase, g.mul( lastSample.out, scaling ), pulsewidth ) )
+            g.memo( g.add( osc1Phase, g.mul( lastSample2.out, scaling ), pulsewidth ) )
           )
         )
       ),
@@ -56,7 +57,7 @@ let feedbackOsc = function( frequency, filter, pulsewidth=.5, argumentProps ) {
     lastSample2.in( osc2 )
     out = g.memo( g.sub( lastSample.out, lastSample2.out ) )
     out = g.memo( g.add( g.mul( 2.5, out ), g.mul( -1.5, lastSampleMaster.out ) ) )
-
+    
     lastSampleMaster.in( g.sub( osc1, osc2 ) )
 
   }else{
