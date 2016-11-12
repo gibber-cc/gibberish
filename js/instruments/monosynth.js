@@ -1,17 +1,16 @@
-let g = require( 'genish.js' ),
-    instrument = require( './instrument.js' ),
-    feedbackOsc = require( '../oscillators/fmfeedbackosc.js' )
+const g = require( 'genish.js' ),
+      instrument = require( './instrument.js' ),
+      feedbackOsc = require( '../oscillators/fmfeedbackosc.js' )
 
 module.exports = function( Gibberish ) {
 
-  let Synth = argumentProps => {
-    let syn = Object.create( instrument ),
-        oscs = [], 
-        env = g.ad( g.in( 'attack' ), g.in( 'decay' ), { shape:'linear' }),
-        frequency = g.in( 'frequency' ),
-        glide = g.in( 'glide' ),
-        slidingFreq = g.slide( frequency, glide, glide ),
-        phase
+  const Synth = argumentProps => {
+    const syn = Object.create( instrument ),
+          oscs = [], 
+          env = g.ad( g.in( 'attack' ), g.in( 'decay' ), { shape:'linear' }),
+          frequency = g.in( 'frequency' ),
+          glide = g.in( 'glide' ),
+          slidingFreq = g.slide( frequency, glide, glide )
 
     let props = Object.assign( {}, Synth.defaults, argumentProps )
 
@@ -29,7 +28,7 @@ module.exports = function( Gibberish ) {
           freq = slidingFreq//frequency
       }
 
-      osc = instrument.__makeOscillator__( props.waveform, freq, props.antialias )
+      osc = Gibberish.oscillators.factory( props.waveform, freq, props.antialias )
       
       oscs[ i ] = osc
     }

@@ -11,8 +11,8 @@ module.exports = function( Gibberish ) {
     const props = Object.assign( {}, Cowbell.defaults, argumentProps )
 
     const bpfCutoff = g.param( 'bpfc', 1000 ),
-          s1 = g.square( 560 ),
-          s2 = g.square( 845 ),
+          s1 = Gibberish.oscillators.factory( 'square', 560 ),
+          s2 = Gibberish.oscillators.factory( 'square', 845 ),
           eg = g.decay( decay ), 
           bpf = g.svf( g.add( s1,s2 ), bpfCutoff, 3, 2, false ),
           envBpf = g.mul( bpf, eg ),

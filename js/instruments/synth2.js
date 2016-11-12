@@ -1,5 +1,6 @@
-let g = require( 'genish.js' ),
-    instrument = require( './instrument.js' )
+const g = require( 'genish.js' ),
+      instrument = require( './instrument.js' )
+
 
 module.exports = function( Gibberish ) {
 
@@ -12,7 +13,7 @@ module.exports = function( Gibberish ) {
 
     let props = Object.assign( {}, Synth2.defaults, initialProps )
 
-    let osc = instrument.__makeOscillator__( props.waveform, slidingFreq, props.antialias )
+    let osc = Gibberish.oscillators.factory( props.waveform, slidingFreq, props.antialias )
 
     let oscWithGain = g.mul( g.mul( osc, env ), g.in( 'gain' ) ),
         isLowPass = g.param( 'lowPass', 1 ),

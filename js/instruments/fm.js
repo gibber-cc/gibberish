@@ -1,6 +1,5 @@
 let g = require( 'genish.js' ),
-    instrument = require( './instrument.js' ),
-    feedbackOsc = require( '../oscillators/fmfeedbackosc.js' )
+    instrument = require( './instrument.js' )
 
 module.exports = function( Gibberish ) {
 
@@ -16,11 +15,11 @@ module.exports = function( Gibberish ) {
 
     let props = Object.assign( {}, FM.defaults, inputProps )
 
-    let modOsc     = instrument.__makeOscillator__( props.modWaveform, g.mul( slidingFreq, cmRatio ), props.antialias )
+    let modOsc = Gibberish.oscillators.factory( props.modulatorWaveform, g.mul( slidingFreq, cmRatio ), props.antialias )
     let modOscWithIndex = g.mul( modOsc, g.mul( slidingFreq, index ) )
     let modOscWithEnv   = g.mul( modOscWithIndex, env )
 
-    let carrierOsc = instrument.__makeOscillator__( props.carrierWaveform, g.add( slidingFreq, modOscWithEnv ), props.antialias  )
+    let carrierOsc = Gibberish.oscillators.factory( props.carrierWaveform, g.add( slidingFreq, modOscWithEnv ), props.antialias )
     let carrierOscWithEnv = g.mul( carrierOsc, env )
 
     let synthWithGain = g.mul( carrierOscWithEnv, g.in( 'gain' ) ),
@@ -40,7 +39,7 @@ module.exports = function( Gibberish ) {
 
   FM.defaults = {
     carrierWaveform:'sine',
-    modWaveform:'sine',
+    modulatorWaveform:'sine',
     attack: 44100,
     decay: 44100,
     gain: 1,

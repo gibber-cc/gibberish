@@ -1,6 +1,7 @@
 let g = require( 'genish.js' ),
     instrument = require( './instrument.js' )
 
+
 module.exports = function( Gibberish ) {
 
   let Hat = argumentProps => {
@@ -14,12 +15,12 @@ module.exports = function( Gibberish ) {
     let baseFreq = g.mul( 325, tune ),
         bpfCutoff = g.mul( g.param( 'bpfc', 7000), tune ),
         hpfCutoff = g.mul( g.param( 'hpfc',.9755), tune ),  
-        s1 = g.square( baseFreq ),
-        s2 = g.square( g.mul( baseFreq,1.4471 ) ),
-        s3 = g.square( g.mul( baseFreq,1.6170 ) ),
-        s4 = g.square( g.mul( baseFreq,1.9265 ) ),
-        s5 = g.square( g.mul( baseFreq,2.5028 ) ),
-        s6 = g.square( g.mul( baseFreq,2.6637 ) ),
+        s1 = Gibberish.oscillators.factory( 'square', baseFreq, false ),
+        s2 = Gibberish.oscillators.factory( 'square', g.mul( baseFreq,1.4471 ) ),
+        s3 = Gibberish.oscillators.factory( 'square', g.mul( baseFreq,1.6170 ) ),
+        s4 = Gibberish.oscillators.factory( 'square', g.mul( baseFreq,1.9265 ) ),
+        s5 = Gibberish.oscillators.factory( 'square', g.mul( baseFreq,2.5028 ) ),
+        s6 = Gibberish.oscillators.factory( 'square', g.mul( baseFreq,2.6637 ) ),
         sum = g.add( s1,s2,s3,s4,s5,s6 ),
         eg = g.decay( decay ), 
         bpf = g.svf( sum, bpfCutoff, .5, 2, false ),

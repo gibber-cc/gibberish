@@ -13,7 +13,7 @@ module.exports = function( Gibberish ) {
 
     let props = Object.assign( {}, Synth.defaults, inputProps )
 
-    let osc = instrument.__makeOscillator__( props.waveform, slidingFreq, props.antialias )
+    let osc = Gibberish.oscillators.factory( props.waveform, slidingFreq, props.antialias )
 
     let oscWithGain = g.mul( g.mul( osc, env ), g.in( 'gain' ) ),
         panner
