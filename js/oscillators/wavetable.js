@@ -7,8 +7,6 @@ module.exports = function( Gibberish ) {
     const wavetable = Object.create( ugen )
     const props  = Object.assign({}, Gibberish.oscillators.defaults, inputProps )
 
-    //const wavetableBuffer = new Float32Array( 1024 )
-
     const buffer = g.data( props.buffer, 1, { immutable:true } )
 
     const graph = g.mul( 
