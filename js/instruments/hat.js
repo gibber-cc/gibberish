@@ -1,7 +1,6 @@
 let g = require( 'genish.js' ),
     instrument = require( './instrument.js' )
 
-
 module.exports = function( Gibberish ) {
 
   let Hat = argumentProps => {

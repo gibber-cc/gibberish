@@ -7,9 +7,11 @@ module.exports = function( Gibberish ) {
   Object.assign( __proto__, {
     start() {
       this.connect()
+      return this
     },
     stop() {
       this.disconnect()
+      return this
     }
   })
 
@@ -38,17 +40,23 @@ module.exports = function( Gibberish ) {
 
       seq.callback = function( rate ) {
         if( seq.phase >= seq.nextTime ) {
+          let value = seq.values[ seq.valuesPhase++ % seq.values.length ]
 
-          if( seq.anonFunction === true ) {
-            seq.values[ seq.valuesPhase++ % seq.values.length ]()
-          }else if( seq.callFunction === false ) {
-            seq.target[ seq.key ] = seq.values[ seq.valuesPhase++ % seq.values.length ]
-          }else{
-            seq.target[ seq.key ]( seq.values[ seq.valuesPhase++ % seq.values.length ] )
+          if( seq.anonFunction || typeof value === 'function' ) value = value()
+          
+          if( seq.anonFunction === false ) {
+            if( seq.callFunction === false ) {
+              seq.target[ seq.key ] = seq.values[ seq.valuesPhase++ % seq.values.length ]
+            }else{
+              seq.target[ seq.key ]( seq.values[ seq.valuesPhase++ % seq.values.length ] )
+            }
           }
 
           seq.phase -= seq.nextTime
-          seq.nextTime = seq.timings[ seq.timingsPhase++ % seq.timings.length ]
+
+          let timing = seq.timings[ seq.timingsPhase++ % seq.timings.length ]
+          if( typeof timing === 'function' ) timing = timing()
+          seq.nextTime = timing
         }
 
         seq.phase += rate

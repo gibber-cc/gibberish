@@ -27,6 +27,7 @@ module.exports = function( Gibberish ) {
 
     let shouldShuffleCheck = g.eq( g.mod( phase, rateOfShuffling ), 0 )
     let isShuffling = g.memo( g.sah( g.lt( g.noise(), chanceOfShuffling ), shouldShuffleCheck, 0 ) ) 
+
     // if we are shuffling and on a repeat boundary...
     let shuffleChanged = g.memo( g.and( shouldShuffleCheck, isShuffling ) )
     let shouldReverse = g.lt( g.noise(), reverseChance ),

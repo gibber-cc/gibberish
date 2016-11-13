@@ -22,22 +22,12 @@ let Delay = inputProps => {
     // right channel
     let historyR = g.history()
 
-    //historyL.in( input[0] )
-    //historyR.in( input[1] )
-
     Gibberish.factory( 
       ssd.out,
       [ historyL.out, historyR.out ], 
       'ssd_out', 
       props 
     )
-
-    //Gibberish.factory( 
-    //  ssd.in,
-    //  [ historyL.in, historyR.in ], 
-    //  'ssd_in', 
-    //  props 
-    //)
 
     ssd.out.callback.ugenName = ssd.out.ugenName = 'ssd_out_' + ssd.id
 
