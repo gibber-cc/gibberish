@@ -8,6 +8,7 @@ module.exports = function( Gibberish ) {
 
     let env = g.ad( g.in('attack'), g.in('decay'), { shape:'linear' }),
         frequency = g.in( 'frequency' ),
+        loudness  = g.in( 'loudness' ), 
         glide = g.in( 'glide' ),
         slidingFreq = g.slide( frequency, glide, glide )
 
@@ -15,7 +16,7 @@ module.exports = function( Gibberish ) {
 
     let osc = Gibberish.oscillators.factory( props.waveform, slidingFreq, props.antialias )
 
-    let oscWithGain = g.mul( g.mul( osc, env ), g.in( 'gain' ) ),
+    let oscWithGain = g.mul( g.mul( osc, env, loudness ), g.in( 'gain' ) ),
         panner
 
     if( props.panVoices === true ) { 
@@ -40,9 +41,11 @@ module.exports = function( Gibberish ) {
     pan: .5,
     antialias:false,
     panVoices:false,
+    velocity:1,
     glide:1
   }
 
+  // do not include velocity, which shoudl always be per voice
   let PolySynth = Gibberish.PolyTemplate( Synth, ['frequency','attack','decay','pulsewidth','pan','gain','glide'] ) 
 
   return [ Synth, PolySynth ]
