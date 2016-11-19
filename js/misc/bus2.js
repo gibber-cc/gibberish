@@ -15,7 +15,7 @@ module.exports = function( Gibberish ) {
 
           for( let i = 0, length = arguments.length; i < length; i++ ) {
             let input = arguments[ i ],
-              isArray = input instanceof Float32Array
+                isArray = input instanceof Float32Array
 
             output[ 0 ] += isArray ? input[ 0 ] : input
             output[ 1 ] += isArray ? input[ 1 ] : input

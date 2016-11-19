@@ -36,7 +36,8 @@ module.exports = function( Gibberish ) {
     let oscSum = g.add( ...oscs ),
         oscWithGain = g.mul( g.mul( oscSum, env ), g.in( 'gain' ) ),
         isLowPass = g.param( 'lowPass', 1 ),
-        filteredOsc = g.filter24( oscWithGain, g.in('resonance'), g.mul( g.in('cutoff'), env ), isLowPass ),
+        //filteredOsc = g.filter24( oscWithGain, g.in('resonance'), g.mul( g.in('cutoff'), env ), isLowPass ),
+        filteredOsc = g.zd24( oscWithGain, g.in('Q'), g.mul( g.in('cutoff'), env ) ),
         panner
 
     if( props.panVoices ) {  
@@ -63,14 +64,16 @@ module.exports = function( Gibberish ) {
     octave3:4,
     detune2:.01,
     detune3:-.01,
-    cutoff: .25,
+    cutoff: 440, //.25,
     resonance:2,
+    Q: 10,
     panVoices:false,
-    glide: 1
+    glide: 1,
+    antialias:false
   }
 
   let PolyMono = Gibberish.PolyTemplate( Synth, 
-    ['frequency','attack','decay','cutoff','resonance',
+    ['frequency','attack','decay','cutoff','Q',
      'octave2','octave3','detune2','detune3','pulsewidth','pan','gain', 'glide' ]
   ) 
 

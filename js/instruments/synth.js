@@ -41,7 +41,7 @@ module.exports = function( Gibberish ) {
     pan: .5,
     antialias:false,
     panVoices:false,
-    velocity:1,
+    loudness:1,
     glide:1
   }
 

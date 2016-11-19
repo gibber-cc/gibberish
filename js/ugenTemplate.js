@@ -2,7 +2,7 @@ module.exports = function( Gibberish ) {
   let uid = 0
 
   let factory = function( ugen, graph, name, values, cb ) {
-    ugen.callback = cb === undefined ? Gibberish.genish.gen.createCallback( graph, Gibberish.memory ) : cb
+    ugen.callback = cb === undefined ? Gibberish.genish.gen.createCallback( graph, Gibberish.memory, false, true ) : cb
 
     Object.assign( ugen, {
       type: 'ugen',
@@ -18,6 +18,8 @@ module.exports = function( Gibberish ) {
     ugen.callback.ugenName = ugen.ugenName // XXX hacky
 
     for( let param of ugen.inputNames ) {
+      if( param === 'memory' ) continue
+
       let value = values[ param ]
 
       // TODO: do we need to check for a setter?

@@ -62,7 +62,6 @@ let utilities = {
 
         if( gibberish.graphIsDirty ) { 
           callback = gibberish.generateCallback()
-          //objs = gibberish.callbackUgens.slice( 0 )
         }
         
         // XXX cant use destructuring, babel makes it something inefficient...

@@ -28,6 +28,7 @@ module.exports = function( Gibberish ) {
       seq.timingsPhase = 0
       seq.id = Gibberish.factory.getUID()
       seq.dirty = true
+      seq.type = 'seq'
 
       if( props.target === undefined ) {
         seq.anonFunction = true
@@ -46,9 +47,9 @@ module.exports = function( Gibberish ) {
           
           if( seq.anonFunction === false ) {
             if( seq.callFunction === false ) {
-              seq.target[ seq.key ] = seq.values[ seq.valuesPhase++ % seq.values.length ]
+              seq.target[ seq.key ] = value
             }else{
-              seq.target[ seq.key ]( seq.values[ seq.valuesPhase++ % seq.values.length ] )
+              seq.target[ seq.key ]( value ) 
             }
           }
 
@@ -56,6 +57,7 @@ module.exports = function( Gibberish ) {
 
           let timing = seq.timings[ seq.timingsPhase++ % seq.timings.length ]
           if( typeof timing === 'function' ) timing = timing()
+
           seq.nextTime = timing
         }
 

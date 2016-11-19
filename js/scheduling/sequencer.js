@@ -19,14 +19,15 @@ let Sequencer = props => {
       let value  = seq.values[  seq.valuesPhase++  % seq.values.length  ],
           timing = seq.timings[ seq.timingsPhase++ % seq.timings.length ]
 
-      if( typeof value === 'function' ) value = value()
       if( typeof timing === 'function' ) timing = timing()
 
       if( typeof value === 'function' && seq.target === undefined ) {
         value()
       }else if( typeof seq.target[ seq.key ] === 'function' ) {
+        if( typeof value === 'function' ) value = value()
         seq.target[ seq.key ]( value )
       }else{
+        if( typeof value === 'function' ) value = value()
         seq.target[ seq.key ] = value
       }
       

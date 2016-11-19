@@ -126,6 +126,8 @@ let Gibberish = {
     callbackBody.push( '\n\treturn ' + lastLine.split( '=' )[0].split( ' ' )[1] )
 
     if( this.debug ) console.log( 'callback:\n', callbackBody.join('\n') )
+    this.callbackNames.push( 'memory' )
+    this.callbackUgens.push( this.memory.heap )
     this.callback = Function( ...this.callbackNames, callbackBody.join( '\n' ) )
     this.callback.out = []
 
@@ -182,37 +184,44 @@ let Gibberish = {
       for( let i = 0; i < keys.length; i++ ) {
         let key = keys[ i ]
         // binop.inputs is actual values, not just property names
-        let input = ugen.binop || ugen.type ==='bus'  ? ugen.inputs[ key ] : ugen[ ugen.inputNames[ key ] ]
-        
-        if( key === 'input' ) console.log( 'INPUT:', input  )
-        if( typeof input === 'number' ) {
-          line += input
+        let input 
+        if( ugen.binop || ugen.type ==='bus' ) {
+          input = ugen.inputs[ key ]
         }else{
-          if( input === undefined ) { 
-            console.log( 'key:', key, 'input:', ugen.inputs, ugen.inputs[ key ] ) 
-            continue
-          }
-
-          Gibberish.processUgen( input, block )
-
-          //if( input.callback === undefined ) continue
-
-          if( !input.binop ) {
-            // check is needed so that graphs with ssds that refer to themselves
-            // don't add the ssd in more than once
-            if( Gibberish.callbackUgens.indexOf( input.callback ) === -1 ) {
-              Gibberish.callbackUgens.push( input.callback )
-            }
-          }
-
-          line += `v_${input.id}`
+          //if( key === 'memory' ) continue;
+  
+          input = ugen[ ugen.inputNames[ key ] ]
         }
 
-        if( i < keys.length - 1 ) {
-          line += ugen.binop ? ' ' + ugen.op + ' ' : ', ' 
+        if( input !== undefined ) { 
+          if( typeof input === 'number' ) {
+            line += input
+          }else{
+            //console.log( 'key:', key, 'input:', ugen.inputs, ugen.inputs[ key ] ) 
+
+            Gibberish.processUgen( input, block )
+
+            //if( input.callback === undefined ) continue
+
+            if( !input.binop ) {
+              // check is needed so that graphs with ssds that refer to themselves
+              // don't add the ssd in more than once
+              if( Gibberish.callbackUgens.indexOf( input.callback ) === -1 ) {
+                Gibberish.callbackUgens.push( input.callback )
+              }
+            }
+
+            line += `v_${input.id}`
+          }
+
+          if( i < keys.length - 1 ) {
+            line += ugen.binop ? ' ' + ugen.op + ' ' : ', ' 
+          }
         }
       }
-
+      
+      //if( ugen.type === 'bus' ) line += ', ' 
+      if( !ugen.binop && ugen.type !== 'bus' && ugen.type !== 'seq' ) line += 'memory'
       line += ugen.binop ? '' : ' )'
 
       block.push( line )
