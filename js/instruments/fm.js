@@ -21,8 +21,11 @@ module.exports = function( Gibberish ) {
 
     let carrierOsc = Gibberish.oscillators.factory( props.carrierWaveform, g.add( slidingFreq, modOscWithEnv ), props.antialias )
     let carrierOscWithEnv = g.mul( carrierOsc, env )
+    
+    let cutoff = g.add( g.in('cutoff'), g.mul( g.in('filterMult'), env ) )
+    const filteredOsc = Gibberish.filters.factory( carrierOscWithEnv, cutoff, g.in('resonance'), g.in('saturation'), props )
 
-    let synthWithGain = g.mul( carrierOscWithEnv, g.in( 'gain' ) ),
+    let synthWithGain = g.mul( filteredOsc, g.in( 'gain' ) ),
         panner
 
     if( props.panVoices === true ) { 
@@ -50,10 +53,17 @@ module.exports = function( Gibberish ) {
     pan: .5,
     antialias:false,
     panVoices:false,
-    glide:1
+    glide:1,
+    saturation:1,
+    filterMult:440,
+    Q:8,
+    cutoff:440,
+    resonance:3,
+    filterType:0,
+    isLowPass:1
   }
 
-  let PolyFM = Gibberish.PolyTemplate( FM, ['glide','frequency','attack','decay','pulsewidth','pan','gain','cmRatio','index'] ) 
+  let PolyFM = Gibberish.PolyTemplate( FM, ['glide','frequency','attack','decay','pulsewidth','pan','gain','cmRatio','index', 'saturation', 'filterMult', 'Q', 'cutoff', 'resonance' ] ) 
 
   return [ FM, PolyFM ]
 

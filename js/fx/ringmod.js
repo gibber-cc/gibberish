@@ -11,18 +11,18 @@ let RingMod = inputProps => {
   
   let input = g.in( 'input' ),
       frequency = g.in( 'frequency' ),
-      amount = g.in( 'amount' ),
+      gain = g.in( 'gain' ),
       mix = g.in( 'mix' )
   
   let leftInput = isStereo ? input[0] : input,
-      sine = g.mul( g.cycle( frequency ), amount )
+      sine = g.mul( g.cycle( frequency ), gain )
  
-  let left = g.add( g.mul( leftInput, sub( 1, mix )), g.mul( g.mul( leftInput, sine ), mix ) ), 
+  let left = g.add( g.mul( leftInput, g.sub( 1, mix )), g.mul( g.mul( leftInput, sine ), mix ) ), 
       right
 
   if( isStereo === true ) {
     let rightInput = input[1]
-    right = g.add( g.mul( rightInput, sub( 1, mix )), g.mul( g.mul( rightInput, sine ), mix ) ) 
+    right = g.add( g.mul( rightInput, g.sub( 1, mix )), g.mul( g.mul( rightInput, sine ), mix ) ) 
     
     Gibberish.factory( 
       ringMod,
@@ -40,7 +40,7 @@ let RingMod = inputProps => {
 RingMod.defaults = {
   input:0,
   frequency:220,
-  amount: 1, 
+  gain: 1, 
   mix:1
 }
 

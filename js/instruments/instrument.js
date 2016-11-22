@@ -1,6 +1,5 @@
 let ugen = require( '../ugen.js' ),
-    g = require( 'genish.js' ),
-    feedbackOsc = require( '../oscillators/fmfeedbackosc.js' )
+    g = require( 'genish.js' )
 
 let instrument = Object.create( ugen )
 

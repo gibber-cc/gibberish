@@ -14,25 +14,15 @@ module.exports = function( Gibberish ) {
 
     let props = Object.assign( {}, Synth.defaults, argumentProps )
 
-    if( props.filterType === 0 ) {
-      if( props.cutoff > 1 ) {
-        props.cutoff = .25
-      }
-      if( props.filterMult > .5 ) {
-        props.filterMult = .5
-      }
-    }
-       
-
     for( let i = 0; i < 3; i++ ) {
       let osc, freq
 
       switch( i ) {
         case 1:
-          freq = g.add( slidingFreq, g.mul( slidingFreq, g.add( g.in('octave2'), g.in('detune2')  ) ) )
+          freq = g.add( slidingFreq, g.mul( slidingFreq, g.in('detune2') ) )
           break;
         case 2:
-          freq = g.add( slidingFreq, g.mul( slidingFreq, g.add( g.in('octave3'), g.in('detune3')  ) ) )
+          freq = g.add( slidingFreq, g.mul( slidingFreq, g.in('detune3') ) )
           break;
         default:
           freq = slidingFreq//frequency
@@ -45,25 +35,11 @@ module.exports = function( Gibberish ) {
 
     let oscSum = g.add( ...oscs ),
         oscWithGain = g.mul( g.mul( oscSum, env ), g.in( 'gain' ) ),
-        isLowPass = g.param( 'lowPass', 1 ),
         cutoff = g.add( g.in('cutoff'), g.mul( g.in('filterMult'), env ) ),
         filteredOsc, panner
-      
-    switch( props.filterType ) {
-      case 0:
-        filteredOsc = g.filter24( oscWithGain, g.in('resonance'), cutoff, isLowPass )
-        break;
-      case 1:
-        filteredOsc = g.zd24( oscWithGain, g.in('Q'), cutoff )
-        break;
-      case 2:
-        filteredOsc = g.diodeZDF( oscWithGain, g.in('Q'), cutoff, g.in('saturation'), isStereo ) 
-        break;
-      default:
-        filteredOsc = g.filter24( oscWithGain, g.in('resonance'), cutoff, isLowPass )
-        break;
-    }  
 
+    filteredOsc = Gibberish.filters.factory( oscWithGain, cutoff, g.in('resonance'), g.in('saturation'), props )
+      
     if( props.panVoices ) {  
       panner = g.pan( filteredOsc,filteredOsc, g.in( 'pan' ) )
       Gibberish.factory( syn, [panner.left, panner.right], 'mono', props  )
@@ -84,24 +60,23 @@ module.exports = function( Gibberish ) {
     pulsewidth:.25,
     frequency:220,
     pan: .5,
-    octave2:1,
-    octave3:3,
-    detune2:.01,
-    detune3:-.01,
+    detune2:1.01,
+    detune3:2.99,
     cutoff: 440, //.25,
     resonance:2,
     Q: 5,
     panVoices:false,
     glide: 1,
     antialias:false,
-    filterType: 0,
+    filterType: 1,
     saturation:1,
     filterMult: 110,
+    isLowPass:true
   }
 
   let PolyMono = Gibberish.PolyTemplate( Synth, 
     ['frequency','attack','decay','cutoff','Q',
-     'octave2','octave3','detune2','detune3','pulsewidth','pan','gain', 'glide', 'saturation', 'filterMult' ]
+     'detune2','detune3','pulsewidth','pan','gain', 'glide', 'saturation', 'filterMult' ]
   ) 
 
   return [ Synth, PolyMono ]

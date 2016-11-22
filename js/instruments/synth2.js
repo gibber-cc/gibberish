@@ -17,8 +17,10 @@ module.exports = function( Gibberish ) {
 
     let oscWithGain = g.mul( g.mul( osc, env ), g.in( 'gain' ) ),
         isLowPass = g.param( 'lowPass', 1 ),
-        filteredOsc = g.filter24( oscWithGain, g.in('resonance'), g.mul( g.in('cutoff'), env ), isLowPass ),
-        panner
+        filteredOsc, panner,
+        cutoff = g.add( g.in('cutoff'), g.mul( g.in('filterMult'), env ) )
+  
+    filteredOsc = Gibberish.filters.factory( oscWithGain, cutoff, g.in('resonance'), g.in('saturation'), props )
 
     if( props.panVoices ) {  
       panner = g.pan( filteredOsc, filteredOsc, g.in( 'pan' ) )
@@ -40,14 +42,17 @@ module.exports = function( Gibberish ) {
     pulsewidth:.25,
     frequency:220,
     pan: .5,
-    cutoff: .35,
+    cutoff: 220,
     resonance: 3.5,
     antialias: false,
     panVoices: false,
-    glide:1
+    glide:1,
+    saturation:0,
+    filterMult:110,
+    Q:8
   }
 
-  let PolySynth2 = Gibberish.PolyTemplate( Synth2, ['frequency','attack','decay','pulsewidth','cutoff','resonance','pan','gain', 'glide'] ) 
+  let PolySynth2 = Gibberish.PolyTemplate( Synth2, ['frequency','attack','decay','pulsewidth','cutoff','resonance','pan','gain', 'glide', 'saturation', 'filterMult','Q' ] ) 
 
   return [ Synth2, PolySynth2 ]
 

@@ -11,8 +11,8 @@ let Vibrato = inputProps => {
   
   let input = g.in( 'input' ),
       delayLength = 44100,
-      feedbackCoeff = g.in( 'feedback' ),
-      modAmount = g.in( 'offset' ),
+      feedbackCoeff = .01,//g.in( 'feedback' ),
+      modAmount = g.in( 'amount' ),
       frequency = g.in( 'frequency' ),
       delayBufferL = g.data( delayLength ),
       delayBufferR
@@ -63,8 +63,8 @@ let Vibrato = inputProps => {
 
 Vibrato.defaults = {
   input:0,
-  feedback:.01,
-  offset:.5,
+  //feedback:.01,
+  amount:.5,
   frequency:4
 }
 

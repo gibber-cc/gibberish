@@ -1,11 +1,12 @@
-let g = require( 'genish.js' ),
-    allPass = require( './allpass.js' ),
-    combFilter = require( './combfilter.js' ),
-    effect = require( './effect.js' )
+const g = require( 'genish.js' ),
+      effect = require( './effect.js' )
 
 module.exports = function( Gibberish ) {
- 
-let tuning = {
+  
+const allPass = Gibberish.filters.genish.AllPass
+const combFilter = Gibberish.filters.genish.Comb
+
+const tuning = {
   combCount:	  	8,
   combTuning: 		[ 1116, 1188, 1277, 1356, 1422, 1491, 1557, 1617 ],                    
   allPassCount: 	4,
@@ -18,7 +19,7 @@ let tuning = {
   stereoSpread:   23
 }
 
-let Freeverb = inputProps => {
+const Freeverb = inputProps => {
   let props = Object.assign( {}, Freeverb.defaults, inputProps ),
       reverb = Object.create( effect ) 
    

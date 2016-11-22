@@ -6,14 +6,15 @@ module.exports = function( Gibberish ) {
   let Hat = argumentProps => {
     let hat = Object.create( instrument ),
         tune  = g.in( 'tune' ),
+        scaledTune = g.memo( g.add( .5, tune ) ),
         decay  = g.in( 'decay' ),
         gain  = g.in( 'gain' )
 
     let props = Object.assign( {}, Hat.defaults, argumentProps )
 
-    let baseFreq = g.mul( 325, tune ),
-        bpfCutoff = g.mul( g.param( 'bpfc', 7000), tune ),
-        hpfCutoff = g.mul( g.param( 'hpfc',.9755), tune ),  
+    let baseFreq = g.mul( 325, scaledTune ), // range of 162.5 - 487.5
+        bpfCutoff = g.mul( g.param( 'bpfc', 7000), scaledTune ),
+        hpfCutoff = g.mul( g.param( 'hpfc',.9755), scaledTune ),  
         s1 = Gibberish.oscillators.factory( 'square', baseFreq, false ),
         s2 = Gibberish.oscillators.factory( 'square', g.mul( baseFreq,1.4471 ) ),
         s3 = Gibberish.oscillators.factory( 'square', g.mul( baseFreq,1.6170 ) ),
@@ -21,7 +22,7 @@ module.exports = function( Gibberish ) {
         s5 = Gibberish.oscillators.factory( 'square', g.mul( baseFreq,2.5028 ) ),
         s6 = Gibberish.oscillators.factory( 'square', g.mul( baseFreq,2.6637 ) ),
         sum = g.add( s1,s2,s3,s4,s5,s6 ),
-        eg = g.decay( decay ), 
+        eg = g.decay( g.mul( decay, g.gen.samplerate * 2 ) ), 
         bpf = g.svf( sum, bpfCutoff, .5, 2, false ),
         envBpf = g.mul( bpf, eg ),
         hpf = g.filter24( envBpf, 0, hpfCutoff, 0 ),
@@ -36,9 +37,9 @@ module.exports = function( Gibberish ) {
   }
   
   Hat.defaults = {
-    gain: 1,
-    tune:1,
-    decay:3500,
+    gain:  1,
+    tune: .5,
+    decay:.1,
   }
 
   return Hat

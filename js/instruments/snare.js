@@ -5,19 +5,19 @@ module.exports = function( Gibberish ) {
 
   let Snare = argumentProps => {
     let snare = Object.create( instrument ),
-        frequency = g.in( 'frequency' ),
         decay = g.in( 'decay' ),
+        scaledDecay = g.mul( decay, g.gen.samplerate * 2 ),
         snappy= g.in( 'snappy' ),
         tune  = g.in( 'tune' ),
         gain  = g.in( 'gain' )
 
     let props = Object.assign( {}, Snare.defaults, argumentProps )
 
-    let eg = g.decay( decay, { initValue:0 } ), 
+    let eg = g.decay( scaledDecay, { initValue:0 } ), 
         check = g.memo( g.gt( eg, .0005 ) ),
         rnd = g.mul( g.noise(), eg ),
-        hpf = g.svf( rnd, g.add( frequency, g.mul( 1, 1000 ) ), .5, 1, false ),
-        snap = g.gtp( g.mul( hpf, snappy ), 0 ),
+        hpf = g.svf( rnd, g.add( 1000, g.mul( g.add( 1, tune), 1000 ) ), .5, 1, false ),
+        snap = g.gtp( g.mul( hpf, snappy ), 0 ), // rectify
         bpf1 = g.svf( eg, g.mul( 180, g.add( tune, 1 ) ), .05, 2, false ),
         bpf2 = g.svf( eg, g.mul( 330, g.add( tune, 1 ) ), .05, 2, false ),
         out  = g.memo( g.add( snap, bpf1, g.mul( bpf2, .8 ) ) ), //XXX why is memo needed?
@@ -41,7 +41,7 @@ module.exports = function( Gibberish ) {
     frequency:1000,
     tune:0,
     snappy: 1,
-    decay:11025
+    decay:.1
   }
 
   return Snare

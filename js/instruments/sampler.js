@@ -10,7 +10,7 @@ module.exports = function( Gibberish ) {
       if( rate > 0 ) {
         this.trigger()
       }else{
-        this.__accum__.value = this.data.buffer.length - 1 
+        this.__phase__.value = this.data.buffer.length - 1 
       }
     }
   })
@@ -18,7 +18,7 @@ module.exports = function( Gibberish ) {
   let Sampler = inputProps => {
     let syn = Object.create( proto )
 
-    let props = Object.assign( {}, Sampler.defaults, inputProps )
+    let props = Object.assign( { onload:null }, Sampler.defaults, inputProps )
 
     syn.isStereo = props.isStereo !== undefined ? props.isStereo : false
 
@@ -59,7 +59,9 @@ module.exports = function( Gibberish ) {
         ) 
 
         if( syn.end === -999999999 ) syn.end = syn.data.buffer.length - 1
-        
+
+        if( syn.onload !== null ) { syn.onload() }
+
         Gibberish.dirty( syn )
       }
     }

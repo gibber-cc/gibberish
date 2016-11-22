@@ -7,7 +7,6 @@ module.exports = function( Gibberish ) {
     let conga = Object.create( instrument ),
         frequency = g.in( 'frequency' ),
         decay = g.in( 'decay' ),
-        tone  = g.in( 'tone' ),
         gain  = g.in( 'gain' )
 
     let props = Object.assign( {}, Conga.defaults, argumentProps )
@@ -16,7 +15,7 @@ module.exports = function( Gibberish ) {
         impulse = g.mul( trigger, 60 ),
         _decay =  g.sub( .101, g.div( decay, 10 ) ), // create range of .001 - .099
         bpf = g.svf( impulse, frequency, _decay, 2, false ),
-        out = mul( bpf, gain )
+        out = g.mul( bpf, gain )
     
     Gibberish.factory( conga, out, 'conga', props  )
     
@@ -26,9 +25,9 @@ module.exports = function( Gibberish ) {
   }
   
   Conga.defaults = {
-    gain: 1,
+    gain: .25,
     frequency:190,
-    decay: 1
+    decay: .85
   }
 
   return Conga

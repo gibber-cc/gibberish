@@ -7,11 +7,6 @@ module.exports = function( Gibberish ) {
     Delay       : require( './delay.js'     )( Gibberish ),
     BitCrusher  : require( './bitCrusher.js')( Gibberish ),
     RingMod     : require( './ringMod.js'   )( Gibberish ),
-    Filter24    : require( './filter24.js'  )( Gibberish ),
-    ZDF24       : require( './ladderFilterZeroDelay.js' )( Gibberish ),
-    DiodeFilter : require( './diodeFilterZDF.js' )( Gibberish ),
-    Biquad      : require( './biquad.js'    )( Gibberish ),
-    SVF         : require( './svf.js'       )( Gibberish ),
     Tremolo     : require( './tremolo.js'   )( Gibberish ),
     Shuffler    : require( './bufferShuffler.js'  )( Gibberish )
   }

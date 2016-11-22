@@ -1,8 +1,17 @@
 let g = require( 'genish.js' ),
     instrument = require( './instrument.js' )
 
+/**
+ * A module representing a jacket.
+ * @module Gibberish.instruments.synth
+ */
+
 module.exports = function( Gibberish ) {
 
+  /**
+   * @constructor
+   * @alias module:Gibberish.instruments.synth
+   */
   let Synth = inputProps => {
     let syn = Object.create( instrument )
 
@@ -16,14 +25,19 @@ module.exports = function( Gibberish ) {
 
     let osc = Gibberish.oscillators.factory( props.waveform, slidingFreq, props.antialias )
 
-    let oscWithGain = g.mul( g.mul( osc, env, loudness ), g.in( 'gain' ) ),
+    let oscWithEnv = g.mul( g.mul( osc, env, loudness ) ),
         panner
+  
+    let cutoff = g.add( g.in('cutoff'), g.mul( g.in('filterMult'), env ) )
+    const filteredOsc = Gibberish.filters.factory( oscWithEnv, cutoff, g.in('resonance'), g.in('saturation'), props )
+
+    let synthWithGain = g.mul( filteredOsc, g.in( 'gain' ) )
 
     if( props.panVoices === true ) { 
-      panner = g.pan( oscWithGain, oscWithGain, g.in( 'pan' ) ) 
+      panner = g.pan( synthWithGain, synthWithGain, g.in( 'pan' ) ) 
       Gibberish.factory( syn, [panner.left, panner.right], 'synth', props  )
     }else{
-      Gibberish.factory( syn, oscWithGain , 'synth', props )
+      Gibberish.factory( syn, synthWithGain , 'synth', props )
     }
     
     syn.env = env
@@ -42,11 +56,18 @@ module.exports = function( Gibberish ) {
     antialias:false,
     panVoices:false,
     loudness:1,
-    glide:1
+    glide:1,
+    saturation:1,
+    filterMult:880,
+    Q:8,
+    cutoff:110,
+    resonance:3,
+    filterType:0,
+    isLowPass:1
   }
 
   // do not include velocity, which shoudl always be per voice
-  let PolySynth = Gibberish.PolyTemplate( Synth, ['frequency','attack','decay','pulsewidth','pan','gain','glide'] ) 
+  let PolySynth = Gibberish.PolyTemplate( Synth, ['frequency','attack','decay','pulsewidth','pan','gain','glide', 'saturation', 'filterMult', 'Q', 'cutoff', 'resonance'] ) 
 
   return [ Synth, PolySynth ]
 
