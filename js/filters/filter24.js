@@ -38,18 +38,18 @@ module.exports = function( Gibberish ) {
   }
 
   let Filter24 = inputProps => {
-    let filter   = Object.create( filter )
+    let filter24   = Object.create( filter )
     let props    = Object.assign( {}, Filter24.defaults, inputProps )
     let isStereo = props.input.isStereo 
 
     Gibberish.factory(
-      filter, 
+      filter24, 
       Gibberish.genish.filter24( g.in('input'), g.in('resonance'), g.in('cutoff'), g.in('isLowPass'), isStereo ), 
       'filter24',
       props
     )
 
-    return filter
+    return filter24
   }
 
 

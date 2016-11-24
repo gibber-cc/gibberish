@@ -1,4 +1,5 @@
-let g = require( 'genish.js' )
+const g = require( 'genish.js' ),
+      filter = require( './filter.js' )
 
 module.exports = function( Gibberish ) {
   Gibberish.genish.svf = ( input, cutoff, Q, mode, isStereo ) => {
@@ -38,19 +39,21 @@ module.exports = function( Gibberish ) {
     return returnValue
   }
 
-  let SVF = props => {
-    let _props = Object.assign( {}, SVF.defaults, props ) 
+  let SVF = inputProps => {
+    const svf = Object.create( filter )
+    const props = Object.assign( {}, SVF.defaults, inputProps ) 
 
-    let isStereo = props.input.isStereo
+    const isStereo = props.input.isStereo
     
     // XXX NEEDS REFACTORING
-    let filter = Gibberish.factory( 
+    Gibberish.factory( 
+      svf,
       Gibberish.genish.svf( g.in('input'), g.in('cutoff'), g.in('Q'), g.in('mode'), isStereo ), 
       'svf', 
-      _props
+      props
     )
 
-    return filter
+    return svf
   }
 
 

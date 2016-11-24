@@ -637,8 +637,154 @@ syn.note( 330 )
 ###vibrato.amount###
 *float* range: 0-1, default: .25. The strength of the modulation.   
 
+#Filters
+Filter12Biquad
+----
+*Prototype: [Gibberish.prototypes.filter](#filters-filter)*
+
+The `Filter12Biquad` is a two-pole, 12dB-per-octave resonant biquad filter. It can operate in either lowpass, hipass or bandpass mode. 
+ 
+```javascript
+syn = Gibberish.instruments.Synth({ attack:44, decay:44100 * 4 })
+
+filter = Gibberish.filters.Filter12Biquad({ 
+  input:syn,
+  mode:'LP',
+  cutoff: Add( 550, Sine({ frequency:2, gain:330 }) ),
+  Q: 20, 
+}).connect()
+
+syn.note( 220 )
+```
+
+####Properties####
+###filter12Biquad.input###
+*ugen* The unit generator that feeds the effect. Assign a `Bus` or `Bus2` instance to this property if you want multiple unit generators to connect to this effect.
+###filter12Biquad.cutoff###
+*float* range: 0-nyquist, default:550. The cutoff frequency of the filter. 
+###filter12Biquad.Q###
+*float* range: .5-23, default: .75. Controls the resonance, or 'quality' of the filter. 
+###filter12Biquad.mode###
+*string* default: 'LP'. This property can only be set on initialization. Valid options are 'LP','HP', and 'BP'.
+
+Filter12SVF
+----
+*Prototype: [Gibberish.prototypes.filter](#filters-filter)*
+
+The `Filter12SVF` is a two-pole, 12dB-per-octave resonant filter. It can operate in a variety of modes. 
+ 
+```javascript
+syn = Gibberish.instruments.Synth({ attack:44, decay:44100 * 4 })
+
+filter = Gibberish.filters.Filter12SVF({ 
+  input:syn,
+  mode:1, 
+  cutoff: Add( 550, Sine({ frequency:2, gain:330 }) ),
+  Q: 10, 
+}).connect()
+
+syn.note( 220 )
+```
+
+####Properties####
+###filter12SVF.input###
+*ugen* The unit generator that feeds the effect. Assign a `Bus` or `Bus2` instance to this property if you want multiple unit generators to connect to this effect.
+###filter12SVF.cutoff###
+*float* range: 0-nyquist, default:550. The cutoff frequency of the filter. 
+###filter12SVF.Q###
+*float* range: .5-23, default: .75. Controls the resonance, or 'quality' of the filter. This filter tends to be stable with Q values between .5 and 20.
+###filter12SVF.mode###
+*int* default: 0. 0 = lowpass, 1 = hipass, 2 = bandpass, 3 = notch. This property can only be set on initialization.
+
+Filter24Classic
+----
+*Prototype: [Gibberish.prototypes.filter](#filters-filter)*
+
+The `Filter24Classic` is a four-pole, 24dB-per-octave resonant filter that can operate in either low pass or high pass mode. It is the original filter used in Gibberish. TODO: switch filter to use frequencies in Hz for cutoff.
+ 
+```javascript
+syn = Gibberish.instruments.Synth({ attack:44, decay:44100 * 4 })
+
+filter = Gibberish.filters.Filter24Classic({ 
+  input:syn,
+  cutoff: Add( .2, Sine({ frequency:2, gain:.15 }) ),
+  Q: 3.5, 
+}).connect()
+
+syn.note( 220 )
+```
+
+####Properties####
+###filter24Classic.input###
+*ugen* The unit generator that feeds the effect. Assign a `Bus` or `Bus2` instance to this property if you want multiple unit generators to connect to this effect.
+###filter24Classic.cutoff###
+*float* range: 0-1, default:.25. The cutoff frequency of the filter. 
+###filter24Classic.resonance###
+*float* range: 0-4.5, default: 3. Controls the resonance, or 'quality' of the filter. With values above 4.5 this filter is highly unstable.
+
+Filter24Moog
+----
+*Prototype: [Gibberish.prototypes.filter](#filters-filter)*
+
+The `Filter24Moog` is a four-pole, 24dB-per-octave resonant filter that can only operate as a lowpass. It is a "virtual analog" filter modeled after the famous ladder filter created by Moog, based on a [Csound opcode by Steven Yi](https://github.com/kunstmusik/libsyi/blob/master/zdf.udo).
+
+```javascript
+syn = Gibberish.instruments.Synth({ attack:44, decay:44100 * 4 })
+
+filter = Gibberish.filters.Filter24Moog({ 
+  input:syn,
+  cutoff: Gibberish.binops.Add( 440, Gibberish.oscillators.Sine({ frequency:2, gain:330 }) ),
+  Q: 18.5, 
+}).connect()
+
+syn.note( 220 )
+```
+
+####Properties####
+###filter24Moog.input###
+*ugen* The unit generator that feeds the effect. Assign a `Bus` or `Bus2` instance to this property if you want multiple unit generators to connect to this effect.
+###filter24Moog.cutoff###
+*float* range: 0-nyquist, default:440. The cutoff frequency of the filter. 
+###filter24Moog.Q###
+*float* range: 0-23, default: 5. Controls the resonance, or 'quality' of the filter. With values above 20 this filter is highly unstable.
+
+Filter24TB303
+----
+*Prototype: [Gibberish.prototypes.filter](#filters-filter)*
+
+The `Filter24TB303` is a four-pole, 24dB-per-octave resonant filter that can only operate as a lowpass. It is a "virtual analog" filter modeled after the diode ladder filter used in the Roland TB-303 bass synth / sequencer, a staple of many musical genres including, perhaps most famously, acid jazz. This model is based on a [Csound opcode by Steven Yi](https://github.com/kunstmusik/libsyi/blob/master/diode.udo).
+
+```javascript
+syn = Gibberish.instruments.Synth({ attack:44, decay:44100 * 4 })
+
+filter = Gibberish.filters.Filter24TB303({ 
+  input:syn,
+  cutoff: Gibberish.binops.Add( 440, Gibberish.oscillators.Sine({ frequency:2, gain:330 }) ),
+  Q: 9.5, 
+}).connect()
+
+syn.note( 220 )
+```
+
+####Properties####
+###filter24TB303.input###
+*ugen* The unit generator that feeds the effect. Assign a `Bus` or `Bus2` instance to this property if you want multiple unit generators to connect to this effect.
+###filter24TB303.cutoff###
+*float* range: 0-nyquist, default:440. The cutoff frequency of the filter.
+###filter24TB303.Q###
+*float* range: 0-12, default: 5. Controls the resonance, or 'quality' of the filter. With values above 9 this filter is highly unstable.
+###filter24TB303.saturation###
+*float* range: 1-?, default: 1. Values higher than one add non-linear waveshaping to the signal before it is filtered, creating distortion.
+
+#Scheduling
 
 #Arithmetic
+
+Abs
+----
+**a** &nbsp;  *ugen* or *number* &nbsp; Ugen or number. 
+
+Outputs the absolute value of input `a`.
 
 Add
 ----
@@ -698,3 +844,13 @@ Mod
 **a,b** &nbsp;  *ugen* or *number* &nbsp; Ugens or numbers. 
 
 Divides ugen or number `a` by ugen or number `b` and outputs the remainder.
+
+Pow
+----
+**a,b** &nbsp;  *ugen* or *number* &nbsp; Ugens or numbers. 
+
+Raises the number or ugen `a` to the power determined by the ugen or number `b` and outputs the result.
+
+#Misc
+
+#Analysis

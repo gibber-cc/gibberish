@@ -21,6 +21,15 @@ module.exports = function( Gibberish ) {
       return abs
     },
 
+    Pow( input, exponent ) {
+      const pow = Object.create( ugen )
+      const graph = g.pow( g.in('input'), g.in('exponent') )
+      
+      Gibberish.factory( pow, graph, 'abs', Object.assign({}, Monops.defaults, { input, exponent }) )
+
+      return pow
+    },
+
     Merge( input ) {
       const merger = Object.create( ugen )
       const cb = function( _input ) {

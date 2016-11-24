@@ -174,18 +174,18 @@ module.exports = function( Gibberish ) {
  }
 
   const DiodeZDF = inputProps => {
-    const filter   = Object.create( filter )
+    const zdf      = Object.create( filter )
     const props    = Object.assign( {}, DiodeZDF.defaults, inputProps )
     const isStereo = props.input.isStereo 
 
     Gibberish.factory(
-      filter, 
+      zdf, 
       Gibberish.genish.diodeZDF( g.in('input'), g.in('Q'), g.in('cutoff'), g.in('saturation'), isStereo ), 
       'diodeZDF',
       props
     )
 
-    return filter
+    return zdf
   }
 
   DiodeZDF.defaults = {

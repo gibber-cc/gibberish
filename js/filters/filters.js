@@ -3,18 +3,20 @@ module.exports = function( Gibberish ) {
   const g = Gibberish.genish
 
   const filters = {
-    Filter24    : require( './filter24.js'  )( Gibberish ),
-    ZDF24       : require( './ladderFilterZeroDelay.js' )( Gibberish ),
-    DiodeFilter : require( './diodeFilterZDF.js' )( Gibberish ),
-    Biquad      : require( './biquad.js'    )( Gibberish ),
-    SVF         : require( './svf.js'       )( Gibberish ),
+    Filter24Classic : require( './filter24.js'  )( Gibberish ),
+    Filter24Moog    : require( './ladderFilterZeroDelay.js' )( Gibberish ),
+    Filter24TB303   : require( './diodeFilterZDF.js' )( Gibberish ),
+    Filter12Biquad  : require( './biquad.js'    )( Gibberish ),
+    Filter12SVF     : require( './svf.js'       )( Gibberish ),
+    
+    // not for use by end-users
     genish: {
       Comb        : require( './combfilter.js' ),
       AllPass     : require( './allpass.js' )
     },
 
     factory( input, cutoff, resonance, saturation = null, props, isStereo = false ) {
-      let filteredOsc //Gibberish.filters.factory( oscWithGain, cutoff, g.in('resonance'), g.in('saturation'), props.filterType )
+      let filteredOsc 
 
       if( props.filterType === 1 ) {
         if( typeof props.cutoff !== 'object' && props.cutoff > 1 ) {
