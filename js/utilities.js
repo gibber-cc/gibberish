@@ -27,7 +27,7 @@ let utilities = {
       window.addEventListener( 'touchstart', start )
     }
 
-    return this
+    return Gibberish.ctx
   },
 
   createScriptProcessor() {
@@ -74,7 +74,7 @@ let utilities = {
 
     Gibberish.node.connect( Gibberish.ctx.destination )
 
-    return this
+    return Gibberish.node
   }, 
 }
 

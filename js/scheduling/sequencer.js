@@ -5,8 +5,7 @@ module.exports = function( Gibberish ) {
 
 let Sequencer = props => {
   let seq = {
-    phase: 0,
-    isRunning:false,
+    __isRunning:false,
     key: props.key, 
     target:  props.target,
     values:  props.values,
@@ -31,19 +30,19 @@ let Sequencer = props => {
         seq.target[ seq.key ] = value
       }
       
-      if( seq.isRunning === true ) {
+      if( seq.__isRunning === true ) {
         Gibberish.scheduler.add( timing, seq.tick, seq.priority )
       }
     },
 
     start( delay = 0 ) {
-      seq.isRunning = true
+      seq.__isRunning = true
       Gibberish.scheduler.add( delay, seq.tick, seq.priority )
       return seq
     },
 
     stop() {
-      seq.isRunning = false
+      seq.__isRunning = false
       return seq
     }
   }

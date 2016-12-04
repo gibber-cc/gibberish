@@ -1,6 +1,34 @@
+#Gibberish
+
+####Methods####
+###gibberish.clear###
+Disconnects all ugens from the master bus and stops all sequencers from runnning.
+
+###gibberish.init###
+The `init` method creates an `AudioContext` object, a `ScriptProcessor Node`, and connects the output of the node to the `destination` property of the AudioContext. This single line should be enough to start a Gibberish session (assuming the Gibberish library has been properly included from your HTML file).
+
+***memorySize*** &nbsp; *int* &nbsp; Default:44100 * 60 * 20 (twenty minutes at 44.1 kHz). This determines the size of the memory block that Gibberish will use for all ugens. If you use a lot of samples (more than twenty minutes worth) you may want to increase this size.
+
+###gibberish.print###
+Prints the current master audio callback to the console.
+
+###gibberish.export###
+By default, the Gibberish library is contained within the global `Gibberish` object (or whatever variable you import it into using browserify / require.js etc). However, you can easily export the Gibberish namespace to another object (for example, the `window` object) for easier API access. 
+
+***target*** &nbsp; *object*. The object to export the Gibberish namespace to.  
+***shouldExportGenish*** &nbsp; *boolean* &nbsp; Default:false. Determines whether or not the lower-level unit generators found in genish.js are also exported to the target object. Note that many variables names in genish and Gibberish are only differentiated by lowercase vs uppercase letters... for example, Gibberish has `Add`, `ADSR`, and `Mod` ugens, while genish has `add`, `adsr`, and `mod`.
+
+####Properties####
+###gibberish.debug###
+*boolean* Default:false. When this value is set to true, callbacks will be printed to the console whenever they are generated.
+###gibberish.output###
+*Bus2* The master bus that all Gibberish ugens eventually feed into. This bus is created during calls to `Gibberish.init()`.
+
+
+# Prototypes
+
 ugen
 ----
-
 *Gibberish.prototypes.ugen*
 
 The ugen object is the primary prototype for all unit generators in Gibberish.js. All ugens with the exception of simple binop / monop math operations (add, mul, abs etc.) delegate to this prototype object. 
@@ -44,12 +72,24 @@ syn3.connect( reverb.input, .25 )
 
 **ugen** &nbsp; *object* &nbsp; Optional. The unit generator calling `disconnect` will be disconnected from this destination. If this argument is ommitted, the unit generator will be disconnected from all unit generators it is currently connected to.
 
-# Instruments
+effect
+----
+*Gibberish.prototypes.effect*  
+*Prototype: [Gibberish.prototypes.ugen](#prototypes-ugen)*
 
-Instrument
+This is the prototype for all effect unit generators. There are currently no methods associated with it.
+
+filter
+----
+*Gibberish.prototypes.filter*  
+*Prototype: [Gibberish.prototypes.ugen](#prototypes-ugen)*
+
+This is the prototype for all filters. There are currently no methods associated with it.
+
+instrument
 ----
 *Gibberish.prototypes.instrument*  
-*Prototype: [Gibberish.prototypes.ugen](#-ugen)*
+*Prototype: [Gibberish.prototypes.ugen](#prototypes-ugen)*
 
 Monophonic instruments in Gibberish (such as Synth, FM, and Monosynth) delegate to this prototype for `note` and `trigger` methods, while polyphonic instruments use a mixin (polytemplate.js). 
 
@@ -80,9 +120,12 @@ Gibberish.Sequencer({
 }).start()
 ```
 
+
+# Instruments
+
 Conga
 ----
-*Prototype: [Gibberish.prototypes.instrument](#instruments-instrument)*
+*Prototype: [Gibberish.prototypes.instrument](#prototypes-instrument)*
 
 The `Conga` unit generator emulates the conga sound found on the Roland TR-808 drum machine. It consists of an impulse feeding a resonant filter scaled by an exponential decay.
 
@@ -102,7 +145,7 @@ conga.note( 440 )
 
 Cowbell
 ----
-*Prototype: [Gibberish.prototypes.instrument](#instruments-instrument)*
+*Prototype: [Gibberish.prototypes.instrument](#prototypes-instrument)*
 
 The `Cowbell` unit generator emulates the cowbell sound found on the Roland TR-808 drum machine. It consists of an two tuned square waves feeding a resonant bandpass filter scaled by an exponential decay.
 
@@ -122,7 +165,7 @@ conga.trigger( .75 )
 
 FM
 ----
-*Prototype: [Gibberish.prototypes.instrument](#instruments-instrument)*
+*Prototype: [Gibberish.prototypes.instrument](#prototypes-instrument)*
 
 The `FM` unit generator provides two-operator FM synthesis with a choice of waveforms for both carrier and modulator, as well as a filter with selectable models (disabled by default). The envelopes of FM instances controls gain, modulation index, and filter cutoff (assuming an appropriate value for filterMult).
 
@@ -191,7 +234,7 @@ Gibberish.Sequencer({
 
 Hat
 ----
-*Prototype: [Gibberish.prototypes.instrument](#instruments-instrument)*
+*Prototype: [Gibberish.prototypes.instrument](#prototypes-instrument)*
 
 The `Hat` unit generator emulates the hihat sound found on the Roland TR-808 drum machine. It consists of six tuned square waves feeding bandpass and highpass filters scaled by an exponential decay.
 
@@ -218,7 +261,7 @@ hat.trigger( .5 )
 
 Karplus
 ----
-*Prototype: [Gibberish.prototypes.instrument](#instruments-instrument)*
+*Prototype: [Gibberish.prototypes.instrument](#prototypes-instrument)*
 
 The `Karplus` unit generator uses the Karplus-Strong physical model to create a plucked string sound.
 ```javascript
@@ -245,7 +288,7 @@ pluck.note( 440 )
 
 Kick
 ----
-*Prototype: [Gibberish.prototypes.instrument](#instruments-instrument)*
+*Prototype: [Gibberish.prototypes.instrument](#prototypes-instrument)*
 
 The `Kick` unit generator emulates the kick sound found on the Roland TR-808 drum machine. It consists of an impulse feeding resonant bandpass and hipass filters scaled by an exponential decay.
 
@@ -267,7 +310,7 @@ kick.note( 90 )
 
 Monosynth
 ----
-*Prototype: [Gibberish.prototypes.instrument](#instruments-instrument)*
+*Prototype: [Gibberish.prototypes.instrument](#prototypes-instrument)*
 
 The `Monosynth` instrument provides a three-oscillator synth feeding a filter with selectable models. The envelopes of Monosynth instances controls gain and filter cutoff (assuming an appropriate value for filterMult).
 
@@ -326,7 +369,7 @@ Gibberish.Sequencer({
 
 Sampler
 ----
-*Prototype: [Gibberish.prototypes.instrument](#instruments-instrument)*
+*Prototype: [Gibberish.prototypes.instrument](#prototypes-instrument)*
 
 The `Sampler` synth loads external audiofiles and plays them at variable rates. The sampler will begin playback at according to its `start` property value and end it according to its `end` property value.
 
@@ -354,7 +397,7 @@ rhodes.onload = function() {
 
 Snare
 ----
-*Prototype: [Gibberish.prototypes.instrument](#instruments-instrument)*
+*Prototype: [Gibberish.prototypes.instrument](#prototypes-instrument)*
 
 The `Snare` instrument emulates the snare sound found on the Roland TR-808 drum machine. It consists of an two resonant bandpass filters mixed with highpassed noise, all scaled by an exponential decay.
 
@@ -379,7 +422,7 @@ snare.trigger( .5 )
 
 Synth
 ----
-*Prototype: [Gibberish.prototypes.instrument](#instruments-instrument)*
+*Prototype: [Gibberish.prototypes.instrument](#prototypes-instrument)*
 
 The `Synth` instrument provides a single oscillator feeding a filter with selectable models. The envelopes of Synth instances controls gain and filter cutoff (assuming an appropriate value for filterMult).
 
@@ -388,7 +431,7 @@ The `Synth` instrument provides a single oscillator feeding a filter with select
 
 syn = Gibberish.instruments.Synth({
   waveform: 'saw',   // or saw, sine, pwm etc.
-  filterType: 3,     // 303-style "virtual analog" diode filter
+  filterType: 3,     // 303-style 'virtual analog' diode filter
   filterMult: 1760,
   Q: 9,
   attack:44, decay:11025,
@@ -433,16 +476,10 @@ Gibberish.Sequencer({
 *float* default: 1. For filter type 3 (modeled TB-303), this value controls a non-linear waveshaping (distortion) applied to the signal before entering the filter stage. A value of 1 means no saturation is added, higher values yield increasing distortion.
 
 # Effects
-Effect
-----
-*Gibberish.prototypes.effect*  
-*Prototype: [Gibberish.prototypes.ugen](#-ugen)*
-
-This is the prototype for all effect unit generators. There are currently no methods associated with it.
 
 Bitcrusher
 ----
-*Prototype: [Gibberish.prototypes.effect](#effects-effect)*
+*Prototype: [Gibberish.prototypes.effect](#prototypes-effect)*
 
 The `BitCrusher` effect provides both bit-depth and sample-rate reduction to create distortion.
 ```javascript
@@ -466,13 +503,13 @@ syn.note( 220 )
 
 Chorus
 ----
-*Prototype: [Gibberish.prototypes.effect](#effects-effect)*
+*Prototype: [Gibberish.prototypes.effect](#prototypes-effect)*
 
 The `Chorus` effect. TODO: Not currently implemented.   
 
 Delay
 ----
-*Prototype: [Gibberish.prototypes.effect](#effects-effect)*
+*Prototype: [Gibberish.prototypes.effect](#prototypes-effect)*
 
 The `Delay` delays an incoming signal. It also provides a simple feedback control.
  
@@ -498,7 +535,7 @@ syn.note( 220 )
  
 Flanger
 ----
-*Prototype: [Gibberish.prototypes.effect](#effects-effect)*
+*Prototype: [Gibberish.prototypes.effect](#prototypes-effect)*
 
 The `Flanger` creates a modulated delay line, with adjustable feedback.
  
@@ -526,7 +563,7 @@ syn.note( 220 )
 
 Freeverb
 ----
-*Prototype: [Gibberish.prototypes.effect](#effects-effect)*
+*Prototype: [Gibberish.prototypes.effect](#prototypes-effect)*
 
 The `Freeverb` effect is based on the Schroeder-Moorer model of reverberation. One of its main strengths is easy control via two primary properties: `roomSize` to set the amount of reverberation and `damping` to attenuate high frequencies. 
 
@@ -557,7 +594,7 @@ syn.note( 220 )
 
 RingMod
 ----
-*Prototype: [Gibberish.prototypes.effect](#effects-effect)*
+*Prototype: [Gibberish.prototypes.effect](#prototypes-effect)*
 
 The `RingMod` multiplies an input signal with a sine oscillator and outputs the result, yielding 'robotic' 'sci-fi' types of sounds resulting from sum and difference partials.
  
@@ -586,7 +623,7 @@ syn.note( 466 )
 
 Tremolo
 ----
-*Prototype: [Gibberish.prototypes.effect](#effects-effect)*
+*Prototype: [Gibberish.prototypes.effect](#prototypes-effect)*
 
 The `Tremolo` effect varies amplitude over time.
 ```javascript
@@ -614,7 +651,7 @@ syn.note( 330 )
 
 Vibrato
 ----
-*Prototype: [Gibberish.prototypes.effect](#effects-effect)*
+*Prototype: [Gibberish.prototypes.effect](#prototypes-effect)*
 
 The `Vibrato` effect varies the pitch of its input over time using a modulated delay line.
 ```javascript
@@ -637,10 +674,90 @@ syn.note( 330 )
 ###vibrato.amount###
 *float* range: 0-1, default: .25. The strength of the modulation.   
 
+#Envelopes
+
+AD
+---
+*Prototype: [Gibberish.prototypes.ugen](#prototypes-ugen)*
+
+A two-stage envelope using exponential attack and decay stages.
+
+Example:
+
+```javascript
+a = Sine()
+b = AD()
+c = Mul( a,b )
+
+Gibberish.output.inputs.push( c )
+b.trigger()
+```
+
+####Methods####
+###ad.trigger###
+Tell the envelope to run and reset its internal phase to 0.
+
+####Properties####
+###ad.attack###
+*int* or *ugen*. Default:44100. The length of the attack stage, in samples.
+###ad.decay###
+*int* or *ugen*. Default:44100. The length of the decay stage, in samples.
+
+ADSR
+---
+*Prototype: [Gibberish.prototypes.ugen](#prototypes-ugen)*
+
+A four-stage envelope using exponential attack, decay, and release stages.
+
+####Methods####
+###adsr.trigger###
+Tell the envelope to run and reset its internal phase to 0.
+###adsr.advance###
+If the `triggerRelease` property of the envelope is set to `true`, than this method will advance from the sustain stage of the envelope to the release stage.
+
+####Properties####
+###adsr.attack###
+*int* or *ugen*. Default:22050. The length of the attack stage, in samples.
+###adsr.decay###
+*int* or *ugen*. Default:22050. The length of the decay stage, in samples.
+###adsr.sustain###
+*int* or *ugen*. Default:44100. The length of the sustain stage, in samples. Note this property is only used if the `triggerRelease` property is set to false; that is, if the envelope plays from start to finish without requiring intervention.
+###adsr.sustainLevel###
+*float* or *ugen*. Default:.6. The gain of the sustain stage.
+###adsr.release###
+*int* or *ugen*. Default:44100. The length of the release stage, in samples.
+###adsr.triggerRelease###
+*boolean*. Default:false. If true, the envelope will not advance from the sustain stage to the release stage without a call to the `advance()` method.
+
+Ramp
+---
+*Prototype: [Gibberish.prototypes.ugen](#prototypes-ugen)*
+
+A linear ramp between two values that can loop.
+
+```javascript
+a = Sine().connect()
+a.frequency = Ramp({ from:220, to:440, length:22050, shouldLoop:true })
+```
+####Methods####
+###ramp.trigger###
+Tell the ramp to run and reset its internal phase to 0.
+
+####Properties####
+###ramp.from###
+*int* or *ugen*. Default:0. The starting point of the ramp.
+###ramp.to###
+*int* or *ugen*. Default:1. The ending point of the ramp.
+###ramp.length###
+*int( or *ugen*. Default:44100. The length of the ramp.
+###ramp.shouldLoop###
+*boolean*. Default: false. If this property is `true` playback of the ramp will loop repeatedly.
+
+
 #Filters
 Filter12Biquad
 ----
-*Prototype: [Gibberish.prototypes.filter](#filters-filter)*
+*Prototype: [Gibberish.prototypes.filter](#prototypes-filter)*
 
 The `Filter12Biquad` is a two-pole, 12dB-per-octave resonant biquad filter. It can operate in either lowpass, hipass or bandpass mode. 
  
@@ -669,7 +786,7 @@ syn.note( 220 )
 
 Filter12SVF
 ----
-*Prototype: [Gibberish.prototypes.filter](#filters-filter)*
+*Prototype: [Gibberish.prototypes.filter](#prototypes-filter)*
 
 The `Filter12SVF` is a two-pole, 12dB-per-octave resonant filter. It can operate in a variety of modes. 
  
@@ -698,7 +815,7 @@ syn.note( 220 )
 
 Filter24Classic
 ----
-*Prototype: [Gibberish.prototypes.filter](#filters-filter)*
+*Prototype: [Gibberish.prototypes.filter](#prototypes-filter)*
 
 The `Filter24Classic` is a four-pole, 24dB-per-octave resonant filter that can operate in either low pass or high pass mode. It is the original filter used in Gibberish. TODO: switch filter to use frequencies in Hz for cutoff.
  
@@ -724,7 +841,7 @@ syn.note( 220 )
 
 Filter24Moog
 ----
-*Prototype: [Gibberish.prototypes.filter](#filters-filter)*
+*Prototype: [Gibberish.prototypes.filter](#prototypes-filter)*
 
 The `Filter24Moog` is a four-pole, 24dB-per-octave resonant filter that can only operate as a lowpass. It is a "virtual analog" filter modeled after the famous ladder filter created by Moog, based on a [Csound opcode by Steven Yi](https://github.com/kunstmusik/libsyi/blob/master/zdf.udo).
 
@@ -750,7 +867,7 @@ syn.note( 220 )
 
 Filter24TB303
 ----
-*Prototype: [Gibberish.prototypes.filter](#filters-filter)*
+*Prototype: [Gibberish.prototypes.filter](#prototypes-filter)*
 
 The `Filter24TB303` is a four-pole, 24dB-per-octave resonant filter that can only operate as a lowpass. It is a "virtual analog" filter modeled after the diode ladder filter used in the Roland TB-303 bass synth / sequencer, a staple of many musical genres including, perhaps most famously, acid jazz. This model is based on a [Csound opcode by Steven Yi](https://github.com/kunstmusik/libsyi/blob/master/diode.udo).
 
@@ -776,7 +893,204 @@ syn.note( 220 )
 ###filter24TB303.saturation###
 *float* range: 1-?, default: 1. Values higher than one add non-linear waveshaping to the signal before it is filtered, creating distortion.
 
+#Oscillators
+
+All oscillators accept a dictionary as their sole argument, containing properties such as frequency and gain.
+
+Noise
+---
+*Prototype: [Gibberish.prototypes.filter](#prototypes-ugen)*
+
+The output of a `Noise` ugen is created using JavaScript's `Math.random` function, which is then scaled to a range of `{-1,1} (depending on the gain property). 
+
+####Properties####
+###noise.gain###
+*number* or *ugen*. Default:1. A scalar to adjust the output range of the oscillator.
+
+PWM
+---
+*Prototype: [Gibberish.prototypes.filter](#prototypes-ugen)*
+
+The PWM (pulse-width modulation) oscillator provides for a variable pulsewidth to modulate the harmonic content of the oscillator. If the anti-alias property is set to true, a band-limited oscillator implemented via FM feedback is used. 
+
+####Properties####
+###pwm.frequency###
+*number* or *ugen*. Default:440. The frequency in Hz that the oscillator runs at.
+###pwm.gain###
+*number* or *ugen*. Default:1. A scalar to adjust the output range of the oscillator.
+###pwm.antialias###
+*boolean* Default:false. If true, the oscillator will use a higher-quality bandlimited algorithm. If false, the oscillator will use a wavetable with linear interpolation. This property can only be set during the initial call to the constructor.
+###pwm.pulsewidth###
+*float* Default:.35. A value of .5 means that the oscillator will function as a square wave; higher or lower values will decrease the duty cycle of the oscillator, gradually lowering amplitude while increasing harmonic content.
+ 
+ReverseSaw
+---
+*Prototype: [Gibberish.prototypes.filter](#prototypes-ugen)*
+
+The ReverseSaw oscillator uses either a wavetable with linear interpolation, or, if the anti-alias property is set to true, a band-limited oscillator implemented via FM feedback. 
+
+####Properties####
+###saw.frequency###
+*number* or *ugen*. Default:440. The frequency in Hz that the oscillator runs at.
+###saw.gain###
+*number* or *ugen*. Default:1. A scalar to adjust the output range of the oscillator.
+###saw.antialias###
+*boolean* Default:false. If true, the oscillator will use a higher-quality bandlimited algorithm. If false, the oscillator will use a wavetable with linear interpolation. This property can only be set during the initial call to the constructor. 
+
+Saw
+---
+*Prototype: [Gibberish.prototypes.filter](#prototypes-ugen)*
+
+The saw oscillator uses either a wavetable with linear interpolation, or, if the anti-alias property is set to true, a band-limited oscillator implemented via FM feedback. 
+
+####Properties####
+###saw.frequency###
+*number* or *ugen*. Default:440. The frequency in Hz that the oscillator runs at.
+###saw.gain###
+*number* or *ugen*. Default:1. A scalar to adjust the output range of the oscillator.
+###saw.antialias###
+*boolean* Default:false. If true, the oscillator will use a higher-quality bandlimited algorithm. If false, the oscillator will use a wavetable with linear interpolation. This property can only be set during the initial call to the constructor. 
+
+Sine
+---
+*Prototype: [Gibberish.prototypes.filter](#prototypes-ugen)*
+
+The sine oscillator uses a wavetable with linear interpolation.
+
+####Properties####
+###sine.frequency###
+*number* or *ugen*. Default:440. The frequency in Hz that the oscillator runs at.
+###sine.gain###
+*number* or *ugen*. Default:1. A scalar to adjust the output range of the oscillator.
+
+Square
+---
+*Prototype: [Gibberish.prototypes.filter](#prototypes-ugen)*
+
+The square oscillator uses either a wavetable with linear interpolation, or, if the anti-alias property is set to true, a band-limited oscillator implemented via FM feedback. 
+
+####Properties####
+###square.frequency###
+*number* or *ugen*. Default:440. The frequency in Hz that the oscillator runs at.
+###square.gain###
+*number* or *ugen*. Default:1. A scalar to adjust the output range of the oscillator.
+###square.antialias###
+*boolean* Default:false. If true, the oscillator will use a higher-quality bandlimited algorithm. If false, the oscillator will use a wavetable with linear interpolation. This property can only be set during the initial call to the constructor. 
+
 #Scheduling
+
+Scheduler
+---
+This is a singleton object (`Gibberish.Scheduler`) with a priority queue that handles events from all [Sequencer objects](#scheduling-sequencer) (but not Sequencer2 objects). In general, users should never need to think about / manipulate this object, with the possible exception of calls to `Gibberish.Scheduler.add()`.
+
+####Methods####
+###scheduler.add###
+Add a new event to the priority queue.
+
+**time** &nbsp; *int* &nbsp; A time offset, measured in samples, from the current phase of the scheduler determining when the added event should fire. A time value of 0 means the function will be executed immediately.
+
+**func** &nbsp; *function* &nbsp; A function that will be executed in the future according to the value of *time*.
+
+**priority** &nbsp; *int* &nbsp; Default: 0. If two events in the queue are scheduled to be executed at the same time, the event with the higher priority value will be executed first.
+
+###scheduler.clear###
+Remove all items from the scheduler's priority queue. This method is called internally by `Gibberish.clear()`.
+
+###scheduler.tick###
+This method is called once per sample and checks the priortiy queue to see if any of its events should be fired.
+
+####Properties####
+###scheduler.phase###
+*int* The internal phase of the scheduler, incremented by a value of 1 on every sample.
+###scheduler.queue###
+*object* The priority queue used by the scheduler, as taken from https://github.com/antimatter15/heapqueue.js/blob/master/heapqueue.js.
+
+Sequencer
+----
+The `Sequencer` object in Gibberish sequences calls to methods, property changes, and the execution of anonymous functions. Although timing is performed with at sample-level accuracy, audio-rate modulation of timing is not possible with this scheduler; see [Sequencer2](#scheduling-sequencer2) for a scheduler with modulation support.
+
+```javascript
+syn = Gibberish.instruments.Synth({ 
+  attack:44, 
+  decay:22050, 
+  antialias:true
+}).connect()
+
+seq = Gibberish.Sequencer({
+  target: syn,
+  key: 'note',
+  values: [440,880,1760],
+  timings: [11025, 22050 ],
+}).start()
+```
+####Methods####
+###sequencer.start###
+Starts the sequencer running. By default the sequencer starts immediately, but can be started in the future by passing an optional *delay* argument.
+
+***delay*** &nbsp; *float* &nbsp; Default:0. This values delays the start of the sequencer by a given number of samples. You can use this to start a number of sequencers using the same block of code, but with different timings offsets.
+
+###sequencer.stop###
+Stops the sequencer from running.
+
+Remove all items from the scheduler's priority queue. This method is called internally by `Gibberish.clear()`.
+####Properties####
+###sequencer.key###
+*string* Whenever a sequencer event is triggered, the sequencer will check to see if it has a valid *target* property; if so, it checks for a valid *key* property. The key determines the name of property or method on the target object that will be controlled by sequencer. If the target/key combo denotes a method, that method will be called. If the target/key combo denotes a property, that property will be assigned a new value. 
+###sequencer.priority###
+*int* default: 0. If two events are scheduled to take place on the same sample, the event scheduled by the sequencer with the highest *priority* will take place first. For example, if you wanted to change the key of a scale being used and also trigger a new note using the resulting scale on the same sample, you would assign the sequencer changing the key of the scale a higher priority value so that it would be changed before the final note value was determined.
+###sequencer.target###
+*object* A object to be targeted by the sequencer. See the *key* property for more information.
+###sequencer.timings###
+*array* This array is used to determine when sequencer events are triggered. If a timing is chosen from the array that is a function, that function will be executed and expected to return a new timing value to be used. 
+###sequencer.values###
+*array* Assuming the sequencer has a valid target/key combination, this array holds values that will either be passed as arguments to a method or assigned to properties. If a value is chosen from the array and it is a function, that function will be evaluated to and expected to return a new value that will be assigned or passed as an argument. For example, a values array that will always return a random number might look like the following:
+
+```javascript
+seq.values = [ Math.random ]
+```
+
+Sequencer2
+----
+`Sequencer2` objects in Gibberish sequence calls to methods, property changes, and the execution of anonymous functions. Unlike [Sequencer](#scheduling-sequencer2) objects, `Sequencer2` objects support audio-rate modulation of timing via their `rate` properties, which is `1` by default. Given a rate value of `2` events will occur twice as fast, a value of `.5` means events will occur half as fast. Below is an example of using a sine oscillator to modulate the speed of events triggered by a `Sequencer2` object:
+
+```javascript
+kick = Gibberish.instruments.Kick().connect()
+
+seq = Gibberish.Sequencer2({
+  target: kick,
+  key: 'note',
+  values: [110],
+  timings: [11025],
+  rate: Gibberish.binops.Add(
+    1,
+    Gibberish.oscillators.Sine({ frequency:.25, gain:.75 }) 
+  )
+}).start()
+```
+####Methods####
+###sequencer2.start###
+Starts the sequencer running. By default the sequencer starts immediately, but can be started in the future by passing an optional *delay* argument.
+
+***delay*** &nbsp; *float* &nbsp; Default:0. This values delays the start of the sequencer by a given number of samples. You can use this to start a number of sequencers using the same block of code, but with different timings offsets.
+
+###sequencer2.stop###
+Stops the sequencer from running.
+
+####Properties####
+###sequencer2.key###
+*string* Whenever a sequencer event is triggered, the sequencer will check to see if it has a valid *target* property; if so, it checks for a valid *key* property. The key determines the name of property or method on the target object that will be controlled by sequencer. If the target/key combo denotes a method, that method will be called. If the target/key combo denotes a property, that property will be assigned a new value. 
+###sequencer2.rate###
+*float* or *ugen*. Default: 1. The rate property is an audio-rate input that determines the phase increment of the sequencer on each sample. A value of `2` means that the phase is incremented by two each sample, doubling the speed that events are outputted at. Any mono audio signal can be mapped to this property.
+###sequencer2.target###
+*object* A object to be targeted by the sequencer. See the *key* property for more information.
+###sequencer2.timings###
+*array* This array is used to determine when sequencer events are triggered. If a timing is chosen from the array that is a function, that function will be executed and expected to return a new timing value to be used. The values in this array are used in conjunction with the *rate* property to determine the final scheduling of events. 
+###sequencer2.values###
+*array* Assuming the sequencer has a valid target/key combination, this array holds values that will either be passed as arguments to a method or assigned to properties. If a value is chosen from the array and it is a function, that function will be evaluated to and expected to return a new value that will be assigned or passed as an argument. For example, a values array that will always return a random number might look like the following:
+
+```javascript
+seq.values = [ Math.random ]
+```
 
 #Arithmetic
 
@@ -851,6 +1165,8 @@ Pow
 
 Raises the number or ugen `a` to the power determined by the ugen or number `b` and outputs the result.
 
-#Misc
+
+
+
 
 #Analysis

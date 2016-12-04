@@ -23,17 +23,18 @@
 
   <!-- Initializer -->
   <script>
-    // Flatdoc.run({
-    //   fetcher: Flatdoc.github('charlieroberts/genish.js')
-    // });
-    
     Flatdoc.run({
       fetcher: Flatdoc.file('docs.md')
     })
   </script>
+
   <style>
     h2 { text-transform:none !important }
+    .level-3 { display:none }
+    .content h3 { border-bottom:none !important }
+    .content h4 { border-bottom:solid 1px rgba(0,0,0,.2) !important }
   </style>
+
 </head>
 <body role='flatdoc' class='no-literate'>
 

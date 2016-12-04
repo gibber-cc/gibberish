@@ -30,7 +30,6 @@ let Gibberish = {
     let numBytes = memAmount === undefined ? 20 * 60 * 44100 : memAmount
 
     this.memory = MemoryHelper.create( numBytes )
-    this.utilities = require( './utilities.js' )( this )
 
     this.load()
     
@@ -63,8 +62,11 @@ let Gibberish = {
     this.ssd          = require( './analysis/singlesampledelay.js' )( this );
   },
 
-  export( target ) {
-    //this.genish.export( target )
+  export( target, shouldExportGenish=false ) {
+    if( target === undefined ) throw Error('You must define a target object for Gibberish to export variables to.')
+
+    if( shouldExportGenish ) this.genish.export( target )
+
     this.instruments.export( target )
     this.fx.export( target )
     this.filters.export( target )
@@ -249,5 +251,8 @@ let Gibberish = {
   },
     
 }
+
+Gibberish.utilities = require( './utilities.js' )( Gibberish )
+
 
 module.exports = Gibberish

@@ -27,11 +27,15 @@ let Scheduler = {
     if( this.queue.length ) {
       let next = this.queue.peek()
 
-      if( this.phase++ >= next.time ) {
+      while( this.phase >= next.time ) {
         next.func()
         this.queue.pop()
+        next = this.queue.peek()
       }
+
     }
+
+    this.phase++
   },
 }
 

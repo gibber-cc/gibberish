@@ -35,23 +35,23 @@ module.exports = function( Gibberish ) {
         }
 
         if( target.inputs )
-          target.inputs.push( bus )
+          target.inputs.push( this )
         else
-          target.input = bus
+          target.input = this
 
         Gibberish.dirty( target )
-        return bus
+        return this
       }
 
       bus.chain = ( target, level = 1 ) => {
-        bus.connect( target, level )
+        this.connect( target, level )
         return target
       }
 
       bus.disconnectUgen = ( ugen ) => {
         let removeIdx = -1
-        for( let i = 0; i < bus.inputs.length; i++ ) {
-          let input = bus.inputs[ i ]
+        for( let i = 0; i < this.inputs.length; i++ ) {
+          let input = this.inputs[ i ]
 
           if( isNaN( input ) && ugen === input ) {
             removeIdx = i
@@ -60,8 +60,8 @@ module.exports = function( Gibberish ) {
         }
         
         if( removeIdx !== -1 ) {
-          bus.inputs.splice( removeIdx, 1 )
-          Gibberish.dirty( bus )
+          this.inputs.splice( removeIdx, 1 )
+          Gibberish.dirty( this )
         }
       }
       
