@@ -120,6 +120,41 @@ Gibberish.Sequencer({
 }).start()
 ```
 
+#Mixins
+
+polyinstrument
+----
+*Gibberish.mixins.polyinstrumentn*  
+
+Polyphonic instruments in Gibberish (such as Synth, FM, and Monosynth) use to this mixin for `note`, `trigger`, and `chord` methods. Note that polyphonic instruments also use `Bus` and `Bus2` objects as prototypes. 
+
+####Methods####
+##polyinstrument.note( frequency  )###
+**frequency** &nbsp;  *number* &nbsp; The frequency for the new note to be played.
+
+The `note` method selects a child voice from the polyphonic instrument, assigns it a new frequency, and triggers the instrument's envelope. The number of notes concurrently playable is determined by the instruments `maxVoices` property.
+ 
+```javascript
+fm = Gibberish.PolyFM({ maxVoices:3, decay: 88200 * 2 }).connect()
+fm.note( 330 )
+fm.note( 440 )
+fm.note( 550 )
+```
+
+###polyinstrument.trigger( loudness  )###
+**loudness** &nbsp;  *number* &nbsp; A scalar applied to the gain envelope of the new note.
+
+Trigger a note at the last used frequency with the provided `loudness` as a scalar.
+
+```javascript
+kick = Gibberish.Kick({ frequency: 80 }).connect()
+
+Gibberish.Sequencer({ 
+  target:kick, 
+  key:'trigger', 
+  values:[ .1,.2,.3,.5], 
+  timings:[11025]
+}).start()
 
 # Instruments
 

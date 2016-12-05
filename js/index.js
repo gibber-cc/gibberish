@@ -23,7 +23,11 @@ let Gibberish = {
   prototypes: {
     ugen: require('./ugen.js'),
     instrument: require( './instruments/instrument.js' ),
-    effect: require( './fx/effect.js' )
+    effect: require( './fx/effect.js' ),
+  },
+
+  mixins: {
+    polyinstrument: require( './instruments/polyMixin.js' )
   },
 
   init( memAmount ) {

@@ -32,20 +32,12 @@ module.exports = function( Gibberish ) {
 
       bus.ugenName = bus.callback.ugenName = 'bus2_' + bus.id
 
-      bus.disconnectUgen = ( ugen ) => {
-        let removeIdx = -1
-        for( let i = 0; i < bus.inputs.length; i++ ) {
-          let input = bus.inputs[ i ]
-
-          if( isNaN( input ) && ugen === input ) {
-            removeIdx = i
-            break;
-          }
-        }
+      bus.disconnectUgen = function( ugen ) {
+        let removeIdx = this.inputs.indexOf( ugen )
         
         if( removeIdx !== -1 ) {
-          bus.inputs.splice( removeIdx, 1 )
-          Gibberish.dirty( bus )
+          this.inputs.splice( removeIdx, 1 )
+          Gibberish.dirty( this )
         }
       }
       
