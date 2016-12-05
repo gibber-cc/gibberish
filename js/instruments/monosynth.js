@@ -10,43 +10,50 @@ module.exports = function( Gibberish ) {
           env = g.ad( g.in( 'attack' ), g.in( 'decay' ), { shape:'linear' }),
           frequency = g.in( 'frequency' ),
           glide = g.in( 'glide' ),
-          slidingFreq = g.slide( frequency, glide, glide )
+          slidingFreq = g.memo( g.slide( frequency, glide, glide ) )
 
-    let props = Object.assign( {}, Synth.defaults, argumentProps )
+    let props = Object.assign( syn, Synth.defaults, argumentProps )
 
-    for( let i = 0; i < 3; i++ ) {
-      let osc, freq
+    syn.__createGraph = function() {
+      for( let i = 0; i < 3; i++ ) {
+        let osc, freq
 
-      switch( i ) {
-        case 1:
-          freq = g.add( slidingFreq, g.mul( slidingFreq, g.in('detune2') ) )
-          break;
-        case 2:
-          freq = g.add( slidingFreq, g.mul( slidingFreq, g.in('detune3') ) )
-          break;
-        default:
-          freq = slidingFreq//frequency
+        switch( i ) {
+          case 1:
+            freq = g.add( slidingFreq, g.mul( slidingFreq, g.in('detune2') ) )
+            break;
+          case 2:
+            freq = g.add( slidingFreq, g.mul( slidingFreq, g.in('detune3') ) )
+            break;
+          default:
+            freq = slidingFreq//frequency
+        }
+
+        osc = Gibberish.oscillators.factory( syn.waveform, freq, syn.antialias )
+        
+        oscs[ i ] = osc
       }
 
-      osc = Gibberish.oscillators.factory( props.waveform, freq, props.antialias )
-      
-      oscs[ i ] = osc
+      let oscSum = g.add( ...oscs ),
+          oscWithGain = g.mul( g.mul( oscSum, env ), g.in( 'gain' ) ),
+          cutoff = g.add( g.in('cutoff'), g.mul( g.in('filterMult'), env ) ),
+          filteredOsc, panner
+
+      filteredOsc = Gibberish.filters.factory( oscWithGain, cutoff, g.in('resonance'), g.in('saturation'), syn )
+        
+      if( props.panVoices ) {  
+        panner = g.pan( filteredOsc,filteredOsc, g.in( 'pan' ) )
+        syn.graph = [ panner.left, panner.right ]
+      }else{
+        syn.graph = filteredOsc
+      }
     }
 
-    let oscSum = g.add( ...oscs ),
-        oscWithGain = g.mul( g.mul( oscSum, env ), g.in( 'gain' ) ),
-        cutoff = g.add( g.in('cutoff'), g.mul( g.in('filterMult'), env ) ),
-        filteredOsc, panner
+    syn.__requiresRecompilation = [ 'waveform', 'antialias', 'filterType' ]
+    syn.__createGraph()
 
-    filteredOsc = Gibberish.filters.factory( oscWithGain, cutoff, g.in('resonance'), g.in('saturation'), props )
-      
-    if( props.panVoices ) {  
-      panner = g.pan( filteredOsc,filteredOsc, g.in( 'pan' ) )
-      Gibberish.factory( syn, [panner.left, panner.right], 'mono', props  )
-    }else{
-      Gibberish.factory( syn, filteredOsc , 'mono', props )
-    }
-    
+    Gibberish.factory( syn, syn.graph, 'mono', props )
+
     syn.env = env
 
     return syn
@@ -60,8 +67,8 @@ module.exports = function( Gibberish ) {
     pulsewidth:.25,
     frequency:220,
     pan: .5,
-    detune2:1.01,
-    detune3:2.99,
+    detune2:.005,
+    detune3:-.005,
     cutoff: 440, //.25,
     resonance:2,
     Q: 5,

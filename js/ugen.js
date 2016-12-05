@@ -44,7 +44,14 @@ let ugen = {
     this.connect( target,level )
 
     return target
-  }
+  },
+
+  __redoGraph() {
+    this.__createGraph()
+    this.callback = Gibberish.genish.gen.createCallback( this.graph, Gibberish.memory, false, true )
+    this.inputNames = Gibberish.genish.gen.parameters.slice(0)
+    this.callback.ugenName = this.ugenName
+  },
 }
 
 module.exports = ugen

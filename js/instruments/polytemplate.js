@@ -35,6 +35,7 @@ module.exports = function( Gibberish ) {
         ugenName: 'poly' + ugen.name + '_' + synth.id,
         inputs: [],
         inputNames: [],
+        properties
       })
 
       synth.callback.ugenName = synth.ugenName
@@ -60,7 +61,7 @@ module.exports = function( Gibberish ) {
     return Template
   }
 
-  TemplateFactory.setupProperties = ( synth, ugen, props ) => {
+  TemplateFactory.setupProperties = function( synth, ugen, props ) {
     for( let property of props ) {
       Object.defineProperty( synth, property, {
         get() {

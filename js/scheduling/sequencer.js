@@ -10,13 +10,13 @@ let Sequencer = props => {
     target:  props.target,
     values:  props.values,
     timings: props.timings,
-    valuesPhase:  0,
-    timingsPhase: 0,
+    __valuesPhase:  0,
+    __timingsPhase: 0,
     priority: props.priority === undefined ? 0 : props.priority,
 
     tick() {
-      let value  = seq.values[  seq.valuesPhase++  % seq.values.length  ],
-          timing = seq.timings[ seq.timingsPhase++ % seq.timings.length ]
+      let value  = seq.values[  seq.__valuesPhase++  % seq.values.length  ],
+          timing = seq.timings[ seq.__timingsPhase++ % seq.timings.length ]
 
       if( typeof timing === 'function' ) timing = timing()
 
@@ -48,6 +48,10 @@ let Sequencer = props => {
   }
 
   return seq 
+}
+
+Sequencer.make = function( values, timings, target, key ) {
+  return Sequencer({ values, timings, target, key })
 }
 
 return Sequencer

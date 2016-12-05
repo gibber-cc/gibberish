@@ -10,12 +10,13 @@ module.exports = function( Gibberish ) {
       let bus = Object.create( ugen )
       
       bus.callback = function() {
-        output[ 0 ] = output[ 1 ] = 0
+        let output = 0
+       // output[ 0 ] = output[ 1 ] = 0
 
         for( let i = 0, length = arguments.length; i < length; i++ ) {
-          let input = arguments[ i ]
-          output[ 0 ] += input
-          output[ 1 ] += input
+          output += arguments[ i ]
+          //output[ 0 ] += input
+          //output[ 1 ] += input
         }
 
         return output
@@ -27,21 +28,6 @@ module.exports = function( Gibberish ) {
       bus.ugenName = 'bus_' + bus.id
       bus.inputs = []
       bus.inputNames = []
-
-      bus.connect = ( target, level = 1 ) => {
-        if( target.isStereo ) {
-          throw Error( 'You cannot connect a stereo input to a mono bus.' )
-          return
-        }
-
-        if( target.inputs )
-          target.inputs.push( this )
-        else
-          target.input = this
-
-        Gibberish.dirty( target )
-        return this
-      }
 
       bus.chain = ( target, level = 1 ) => {
         this.connect( target, level )

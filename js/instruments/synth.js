@@ -1,17 +1,8 @@
 let g = require( 'genish.js' ),
     instrument = require( './instrument.js' )
 
-/**
- * A module representing a jacket.
- * @module Gibberish.instruments.synth
- */
-
 module.exports = function( Gibberish ) {
 
-  /**
-   * @constructor
-   * @alias module:Gibberish.instruments.synth
-   */
   let Synth = inputProps => {
     let syn = Object.create( instrument )
 
@@ -21,25 +12,32 @@ module.exports = function( Gibberish ) {
         glide = g.in( 'glide' ),
         slidingFreq = g.slide( frequency, glide, glide )
 
-    let props = Object.assign( {}, Synth.defaults, inputProps )
+    let props = Object.assign( syn, Synth.defaults, inputProps )
 
-    let osc = Gibberish.oscillators.factory( props.waveform, slidingFreq, props.antialias )
+    syn.__createGraph = function() {
+      let osc = Gibberish.oscillators.factory( syn.waveform, slidingFreq, syn.antialias )
 
-    let oscWithEnv = g.mul( g.mul( osc, env, loudness ) ),
-        panner
+      let oscWithEnv = g.mul( g.mul( osc, env, loudness ) ),
+          panner
   
-    let cutoff = g.add( g.in('cutoff'), g.mul( g.in('filterMult'), env ) )
-    const filteredOsc = Gibberish.filters.factory( oscWithEnv, cutoff, g.in('resonance'), g.in('saturation'), props )
+      let cutoff = g.add( g.in('cutoff'), g.mul( g.in('filterMult'), env ) )
+      const filteredOsc = Gibberish.filters.factory( oscWithEnv, cutoff, g.in('resonance'), g.in('saturation'), props )
 
-    let synthWithGain = g.mul( filteredOsc, g.in( 'gain' ) )
-
-    if( props.panVoices === true ) { 
-      panner = g.pan( synthWithGain, synthWithGain, g.in( 'pan' ) ) 
-      Gibberish.factory( syn, [panner.left, panner.right], 'synth', props  )
-    }else{
-      Gibberish.factory( syn, synthWithGain , 'synth', props )
+      let synthWithGain = g.mul( filteredOsc, g.in( 'gain' ) )
+  
+      if( syn.panVoices === true ) { 
+        panner = g.pan( synthWithGain, synthWithGain, g.in( 'pan' ) ) 
+        syn.graph = [panner.left, panner.right]
+      }else{
+        syn.graph = synthWithGain
+      }
     }
     
+    syn.__requiresRecompilation = [ 'waveform', 'antialias', 'filterType' ]
+    syn.__createGraph()
+
+    Gibberish.factory( syn, syn.graph, 'synth', props  )
+
     syn.env = env
 
     return syn

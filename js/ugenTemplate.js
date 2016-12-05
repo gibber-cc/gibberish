@@ -42,6 +42,20 @@ module.exports = function( Gibberish ) {
       })
     }
 
+    if( ugen.__requiresRecompilation !== undefined ) {
+      ugen.__requiresRecompilation.forEach( prop => {
+        let value = ugen[ prop ]
+        Object.defineProperty( ugen, prop, {
+          get() { return value },
+          set( v ) {
+            if( value !== v ) {
+              value = v
+              this.__redoGraph()
+            }
+          }
+        })
+      })      
+    }
     return ugen
   }
 

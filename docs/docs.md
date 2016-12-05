@@ -129,7 +129,16 @@ polyinstrument
 Polyphonic instruments in Gibberish (such as Synth, FM, and Monosynth) use to this mixin for `note`, `trigger`, and `chord` methods. Note that polyphonic instruments also use `Bus` and `Bus2` objects as prototypes. 
 
 ####Methods####
-##polyinstrument.note( frequency  )###
+###polyinstrument.chord( frequencies  )###
+**frequency** &nbsp;  *array* &nbsp; The frequencies of the chord to be played.
+
+The `chord` method selects voices from the polyphonic instrument, assigns them new frequencies, and triggers their envelopes. The number of notes concurrently playable is determined by the instrument's `maxVoices` property. Using the `chord` method with three frequencies is functionally identical to calling `note` three times simultaneously.
+ 
+```javascript
+fm = Gibberish.PolyFM({ maxVoices:3, decay: 88200 * 2 }).connect()
+fm.chord([ 330,440,550 ])
+```
+###polyinstrument.note( frequency  )###
 **frequency** &nbsp;  *number* &nbsp; The frequency for the new note to be played.
 
 The `note` method selects a child voice from the polyphonic instrument, assigns it a new frequency, and triggers the instrument's envelope. The number of notes concurrently playable is determined by the instruments `maxVoices` property.
@@ -144,17 +153,20 @@ fm.note( 550 )
 ###polyinstrument.trigger( loudness  )###
 **loudness** &nbsp;  *number* &nbsp; A scalar applied to the gain envelope of the new note.
 
-Trigger a note at the last used frequency with the provided `loudness` as a scalar.
+Trigger a note or chord at the last used frequency(ies) with the provided `loudness` as a scalar.
 
 ```javascript
-kick = Gibberish.Kick({ frequency: 80 }).connect()
+syn = Gibberish.PolySynth({ attack:44, decay:22050 }).connect()
+syn.chord([ 330,440,550 ])
+
 
 Gibberish.Sequencer({ 
-  target:kick, 
+  target:syn, 
   key:'trigger', 
   values:[ .1,.2,.3,.5], 
   timings:[11025]
 }).start()
+```
 
 # Instruments
 
@@ -267,6 +279,18 @@ Gibberish.Sequencer({
 ###fm.saturation###
 *float* default: 1. For filter type 3 (modeled TB-303), this value controls a non-linear waveshaping (distortion) applied to the signal before entering the filter stage. A value of 1 means no saturation is added, higher values yield increasing distortion.
 
+PolyFM
+---
+*Prototype: [Gibberish.Bus2](#miscellaneous-bus2)*  
+*Mixin: [Gibberish.mixins.polyinstrument](#mixins-polyinstrument)*
+
+`PolyFM` objects have the same properties as [FM objects](#instruments-fm); when you change one of these property values all the child voices have their same property modified. The `maxVoices` option, which can only be set upon instantiation, determines the number of voices. Whenever a note is played a voice is chosen and connected to the `PolyFM` ugen, which acts as a bus. When the envelope of the note is finished the associated voice is disconnected from the `PolgyFM` ugen.
+
+```javascript
+a = PolyFM({ maxVoices:3 }).connect()
+a.chord([ 330,440,550 ])
+```
+
 Hat
 ----
 *Prototype: [Gibberish.prototypes.instrument](#prototypes-instrument)*
@@ -320,6 +344,18 @@ pluck.note( 440 )
 *boolean* default: false. If true, the synth will expose a pan property for stereo panning; otherwise, the synth is mono.
 ###karplus.pan###
 *float* range: 0-1, default: .5. If the `panVoices` property of the synth is `true`, this property will determine the position of the synth in the stereo spectrum. `0` = left, `.5` = center, `1` = right. 
+
+PolyKarplus
+---
+*Prototype: [Gibberish.Bus2](#miscellaneous-bus2)*  
+*Mixin: [Gibberish.mixins.polyinstrument](#mixins-polyinstrument)*
+
+`PolyKarplus` objects have the same properties as [Karplus objects](#instruments-karplus); when you change one of these property values all the child voices have their same property modified. The `maxVoices` option, which can only be set upon instantiation, determines the number of voices. Whenever a note is played a voice is chosen and connected to the `PolyKarplus` ugen, which acts as a bus. When the envelope of the note is finished the associated voice is disconnected from the `PolgyKarplus` ugen.
+
+```javascript
+a = PolyKarplus({ maxVoices:3 }).connect()
+a.chord([ 330,440,550 ])
+```
 
 Kick
 ----
@@ -401,6 +437,18 @@ Gibberish.Sequencer({
 *float* default: 3.5. This property only affects the resonance for filter type 1. Values above 4 are typically self-oscillating, depending on the cutoff frequency.
 ###monosynth.saturation###
 *float* default: 1. For filter type 3 (modeled TB-303), this value controls a non-linear waveshaping (distortion) applied to the signal before entering the filter stage. A value of 1 means no saturation is added, higher values yield increasing distortion.
+
+PolyMono
+---
+*Prototype: [Gibberish.Bus2](#miscellaneous-bus2)*  
+*Mixin: [Gibberish.mixins.polyinstrument](#mixins-polyinstrument)*
+
+`PolyMono` objects have the same properties as [Monosynth objects](#instruments-monosynth); when you change one of these property values all the child voices have their same property modified. The `maxVoices` option, which can only be set upon instantiation, determines the number of voices. Whenever a note is played a voice is chosen and connected to the `PolyMono` ugen, which acts as a bus. When the envelope of the note is finished the associated voice is disconnected from the `PolgyMono` ugen.
+
+```javascript
+a = PolyMono({ maxVoices:3 }).connect()
+a.chord([ 330,440,550 ])
+```
 
 Sampler
 ----
@@ -509,6 +557,18 @@ Gibberish.Sequencer({
 *float* default: 3.5. This property only affects the resonance for filter type 1. Values above 4 are typically self-oscillating, depending on the cutoff frequency.
 ###synth.saturation###
 *float* default: 1. For filter type 3 (modeled TB-303), this value controls a non-linear waveshaping (distortion) applied to the signal before entering the filter stage. A value of 1 means no saturation is added, higher values yield increasing distortion.
+
+PolySynth
+---
+*Prototype: [Gibberish.Bus2](#miscellaneous-bus2)*  
+*Mixin: [Gibberish.mixins.polyinstrument](#mixins-polyinstrument)*
+
+`PolySynth` objects have the same properties as [Synth objects](#instruments-synth); when you change one of these property values all the child voices have their same property modified. The `maxVoices` option, which can only be set upon instantiation, determines the number of voices. Whenever a note is played a voice is chosen and connected to the `Synth` ugen, which acts as a bus. When the envelope of the note is finished the associated voice is disconnected from the `Synth` ugen.
+
+```javascript
+a = PolySynth({ maxVoices:3 }).connect()
+a.chord([ 330,440,550 ])
+```
 
 # Effects
 
@@ -928,13 +988,33 @@ syn.note( 220 )
 ###filter24TB303.saturation###
 *float* range: 1-?, default: 1. Values higher than one add non-linear waveshaping to the signal before it is filtered, creating distortion.
 
+#Miscellaneous
+
+Bus
+---
+*Prototype: [Gibberish.prototypes.ugen](#prototypes-ugen)*
+
+`Bus` instances sum mono inputs.
+
+###bus.disconnecUgen###
+**ugen** &nbsp; *ugen* &nbsp; The ugen to disconnect from the bus
+
+Bus2
+---
+*Prototype: [Gibberish.prototypes.ugen](#prototypes-ugen)*
+
+`Bus2` instances sum stereo and mono inputs into a single stereo signal.
+
+###bus2.disconnecUgen###
+**ugen** &nbsp; *ugen* &nbsp; The ugen to disconnect from the bus.
+
 #Oscillators
 
 All oscillators accept a dictionary as their sole argument, containing properties such as frequency and gain.
 
 Noise
 ---
-*Prototype: [Gibberish.prototypes.filter](#prototypes-ugen)*
+*Prototype: [Gibberish.prototypes.ugen](#prototypes-ugen)*
 
 The output of a `Noise` ugen is created using JavaScript's `Math.random` function, which is then scaled to a range of `{-1,1} (depending on the gain property). 
 
@@ -944,7 +1024,7 @@ The output of a `Noise` ugen is created using JavaScript's `Math.random` functio
 
 PWM
 ---
-*Prototype: [Gibberish.prototypes.filter](#prototypes-ugen)*
+*Prototype: [Gibberish.prototypes.ugen](#prototypes-ugen)*
 
 The PWM (pulse-width modulation) oscillator provides for a variable pulsewidth to modulate the harmonic content of the oscillator. If the anti-alias property is set to true, a band-limited oscillator implemented via FM feedback is used. 
 
@@ -960,7 +1040,7 @@ The PWM (pulse-width modulation) oscillator provides for a variable pulsewidth t
  
 ReverseSaw
 ---
-*Prototype: [Gibberish.prototypes.filter](#prototypes-ugen)*
+*Prototype: [Gibberish.prototypes.ugen](#prototypes-ugen)*
 
 The ReverseSaw oscillator uses either a wavetable with linear interpolation, or, if the anti-alias property is set to true, a band-limited oscillator implemented via FM feedback. 
 
@@ -974,7 +1054,7 @@ The ReverseSaw oscillator uses either a wavetable with linear interpolation, or,
 
 Saw
 ---
-*Prototype: [Gibberish.prototypes.filter](#prototypes-ugen)*
+*Prototype: [Gibberish.prototypes.ugen](#prototypes-ugen)*
 
 The saw oscillator uses either a wavetable with linear interpolation, or, if the anti-alias property is set to true, a band-limited oscillator implemented via FM feedback. 
 
@@ -988,7 +1068,7 @@ The saw oscillator uses either a wavetable with linear interpolation, or, if the
 
 Sine
 ---
-*Prototype: [Gibberish.prototypes.filter](#prototypes-ugen)*
+*Prototype: [Gibberish.prototypes.ugen](#prototypes-ugen)*
 
 The sine oscillator uses a wavetable with linear interpolation.
 
@@ -1000,7 +1080,7 @@ The sine oscillator uses a wavetable with linear interpolation.
 
 Square
 ---
-*Prototype: [Gibberish.prototypes.filter](#prototypes-ugen)*
+*Prototype: [Gibberish.prototypes.ugen](#prototypes-ugen)*
 
 The square oscillator uses either a wavetable with linear interpolation, or, if the anti-alias property is set to true, a band-limited oscillator implemented via FM feedback. 
 
