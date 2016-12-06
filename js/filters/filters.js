@@ -18,19 +18,19 @@ module.exports = function( Gibberish ) {
     factory( input, cutoff, resonance, saturation = null, props, isStereo = false ) {
       let filteredOsc 
 
-      if( props.filterType === 1 ) {
-        if( typeof props.cutoff !== 'object' && props.cutoff > 1 ) {
-          props.cutoff = .25
-        }
-        if( typeof props.cutoff !== 'object' && props.filterMult > .5 ) {
-          props.filterMult = .1
-        }
-      }
+      //if( props.filterType === 1 ) {
+      //  if( typeof props.cutoff !== 'object' && props.cutoff > 1 ) {
+      //    props.cutoff = .25
+      //  }
+      //  if( typeof props.cutoff !== 'object' && props.filterMult > .5 ) {
+      //    props.filterMult = .1
+      //  }
+      //}
 
       switch( props.filterType ) {
         case 1:
           isLowPass = g.param( 'lowPass', 1 ),
-          filteredOsc = g.filter24( input, g.in('resonance'), cutoff, isLowPass, isStereo )
+          filteredOsc = g.filter24( input, g.in('Q'), cutoff, isLowPass, isStereo )
           break;
         case 2:
           filteredOsc = g.zd24( input, g.in('Q'), cutoff )

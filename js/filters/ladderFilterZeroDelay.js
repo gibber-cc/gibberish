@@ -3,13 +3,14 @@ const g = require( 'genish.js' ),
 
 module.exports = function( Gibberish ) {
 
-  Gibberish.genish.zd24 = ( input, Q, freq, isStereo=false ) => {
+  Gibberish.genish.zd24 = ( input, _Q, freq, isStereo=false ) => {
     const iT = 1 / g.gen.samplerate,
           z1 = g.history(0),
           z2 = g.history(0),
           z3 = g.history(0),
           z4 = g.history(0)
-
+    
+    const Q = g.memo( g.add( .5, g.mul( _Q, 23 ) ) )
     // kwd = 2 * $M_PI * acf[kindx]
     const kwd = g.memo( g.mul( Math.PI * 2, freq ) )
 

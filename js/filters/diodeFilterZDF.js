@@ -2,7 +2,7 @@ const g = require( 'genish.js' ),
       filter = require( './filter.js' )
 
 module.exports = function( Gibberish ) {
-  Gibberish.genish.diodeZDF = ( input, Q, freq, saturation, isStereo=false ) => {
+  Gibberish.genish.diodeZDF = ( input, _Q, freq, saturation, isStereo=false ) => {
     const iT = 1 / g.gen.samplerate,
           kz1 = g.history(0),
           kz2 = g.history(0),
@@ -15,6 +15,7 @@ module.exports = function( Gibberish ) {
           ka4 = 0.5,
           kindx = 0   
 
+    const Q = g.memo( g.add( .5, g.mul( _Q, 11 ) ) )
     // kwd = 2 * $M_PI * acf[kindx]
     const kwd = g.memo( g.mul( Math.PI * 2, freq ) )
 

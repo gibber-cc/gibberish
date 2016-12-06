@@ -39,7 +39,7 @@ module.exports = function( Gibberish ) {
           cutoff = g.add( g.in('cutoff'), g.mul( g.in('filterMult'), env ) ),
           filteredOsc, panner
 
-      filteredOsc = Gibberish.filters.factory( oscWithGain, cutoff, g.in('resonance'), g.in('saturation'), syn )
+      filteredOsc = Gibberish.filters.factory( oscWithGain, cutoff, g.in('Q'), g.in('saturation'), syn )
         
       if( props.panVoices ) {  
         panner = g.pan( filteredOsc,filteredOsc, g.in( 'pan' ) )
@@ -63,27 +63,27 @@ module.exports = function( Gibberish ) {
     waveform: 'saw',
     attack: 44100,
     decay: 44100,
-    gain: 1,
+    gain: .25,
     pulsewidth:.25,
     frequency:220,
     pan: .5,
     detune2:.005,
     detune3:-.005,
-    cutoff: 440, //.25,
-    resonance:2,
-    Q: 5,
+    cutoff: 2500,
+    resonance:.25,
+    Q: .25,
     panVoices:false,
     glide: 1,
     antialias:false,
-    filterType: 1,
-    saturation:1,
-    filterMult: 110,
+    filterType: 2,
+    saturation:.5,
+    filterMult: 1000,
     isLowPass:true
   }
 
   let PolyMono = Gibberish.PolyTemplate( Synth, 
     ['frequency','attack','decay','cutoff','Q',
-     'detune2','detune3','pulsewidth','pan','gain', 'glide', 'saturation', 'filterMult' ]
+     'detune2','detune3','pulsewidth','pan','gain', 'glide', 'saturation', 'filterMult',  'antialias', 'filterType', 'waveform']
   ) 
 
   return [ Synth, PolyMono ]

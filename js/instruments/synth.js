@@ -21,7 +21,7 @@ module.exports = function( Gibberish ) {
           panner
   
       let cutoff = g.add( g.in('cutoff'), g.mul( g.in('filterMult'), env ) )
-      const filteredOsc = Gibberish.filters.factory( oscWithEnv, cutoff, g.in('resonance'), g.in('saturation'), props )
+      const filteredOsc = Gibberish.filters.factory( oscWithEnv, cutoff, g.in('Q'), g.in('saturation'), props )
 
       let synthWithGain = g.mul( filteredOsc, g.in( 'gain' ) )
   
@@ -56,16 +56,15 @@ module.exports = function( Gibberish ) {
     loudness:1,
     glide:1,
     saturation:1,
-    filterMult:880,
-    Q:8,
-    cutoff:110,
-    resonance:3,
+    filterMult:1000,
+    Q:.25,
+    cutoff:2500,
     filterType:0,
     isLowPass:1
   }
 
   // do not include velocity, which shoudl always be per voice
-  let PolySynth = Gibberish.PolyTemplate( Synth, ['frequency','attack','decay','pulsewidth','pan','gain','glide', 'saturation', 'filterMult', 'Q', 'cutoff', 'resonance'] ) 
+  let PolySynth = Gibberish.PolyTemplate( Synth, ['frequency','attack','decay','pulsewidth','pan','gain','glide', 'saturation', 'filterMult', 'Q', 'cutoff', 'resonance', 'antialias', 'filterType', 'waveform'] ) 
 
   return [ Synth, PolySynth ]
 

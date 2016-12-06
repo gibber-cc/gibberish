@@ -13,28 +13,35 @@ module.exports = function( Gibberish ) {
         cmRatio = g.in( 'cmRatio' ),
         index = g.in( 'index' )
 
-    let props = Object.assign( {}, FM.defaults, inputProps )
+    let props = Object.assign( syn, FM.defaults, inputProps )
 
-    let modOsc = Gibberish.oscillators.factory( props.modulatorWaveform, g.mul( slidingFreq, cmRatio ), props.antialias )
-    let modOscWithIndex = g.mul( modOsc, g.mul( slidingFreq, index ) )
-    let modOscWithEnv   = g.mul( modOscWithIndex, env )
+    syn.__createGraph = function() {
+      let modOsc = Gibberish.oscillators.factory( syn.modulatorWaveform, g.mul( slidingFreq, cmRatio ), syn.antialias )
+      let modOscWithIndex = g.mul( modOsc, g.mul( slidingFreq, index ) )
+      let modOscWithEnv   = g.mul( modOscWithIndex, env )
 
-    let carrierOsc = Gibberish.oscillators.factory( props.carrierWaveform, g.add( slidingFreq, modOscWithEnv ), props.antialias )
-    let carrierOscWithEnv = g.mul( carrierOsc, env )
-    
-    let cutoff = g.add( g.in('cutoff'), g.mul( g.in('filterMult'), env ) )
-    const filteredOsc = Gibberish.filters.factory( carrierOscWithEnv, cutoff, g.in('resonance'), g.in('saturation'), props )
+      let carrierOsc = Gibberish.oscillators.factory( syn.carrierWaveform, g.add( slidingFreq, modOscWithEnv ), syn.antialias )
+      let carrierOscWithEnv = g.mul( carrierOsc, env )
+      
+      let cutoff = g.add( g.in('cutoff'), g.mul( g.in('filterMult'), env ) )
+      const filteredOsc = Gibberish.filters.factory( carrierOscWithEnv, cutoff, g.in('Q'), g.in('saturation'), syn )
 
-    let synthWithGain = g.mul( filteredOsc, g.in( 'gain' ) ),
-        panner
+      let synthWithGain = g.mul( filteredOsc, g.in( 'gain' ) ),
+          panner
 
-    if( props.panVoices === true ) { 
-      panner = g.pan( synthWithGain, synthWithGain, g.in( 'pan' ) ) 
-      Gibberish.factory( syn, [panner.left, panner.right], 'fm', props  )
-    }else{
-      Gibberish.factory( syn, synthWithGain , 'fm', props )
+      if( props.panVoices === true ) { 
+        panner = g.pan( synthWithGain, synthWithGain, g.in( 'pan' ) ) 
+        syn.graph = [panner.left, panner.right ]
+      }else{
+        syn.graph = synthWithGain
+      }
     }
     
+    syn.__requiresRecompilation = [ 'carrierWaveform', 'modulatorWaveform', 'antialias', 'filterType' ]
+    syn.__createGraph()
+
+    Gibberish.factory( syn, syn.graph , 'fm', syn )
+
     syn.env = env
 
     return syn
@@ -56,14 +63,13 @@ module.exports = function( Gibberish ) {
     glide:1,
     saturation:1,
     filterMult:440,
-    Q:8,
-    cutoff:440,
-    resonance:3,
+    Q:.25,
+    cutoff:3520,
     filterType:0,
     isLowPass:1
   }
 
-  let PolyFM = Gibberish.PolyTemplate( FM, ['glide','frequency','attack','decay','pulsewidth','pan','gain','cmRatio','index', 'saturation', 'filterMult', 'Q', 'cutoff', 'resonance' ] ) 
+  let PolyFM = Gibberish.PolyTemplate( FM, ['glide','frequency','attack','decay','pulsewidth','pan','gain','cmRatio','index', 'saturation', 'filterMult', 'Q', 'cutoff', 'antialias', 'filterType', 'carrierWaveform', 'modulatorWaveform' ] ) 
 
   return [ FM, PolyFM ]
 

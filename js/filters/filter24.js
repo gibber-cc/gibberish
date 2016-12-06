@@ -3,10 +3,12 @@ let g = require( 'genish.js' ),
 
 module.exports = function( Gibberish ) {
 
-  Gibberish.genish.filter24 = ( input, rez, cutoff, isLowPass, isStereo=false ) => {
+  Gibberish.genish.filter24 = ( input, _rez, _cutoff, isLowPass, isStereo=false ) => {
     let returnValue,
         polesL = g.data([ 0,0,0,0 ], 1, { meta:true }),
         peekProps = { interp:'none', mode:'simple' },
+        rez = g.memo( g.mul( _rez, 5 ) ),
+        cutoff = g.memo( g.div( _cutoff, 11025 ) ),
         rezzL = g.clamp( g.mul( polesL[3], rez ) ),
         outputL = g.sub( isStereo ? input[0] : input, rezzL ) 
 
@@ -44,7 +46,7 @@ module.exports = function( Gibberish ) {
 
     Gibberish.factory(
       filter24, 
-      Gibberish.genish.filter24( g.in('input'), g.in('resonance'), g.in('cutoff'), g.in('isLowPass'), isStereo ), 
+      Gibberish.genish.filter24( g.in('input'), g.in('Q'), g.in('cutoff'), g.in('isLowPass'), isStereo ), 
       'filter24',
       props
     )
@@ -55,8 +57,8 @@ module.exports = function( Gibberish ) {
 
   Filter24.defaults = {
     input:0,
-    resonance: 3.5,
-    cutoff: .1,
+    Q: .25,
+    cutoff: 880,
     isLowPass:1
   }
 
