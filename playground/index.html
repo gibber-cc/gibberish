@@ -1,0 +1,149 @@
+<html>
+  <head>
+    <title>Genish.js Playground</title>
+    <script src="../node_modules/codemirror/lib/codemirror.js"></script>
+    <link rel="stylesheet" href="../node_modules/codemirror/lib/codemirror.css">
+    <script src="../node_modules/codemirror/mode/javascript/javascript.js"></script>
+    <script src="../node_modules/codemirror/addon/edit/matchbrackets.js"></script>
+    <script src="./dat.gui.js"></script>
+    <script src="../dist/gibberish.js"></script>
+    <script src="./environment.js"></script>
+    <style>
+    body { 
+      margin: 0;
+      box-sizing:border;
+      color:#ddd;
+      font-family: Helvetica Neue, sans-serif;
+      background:rgba(46,50,53,1);
+    }
+
+    #header { 
+      width:100%; 
+      height:2em; 
+      border-bottom:1px solid #666;
+    }
+
+    select{ 
+      display:inline-block;
+      background:rgba(46,50,53,1);
+      color: #ccc;
+      -webkit-border-radius:0px;
+      -moz-border-radius:0px;
+      border-radius:0px;
+      border-color: #555;
+    }
+
+    h1 {
+      font-size: 1em;
+      font-weight: normal;
+      padding-left:.5em;
+      padding-top:.25em;
+      padding-right: 3em;
+      height:1.5em;
+      vertical-align:middle;
+      display:inline-block;
+      margin:0
+    }
+
+    #header span { font-size: .8em; }
+
+    #editor { width:60%; box-sizing: border; display:inline-block; height:calc( 100% - 2em); border-right:1px solid #666  }
+    #console{ width:40%; box-sizing:border; display:inline-block; background:grey; position:absolute; height:calc( 100% - 2em ); }
+
+    .dg { z-index:100 !important }
+    #reference a{ color: #ccc !important; margin-left: 2em }
+
+    .CodeMirror-matchingbracket {
+      text-decoration:none !important;
+      background: rgba(255,255,255,.25)
+    }
+
+    .CodeMirror {
+      font-family:Menlo, monospace;
+      font-size:.8em;
+      background:rgba(46,50,53,1);
+      color:rgb( 153 ) !important
+     }
+
+    span.cm-comment { color:rgb(121,121,121) !important }
+    
+    span.cm-property, 
+    span.cm-attribute,
+    span.cm-variable,
+    span.cm-variable-2,
+    .cm-def,
+    .cm-s-default { color: rgba(173,173,173,1) !important }
+    
+    span.cm-keyword,
+    span.cm-number, span.cm-atom { color:rgba(89, 151, 198, 1) !important }
+
+    span.cm-string {color: rgb(225, 225, 225) !important }
+
+    .CodeMirror-cursor {
+      background: rgba(255,255,255,.5);
+      border: none !important;
+      width: .5em !important;
+      display: block;
+    }
+
+    .CodeMirror-selected {
+      background:rgba(84,84,84,.5) !important;
+    }
+
+    .CodeMirror-highlight {
+      background:rgba(255,255,255,.5)
+    }
+
+    </style>
+
+  </head>
+
+  <body>
+
+    <div id='header'>
+      <h1>gibberish</h1>
+
+      <span>demos:</span>
+
+      <select>
+        <option>introductory demo</option>
+        <option>introductory tutorial</option>
+        <option>303 demo (diode zero-delay filter)</option>
+      </select>
+
+      <span id='reference'><a href='../docs/index.html'>reference</a>
+
+    </div>
+
+    <div id='editor'></div>
+    <div id='console'></div>
+  </body>
+
+  <script> 
+    let select = document.querySelector( 'select' ),
+        files = [
+          'intro.js',
+          'introOld.js',
+          'three03.js',
+        ]
+
+    select.onchange = function( e ) {
+      loadexample( files[ select.selectedIndex ] )
+    }
+    
+    let loadexample = function( filename ) {
+      var req = new XMLHttpRequest()
+        req.open( 'GET', './examples/'+filename, true )
+        req.onload = function() {
+          var js = req.responseText
+          window.Environment.editor.setValue( js )
+        }
+    
+      req.send()
+    }
+    
+    loadexample( 'intro.js' )
+
+  </script>
+
+</html>
