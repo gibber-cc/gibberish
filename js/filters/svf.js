@@ -48,7 +48,7 @@ module.exports = function( Gibberish ) {
     // XXX NEEDS REFACTORING
     Gibberish.factory( 
       svf,
-      Gibberish.genish.svf( g.in('input'), g.in('cutoff'), g.in('Q'), g.in('mode'), isStereo ), 
+      Gibberish.genish.svf( g.in('input'), g.in('cutoff'), g.sub( 1, g.in('Q') ), g.in('mode'), isStereo ), 
       'svf', 
       props
     )

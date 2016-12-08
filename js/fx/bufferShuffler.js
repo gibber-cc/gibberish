@@ -85,33 +85,6 @@ module.exports = function( Gibberish ) {
       props 
     ) 
 
-    //if( props.filename ) {
-    //  bufferShuffler.data = g.data( props.filename )
-
-    //  bufferShuffler.data.onload = () => {
-    //    bufferShuffler.__phase__ = g.counter( rate, start, end, bufferShuffler.__bang__, shouldLoop, { shouldWrap:false })
-
-    //    Gibberish.factory( 
-    //      bufferShuffler,
-    //      g.ifelse( 
-    //        g.and( g.gte( bufferShuffler.__phase__, start ), g.lt( bufferShuffler.__phase__, end ) ),
-    //        g.peek( 
-    //          bufferShuffler.data, 
-    //          bufferShuffler.__phase__,
-    //          { mode:'samples' }
-    //        ),
-    //        0
-    //      ),
-    //      'sampler', 
-    //      props 
-    //    ) 
-
-    //    if( bufferShuffler.end === -999999999 ) bufferShuffler.end = bufferShuffler.data.buffer.length - 1
-        
-    //    Gibberish.dirty( bufferShuffler )
-    //  }
-    //}
-
     return bufferShuffler
   }
   

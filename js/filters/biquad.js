@@ -3,13 +3,14 @@ let g = require( 'genish.js' ),
 
 module.exports = function( Gibberish ) {
 
-  Gibberish.genish.biquad = ( input, cutoff, Q, mode, isStereo ) => {
+  Gibberish.genish.biquad = ( input, cutoff, _Q, mode, isStereo ) => {
     let a0,a1,a2,c,b1,b2,
         in1a0,x1a1,x2a2,y1b1,y2b2,
         in1a0_1,x1a1_1,x2a2_1,y1b1_1,y2b2_1
 
     let returnValue
-
+    
+    const Q = g.memo( g.mul( _Q, 22 ) )
     let x1 = g.history(), x2 = g.history(), y1 = g.history(), y2 = g.history()
     
     let w0 = g.memo( g.mul( 2 * Math.PI, g.div( cutoff,  g.gen.samplerate ) ) ),
@@ -20,7 +21,7 @@ module.exports = function( Gibberish ) {
     let oneMinusCosW = g.sub( 1, cosw0 )
 
     switch( mode ) {
-      case 'HP':
+      case 1:
         a0 = g.memo( g.div( g.add( 1, cosw0) , 2) )
         a1 = g.mul( g.add( 1, cosw0 ), -1 )
         a2 = a0
@@ -28,7 +29,7 @@ module.exports = function( Gibberish ) {
         b1 = g.mul( -2 , cosw0 )
         b2 = g.sub( 1, alpha )
         break;
-      case 'BP':
+      case 2:
         a0 = g.mul( Q, alpha )
         a1 = 0
         a2 = g.mul( a0, -1 )
@@ -109,7 +110,7 @@ module.exports = function( Gibberish ) {
     input:0,
     Q: .75,
     cutoff:550,
-    mode:'LP'
+    mode:0
   }
 
   return Biquad

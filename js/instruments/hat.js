@@ -13,8 +13,8 @@ module.exports = function( Gibberish ) {
     let props = Object.assign( {}, Hat.defaults, argumentProps )
 
     let baseFreq = g.mul( 325, scaledTune ), // range of 162.5 - 487.5
-        bpfCutoff = g.mul( g.param( 'bpfc', 7000), scaledTune ),
-        hpfCutoff = g.mul( g.param( 'hpfc',.9755), scaledTune ),  
+        bpfCutoff = g.mul( g.param( 'bpfc', 7000 ), scaledTune ),
+        hpfCutoff = g.mul( g.param( 'hpfc', 11000 ), scaledTune ),  
         s1 = Gibberish.oscillators.factory( 'square', baseFreq, false ),
         s2 = Gibberish.oscillators.factory( 'square', g.mul( baseFreq,1.4471 ) ),
         s3 = Gibberish.oscillators.factory( 'square', g.mul( baseFreq,1.6170 ) ),

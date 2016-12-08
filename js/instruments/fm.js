@@ -37,7 +37,7 @@ module.exports = function( Gibberish ) {
       }
     }
     
-    syn.__requiresRecompilation = [ 'carrierWaveform', 'modulatorWaveform', 'antialias', 'filterType' ]
+    syn.__requiresRecompilation = [ 'carrierWaveform', 'modulatorWaveform', 'antialias', 'filterType', 'filterMode' ]
     syn.__createGraph()
 
     Gibberish.factory( syn, syn.graph , 'fm', syn )
@@ -66,10 +66,11 @@ module.exports = function( Gibberish ) {
     Q:.25,
     cutoff:3520,
     filterType:0,
+    filterMode:0,
     isLowPass:1
   }
 
-  let PolyFM = Gibberish.PolyTemplate( FM, ['glide','frequency','attack','decay','pulsewidth','pan','gain','cmRatio','index', 'saturation', 'filterMult', 'Q', 'cutoff', 'antialias', 'filterType', 'carrierWaveform', 'modulatorWaveform' ] ) 
+  let PolyFM = Gibberish.PolyTemplate( FM, ['glide','frequency','attack','decay','pulsewidth','pan','gain','cmRatio','index', 'saturation', 'filterMult', 'Q', 'cutoff', 'antialias', 'filterType', 'carrierWaveform', 'modulatorWaveform','filterMode' ] ) 
 
   return [ FM, PolyFM ]
 

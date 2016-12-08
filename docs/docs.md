@@ -268,6 +268,9 @@ Gibberish.Sequencer({
 *string* default: 'sine'. Controls the waveform of the modulating oscillator. Choose between 'sine','saw','square', and 'pwm'.
 ###fm.filterType###
 *int* default: 0. Select a filter type. `0` - no filter. `1` - 'classic' Gibberish 4-pole resonant filter. `2` - Zero-delay (aka virtual analog) 4-pole Moog-style ladder filter. `2` - Zero-delay (aka virtual analog) resonant diode filter, modeled after the TB-303.
+###fm.filterMode###
+*int* default: 0. Select a filter mode. `0` - low pass. `1` - high pass, available for filter types 1, 4, and 5. `2` -
+bandpass, available for filter types 4 and 5. `3` - notch, available efor filter type 4.
 ###fm.cutoff###
 *float* default: 440. Controls the cutoff frequncy of the filter, if enabled. IMPORTANT NOTE: If filter type 1 is chosen, the cutoff frequency should be provided as a value between 0 to 1... this will be connected in the future.
 ###fm.filterMult###
@@ -284,7 +287,7 @@ PolyFM
 *Prototype: [Gibberish.Bus2](#miscellaneous-bus2)*  
 *Mixin: [Gibberish.mixins.polyinstrument](#mixins-polyinstrument)*
 
-`PolyFM` objects have the same properties as [FM objects](#instruments-fm); when you change one of these property values all the child voices have their same property modified. The `maxVoices` option, which can only be set upon instantiation, determines the number of voices. Whenever a note is played a voice is chosen and connected to the `PolyFM` ugen, which acts as a bus. When the envelope of the note is finished the associated voice is disconnected from the `PolgyFM` ugen.
+`PolyFM` objects have the same properties as [FM objects](#instruments-fm); when you change one of these property values all the child voices have their same property modified. The `maxVoices` option, which can only be set upon instantiation, determines the number of voices. Whenever a note is played a voice is chosen and connected to the `PolyFM` ugen, which acts as a bus. When the envelope of the note is finished the associated voice is disconnected from the `PolyFM` ugen.
 
 ```javascript
 a = PolyFM({ maxVoices:3 }).connect()
@@ -427,6 +430,9 @@ Gibberish.Sequencer({
 *float* range: 0-1, default: .5. If the `panVoices` property of the synth is `true`, this property will determine the position of the synth in the stereo spectrum. `0` = left, `.5` = center, `1` = right. 
 ###monosynth.filterType###
 *int* default: 1. Select a filter type. `0` - no filter. `1` - 'classic' Gibberish 4-pole resonant filter. `2` - Zero-delay (aka virtual analog) 4-pole Moog-style ladder filter. `2` - Zero-delay (aka virtual analog) resonant diode filter, modeled after the TB-303.
+###monosynth.filterMode###
+*int* default: 0. Select a filter mode. `0` - low pass. `1` - high pass, available for filter types 1, 4, and 5. `2` -
+bandpass, available for filter types 4 and 5. `3` - notch, available efor filter type 4.
 ###monosynth.cutoff###
 *float* default: 440. Controls the cutoff frequncy of the filter, if enabled. IMPORTANT NOTE: If filter type 1 is chosen, the cutoff frequency should be provided as a value between 0 to 1... this will be connected in the future.
 ###monosynth.filterMult###
@@ -547,6 +553,9 @@ Gibberish.Sequencer({
 *float* range: 0-1, default: .5. If the `panVoices` property of the synth is `true`, this property will determine the position of the synth in the stereo spectrum. `0` = left, `.5` = center, `1` = right. 
 ###synth.filterType###
 *int* default: 1. Select a filter type. `0` - no filter. `1` - 'classic' Gibberish 4-pole resonant filter. `2` - Zero-delay (aka virtual analog) 4-pole Moog-style ladder filter. `2` - Zero-delay (aka virtual analog) resonant diode filter, modeled after the TB-303.
+###synth.filterMode###
+*int* default: 0. Select a filter mode. `0` - low pass. `1` - high pass, available for filter types 1, 4, and 5. `2` -
+bandpass, available for filter types 4 and 5. `3` - notch, available efor filter type 4.
 ###synth.cutoff###
 *float* default: 440. Controls the cutoff frequncy of the filter, if enabled. IMPORTANT NOTE: If filter type 1 is chosen, the cutoff frequency should be provided as a value between 0 to 1... this will be connected in the future.
 ###synth.filterMult###
@@ -582,7 +591,7 @@ syn = Gibberish.instruments.Synth({ attack:44 })
 
 crush = Gibberish.effects.BitCrusher({ 
   input:synth,
-  sampleRate:
+  sampleRate:.15
 }).connect()
 
 syn.note( 220 )
@@ -595,6 +604,42 @@ syn.note( 220 )
 *float* range: 0-1, default: .5. Re-samples the input unit generator at a lower rate. A value of .5 (the default) means that every other sample will be sampled and held; a value of .25 means that every fourth sample will be sampled and held.
 ###bitcrusher.bitCrusher###
 *float* range:0-1, default: .5. Decreases the dynamic range of the incoming signal and truncates values outside of the range.
+
+BufferShuffler
+----
+*Prototype: [Gibberish.prototypes.effect](#prototypes-effect)*
+
+The `BufferShuffler` effect feeds an input into a delay line, which is then randomly read at different speeds for granular effects.
+
+
+```javascript
+syn = Gibberish.instruments.Synth({ attack:44, decay:1152 }).connect()
+seq = Sequencer.make( [220,330,440,550], [5512], syn, 'note' ).start()
+
+shuffle = Gibberish.fx.Shuffler({ 
+  input:syn,
+  rate:22050,
+  reverseChance:.5,
+  mix:1
+}).connect()
+```
+
+####Properties####
+###shuffler.rate###
+*int* Default:22050. Determines how often the shuffler should potentially shuffle. 
+###shuffler.chance###
+*float* Default:.25. The likelihood that shuffling will occur for any given window.
+*int* Default:22050. Determines how often the shuffler should potentially shuffle. 
+###shuffler.reverseChance###
+*float* Default:.5. The likelihood that the buffer will play in reverse when it is shuffling.
+###shuffler.repitchChance###
+*float* Default:.5. The likelihood that the buffer will play at a speed that isn't `1` (or `-1` if `reverseChance` is greater than `0`).
+###shuffler.repitchMin###
+*float* Default:.5. The minimum rate for buffer playback if repitching occurs.
+###shuffler.repitchMax###
+*float* Default:2. The maximum rate for buffer playback if repitching occurs.
+###shuffler.mix###
+*float* Default:.5. The mix between the dry and wet signal. a value of`0` means only the dry signal is outputted, a value of `1` means only the wet signal is outputted.
 
 Chorus
 ----

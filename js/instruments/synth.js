@@ -33,7 +33,7 @@ module.exports = function( Gibberish ) {
       }
     }
     
-    syn.__requiresRecompilation = [ 'waveform', 'antialias', 'filterType' ]
+    syn.__requiresRecompilation = [ 'waveform', 'antialias', 'filterType','filterMode' ]
     syn.__createGraph()
 
     Gibberish.factory( syn, syn.graph, 'synth', props  )
@@ -60,11 +60,12 @@ module.exports = function( Gibberish ) {
     Q:.25,
     cutoff:2500,
     filterType:0,
+    filterMode:0,
     isLowPass:1
   }
 
   // do not include velocity, which shoudl always be per voice
-  let PolySynth = Gibberish.PolyTemplate( Synth, ['frequency','attack','decay','pulsewidth','pan','gain','glide', 'saturation', 'filterMult', 'Q', 'cutoff', 'resonance', 'antialias', 'filterType', 'waveform'] ) 
+  let PolySynth = Gibberish.PolyTemplate( Synth, ['frequency','attack','decay','pulsewidth','pan','gain','glide', 'saturation', 'filterMult', 'Q', 'cutoff', 'resonance', 'antialias', 'filterType', 'waveform', 'filterMode'] ) 
 
   return [ Synth, PolySynth ]
 

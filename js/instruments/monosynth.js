@@ -49,7 +49,7 @@ module.exports = function( Gibberish ) {
       }
     }
 
-    syn.__requiresRecompilation = [ 'waveform', 'antialias', 'filterType' ]
+    syn.__requiresRecompilation = [ 'waveform', 'antialias', 'filterType', 'filterMode' ]
     syn.__createGraph()
 
     Gibberish.factory( syn, syn.graph, 'mono', props )
@@ -76,6 +76,7 @@ module.exports = function( Gibberish ) {
     glide: 1,
     antialias:false,
     filterType: 2,
+    filterMode: 0, // 0 = LP, 1 = HP, 2 = BP, 3 = Notch
     saturation:.5,
     filterMult: 1000,
     isLowPass:true
@@ -83,7 +84,7 @@ module.exports = function( Gibberish ) {
 
   let PolyMono = Gibberish.PolyTemplate( Synth, 
     ['frequency','attack','decay','cutoff','Q',
-     'detune2','detune3','pulsewidth','pan','gain', 'glide', 'saturation', 'filterMult',  'antialias', 'filterType', 'waveform']
+     'detune2','detune3','pulsewidth','pan','gain', 'glide', 'saturation', 'filterMult',  'antialias', 'filterType', 'waveform', 'filterMode']
   ) 
 
   return [ Synth, PolyMono ]

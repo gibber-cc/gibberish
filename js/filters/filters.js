@@ -15,7 +15,7 @@ module.exports = function( Gibberish ) {
       AllPass     : require( './allpass.js' )
     },
 
-    factory( input, cutoff, resonance, saturation = null, props, isStereo = false ) {
+    factory( input, cutoff, resonance, saturation = null, _props, isStereo = false ) {
       let filteredOsc 
 
       //if( props.filterType === 1 ) {
@@ -26,11 +26,12 @@ module.exports = function( Gibberish ) {
       //    props.filterMult = .1
       //  }
       //}
+      let props = Object.assign({}, filters.defaults, _props )
 
       switch( props.filterType ) {
         case 1:
           isLowPass = g.param( 'lowPass', 1 ),
-          filteredOsc = g.filter24( input, g.in('Q'), cutoff, isLowPass, isStereo )
+          filteredOsc = g.filter24( input, g.in('Q'), cutoff, props.filterMode, isStereo )
           break;
         case 2:
           filteredOsc = g.zd24( input, g.in('Q'), cutoff )
@@ -38,6 +39,12 @@ module.exports = function( Gibberish ) {
         case 3:
           filteredOsc = g.diodeZDF( input, g.in('Q'), cutoff, g.in('saturation'), isStereo ) 
           break;
+        case 4:
+          filteredOsc = g.svf( input, cutoff, g.sub( 1, g.in('Q')), props.filterMode, isStereo ) 
+          break; 
+        case 5:
+          filteredOsc = g.biquad( input, cutoff,  g.in('Q'), props.filterMode, isStereo ) 
+          break; 
         default:
           // return unfiltered signal
           filteredOsc = input //g.filter24( oscWithGain, g.in('resonance'), cutoff, isLowPass )
@@ -45,7 +52,9 @@ module.exports = function( Gibberish ) {
       }
 
       return filteredOsc
-    } 
+    },
+
+    defaults: { filterMode: 0, filterType:0 }
   }
 
   filters.export = target => {
