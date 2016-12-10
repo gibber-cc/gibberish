@@ -4,13 +4,13 @@ let g = require( 'genish.js' ),
 module.exports = function( Gibberish ) {
  
 let Flanger = inputProps => {
-  let props   = Object.assign( {}, Flanger.defaults, inputProps ),
+  let props   = Object.assign( { delayLength:44100 }, Flanger.defaults, inputProps ),
       flanger = Object.create( effect )
 
   let isStereo = props.input.isStereo !== undefined ? props.input.isStereo : true 
   
   let input = g.in( 'input' ),
-      delayLength = 44100,
+      delayLength = props.delayLength,
       feedbackCoeff = g.in( 'feedback' ),
       modAmount = g.in( 'offset' ),
       frequency = g.in( 'frequency' ),
@@ -20,11 +20,13 @@ let Flanger = inputProps => {
   let writeIdx = g.accum( 1,0, { min:0, max:delayLength, interp:'none', mode:'samples' })
   
   let offset = g.mul( modAmount, 500 )
+
+  let mod = props.mod === undefined ? g.cycle( frequency ) : props.mod
   
   let readIdx = g.wrap( 
     g.add( 
       g.sub( writeIdx, offset ), 
-      g.mul( g.cycle( frequency ), g.sub( offset, 1 ) ) 
+      mod//g.mul( mod, g.sub( offset, 1 ) ) 
     ), 
 	  0, 
     delayLength

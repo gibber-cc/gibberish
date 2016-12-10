@@ -21,8 +21,8 @@ bassSeq = Sequencer({
 
 // create a simple gui using dat.GUI
 gui = new dat.GUI({ width: 400 }) 
-gui.add( bass, 'cutoff', 44, 8192 )
-gui.add( bass, 'filterMult', 0, 8192 )
+gui.add( bass, 'cutoff', 0, 1  )
+gui.add( bass, 'filterMult', 0, 4 )
 gui.add( bass, 'Q', 0, 1 )
 gui.add( bass, 'saturation', 1, 10 )
 gui.add( bass, 'attack', 44, 8192 )

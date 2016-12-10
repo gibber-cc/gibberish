@@ -645,7 +645,42 @@ Chorus
 ----
 *Prototype: [Gibberish.prototypes.effect](#prototypes-effect)*
 
-The `Chorus` effect. TODO: Not currently implemented.   
+The `Chorus` effect is modeled after the ensemble effect found in the [Arp Solina-5 String Ensemble](https://www.youtube.com/watch?v=9iqZg0LQTWg) (based on a [Csound opcode by Steven Yi](https://github.com/kunstmusik/libsyi/blob/master/solina_chorus.udo). In this model, six parabolic oscillators are used (twelve when the effect is used with a stereo input) to modulate three delay lines (six in stereo). Three of the six oscillators are running at a "slow" speed (roughly .1 - .5 Hz) with individual phase offsets, to gradually create pitch fluctuations over time. The other three are running at a "fast" speed (roughly 2 to 8 Hz), again with individual phase offsets, to create vibrato. You can adjust amplitude and frequency of the three "slow" oscillators using the `slowFrequency` and `slowGain` properties, while the vibrato can be adjusted via `fastFrequency` and `fastGain`.
+
+```javascript
+syn = PolySynth({ waveform:'square', attack:44100 / 2, decay:88200 * 1.5, antialias:true, gain:.25 })
+chorus = Chorus({ input: syn, slowGain:2 }).connect()
+verb = Freeverb({ input: chorus, roomSize: .9, damping:.5 }).connect()
+
+baseChord = [55,110,220,330,440,520]
+
+seq = Sequencer.make( 
+  [ 
+    baseChord, 
+    baseChord.map( v=> v * 1.2 ), 
+    baseChord.map( v=> v * .8  ), 
+    baseChord.map( v=> v * .95 )
+  ], 
+  [88200 * 2],
+  syn, 
+  'chord' 
+).start()
+
+kick = Kick().connect()
+kickseq = Sequencer.make( [110], [22050], kick, 'note' ).start()
+```
+
+####Properties####
+###chorus.input###
+*ugen* The unit generator that feeds the effect. Assign a `Bus` or `Bus2` instance to this property if you want multiple unit generators to connect to this effect.
+###chorus.slowFrequency###
+*float* Default: .18. The frequency of the phasor that modulates the read position of the three 'slow' delay lines, which create more gradual pitch fluctuations over time.
+###chorus.slowAmp###
+*float* Default: 1. Controls the amount of delay line modulation for the three 'slow' delay lines.
+###chorus.fastFrequency###
+*float* Default: .18. The frequency of the phasor that modulates the read position of the three 'fast' delay lines, which combine to create a vibrato effect. 
+###chorus.fastAmp###
+*float* Default: 1. Controls the amount of delay line modulation for the three 'fast' delay lines.
 
 Delay
 ----

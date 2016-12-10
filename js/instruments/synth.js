@@ -20,7 +20,8 @@ module.exports = function( Gibberish ) {
       let oscWithEnv = g.mul( g.mul( osc, env, loudness ) ),
           panner
   
-      let cutoff = g.add( g.in('cutoff'), g.mul( g.in('filterMult'), env ) )
+      const baseCutoffFreq = g.mul( g.in('cutoff'), frequency )
+      let cutoff = g.mul( g.mul( baseCutoffFreq, g.pow( 2, g.in('filterMult') )), env )
       const filteredOsc = Gibberish.filters.factory( oscWithEnv, cutoff, g.in('Q'), g.in('saturation'), props )
 
       let synthWithGain = g.mul( filteredOsc, g.in( 'gain' ) )
@@ -56,9 +57,9 @@ module.exports = function( Gibberish ) {
     loudness:1,
     glide:1,
     saturation:1,
-    filterMult:1000,
+    filterMult:2,
     Q:.25,
-    cutoff:2500,
+    cutoff:.5,
     filterType:0,
     filterMode:0,
     isLowPass:1

@@ -1,72 +1,76 @@
 let g = require( 'genish.js' ),
-    allPass = require( './allpass.js' ),
-    combFilter = require( './combfilter.js' )
+    effect = require( './effect.js' )
 
 module.exports = function( Gibberish ) {
  
-let tuning = {
-  combCount:	  	8,
-  combTuning: 		[ 1116, 1188, 1277, 1356, 1422, 1491, 1557, 1617 ],                    
-  allPassCount: 	4,
-  allPassTuning:	[ 225, 556, 441, 341 ],
-  allPassFeedback:0.5,
-  fixedGain: 		  0.015,
-  scaleDamping: 	0.4,
-  scaleRoom: 		  0.28,
-  offsetRoom: 	  0.7,
-  stereoSpread:   23
-}
+let Chorus = inputProps => {
+  const props = Object.assign({}, Chorus.defaults, inputProps )
+  
+  const chorus = Object.create( Gibberish.prototypes.ugen )
 
-let Freeverb = props => {
-  let isStereo = Array.isArray( props.input )
-  
-  let combsL = [], combsR = []
+  const input = g.in('input'),
+        freq1 = g.in('slowFrequency'),
+        freq2 = g.in('fastFrequency'),
+        amp1  = g.in('slowGain'),
+        amp2  = g.in('fastGain')
 
-  let input = g.in( 'input' ),
-      wet1 = g.in( 'wet1'), wet2 = g.in( 'wet2' ),  dry = g.in( 'dry' ), 
-      roomSize = g.in( 'roomSize' ), damping = g.in( 'damping' )
+  const isStereo = props.input.isStereo !== undefined ? props.input.isStereo : true 
+
+  const leftInput = isStereo ? input[0] : input
+
+  const win0   = g.env( 'inversewelch', 1024 ),
+        win120 = g.env( 'inversewelch', 1024, 0, .333 ),
+        win240 = g.env( 'inversewelch', 1024, 0, .666 )
   
-  let summedInput = isStereo === false ? g.add( input[0], input[1] ) : input,
-      attenuatedInput = g.memo( g.mul( summedInput, tuning.fixedGain ) )
+  const slowPhasor = g.phasor( freq1, 0, { min:0 }),
+  		  slowPeek1  = g.mul( g.peek( win0,   slowPhasor ), amp1 ),
+        slowPeek2  = g.mul( g.peek( win120, slowPhasor ), amp1 ),
+        slowPeek3  = g.mul( g.peek( win240, slowPhasor ), amp1 )
   
-  // create comb filters in parallel...
-  for( let i = 0; i < 8; i++ ) { 
-    combsL.push( 
-      combFilter( attenuatedInput, tuning.combTuning[i], mul(damping,.4), g.mul( tuning.scaleRoom + tuning.offsetRoom, roomSize ) ) 
-    )
-    combsR.push( 
-      combFilter( attenuatedInput, tuning.combTuning[i] + tuning.stereoSpread, g.mul(damping,.4), g.mul( tuning.scaleRoom + tuning.offsetRoom, roomSize ) ) 
-    )
+  const fastPhasor = g.phasor( freq2, 0, { min:0 }),
+  	  	fastPeek1  = g.mul( g.peek( win0,   fastPhasor ), amp2 ),
+        fastPeek2  = g.mul( g.peek( win120, fastPhasor ), amp2 ),
+        fastPeek3  = g.mul( g.peek( win240, fastPhasor ), amp2 )
+
+  const ms = Gibberish.ctx.sampleRate / 1000 
+  const maxDelayTime = 100 * ms
+
+  const time1 =  g.mul( g.add( slowPeek1, fastPeek1, 5 ), ms ),
+        time2 =  g.mul( g.add( slowPeek2, fastPeek2, 5 ), ms ),
+        time3 =  g.mul( g.add( slowPeek3, fastPeek3, 5 ), ms )
+
+  const delay1L = g.delay( leftInput, time1, { size:maxDelayTime }),
+        delay2L = g.delay( leftInput, time2, { size:maxDelayTime }),
+        delay3L = g.delay( leftInput, time3, { size:maxDelayTime })
+
+  const leftOutput = g.div( g.add( delay1L, delay2L, delay3L ), 3 )
+
+  if( isStereo ) {
+    const rightInput = input[1]
+    const delay1R = g.delay(rightInput, time1, { size:maxDelayTime }),
+          delay2R = g.delay(rightInput, time2, { size:maxDelayTime }),
+          delay3R = g.delay(rightInput, time3, { size:maxDelayTime })
+
+    const rightOutput = g.div( g.add( delay1R, delay2R, delay3R ), 3 )
+
+    chorus.graph = [ leftOutput, rightOutput ]
+  }else{
+    chorus.graph = leftOutput
   }
   
-  // ... and sum them with attenuated input
-  let outL = g.add( attenuatedInput, ...combsL )
-  let outR = g.add( attenuatedInput, ...combsR )
-  
-  // run through allpass filters in series
-  for( let i = 0; i < 4; i++ ) { 
-    outL = allPass( outL, tuning.allPassTuning[ 0 ] + tuning.stereoSpread )
-    outR = allPass( outR, tuning.allPassTuning[ 0 ] + tuning.stereoSpread )
-  }
-  
-  let outputL = g.add( g.mul( outL, wet1 ), g.mul( outR, wet2 ), g.mul( isStereo === false ? input[0] : input, dry ) ),
-      outputR = g.add( g.mul( outR, wet1 ), g.mul( outL, wet2 ), g.mul( isStereo === false ? input[1] : input, dry ) )
+  Gibberish.factory( chorus, chorus.graph, 'chorus', props )
 
-  let verb = Gibberish.factory( [ outputL, outputR ], 'freeverb', Object.assign({}, Freeverb.defaults, props) )
-
-  return verb
+  return chorus
 }
 
-
-Freeverb.defaults = {
+Chorus.defaults = {
   input:0,
-  wet1: 1,
-  wet2: 0,
-  dry: .5,
-  roomSize: .84,
-  damping:  .5
+  slowFrequency: .18,
+  slowGain:1,
+  fastFrequency:6,
+  fastGain:.2
 }
 
-return Freeverb 
+return Chorus
 
 }

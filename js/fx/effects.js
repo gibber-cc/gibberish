@@ -8,6 +8,7 @@ module.exports = function( Gibberish ) {
     BitCrusher  : require( './bitCrusher.js')( Gibberish ),
     RingMod     : require( './ringMod.js'   )( Gibberish ),
     Tremolo     : require( './tremolo.js'   )( Gibberish ),
+    Chorus      : require( './chorus.js'    )( Gibberish ),
     Shuffler    : require( './bufferShuffler.js'  )( Gibberish )
   }
 

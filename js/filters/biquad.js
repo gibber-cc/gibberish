@@ -10,7 +10,7 @@ module.exports = function( Gibberish ) {
 
     let returnValue
     
-    const Q = g.memo( g.mul( _Q, 22 ) )
+    const Q = g.memo( g.add( .5, g.mul( _Q, 22 ) ) )
     let x1 = g.history(), x2 = g.history(), y1 = g.history(), y2 = g.history()
     
     let w0 = g.memo( g.mul( 2 * Math.PI, g.div( cutoff,  g.gen.samplerate ) ) ),
@@ -92,15 +92,22 @@ module.exports = function( Gibberish ) {
 
   let Biquad = inputProps => {
     let biquad = Object.create( filter )
-    let props = Object.assign( {}, Biquad.defaults, inputProps ) 
+    Object.assign( biquad, Biquad.defaults, inputProps ) 
 
-    let isStereo = props.input.isStereo
+    let isStereo = biquad.input.isStereo
+
+    biquad.__createGraph = function() {
+      biquad.graph = Gibberish.genish.biquad( g.in('input'), g.in('cutoff'), g.in('Q'), biquad.mode, isStereo )
+    }
+
+    biquad.__createGraph()
+    biquad.__requiresRecompilation = [ 'mode' ]
 
     Gibberish.factory(
       biquad,
-      Gibberish.genish.biquad( g.in('input'), g.in('cutoff'), g.in('Q'), props.mode || 'LP', isStereo ), 
+      biquad.graph,
       'biquad', 
-      props
+      biquad
     )
 
     return biquad
@@ -108,7 +115,7 @@ module.exports = function( Gibberish ) {
 
   Biquad.defaults = {
     input:0,
-    Q: .75,
+    Q: .15,
     cutoff:550,
     mode:0
   }

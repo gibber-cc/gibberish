@@ -36,9 +36,11 @@ module.exports = function( Gibberish ) {
 
       let oscSum = g.add( ...oscs ),
           oscWithGain = g.mul( g.mul( oscSum, env ), g.in( 'gain' ) ),
-          cutoff = g.add( g.in('cutoff'), g.mul( g.in('filterMult'), env ) ),
+          //cutoff = g.add( g.in('cutoff'), g.mul( g.in('filterMult'), env ) ),
           filteredOsc, panner
 
+      const baseCutoffFreq = g.mul( g.in('cutoff'), frequency )
+      let cutoff = g.mul( g.mul( baseCutoffFreq, g.pow( 2, g.in('filterMult') )), env )
       filteredOsc = Gibberish.filters.factory( oscWithGain, cutoff, g.in('Q'), g.in('saturation'), syn )
         
       if( props.panVoices ) {  
@@ -69,16 +71,16 @@ module.exports = function( Gibberish ) {
     pan: .5,
     detune2:.005,
     detune3:-.005,
-    cutoff: 2500,
+    cutoff: 1,
     resonance:.25,
-    Q: .25,
+    Q: .5,
     panVoices:false,
     glide: 1,
     antialias:false,
     filterType: 2,
     filterMode: 0, // 0 = LP, 1 = HP, 2 = BP, 3 = Notch
     saturation:.5,
-    filterMult: 1000,
+    filterMult: 4,
     isLowPass:true
   }
 

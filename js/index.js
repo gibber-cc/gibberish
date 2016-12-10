@@ -119,6 +119,7 @@ let Gibberish = {
 
     callbackBody = this.processGraph( this.output )
     lastLine = callbackBody[ callbackBody.length - 1]
+    callbackBody.unshift( "\t'use strict';" )
 
     this.analyzers.forEach( v=> {
       const analysisBlock = Gibberish.processUgen( v )
