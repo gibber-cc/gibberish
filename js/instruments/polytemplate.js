@@ -38,6 +38,7 @@ module.exports = function( Gibberish ) {
         properties
       })
 
+      properties.panVoices = properties.isStereo
       synth.callback.ugenName = synth.ugenName
 
       for( let i = 0; i < synth.maxVoices; i++ ) {

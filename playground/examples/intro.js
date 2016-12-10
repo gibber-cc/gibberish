@@ -1,4 +1,3 @@
-
 /* Gibberish.js - Demo Introduction
  * Select all code and hit ctrl+enter to run.
  * Ctrl+. (period) stops all sound. 
@@ -12,15 +11,15 @@ verb = Freeverb({ input:Bus2(), roomSize:.975, damping:.5 }).connect()
 
 /*** bassline ***/
 bass = Synth({ 
-  gain:.35, 
+  gain:.5, 
   attack:44, 
   decay: 5512,
-  Q:.825, // CAREFUL!!!
+  Q:.8, // CAREFUL!!!
   filterType:3,
-  saturation:5,
-  filterMult:880,
+  saturation:2,
+  filterMult:3.25,
   antialias:true,
-  cutoff: Add( 880, Sine({ frequency:.1, gain:770 }) )
+  cutoff: Add( 1, Sine({ frequency:.1, gain:.75 }) )
 })
 .connect( Gibberish.output )
 .connect( verb.input, .5 )
@@ -54,25 +53,24 @@ snareSeq = Sequencer({
 }).start( beat ) // delay start by one beat so snare aligns with beats 2 & 4
 /*** end drums ***/	
 
-/*** chords (via FM synthesis ***/
-fm = PolyFM({
-  cmRatio : 1 / 1.0007,
-  index	  : 20,
-  attack  : beat * 4,
+/*** start chords ***/
+chords = PolySynth({
+  attack: 44, decay: beat*10,  
   decay	  : beat * 4,
-  gain:   .025,
-  attack: 44, decay: beat*8,
-  panVoices:true,
+  gain:   .075,
   maxVoices:3,
-  glide:20000,
-  pan : Add( .5, Sine({ frequency:2, gain:.5 }) )
+  glide:15000,
+  waveform:'pwm',
+  pulsewidth:Add( .35, Sine({ frequency:.35, gain:.3 }) ),
+  pan : Add( .5, Sine({ frequency:1, gain:.35 }) )
 })
- 
-flange = Flanger({ input: fm, frequency:.5, offset:.55 })
-  .connect( Gibberish.output ).connect( verb.input )
- 
-fmSeq = Sequencer({
-  target:fm,
+
+chorus = Chorus({ input: chords, slowGain:8, fastFrequency:4, fastGain:1  })
+  .connect( Gibberish.output )
+  .connect( verb.input )
+
+chordsSeq = Sequencer({
+  target:chords,
   key:'chord',
   values:[[440, 550, 660]],
   timings:[beat * 16]
@@ -81,12 +79,12 @@ fmSeq = Sequencer({
 
 /*** harmony... affects bass line and chords ***/
 modulateDown = ()=> {
-  fmSeq.values[0] = fmSeq.values[0].map( v => v * .8 )
+  chordsSeq.values[0] = chordsSeq.values[0].map( v => v * .8 )
   bassSeq.values  = bassSeq.values.map(  v => v * .8 )
 }
 
 modulateUp = ()=> {
-  fmSeq.values[0] = fmSeq.values[0].map( v => v * 1.25 )
+  chordsSeq.values[0] = chordsSeq.values[0].map( v => v * 1.25 )
   bassSeq.values  = bassSeq.values.map(  v => v * 1.25 )
 }
 

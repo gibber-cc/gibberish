@@ -66,7 +66,7 @@ seq.timings[0] /= 2
 Gibberish.clear()
 
 // Synth2 comes with an osc, filter, and attack/decay envelope
-synth = Synth2({ attack:44, decay: 5512 }).connect()
+synth = Synth({ filterType:2, attack:44, decay: 5512 }).connect()
 
 // make a reverb effect using the Freeverb algorithm
 verb = Freeverb({ input:synth, roomSize:.975, damping:.5 }).connect()
@@ -85,5 +85,5 @@ seq.start()
 
 // modulate our synth's cutoff frequency, which is in the range
 // of 0..1
-synth.cutoff = Add( .4, Sine({ frequency:.1, gain:.375 }) )
-synth.resonance = 4
+synth.cutoff = Add( .75, Sine({ frequency:.1, gain:.375 }) )
+synth.Q = .7

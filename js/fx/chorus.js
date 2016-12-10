@@ -14,7 +14,7 @@ let Chorus = inputProps => {
         amp1  = g.in('slowGain'),
         amp2  = g.in('fastGain')
 
-  const isStereo = props.input.isStereo !== undefined ? props.input.isStereo : true 
+  const isStereo = typeof props.input.isStereo !== 'undefined' ? props.input.isStereo : true 
 
   const leftInput = isStereo ? input[0] : input
 
@@ -43,16 +43,16 @@ let Chorus = inputProps => {
         delay2L = g.delay( leftInput, time2, { size:maxDelayTime }),
         delay3L = g.delay( leftInput, time3, { size:maxDelayTime })
 
-  const leftOutput = g.div( g.add( delay1L, delay2L, delay3L ), 3 )
-
+  
+  const leftOutput = g.add( delay1L, delay2L, delay3L )
   if( isStereo ) {
     const rightInput = input[1]
     const delay1R = g.delay(rightInput, time1, { size:maxDelayTime }),
           delay2R = g.delay(rightInput, time2, { size:maxDelayTime }),
           delay3R = g.delay(rightInput, time3, { size:maxDelayTime })
 
+    // flip a couple delay lines for stereo effect?
     const rightOutput = g.div( g.add( delay1R, delay2R, delay3R ), 3 )
-
     chorus.graph = [ leftOutput, rightOutput ]
   }else{
     chorus.graph = leftOutput
