@@ -6,7 +6,7 @@ module.exports = function( Gibberish ) {
   let Hat = argumentProps => {
     let hat = Object.create( instrument ),
         tune  = g.in( 'tune' ),
-        scaledTune = g.memo( g.add( .5, tune ) ),
+        scaledTune = g.memo( g.add( .4, tune ) ),
         decay  = g.in( 'decay' ),
         gain  = g.in( 'gain' )
 
@@ -38,7 +38,7 @@ module.exports = function( Gibberish ) {
   
   Hat.defaults = {
     gain:  1,
-    tune: .5,
+    tune: .6,
     decay:.1,
   }
 

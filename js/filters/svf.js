@@ -5,7 +5,7 @@ module.exports = function( Gibberish ) {
   Gibberish.genish.svf = ( input, cutoff, Q, mode, isStereo ) => {
     let d1 = g.data([0,0], 1, { meta:true }), d2 = g.data([0,0], 1, { meta:true }),
         peekProps = { mode:'simple', interp:'none' }
-    
+
     let f1 = g.memo( g.mul( 2 * Math.PI, g.div( cutoff, g.gen.samplerate ) ) )
     let oneOverQ = g.memo( g.div( 1, Q ) )
     let l = g.memo( g.add( d2[0], g.mul( f1, d1[0] ) ) ),
@@ -48,7 +48,7 @@ module.exports = function( Gibberish ) {
     // XXX NEEDS REFACTORING
     Gibberish.factory( 
       svf,
-      Gibberish.genish.svf( g.in('input'), g.in('cutoff'), g.sub( 1, g.in('Q') ), g.in('mode'), isStereo ), 
+      Gibberish.genish.svf( g.in('input'), g.mul( g.in('cutoff'), g.gen.samplerate / 5 ), g.sub( 1, g.in('Q') ), g.in('mode'), isStereo ), 
       'svf', 
       props
     )
@@ -60,7 +60,7 @@ module.exports = function( Gibberish ) {
   SVF.defaults = {
     input:0,
     Q: .75,
-    cutoff:550,
+    cutoff:.35,
     mode:0
   }
 

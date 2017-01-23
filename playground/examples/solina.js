@@ -40,7 +40,7 @@ kickseq = Sequencer.make( [80], [22050], kick, 'note' ).start()
 chorus.slowGain = 2
 
 // decrease the speed of the "fast", or vibrato, modulation
-chorus.fastFrequency = 2
+chorus.fastFrequency = 6
 
 // get intense
 chorus.slowGain = 4

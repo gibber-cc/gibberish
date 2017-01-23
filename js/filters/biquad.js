@@ -97,7 +97,7 @@ module.exports = function( Gibberish ) {
     let isStereo = biquad.input.isStereo
 
     biquad.__createGraph = function() {
-      biquad.graph = Gibberish.genish.biquad( g.in('input'), g.in('cutoff'), g.in('Q'), biquad.mode, isStereo )
+      biquad.graph = Gibberish.genish.biquad( g.in('input'), g.mul( g.in('cutoff'), g.gen.samplerate / 4 ),  g.in('Q'), biquad.mode, isStereo )
     }
 
     biquad.__createGraph()
@@ -116,7 +116,7 @@ module.exports = function( Gibberish ) {
   Biquad.defaults = {
     input:0,
     Q: .15,
-    cutoff:550,
+    cutoff:.05,
     mode:0
   }
 

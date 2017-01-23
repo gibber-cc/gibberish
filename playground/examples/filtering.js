@@ -15,7 +15,7 @@ osc = Saw()
 filter = Filter12Biquad({ input:osc }).connect()
 
 //cutoff on all filters is measured in Hz
-filter.cutoff = Add( 880, Sine({ frequency:.5, gain:770 }) )
+filter.cutoff = Add( .4, Sine({ frequency:.5, gain:.25 }) )
 
 /* Q on all filters is measured from 0-1.
  * BEWARE! Using high Q values (above .6) can results in massive
@@ -51,6 +51,6 @@ seq = Sequencer.make( [110,165,220], [11025], syn, 'note' ).start()
  * travel between 110-1110 Hz over the envelope.
  */
 
-syn.cutoff = 110
+syn.cutoff = .65
 syn.filterMult *= 2
 

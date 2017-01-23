@@ -56,7 +56,6 @@ snareSeq = Sequencer({
 /*** start chords ***/
 chords = PolySynth({
   attack: 44, decay: beat*10,  
-  decay	  : beat * 4,
   gain:   .075,
   maxVoices:3,
   glide:15000,

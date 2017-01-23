@@ -15,12 +15,15 @@
       color:#ddd;
       font-family: Helvetica Neue, sans-serif;
       background:rgba(46,50,53,1);
+      box-sizing:border-box !important;
     }
 
     #header { 
       width:100%; 
       height:3em; 
       border-bottom:1px solid #666;
+      padding-left:1em;
+      box-sizing:border-box;
     }
 
     select{ 
@@ -46,8 +49,8 @@
 
     #header span { font-size: .8em; }
 
-    #editor { width:60%; box-sizing: border; display:inline-block; height:calc( 100% - 2em); border-right:1px solid #666  }
-    #console{ width:40%; box-sizing:border; display:inline-block; background:grey; position:absolute; height:calc( 100% - 2em ); }
+    #editor { width:60%; box-sizing:border-box; display:inline-block; height:calc( 100% - 3em); border-right:1px solid #666; padding-left:1em  }
+    #console{ width:40%; box-sizing:border-box; display:inline-block; position:absolute; height:calc( 100% - 3em ); padding-left:1em }
 
     .dg { z-index:100 !important }
     #reference a{ color: #ccc !important; margin-left: 2em }
