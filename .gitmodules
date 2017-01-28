@@ -1,0 +1,3 @@
+[submodule "lib/Gibberish"]
+	path = lib/Gibberish
+	url = https://github.com/lmcooper/Gibberish
