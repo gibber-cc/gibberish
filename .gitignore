@@ -45,3 +45,7 @@ Thumbs.db
 # TextMate #
 ############
 .tm_properties
+
+#vim#
+*.swp
+*~

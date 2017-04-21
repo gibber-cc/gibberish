@@ -16,7 +16,10 @@
     "gulp-babel": "^6.1.2",
     "gulp-buffer": "^0.0.2",
     "gulp-mocha": "^2.2.0",
+    "gulp-rename": "^1.2.2",
     "memory-helper": "^1.1.0",
+    "path": "^0.12.7",
+    "through2": "^2.0.3",
     "vinyl-source-stream": "^1.1.0"
   },
   "repository": {
@@ -32,8 +35,7 @@
     "DSP"
   ],
   "author": "Charlie Roberts",
-  "contributors": [
-  ],
+  "contributors": [],
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/charlieroberts/Gibberish/issues"

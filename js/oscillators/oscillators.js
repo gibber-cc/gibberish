@@ -14,6 +14,11 @@ module.exports = function( Gibberish ) {
       }
     },
 
+    genish: {
+      Brown: require( './brownnoise.js' ),
+      Pink:  require( './pinknoise.js'  )
+    },
+
     Wavetable: require( './wavetable.js' )( Gibberish ),
     
     Square( inputProps ) {
@@ -50,9 +55,21 @@ module.exports = function( Gibberish ) {
 
     Noise( inputProps ) {
       const noise = Object.create( ugen )
-      const props = Object.assign( {}, { gain: 1 }, inputProps )
-      const graph = g.mul( g.noise(), g.in('gain') )
-        
+      const props = Object.assign( {}, { gain: 1, color:'white' }, inputProps )
+      let graph 
+
+      switch( props.color ) {
+        case 'brown':
+          graph = g.mul( Oscillators.genish.Brown(), g.in('gain') )
+          break;
+        case 'pink':
+          graph = g.mul( Oscillators.genish.Pink(), g.in('gain') )
+          break;
+        default:
+          graph = g.mul( g.noise(), g.in('gain') )
+          break;
+      }
+
       Gibberish.factory( noise, graph, 'noise', props )
 
       return noise

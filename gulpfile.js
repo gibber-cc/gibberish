@@ -5,9 +5,14 @@ var gulp = require('gulp'),
     buffer     = require('gulp-buffer'),
     source     = require('vinyl-source-stream'),
     babelify   = require('babelify'),
-    mocha      = require('gulp-mocha')
+    mocha      = require('gulp-mocha'),
+    jsdsp      = require('jsdsp'),
+    rename     = require('gulp-rename'),
+    path       = require('path'),
+    through    = require('through2')
 
-gulp.task( 'js', function() {
+// browserify
+gulp.task( 'js', ['jsdsp'], function() {
   browserify({ debug:true, standalone:'Gibberish' })
     .require( './js/index.js', { entry: true } )
     //.transform( babelify, { presets:['es2015'] }) 
@@ -22,22 +27,37 @@ gulp.task( 'js', function() {
     //    onLast:true
     //  }) 
     //)
-  
-  // transpile (but don't browserify) for use with node.js tests
-  //return gulp.src( './js/**.js' )
-  //  .pipe( babel({ presets:['es2015'] }) )
-  //  .pipe( gulp.dest('./dist' ) )
-
 })
 
+// convert .jsdsp into .js files
+gulp.task( 'jsdsp', ()=> {
+  gulp.src( './js/**/*.jsdsp', { base:'./' })
+      .pipe( babel({ plugins:jsdsp }) )
+      .pipe( rename( path => path.ext = '.js' ) )
+      .pipe( gulp.dest('.') )
+})
+
+// run unit tests
 gulp.task( 'test', ['js'], ()=> {
   return gulp.src('tests/gen.tests.js', {read:false})
     .pipe( mocha({ reporter:'nyan' }) ) // spec, min, nyan, list
 })
 
-
+// file watcher
 gulp.task( 'watch', function() {
-  gulp.watch( './js/**.js', ['test'] )
+  gulp.watch( './js/**/*.js', ['test'] )
+
+  gulp.watch( './js/**/*.jsdsp', e => { 
+    let pathArr = e.path.split('/')
+    pathArr.pop()
+    pathArr = pathArr.join('/')
+
+    gulp.src( e.path )
+      .pipe( babel({ plugins:jsdsp }) )
+      .pipe( rename( path => path.ext = '.js' ) )
+      .pipe( gulp.dest(pathArr) )
+       
+  })
 })
 
 gulp.task( 'default', ['js','test'] )
