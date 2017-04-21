@@ -18,9 +18,8 @@
     "gulp-mocha": "^2.2.0",
     "gulp-rename": "^1.2.2",
     "memory-helper": "^1.1.0",
-    "path": "^0.12.7",
-    "through2": "^2.0.3",
-    "vinyl-source-stream": "^1.1.0"
+    "vinyl-source-stream": "^1.1.0",
+    "jsdsp": "^1.0.0"
   },
   "repository": {
     "type": "git",

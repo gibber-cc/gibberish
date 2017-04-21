@@ -7,9 +7,7 @@ var gulp = require('gulp'),
     babelify   = require('babelify'),
     mocha      = require('gulp-mocha'),
     jsdsp      = require('jsdsp'),
-    rename     = require('gulp-rename'),
-    path       = require('path'),
-    through    = require('through2')
+    rename     = require('gulp-rename')
 
 // browserify
 gulp.task( 'js', ['jsdsp'], function() {
