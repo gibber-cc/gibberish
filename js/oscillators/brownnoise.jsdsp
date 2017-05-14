@@ -3,7 +3,7 @@ const genish = require( 'genish.js' ),
       noise = genish.noise
 
 module.exports = function() {
-  const last = ssd(0)
+  const last = ssd( 0 )
 
   const white = ( noise() * 2 ) - 1
 
@@ -11,16 +11,7 @@ module.exports = function() {
 
   last.in( out )
 
-  out = out * 3.5
+  out *= 3.5
    
   return out
 }
-
-/*
-for (var i = 0; i < bufferSize; i++) {
-    var white = Math.random() * 2 - 1;
-    output[i] = (lastOut + (0.02 * white)) / 1.02;
-    lastOut = output[i];
-    output[i] *= 3.5; // (roughly) compensate for gain
-}
-*/

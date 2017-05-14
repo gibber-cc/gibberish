@@ -64,6 +64,7 @@ let Gibberish = {
     this.Sequencer2   = require( './scheduling/seq2.js' )( this );
     this.envelopes    = require( './envelopes/envelopes.js' )( this );
     this.ssd          = require( './analysis/singlesampledelay.js' )( this );
+    this.time         = require( './misc/time.js' )( this )
   },
 
   export( target, shouldExportGenish=false ) {
@@ -84,6 +85,7 @@ let Gibberish = {
     target.Bus2 = this.Bus2
     target.Scheduler = this.scheduler
     target.SSD = this.ssd
+    this.time.export( target )
   },
 
   print() {
