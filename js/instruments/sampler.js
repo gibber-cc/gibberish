@@ -24,7 +24,6 @@ module.exports = function( Gibberish ) {
 
     let start = g.in( 'start' ), end = g.in( 'end' ), 
         rate = g.in( 'rate' ), shouldLoop = g.in( 'loops' )
-
     /* create dummy ugen until data for sampler is loaded...
      * this will be overridden by a call to Gibberish.factory on load */
     syn.callback = function() { return 0 }
