@@ -46,7 +46,12 @@ As you can see, there are no calls to any objects in the generated callback, jus
 * gulp
 
 ## Building
-You need to have node.js installed. Then:
+You need to have node.js and gulp installed. Then:
+
+1. Run `npm install` in the top level directory
+2. Run `gulp` in the top level directory
+
+If you don't have gulp installed:
 
 1. Run `npm install` in the top level directory
 2. Run `npm install gulp-cli` in the top level directory
