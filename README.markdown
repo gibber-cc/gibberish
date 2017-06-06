@@ -50,7 +50,7 @@ You need to have node.js installed. Then:
 
 1. Run `npm install` in the top level directory
 2. Run `npm install gulp-cli` in the top level directory
-3. Run `./.node-modules/bin/gulp` in the top level directory
+3. Run `./node_modules/.bin/gulp` in the top level directory
 
 This will create both a minimized and un-minimized version of the library.
 
