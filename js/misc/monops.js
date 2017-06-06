@@ -29,6 +29,14 @@ module.exports = function( Gibberish ) {
 
       return pow
     },
+    Clamp( input, min, max ) {
+      const clamp = Object.create( ugen )
+      const graph = g.clamp( g.in('input'), g.in('min'), g.in(max) )
+      
+      Gibberish.factory( clamp, graph, 'clamp', Object.assign({}, Monops.defaults, { input, min, max }) )
+
+      return clamp
+    },
 
     Merge( input ) {
       const merger = Object.create( ugen )
