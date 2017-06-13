@@ -5,19 +5,20 @@ module.exports = function( Gibberish ) {
 
   let Bus = { 
     create() {
-      let output = new Float32Array( 1 )
+      let output = 0
 
       let bus = Object.create( ugen )
 
       Object.assign( bus, {
         callback() {
-          output[ 0 ] = 0
+          output = 0
 
           for( let i = 0, length = arguments.length; i < length; i++ ) {
             let input = arguments[ i ],
                 isArray = input instanceof Float32Array
 
-            output[ 0 ] += isArray ? input[ 0 ] : input
+            output += isArray ? input[ 0 ] : input
+
           }
 
           return output
