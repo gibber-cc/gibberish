@@ -12,6 +12,8 @@ module.exports = function( Gibberish ) {
         glide = g.in( 'glide' ),
         slidingFreq = g.slide( frequency, glide, glide )
 
+    syn.env = env
+
     let props = Object.assign( syn, Synth.defaults, inputProps )
 
     syn.__createGraph = function() {

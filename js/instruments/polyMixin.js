@@ -1,7 +1,9 @@
 module.exports = {
-  note( freq ) {
+  note( freq, gain ) {
     let voice = this.__getVoice__()
     Object.assign( voice, this.properties )
+    if( gain === undefined ) gain = this.gain
+    voice.gain = gain
     voice.note( freq )
     this.__runVoice__( voice, this )
     this.triggerNote = freq
@@ -49,7 +51,7 @@ module.exports = {
         }
       }
     }else{
-      envCheck = poly.envCheck( voice, poly )
+      envCheck = _poly.envCheck( voice, _poly )
     }
 
     Gibberish.blockCallbacks.push( envCheck )
