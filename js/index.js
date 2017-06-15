@@ -175,7 +175,9 @@ let Gibberish = {
     let memo = Gibberish.memoed[ ugen.ugenName ]
 
     if( memo !== undefined ) {
-      return memo 
+      return memo
+    } else if (ugen === true || ugen === false) {
+      throw "Why is ugen a boolean? [true] or [false]";
     } else if( ugen.block === undefined || dirtyIndex !== -1 ) {
   
       let line = `\tvar v_${ugen.id} = ` 
@@ -210,7 +212,9 @@ let Gibberish = {
 
         if( input !== undefined ) { 
           if( typeof input === 'number' ) {
-            line += input
+              line += input
+          } else if( typeof input === 'boolean' ) {
+              line += ""+input
           }else{
             //console.log( 'key:', key, 'input:', ugen.inputs, ugen.inputs[ key ] ) 
 

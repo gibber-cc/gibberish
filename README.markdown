@@ -7,7 +7,7 @@ Gibberish is different from other JavaScript audio libraries (such as [audiolib.
 ## Live Demo
 [http://www.charlie-roberts.com/gibberish][gibberish]
 
-##Input
+## Input
 ```javascript
 Gibberish.init();                   // convenience method to start audio callback
 Gibberish.Binops.export();          // export math functions into global namespace
@@ -24,7 +24,7 @@ reverb = new Gibberish.Reverb({ input:delay });  // create a reverb effect and f
 reverb.connect();                                // connect reverb to default master output
 ```
 
-##Output
+## Output
 ```javascript
 Gibberish.callback = function(input,sine_2, sine_4, delay_5, reverb_6, bus2_0){
   var v_10 = sine_2(5, 15);
@@ -39,18 +39,30 @@ Gibberish.callback = function(input,sine_2, sine_4, delay_5, reverb_6, bus2_0){
 
 As you can see, there are no calls to any objects in the generated callback, just functional, JIT-optimizable goodness.
 
-##Building
-You need to have node.js installed. Then:
+## Dependencies
+
+* node 6 or better
+* npm
+* gulp
+
+## Building
+You need to have node.js and gulp installed. Then:
 
 1. Run `npm install` in the top level directory
-2. Run 'node build/build' in the top level directory
+2. Run `gulp` in the top level directory
+
+If you don't have gulp installed:
+
+1. Run `npm install` in the top level directory
+2. Run `npm install gulp-cli` in the top level directory
+3. Run `./node_modules/.bin/gulp` in the top level directory
 
 This will create both a minimized and un-minimized version of the library.
 
-##Usage
+## Usage
 Gibberish uses the UMD pattern, so it can be used in node, with AMD, or via simple script tags. If used with script tags the `Gibberish` object will be exported into the global namespace.
 
-##Ugens
+## Ugens
 Gibberish has a long list of oscillators, fx, and synthesis algorithms built in.
 
 ### Oscillators
