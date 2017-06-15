@@ -33,6 +33,32 @@ window.onload = function() {
       environment.console.setValue( cb.toString() )
     }
   }
+
+  let select = document.querySelector( 'select' ),
+    files = [
+      'intro.js',
+      'introOld.js',
+      'filtering.js',
+      'solina.js',
+      'three03.js',
+    ]
+
+  select.onchange = function( e ) {
+    loadexample( files[ select.selectedIndex ] )
+  }
+
+  let loadexample = function( filename ) {
+    var req = new XMLHttpRequest()
+    req.open( 'GET', './examples/'+filename, true )
+    req.onload = function() {
+      var js = req.responseText
+      window.Environment.editor.setValue( js )
+    }
+
+    req.send()
+  }
+
+  loadexample( 'intro.js' )
 }
 
 const fixCallback = function( cb ) {

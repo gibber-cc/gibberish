@@ -65,7 +65,6 @@ chords = PolySynth({
 })
 
 chorus = Chorus({ input: chords, slowGain:8, fastFrequency:4, fastGain:1  })
-  .connect( Gibberish.output )
   .connect( verb.input )
 
 chordsSeq = Sequencer({

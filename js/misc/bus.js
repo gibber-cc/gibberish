@@ -4,46 +4,36 @@ let g = require( 'genish.js' ),
 module.exports = function( Gibberish ) {
 
   let Bus = { 
-    factory: null,//Gibberish.factory( g.add( 0 ) , 'bus', [ 0, 1 ]  ),
-
     create() {
+      let output = 0
+
       let bus = Object.create( ugen )
-      
-      bus.callback = function() {
-        let output = 0
-       // output[ 0 ] = output[ 1 ] = 0
 
-        for( let i = 0, length = arguments.length; i < length; i++ ) {
-          output += arguments[ i ]
-          //output[ 0 ] += input
-          //output[ 1 ] += input
-        }
+      Object.assign( bus, {
+        callback() {
+          output = 0
 
-        return output
-      }
+          for( let i = 0, length = arguments.length; i < length; i++ ) {
+            let input = arguments[ i ],
+                isArray = input instanceof Float32Array
 
-      bus.id = Gibberish.factory.getUID()
-      bus.dirty = true
-      bus.type = 'bus'
-      bus.ugenName = 'bus_' + bus.id
-      bus.inputs = []
-      bus.inputNames = []
+            output += isArray ? input[ 0 ] : input
 
-      bus.chain = ( target, level = 1 ) => {
-        this.connect( target, level )
-        return target
-      }
-
-      bus.disconnectUgen = ( ugen ) => {
-        let removeIdx = -1
-        for( let i = 0; i < this.inputs.length; i++ ) {
-          let input = this.inputs[ i ]
-
-          if( isNaN( input ) && ugen === input ) {
-            removeIdx = i
-            break;
           }
-        }
+
+          return output
+        },
+        id : Gibberish.factory.getUID(),
+        dirty : true,
+        type : 'bus',
+        inputs : [],
+        inputNames : [],
+      })
+
+      bus.ugenName = bus.callback.ugenName = 'bus_' + bus.id
+
+      bus.disconnectUgen = function( ugen ) {
+        let removeIdx = this.inputs.indexOf( ugen )
         
         if( removeIdx !== -1 ) {
           this.inputs.splice( removeIdx, 1 )

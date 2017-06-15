@@ -1,6 +1,6 @@
 <html>
   <head>
-    <title>Genish.js Playground</title>
+    <title>Gibberish.js Playground</title>
     <script src="../node_modules/codemirror/lib/codemirror.js"></script>
     <link rel="stylesheet" href="../node_modules/codemirror/lib/codemirror.css">
     <script src="../node_modules/codemirror/mode/javascript/javascript.js"></script>
@@ -122,34 +122,5 @@
     <div id='editor'></div>
     <div id='console'></div>
   </body>
-
-  <script> 
-    let select = document.querySelector( 'select' ),
-        files = [
-          'intro.js',
-          'introOld.js',
-          'filtering.js',
-          'solina.js',
-          'three03.js',
-        ]
-
-    select.onchange = function( e ) {
-      loadexample( files[ select.selectedIndex ] )
-    }
-    
-    let loadexample = function( filename ) {
-      var req = new XMLHttpRequest()
-        req.open( 'GET', './examples/'+filename, true )
-        req.onload = function() {
-          var js = req.responseText
-          window.Environment.editor.setValue( js )
-        }
-    
-      req.send()
-    }
-    
-    loadexample( 'intro.js' )
-
-  </script>
 
 </html>
