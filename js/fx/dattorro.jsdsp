@@ -123,7 +123,7 @@ module.exports = function( Gibberish ) {
           decaydiffusion2 = g.in( 'decaydiffusion2' ),
           indiffusion1 = g.in( 'indiffusion1' ),
           indiffusion2 = g.in( 'indiffusion2' )
-    
+  
     const summedInput = isStereo === true ? input[0] + input[1] : input
     
     // calculcate predelay
@@ -145,13 +145,13 @@ module.exports = function( Gibberish ) {
     const leftWet  = (tank_outs[1] - tank_outs[2]) * .6
     const rightWet = (tank_outs[3] - tank_outs[4]) * .6
     
-    const left  = g.mix( input, leftWet,  drywet )
-    const right = g.mix( input, rightWet, drywet )
+    const left  = g.mix( isStereo ? input[0] : input, leftWet,  drywet )
+    const right = g.mix( isStereo ? input[1] : input, rightWet, drywet )
     
     /*let outputL = g.add( g.mul( outL, wet1 ), g.mul( outR, wet2 ), g.mul( isStereo === true ? input[0] : input, dry ) ),*/
     /*outputR = g.add( g.mul( outR, wet1 ), g.mul( outL, wet2 ), g.mul( isStereo === true ? input[1] : input, dry ) )*/
 
-    Gibberish.factory( reverb, left, 'dattorro', props )
+    Gibberish.factory( reverb, [left,right], 'dattorro', props )
 
     return reverb
   }

@@ -767,6 +767,43 @@ syn.note( 220 )
 ###freeverb.wet2###
 *float* range: 0-1, default: 0. Controls the amount of non-reverberated signal sent to the right output. See `wet1` for more information.
 
+Plate
+----
+*Prototype: [Gibberish.prototypes.effect](#prototypes-effect)*
+
+The `Plate` effect is based on the Dattorro model of plate reverberation. Similar to Freeverb, it is fairly easy to control via its `decay` property to set the length of reverberation and its `damping` property to attenuate high frequencies. However, there are a number of other properties for additional control.
+
+```javascript
+syn = Gibberish.instruments.Synth({ attack:44 })
+
+plate = Gibberish.effects.Plate({ 
+  input:synth,
+  decay:.95
+}).connect()
+
+syn.note( 220 )
+```
+
+####Properties####
+###plate.input###
+*ugen* The unit generator that feeds the effect. Assign a `Bus` or `Bus2` instance to this property if you want multiple unit generators to connect to this effect.
+###plate.decay###
+*float* range: 0-1, default: .5. This is an important control of the overall reverberation time. 
+###plate.damping###
+*float* range:0-1, default: .5. This value attenuates high-frequency signals in the reverberation by low-pass filtering from one sample to the next. Low values simulate reflective walls.
+###freeverb.drywet###
+*float* range: 0-1, default: .5. Controls the amount of non-reverberated signal sent to the output.
+###plate.predelay###
+*float* range: 0-100, default: 10. The amount of time between the input signal entering the reverb and the processed result exiting. This is also an effective cue in determining roomsize. Note that values over 100 risk sonic destruction (really, don't do this!)
+###plate.indiffusion1###
+*float* range: 0-1, default: .75. Smears the phase of the input signal by controlling feedback during the first two of four all-pass filters.
+###plate.indiffusion2###
+*float* range: 0-1, default: .625. Smears the phase of the input signal by controlling feedback during the last two of four all-pass filters.
+###plate.decaydiffusion1###
+*float* range: 0-1, default: .7. Controls feedback in the 'tank' emulation of the reverb.
+###plate.decaydiffusion2###
+*float* range: 0-1, default: .5. Controls feedback in the 'tank' emulation of the reverb.
+
 RingMod
 ----
 *Prototype: [Gibberish.prototypes.effect](#prototypes-effect)*
