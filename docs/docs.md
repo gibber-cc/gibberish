@@ -708,6 +708,39 @@ syn.note( 220 )
 ###delay.feedback###
 *float* range:0-1, default: .925. The amount of delayed signal to be fed back into the delay line.
  
+Distortion
+----
+*Prototype: [Gibberish.prototypes.effect](#prototypes-effect)*
+
+A port of the hyperbolic tangent distortion found in Csound: https://csound.github.io/docs/manual/distort1.html
+
+This is a non-linear distortion that can react dramatically differently to different sounds. The primary driver of the distortion is the `pregain` property,
+while the `shape1` and `shape2` properties control whether hard-clipping or soft-clipping is used. A post-effect scalar, `postgain`, can be used to tame out-of-control signals.
+
+```javascript
+syn = Gibberish.instruments.Karplus({ attack:44 })
+
+dist = Gibberish.effects.Distortion({ 
+  input:syn,
+  pregain:100,
+  postgain:.25,
+}).connect()
+
+syn.note( 440 )
+```
+
+####Properties####
+###distortion.input###
+*ugen* The unit generator that feeds the effect. Assign a `Bus` or `Bus2` instance to this property if you want multiple unit generators to connect to this effect. 
+###distortion.pregain###
+*float* range: 0-max, default: 5. A scalar applied to the input signal as part of the distortion formula. Increasing this value will increase the amount of distortion; however, you may also need to turn down the `postgain` property to avoid loud signals.  
+###distortion.postgain###
+*float* range:0-max, default: .5. A scalar applied to the output signal. 
+###distortion.shape1###
+*float* range:0-max, default: 0. A zero-value indicates hard-clipping will be used on the positive axis of the waveshaping; small positive values will use soft-clipping. 
+###distortion.shape2###
+*float* range:0-max, default: 0. A zero-value indicates hard-clipping will be used on the negative axis of the waveshaping; small positive values will use soft-clipping. 
+
 Flanger
 ----
 *Prototype: [Gibberish.prototypes.effect](#prototypes-effect)*
@@ -800,9 +833,9 @@ syn.note( 220 )
 ###plate.indiffusion2###
 *float* range: 0-1, default: .625. Smears the phase of the input signal by controlling feedback during the last two of four all-pass filters.
 ###plate.decaydiffusion1###
-*float* range: 0-1, default: .7. Controls feedback in the 'tank' emulation of the reverb.
+*float* range: 0-1, default: .7. Controls when diffusion occurs relative to signal onset in the 'tank' emulation of the reverb.
 ###plate.decaydiffusion2###
-*float* range: 0-1, default: .5. Controls feedback in the 'tank' emulation of the reverb.
+*float* range: 0-1, default: .5. Controls when diffusion occurs relative to signal onset in the 'tank' emulation of the reverb.
 
 RingMod
 ----
@@ -1133,9 +1166,11 @@ Noise
 ---
 *Prototype: [Gibberish.prototypes.ugen](#prototypes-ugen)*
 
-The output of a `Noise` ugen is created using JavaScript's `Math.random` function, which is then scaled to a range of `{-1,1} (depending on the gain property). 
+There are three types of noise available, `white`, `brown`, and `pink`, as determined by the `color` property upon initialization.
 
 ####Properties####
+###noise.color###
+*string*. Default:'white'. Can only be set on initialization. Determines the type of noise outputted.
 ###noise.gain###
 *number* or *ugen*. Default:1. A scalar to adjust the output range of the oscillator.
 

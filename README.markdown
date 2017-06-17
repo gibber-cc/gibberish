@@ -63,8 +63,9 @@ All synths except the monosynth also have polyphonic versions
 * Ring Modulation
 * Flanger
 * Vibrato
-* Reverb (freeverb and dattorro models)
+* Reverb (freeverb and dattorro plate reverb model)
 * Buffer Shuffler
+* Chorus (arp solina model)
 
 ### Filters
 * State Variable Filter (12 db resonant)

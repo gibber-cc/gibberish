@@ -7,10 +7,11 @@ module.exports = function( Gibberish ) {
     Vibrato     : require( './vibrato.js'   )( Gibberish ),
     Delay       : require( './delay.js'     )( Gibberish ),
     BitCrusher  : require( './bitCrusher.js')( Gibberish ),
+    Distortion  : require( './distortion.js')( Gibberish ),
     RingMod     : require( './ringMod.js'   )( Gibberish ),
     Tremolo     : require( './tremolo.js'   )( Gibberish ),
     Chorus      : require( './chorus.js'    )( Gibberish ),
-    Shuffler    : require( './bufferShuffler.js'  )( Gibberish )
+    Shuffler    : require( './bufferShuffler.js'  )( Gibberish ),
   }
 
   effects.export = target => {
