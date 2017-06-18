@@ -707,6 +707,8 @@ syn.note( 220 )
 *int* default: 11025. The number of samples to delay the incoming signal by.
 ###delay.feedback###
 *float* range:0-1, default: .925. The amount of delayed signal to be fed back into the delay line.
+###delay.wetdry###
+*float* range:0-1, default: .5. The ratio of immediate to delayed signal in the output. A value of `1` means only the delayed output is heard. 
  
 Distortion
 ----

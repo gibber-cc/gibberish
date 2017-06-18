@@ -9,9 +9,10 @@ let Delay = inputProps => {
 
   let isStereo = props.input.isStereo !== undefined ? props.input.isStereo : true 
   
-  let input = g.in( 'input' ),
-      delayTime = g.in( 'delayTime' ),
-      leftInput = isStereo ? input[ 0 ] : input,
+  let input      = g.in( 'input' ),
+      delayTime  = g.in( 'delayTime' ),
+      wetdry     = g.in( 'wetdry' ),
+      leftInput  = isStereo ? input[ 0 ] : input,
       rightInput = isStereo ? input[ 1 ] : null
     
   let feedback = g.in( 'feedback' )
@@ -20,21 +21,23 @@ let Delay = inputProps => {
   let feedbackHistoryL = g.history()
   let echoL = g.delay( g.add( leftInput, g.mul( feedbackHistoryL.out, feedback ) ), delayTime, { size:props.delayLength })
   feedbackHistoryL.in( echoL )
+  let left = g.mix( leftInput, echoL, wetdry )
 
   if( isStereo ) {
     // right channel
     let feedbackHistoryR = g.history()
     let echoR = g.delay( g.add( rightInput, g.mul( feedbackHistoryR.out, feedback ) ), delayTime, { size:props.delayLength })
     feedbackHistoryR.in( echoR )
+    const right = g.mix( rightInput, echoR, wetdry )
 
     Gibberish.factory( 
       delay,
-      [ echoL, echoR ], 
+      [ left, right ], 
       'delay', 
       props 
     )
   }else{
-    Gibberish.factory( delay, echoL, 'delay', props )
+    Gibberish.factory( delay, left, 'delay', props )
   }
   
   return delay
@@ -42,8 +45,9 @@ let Delay = inputProps => {
 
 Delay.defaults = {
   input:0,
-  feedback:.925,
-  delayTime: 11025
+  feedback:.75,
+  delayTime: 11025,
+  wetdry: .5
 }
 
 return Delay
