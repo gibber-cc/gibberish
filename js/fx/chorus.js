@@ -52,8 +52,8 @@ let Chorus = inputProps => {
           delay3R = g.delay(rightInput, time3, { size:maxDelayTime })
 
     // flip a couple delay lines for stereo effect?
-    const rightOutput = g.div( g.add( delay1R, delay2R, delay3R ), 3 )
-    chorus.graph = [ leftOutput, rightOutput ]
+    const rightOutput = g.add( delay1R, delay2L, delay3R )
+    chorus.graph = [ g.add( delay1L, delay2R, delay3L ), rightOutput ]
   }else{
     chorus.graph = leftOutput
   }
