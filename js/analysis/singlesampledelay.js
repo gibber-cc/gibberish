@@ -69,7 +69,6 @@ let Delay = inputProps => {
 
     let idx = ssd.out.graph.memory.value.idx 
     let memory = Gibberish.genish.gen.memory.heap
-    let phase = 0
     let callback = function( input ) {
       'use strict'
       memory[ idx ] = input

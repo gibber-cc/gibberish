@@ -20,7 +20,7 @@
     "gulp-rename": "^1.2.2",
     "memory-helper": "^1.1.0",
     "vinyl-source-stream": "^1.1.0",
-    "jsdsp": "^1.0.0"
+    "jsdsp": "^2.1.1"
   },
   "repository": {
     "type": "git",

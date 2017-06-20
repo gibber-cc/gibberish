@@ -4,6 +4,7 @@ const g = require( 'genish.js' ),
 const genish = g
 
 const AllPassChain = ( in1, in2, in3 ) => {
+  "use jsdsp"
 
 /* in1 = predelay_out */
 /* in2 = indiffusion1 */
@@ -35,6 +36,8 @@ const AllPassChain = ( in1, in2, in3 ) => {
   
 /*const tank_outs = Tank( ap_out, decaydiffusion1, decaydiffusion2, damping, decay )*/
 const Tank  = function( in1, in2, in3, in4, in5 ) {
+  "use jsdsp"
+
   const outs = [ [], [], [], [], [] ]
   
   /* LEFT CHANNEL */
@@ -108,6 +111,8 @@ const Tank  = function( in1, in2, in3, in4, in5 ) {
 module.exports = function( Gibberish ) {
 
   const Reverb = inputProps => {
+    "use jsdsp"
+
     const props = Object.assign( {}, Reverb.defaults, inputProps ),
           reverb = Object.create( effect ) 
      

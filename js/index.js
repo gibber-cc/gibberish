@@ -64,6 +64,7 @@ let Gibberish = {
     this.Sequencer2   = require( './scheduling/seq2.js' )( this );
     this.envelopes    = require( './envelopes/envelopes.js' )( this );
     this.ssd          = require( './analysis/singlesampledelay.js' )( this );
+    this.Follow       = require( './analysis/follow.js' )( this )
     this.time         = require( './misc/time.js' )( this )
   },
 
@@ -242,6 +243,7 @@ let Gibberish = {
       }
       
       //if( ugen.type === 'bus' ) line += ', ' 
+      if( ugen.type === 'analysis' ) line += ','
       if( !ugen.binop && ugen.type !== 'bus' && ugen.type !== 'seq' ) line += 'memory'
       line += ugen.binop ? '' : ' )'
 

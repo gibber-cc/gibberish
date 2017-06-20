@@ -3,6 +3,8 @@ const genish = require('genish.js'),
       noise = genish.noise;
 
 module.exports = function () {
+  "use jsdsp";
+
   const last = ssd(0);
 
   const white = genish.sub(genish.mul(noise(), 2), 1);

@@ -14,6 +14,8 @@ const genish = g
 module.exports = function( Gibberish ) {
 
   let Distortion = inputProps => {
+    "use jsdsp"
+
     let props = Object.assign( {}, Distortion.defaults, inputProps ),
         distortion= Object.create( effect )
 

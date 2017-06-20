@@ -28,10 +28,20 @@ gulp.task( 'js', ['jsdsp'], function() {
 })
 
 // convert .jsdsp into .js files
+//gulp.task( 'jsdsp', ()=> {
+//  gulp.src( './js/**/*.jsdsp', { base:'./' })
+//      .pipe( babel({ plugins:jsdsp }) )
+//      .pipe( rename( path => path.ext = '.js' ) )
+//      .pipe( gulp.dest('.') )
+//})
+
+
 gulp.task( 'jsdsp', ()=> {
-  gulp.src( './js/**/*.jsdsp', { base:'./' })
+  gulp.src( './js/**/*.dsp.js', { base:'./' })
       .pipe( babel({ plugins:jsdsp }) )
-      .pipe( rename( path => path.ext = '.js' ) )
+      .pipe( rename( path => {
+        path.basename = path.basename.split('.')[0]
+      } ))
       .pipe( gulp.dest('.') )
 })
 
