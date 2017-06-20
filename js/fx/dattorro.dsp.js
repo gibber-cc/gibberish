@@ -113,7 +113,6 @@ const Tank  = function( in1, in2, in3, in4, in5 ) {
 module.exports = function( Gibberish ) {
 
   const Reverb = inputProps => {
-
     const props = Object.assign( {}, Reverb.defaults, inputProps ),
           reverb = Object.create( effect ) 
      
@@ -129,16 +128,18 @@ module.exports = function( Gibberish ) {
           decaydiffusion2 = g.in( 'decaydiffusion2' ),
           indiffusion1 = g.in( 'indiffusion1' ),
           indiffusion2 = g.in( 'indiffusion2' )
-  
+
+
+    const summedInput = isStereo === true ? g.add( input[0], input[1] ) : input
+
     {
       'use jsdsp'
-      const summedInput = isStereo === true ? input[0] + input[1] : input
 
       // calculcate predelay
-      const predelay_samps = g.mstosamps( 10 )
+      const predelay_samps = g.mstosamps( predelay )
       const predelay_delay = g.delay( summedInput, predelay_samps, { size: 4410 })  
       const z_pd = g.history(0)
-      const mix1 = g.mix( z_pd.out, predelay_delay, .5 )
+      const mix1 = g.mix( z_pd.out, predelay_delay, inbandwidth )
       z_pd.in( mix1 )
 
       const predelay_out = mix1
