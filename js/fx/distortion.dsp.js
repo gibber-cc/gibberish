@@ -14,8 +14,6 @@ const genish = g
 module.exports = function( Gibberish ) {
 
   let Distortion = inputProps => {
-    "use jsdsp"
-
     let props = Object.assign( {}, Distortion.defaults, inputProps ),
         distortion= Object.create( effect )
 
@@ -27,17 +25,24 @@ module.exports = function( Gibberish ) {
           pregain = g.in( 'pregain' ),
           postgain = g.in( 'postgain' )
 
-    const linput = isStereo ? input[0] : input
-    const ltop = g.exp( linput * (shape1 + pregain) ) - g.exp( linput * (shape2 - pregain) )
-    const lbottom = g.exp( linput * pregain ) + g.exp( -1 * linput * pregain )
-    const lout = ( ltop / lbottom ) * postgain
+    let lout
+    {
+      'use jsdsp'
+      const linput = isStereo ? input[0] : input
+      const ltop = g.exp( linput * (shape1 + pregain) ) - g.exp( linput * (shape2 - pregain) )
+      const lbottom = g.exp( linput * pregain ) + g.exp( -1 * linput * pregain )
+      lout = ( ltop / lbottom ) * postgain
+    }
 
     if( isStereo ) {
-
-      const rinput = isStereo ? input[1] : input
-      const rtop = g.exp( rinput * (shape1 + pregain) ) - g.exp( rinput * (shape2 - pregain) )
-      const rbottom = g.exp( rinput * pregain ) + g.exp( -1 * rinput * pregain )
-      const rout = ( rtop / rbottom ) * postgain
+      let rout
+      {
+        'use jsdsp'
+        const rinput = isStereo ? input[1] : input
+        const rtop = g.exp( rinput * (shape1 + pregain) ) - g.exp( rinput * (shape2 - pregain) )
+        const rbottom = g.exp( rinput * pregain ) + g.exp( -1 * rinput * pregain )
+        rout = ( rtop / rbottom ) * postgain
+      }
 
       Gibberish.factory( 
         distortion,

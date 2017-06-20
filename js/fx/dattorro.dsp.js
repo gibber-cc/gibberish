@@ -3,6 +3,8 @@ const g = require( 'genish.js' ),
 
 const genish = g
 
+"use jsdsp"
+
 const AllPassChain = ( in1, in2, in3 ) => {
   "use jsdsp"
 
@@ -111,7 +113,6 @@ const Tank  = function( in1, in2, in3, in4, in5 ) {
 module.exports = function( Gibberish ) {
 
   const Reverb = inputProps => {
-    "use jsdsp"
 
     const props = Object.assign( {}, Reverb.defaults, inputProps ),
           reverb = Object.create( effect ) 
@@ -129,38 +130,37 @@ module.exports = function( Gibberish ) {
           indiffusion1 = g.in( 'indiffusion1' ),
           indiffusion2 = g.in( 'indiffusion2' )
   
-    const summedInput = isStereo === true ? input[0] + input[1] : input
-    
-    // calculcate predelay
-    const predelay_samps = g.mstosamps( predelay )
-    const predelay_delay = g.delay( summedInput, predelay_samps, { size: 4410 })  
-    const z_pd = g.history(0)
-    const mix1 = g.mix( z_pd.out, predelay_delay, inbandwidth )
-    z_pd.in( mix1 )
-    
-    const predelay_out = mix1
+    {
+      'use jsdsp'
+      const summedInput = isStereo === true ? input[0] + input[1] : input
 
-    // run input + predelay through all-pass chain
-    const ap_out = AllPassChain( predelay_out, indiffusion1, indiffusion2 )
-    
-    // run filtered signal into "tank" model
-    
-    const tank_outs = Tank( ap_out, decaydiffusion1, decaydiffusion2, damping, decay )
-    
-    const leftWet  = (tank_outs[1] - tank_outs[2]) * .6
-    const rightWet = (tank_outs[3] - tank_outs[4]) * .6
-    
-    const left  = g.mix( isStereo ? input[0] : input, leftWet,  drywet )
-    const right = g.mix( isStereo ? input[1] : input, rightWet, drywet )
-    
-    /*let outputL = g.add( g.mul( outL, wet1 ), g.mul( outR, wet2 ), g.mul( isStereo === true ? input[0] : input, dry ) ),*/
-    /*outputR = g.add( g.mul( outR, wet1 ), g.mul( outL, wet2 ), g.mul( isStereo === true ? input[1] : input, dry ) )*/
+      // calculcate predelay
+      const predelay_samps = g.mstosamps( 10 )
+      const predelay_delay = g.delay( summedInput, predelay_samps, { size: 4410 })  
+      const z_pd = g.history(0)
+      const mix1 = g.mix( z_pd.out, predelay_delay, .5 )
+      z_pd.in( mix1 )
 
-    Gibberish.factory( reverb, [left,right], 'dattorro', props )
+      const predelay_out = mix1
+
+      // run input + predelay through all-pass chain
+      const ap_out = AllPassChain( predelay_out, indiffusion1, indiffusion2 )
+
+      // run filtered signal into "tank" model
+      const tank_outs = Tank( ap_out, decaydiffusion1, decaydiffusion2, damping, decay )
+
+      const leftWet  = (tank_outs[1] - tank_outs[2]) * .6
+      const rightWet = (tank_outs[3] - tank_outs[4]) * .6
+
+      // mix wet and dry signal for final output
+      const left  = g.mix( isStereo ? input[0] : input, leftWet,  drywet )
+      const right = g.mix( isStereo ? input[1] : input, rightWet, drywet )
+
+      Gibberish.factory( reverb, [left,right], 'dattorro', props )
+    }
 
     return reverb
   }
-
 
   Reverb.defaults = {
     input:0,
