@@ -50,7 +50,7 @@
     #header span { font-size: .8em; }
 
     #editor { width:60%; box-sizing:border-box; display:inline-block; height:calc( 100% - 3em); border-right:1px solid #666; padding-left:1em  }
-    #console{ width:40%; box-sizing:border-box; display:inline-block; position:absolute; height:calc( 100% - 3em ); padding-left:1em }
+    #console{ width:40%; box-sizing:border-box; display:inline-block; position:absolute; height:calc( 100% - 3em ); }
 
     .dg { z-index:100 !important }
     #reference a{ color: #ccc !important; margin-left: 2em }
@@ -96,6 +96,34 @@
       background:rgba(255,255,255,.5)
     }
 
+    #main{
+      display:inline-block;
+      position:relative;
+      left:5px;
+    }
+
+    #splitbar {
+      display:inline-block;
+      top:0;
+      position:absolute;
+      height:100%;
+      width:5px;
+      background:#666;
+      z-index:1;
+      cursor: ew-resize
+    }
+    #sidebar {
+      display:inline-block;
+      width:35%;
+      float:right;
+      height:100%;
+      border-left:1px black solid;
+      box-sizing:border-box;
+      overflow:scroll;
+      font-family:sans-serif;
+      font-weight:lighter;
+      font-size:1em
+    }
     </style>
 
   </head>
@@ -120,7 +148,10 @@
     </div>
 
     <div id='editor'></div>
-    <div id='console'></div>
+    <div id='console'>
+      <div id='splitbar'></div>
+      <div id='main'></div> 
+    </div>
   </body>
 
 </html>

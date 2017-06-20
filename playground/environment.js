@@ -13,9 +13,11 @@ window.onload = function() {
 
   cm.setSize( null, '100%' )
 
-  cmconsole = CodeMirror( document.querySelector('#console'), {
+  cmconsole = CodeMirror( document.querySelector('#main'), {
     mode:'javascript',
-    value:'// genish playground, v0.0.1: https://github.com/charlieroberts/genish.js',
+    value:
+`// genish playground, v0.0.1
+// https://github.com/charlieroberts/genish.js`,
     readOnly:'nocursor',
   })     
 
@@ -59,7 +61,38 @@ window.onload = function() {
   }
 
   loadexample( 'intro.js' )
+
+  setupSplit()
 }
+
+
+const setupSplit = function() {
+  let splitDiv = document.querySelector( '#splitbar' ),
+      editor   = document.querySelector( '#editor'   ),
+      sidebar  = document.querySelector( '#console'  ),
+      mousemove, mouseup
+
+  mouseup = evt => {
+    window.removeEventListener( 'mousemove', mousemove )
+    window.removeEventListener( 'mouseup', mouseup )
+  }
+
+  mousemove = evt => {
+    let splitPos = evt.clientX
+
+    editor.style.width = splitPos + 'px'
+    sidebar.style.left = splitPos  + 'px'
+    sidebar.style.width = (window.innerWidth - splitPos) + 'px'
+  }
+
+
+  splitDiv.addEventListener( 'mousedown', evt => {
+    window.addEventListener( 'mousemove', mousemove )
+    window.addEventListener( 'mouseup', mouseup )
+  })
+
+}
+
 
 const fixCallback = function( cb ) {
   const cbarr = cb.split( '\n' )
