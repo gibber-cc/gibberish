@@ -63,8 +63,7 @@ let Gibberish = {
     this.Sequencer    = require( './scheduling/sequencer.js' )( this );
     this.Sequencer2   = require( './scheduling/seq2.js' )( this );
     this.envelopes    = require( './envelopes/envelopes.js' )( this );
-    this.ssd          = require( './analysis/singlesampledelay.js' )( this );
-    this.Follow       = require( './analysis/follow.js' )( this )
+    this.analysis     = require( './analysis/analyzers.js' )( this )
     this.time         = require( './misc/time.js' )( this )
   },
 
@@ -80,12 +79,12 @@ let Gibberish = {
     this.binops.export( target )
     this.monops.export( target )
     this.envelopes.export( target )
+    this.analysis.export( target )
     target.Sequencer = this.Sequencer
     target.Sequencer2 = this.Sequencer2
     target.Bus = this.Bus
     target.Bus2 = this.Bus2
     target.Scheduler = this.scheduler
-    target.SSD = this.ssd
     this.time.export( target )
   },
 

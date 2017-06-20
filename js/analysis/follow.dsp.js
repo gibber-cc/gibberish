@@ -20,7 +20,8 @@ const Follow = inputProps => {
   follow.buffer = g.data( props.bufferSize, 1 ) 
   
   let avg // output; make available outside jsdsp block
-  const input = g.in( 'input' )
+  const _input = g.in( 'input' )
+  const input = isStereo ? g.add( _input[0], _input[1] ) : _input
   
   {
     "use jsdsp"
@@ -49,9 +50,10 @@ const Follow = inputProps => {
     // specifically the memory from our buffer
     let idx = follow.buffer.memory.values.idx 
     let phase = 0
+    let abs = Math.abs
     let callback = function( input, memory ) {
       'use strict'
-      memory[ idx + phase ] = input
+      memory[ idx + phase ] = abs(input)
       phase++
       if( phase > props.bufferSize - 1 ) {
         phase = 0
