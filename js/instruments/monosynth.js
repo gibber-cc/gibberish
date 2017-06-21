@@ -7,14 +7,25 @@ module.exports = function( Gibberish ) {
   const Synth = argumentProps => {
     const syn = Object.create( instrument ),
           oscs = [], 
-          env = g.ad( g.in( 'attack' ), g.in( 'decay' ), { shape:'linear' }),
           frequency = g.in( 'frequency' ),
           glide = g.in( 'glide' ),
-          slidingFreq = g.memo( g.slide( frequency, glide, glide ) )
+          slidingFreq = g.memo( g.slide( frequency, glide, glide ) ),
+          attack = g.in( 'attack' ), decay = g.in( 'decay' ),
+          sustain = g.in( 'sustain' ), sustainLevel = g.in( 'sustainLevel' ),
+          release = g.in( 'release' )
 
     let props = Object.assign( syn, Synth.defaults, argumentProps )
 
     syn.__createGraph = function() {
+      const env = Gibberish.envelopes.factory( 
+        props.useADSR, 
+        props.shape, 
+        attack, decay, 
+        sustain, sustainLevel, 
+        release, 
+        props.triggerRelease
+      )
+
       for( let i = 0; i < 3; i++ ) {
         let osc, freq
 
@@ -49,6 +60,8 @@ module.exports = function( Gibberish ) {
       }else{
         syn.graph = filteredOsc
       }
+
+      syn.env = env
     }
 
     syn.__requiresRecompilation = [ 'waveform', 'antialias', 'filterType', 'filterMode' ]
@@ -56,15 +69,20 @@ module.exports = function( Gibberish ) {
 
     Gibberish.factory( syn, syn.graph, 'mono', props )
 
-    syn.env = env
 
     return syn
   }
   
   Synth.defaults = {
     waveform: 'saw',
-    attack: 44100,
-    decay: 44100,
+    attack: 44,
+    decay: 22050,
+    sustain:44100,
+    sustainLevel:.6,
+    release:22050,
+    useADSR:false,
+    shape:'linear',
+    triggerRelease:false,
     gain: .25,
     pulsewidth:.25,
     frequency:220,
