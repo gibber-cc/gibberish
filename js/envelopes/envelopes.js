@@ -1,3 +1,5 @@
+const g = require( 'genish.js' )
+
 module.exports = function( Gibberish ) {
 
   const Envelopes = {
@@ -7,10 +9,22 @@ module.exports = function( Gibberish ) {
 
     export : target => {
       for( let key in Envelopes ) {
-        if( key !== 'export' ) {
+        if( key !== 'export' && key !== 'factory' ) {
           target[ key ] = Envelopes[ key ]
         }
       }
+    },
+
+    factory( useADSR, shape, attack, decay, sustain, sustainLevel, release, triggerRelease=false ) {
+      let env
+
+      if( useADSR !== true ) {
+        env = g.ad( attack, decay, { shape }) 
+      }else {
+        env = g.adsr( attack, decay, sustain, sustainLevel, release, { shape, triggerRelease })
+      }
+
+      return env
     }
   } 
 

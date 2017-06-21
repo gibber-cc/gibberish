@@ -257,9 +257,19 @@ Gibberish.Sequencer({
 ###fm.pan###
 *float* range: 0-1, default: .5. If the `panVoices` property of the synth is `true`, this property will determine the position of the synth in the stereo spectrum. `0` = left, `.5` = center, `1` = right. 
 ###fm.attack###
-*int* default: 44100. The length of the attack portion of the synth's envelope measured in samples. The envelope modulates amplitude, the index property, and the filter cutoff frequency (if the filter is enabled. 
+*int* default: 44. The length of the attack portion of the synth's envelope measured in samples. The envelope modulates amplitude, the index property, and the filter cutoff frequency (if the filter is enabled. 
 ###fm.decay###
-*int* default: 44100. The length of the decay portion of the synth's envelope measured in samples. The envelope modulates amplitude, the index property, and the filter cutoff frequency (if the filter is enabled.
+*int* default: 22050. The length of the decay portion of the synth's envelope measured in samples. The envelope modulates amplitude, the index property, and the filter cutoff frequency (if the filter is enabled.
+###fm.sustain###
+*int* default: 44100. The length of the sustain portion of the synth's envelope measured in samples. The envelope modulates amplitude, the index property, and the filter cutoff frequency (if the filter is enabled. Note that the sustain will last until the synth's `synth.env.release()` method is triggered if the synth's `triggerRelease` property is set to `true`.
+###fm.sustainLevel###
+*float* default: .6. The gain stage of the sustain portion of the synth's envelope. The envelope modulates amplitude, the index property, and the filter cutoff frequency (if the filter is enabled. Sustain and release are only used if the `useADSR` property of the synth is set to be true.
+###fm.release###
+*int* default: 22050. The length of the decay portion of the synth's envelope measured in samples. The envelope modulates amplitude, the index property, and the filter cutoff frequency (if the filter is enabled.
+###fm.useADSR###
+*bool* default: false. Determines whether a synth uses a two stage (AD) or four-stage (ADSR) envelope.
+###fm.triggerRelease###
+*bool* default: false. Assuming a synth's `useADSR` property is also set to `true`, a value of `true` on this property will continue the sustain stage of an ADSR indefinitely until the synth's envelope receives a release  message (i.e `synth.env.release()`)
 ###fm.gain###
 *float* default: 1. A scalar applied to the output of the synth. It is modulated by the synth's envelope.
 ###fm.carrierWaveform###
@@ -413,9 +423,19 @@ Gibberish.Sequencer({
 *boolean* default: false. If this property is true, both the carrier and modulator will use higher quality (and more computationally expensive) anti-aliasing oscillators.
 
 ###monosynth.attack###
-*int* default: 44100. The length of the attack portion of the synth's envelope measured in samples. The envelope modulates amplitude, the index property, and the filter cutoff frequency (if the filter is enabled. 
+*int* default: 44. The length of the attack portion of the synth's envelope measured in samples. The envelope modulates amplitude, the index property, and the filter cutoff frequency (if the filter is enabled. 
 ###monosynth.decay###
-*int* default: 44100. The length of the decay portion of the synth's envelope measured in samples. The envelope modulates amplitude, the index property, and the filter cutoff frequency (if the filter is enabled.
+*int* default: 22050. The length of the decay portion of the synth's envelope measured in samples. The envelope modulates amplitude, the index property, and the filter cutoff frequency (if the filter is enabled.
+###monosynth.sustain###
+*int* default: 44100. The length of the sustain portion of the synth's envelope measured in samples. The envelope modulates amplitude, the index property, and the filter cutoff frequency (if the filter is enabled. Note that the sustain will last until the synth's `synth.env.release()` method is triggered if the synth's `triggerRelease` property is set to `true`.
+###monosynth.sustainLevel###
+*float* default: .6. The gain stage of the sustain portion of the synth's envelope. The envelope modulates amplitude, the index property, and the filter cutoff frequency (if the filter is enabled. Sustain and release are only used if the `useADSR` property of the synth is set to be true.
+###monosynth.release###
+*int* default: 22050. The length of the decay portion of the synth's envelope measured in samples. The envelope modulates amplitude, the index property, and the filter cutoff frequency (if the filter is enabled.
+###monosynth.useADSR###
+*bool* default: false. Determines whether a synth uses a two stage (AD) or four-stage (ADSR) envelope.
+###monosynth.triggerRelease###
+*bool* default: false. Assuming a synth's `useADSR` property is also set to `true`, a value of `true` on this property will continue the sustain stage of an ADSR indefinitely until the synth's envelope receives a release  message (i.e `synth.env.release()`)
 ###monosynth.gain###
 *float* default: 1. A scalar applied to the output of the synth. It is modulated by the synth's envelope.
 ###monosynth.waveform###
@@ -540,9 +560,19 @@ Gibberish.Sequencer({
 ###synth.antialias###
 *boolean* default: false. If this property is true, both the carrier and modulator will use higher quality (and more computationally expensive) anti-aliasing oscillators.
 ###synth.attack###
-*int* default: 44100. The length of the attack portion of the synth's envelope measured in samples. The envelope modulates amplitude, the index property, and the filter cutoff frequency (if the filter is enabled. 
+*int* default: 44. The length of the attack portion of the synth's envelope measured in samples. The envelope modulates amplitude, the index property, and the filter cutoff frequency (if the filter is enabled. 
 ###synth.decay###
-*int* default: 44100. The length of the decay portion of the synth's envelope measured in samples. The envelope modulates amplitude, the index property, and the filter cutoff frequency (if the filter is enabled.
+*int* default: 22050. The length of the decay portion of the synth's envelope measured in samples. The envelope modulates amplitude, the index property, and the filter cutoff frequency (if the filter is enabled.
+###synth.sustain###
+*int* default: 44100. The length of the sustain portion of the synth's envelope measured in samples. The envelope modulates amplitude, the index property, and the filter cutoff frequency (if the filter is enabled. Note that the sustain will last until the synth's `synth.env.release()` method is triggered if the synth's `triggerRelease` property is set to `true`.
+###synth.sustainLevel###
+*float* default: .6. The gain stage of the sustain portion of the synth's envelope. The envelope modulates amplitude, the index property, and the filter cutoff frequency (if the filter is enabled. Sustain and release are only used if the `useADSR` property of the synth is set to be true.
+###synth.release###
+*int* default: 22050. The length of the decay portion of the synth's envelope measured in samples. The envelope modulates amplitude, the index property, and the filter cutoff frequency (if the filter is enabled.
+###synth.useADSR###
+*bool* default: false. Determines whether a synth uses a two stage (AD) or four-stage (ADSR) envelope.
+###synth.triggerRelease###
+*bool* default: false. Assuming a synth's `useADSR` property is also set to `true`, a value of `true` on this property will continue the sustain stage of an ADSR indefinitely until the synth's envelope receives a release  message (i.e `synth.env.release()`)
 ###synth.gain###
 *float* default: 1. A scalar applied to the output of the synth. It is modulated by the synth's envelope.
 ###synth.waveform###

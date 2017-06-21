@@ -6,18 +6,31 @@ module.exports = function( Gibberish ) {
   let Synth = inputProps => {
     let syn = Object.create( instrument )
 
-    let env = g.ad( g.in('attack'), g.in('decay'), { shape:'linear' }),
-        frequency = g.in( 'frequency' ),
-        loudness  = g.in( 'loudness' ), 
-        glide = g.in( 'glide' ),
-        slidingFreq = g.slide( frequency, glide, glide )
-
-    syn.env = env
+    //let env = g.ad( g.in('attack'), g.in('decay'), { shape:'linear' }),
+    const frequency = g.in( 'frequency' ),
+          loudness  = g.in( 'loudness' ), 
+          glide = g.in( 'glide' ),
+          slidingFreq = g.slide( frequency, glide, glide ),
+          attack = g.in( 'attack' ), decay = g.in( 'decay' ),
+          sustain = g.in( 'sustain' ), sustainLevel = g.in( 'sustainLevel' ),
+          release = g.in( 'release' )
 
     let props = Object.assign( syn, Synth.defaults, inputProps )
 
     syn.__createGraph = function() {
-      let osc = Gibberish.oscillators.factory( syn.waveform, slidingFreq, syn.antialias )
+      const osc = Gibberish.oscillators.factory( syn.waveform, slidingFreq, syn.antialias )
+
+      const env = Gibberish.envelopes.factory( 
+        props.useADSR, 
+        props.shape, 
+        attack, decay, 
+        sustain, sustainLevel, 
+        release, 
+        props.triggerRelease
+      )
+
+      // below doesn't work as it attempts to assign to release property triggering codegen...
+      // syn.release = ()=> { syn.env.release() }
 
       let oscWithEnv = g.mul( g.mul( osc, env, loudness ) ),
           panner
@@ -34,22 +47,28 @@ module.exports = function( Gibberish ) {
       }else{
         syn.graph = synthWithGain
       }
+
+      syn.env = env
     }
     
-    syn.__requiresRecompilation = [ 'waveform', 'antialias', 'filterType','filterMode' ]
+    syn.__requiresRecompilation = [ 'waveform', 'antialias', 'filterType','filterMode', 'useADSR', 'shape' ]
     syn.__createGraph()
 
     Gibberish.factory( syn, syn.graph, 'synth', props  )
-
-    syn.env = env
 
     return syn
   }
   
   Synth.defaults = {
     waveform:'saw',
-    attack: 44100,
-    decay: 44100,
+    attack: 44,
+    decay: 22050,
+    sustain:44100,
+    sustainLevel:.6,
+    release:22050,
+    useADSR:false,
+    shape:'linear',
+    triggerRelease:false,
     gain: 1,
     pulsewidth:.25,
     frequency:220,
