@@ -1464,8 +1464,31 @@ Pow
 
 Raises the number or ugen `a` to the power determined by the ugen or number `b` and outputs the result.
 
-
-
-
-
 #Analysis
+Follow
+---
+*Prototype: [Gibberish.prototypes.ugen](#prototypes-analysis)*
+
+A envelope follower.
+
+```js
+
+trackedUgen = Karplus({ gain:2 }).connect()
+
+Sequencer({
+  target:d, key:'note',
+  values:[440,880], timings:[22050]
+}).start()
+
+tracker = Follow({ input: trackedUgen })
+
+// modulate sine frequency based on tracked Karplus plucking
+Sine({ frequency:Add( 880, Mul( tracker,220 ) ) }).connect()
+```
+
+####Properties####
+###follow.input###
+*ugen*. The unit generator that will be tracked. 
+###follow.bufferSize###
+*number* Default:8192. *Set on initialization only*. The length of the buffer over which averaging occurs. Longer buffers will result in smoother signals, while shorter buffers will respond more quickly to changes in the tracked ugen output.
+
