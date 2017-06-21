@@ -42,6 +42,7 @@ window.onload = function() {
       'introOld.js',
       'filtering.js',
       'solina.js',
+      'phasing.js',
       'three03.js',
     ]
 

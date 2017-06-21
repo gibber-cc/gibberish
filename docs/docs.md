@@ -1391,7 +1391,7 @@ Stops the sequencer from running.
 seq.values = [ Math.random ]
 ```
 
-#Arithmetic
+# Arithmetic
 
 Abs
 ----
@@ -1464,7 +1464,8 @@ Pow
 
 Raises the number or ugen `a` to the power determined by the ugen or number `b` and outputs the result.
 
-#Analysis
+# Analysis
+
 Follow
 ---
 *Prototype: [Gibberish.prototypes.ugen](#prototypes-analysis)*
