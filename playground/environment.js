@@ -42,6 +42,7 @@ window.onload = function() {
       'introOld.js',
       'oscillators.js',
       'filtering.js',
+      'enveloping.js',
       'solina.js',
       'phasing.js',
       'three03.js',

@@ -1,3 +1,5 @@
+const ugenproto = require( '../ugen.js' )
+
 module.exports = function( Gibberish ) {
 
   let Binops = {
@@ -10,28 +12,43 @@ module.exports = function( Gibberish ) {
     },
     
     Add( ...args ) {
-      let id = Gibberish.factory.getUID()
-      return { binop:true, op:'+', inputs:args, ugenName:'add' + id, id }
+      const id = Gibberish.factory.getUID()
+      const ugen = Object.create( ugenproto )
+      Object.assign( ugen, { binop:true, op:'+', inputs:args, ugenName:'add' + id, id } )
+
+      return ugen
     },
 
     Sub( ...args ) {
-      let id = Gibberish.factory.getUID()
-      return { binop:true, op:'-', inputs:args, ugenName:'sub' + id, id }
+      const id = Gibberish.factory.getUID()
+      const ugen = Object.create( ugenproto )
+      Object.assign( ugen, { binop:true, op:'-', inputs:args, ugenName:'sub' + id, id } )
+
+      return ugen
     },
 
     Mul( ...args ) {
-      let id = Gibberish.factory.getUID()
-      return { binop:true, op:'*', inputs:args, ugenName:'mul' + id, id }
+      const id = Gibberish.factory.getUID()
+      const ugen = Object.create( ugenproto )
+      Object.assign( ugen, { binop:true, op:'*', inputs:args, ugenName:'mul' + id, id } )
+
+      return ugen
     },
 
     Div( ...args ) {
-      let id = Gibberish.factory.getUID()
-      return { binop:true, op:'/', inputs:args, ugenName:'div' + id, id }
+      const id = Gibberish.factory.getUID()
+      const ugen = Object.create( ugenproto )
+      Object.assign( ugen, { binop:true, op:'/', inputs:args, ugenName:'div' + id, id } )
+    
+      return ugen
     },
 
     Mod( ...args ) {
-      let id = Gibberish.factory.getUID()
-      return { binop:true, op:'%', inputs:args, ugenName:'mod' + id, id }
+      const id = Gibberish.factory.getUID()
+      const ugen = Object.create( ugenproto )
+      Object.assign( ugen, { binop:true, op:'%', inputs:args, ugenName:'mod' + id, id } )
+
+      return ugen
     },   
   }
 

@@ -1,4 +1,6 @@
-/* There are currently five different filter models
+/* tutorial 3: filtering 
+ *
+ * There are currently five different filter models
  * in Gibberish.
  *
  * 1. Filter24Classic - 24db per octave ladder filter (original Gibberish ladder filter). lp, hp.
@@ -14,12 +16,12 @@
 osc = Saw()
 filter = Filter12Biquad({ input:osc }).connect()
 
-//cutoff on all filters is measured in Hz
+//cutoff on all filters is measured from 0-1. 
 filter.cutoff = Add( .4, Sine({ frequency:.5, gain:.25 }) )
 
 /* Q on all filters is measured from 0-1.
  * BEWARE! Using high Q values (above .6) can results in massive
- * feedback depending on the cutoff frequencies, filte model and 
+ * feedback depending on the cutoff frequencies, filter model and 
  * input signals in use.
  */
 filter.Q = 0
@@ -37,8 +39,8 @@ filter.mode = 1
 syn = Synth({ attack:44 }).connect()
 syn.note( 220 ) // no filter
 
-syn.filterType = 3 // tb-303 filter model
-syn.saturation = 2
+syn.filterType = 3  // tb-303 filter model
+syn.saturation = 20 // distortion only available in tb-303 filter model
 syn.Q = .65
 
 seq = Sequencer.make( [110,165,220], [11025], syn, 'note' ).start()
@@ -53,4 +55,3 @@ seq = Sequencer.make( [110,165,220], [11025], syn, 'note' ).start()
 
 syn.cutoff = .65
 syn.filterMult *= 2
-
