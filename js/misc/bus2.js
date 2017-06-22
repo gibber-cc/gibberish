@@ -3,49 +3,62 @@ let g = require( 'genish.js' ),
 
 module.exports = function( Gibberish ) {
 
-  let Bus2 = { 
+  let Bus2 = Object.create( ugen )
+
+  Object.assign( Bus2, { 
     create() {
       let output = new Float32Array( 2 )
 
-      let bus = Object.create( ugen )
+      let bus = Object.create( this )
 
-      Object.assign( bus, {
-        callback() {
-          output[ 0 ] = output[ 1 ] = 0
+      Object.assign( 
+        bus,
 
-          for( let i = 0, length = arguments.length; i < length; i++ ) {
-            let input = arguments[ i ],
-                isArray = input instanceof Float32Array
+        {
+          callback() {
+            output[ 0 ] = output[ 1 ] = 0
 
-            output[ 0 ] += isArray ? input[ 0 ] : input
-            output[ 1 ] += isArray ? input[ 1 ] : input
-          }
+            for( let i = 0, length = arguments.length; i < length; i++ ) {
+              let input = arguments[ i ],
+                  isArray = input instanceof Float32Array
 
-          return output
+              output[ 0 ] += isArray ? input[ 0 ] : input
+              output[ 1 ] += isArray ? input[ 1 ] : input
+            }
+
+            output[0] *= bus.gain
+            output[1] *= bus.gain
+
+            return output
+          },
+          id : Gibberish.factory.getUID(),
+          dirty : true,
+          type : 'bus',
+          inputs : [],
+          inputNames : [],
         },
-        id : Gibberish.factory.getUID(),
-        dirty : true,
-        type : 'bus',
-        inputs : [],
-        inputNames : [],
-      })
+
+        this.defaults
+      )
 
       bus.ugenName = bus.callback.ugenName = 'bus2_' + bus.id
 
-      bus.disconnectUgen = function( ugen ) {
-        let removeIdx = this.inputs.indexOf( ugen )
-        
-        if( removeIdx !== -1 ) {
-          this.inputs.splice( removeIdx, 1 )
-          Gibberish.dirty( this )
-        }
-      }
-      
       return bus
-    }
-  }
+    },
+    
+    disconnectUgen( ugen ) {
+      let removeIdx = this.inputs.indexOf( ugen )
 
-  return Bus2.create
+      if( removeIdx !== -1 ) {
+        this.inputs.splice( removeIdx, 1 )
+        Gibberish.dirty( this )
+      }
+    },
+
+    defaults: { gain:1 }
+  })
+
+  return Bus2.create.bind( Bus2 )
 
 }
 
