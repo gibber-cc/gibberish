@@ -1,16 +1,21 @@
 // Audio-rate modulation of scheduling
-// Listen long enough (15 seconds? depends on chosen depth) 
+// Listen long enough (30 seconds?)
 // and they'll all pop back into sync.
 
 // how many strings to pluck
-const count = 10
+const count = 15
 
 // how much to fluctuate tempo (0–1) between strings
 const depth = .25
 
 for( let i = 0; i < count; i++ ) {
-  const k = Karplus({ panVoices:true, pan:i/count, gain:1/count })
-  	.connect()
+  
+  const k = Karplus({ 
+    panVoices: true,
+    pan:       i/count, 
+    gain:      1/count
+  })
+  .connect()
     
   // Sequencer2 lets you modulate scheduling at audio-rate
   const s = Sequencer2({
@@ -20,5 +25,6 @@ for( let i = 0; i < count; i++ ) {
   
   // modulate tempo for every string except the first one
   if( i !== 0 )
-    s.rate = Add( 1, Sine({ frequency:.05 * i, gain:depth }) )
+    s.rate = Add( 1, Sine({ frequency:.025 * i, gain:depth }) )
+  
 }
