@@ -49,6 +49,8 @@ module.exports = function( Gibberish ) {
       }
 
       syn.env = env
+      syn.osc = osc
+      syn.filter = filteredOsc
     }
     
     syn.__requiresRecompilation = [ 'waveform', 'antialias', 'filterType','filterMode', 'useADSR', 'shape' ]

@@ -40,6 +40,7 @@ window.onload = function() {
     files = [
       'intro.js',
       'introOld.js',
+      'oscillators.js',
       'filtering.js',
       'solina.js',
       'phasing.js',
