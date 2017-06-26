@@ -6,7 +6,7 @@
 const count = 15
 
 // how much to fluctuate tempo (0–1) between strings
-const depth = .25
+const depth = .5
 
 for( let i = 0; i < count; i++ ) {
   
@@ -25,6 +25,6 @@ for( let i = 0; i < count; i++ ) {
   
   // modulate tempo for every string except the first one
   if( i !== 0 )
-    s.rate = Add( 1, Sine({ frequency:.025 * i, gain:depth }) )
+    s.rate = Add( 1, Sine({ frequency:.1 * i, gain:depth }) )
   
 }
