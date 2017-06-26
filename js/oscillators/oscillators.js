@@ -32,6 +32,17 @@ module.exports = function( Gibberish ) {
       return sqr
     },
 
+    Triangle( inputProps ) {
+      const tri= Object.create( ugen ) 
+      const props = Object.assign({ antialias:false }, Oscillators.defaults, inputProps )
+      const osc   = Oscillators.factory( 'triangle', g.in( 'frequency' ), props.antialias )
+      const graph = g.mul( osc, g.in('gain' ) )
+
+      Gibberish.factory( tri, graph, 'tri', props )
+
+      return tri
+    },
+
     PWM( inputProps ) {
       const pwm   = Object.create( ugen ) 
       const props = Object.assign({ antialias:false, pulsewidth:.25 }, Oscillators.defaults, inputProps )
@@ -101,23 +112,6 @@ module.exports = function( Gibberish ) {
       let osc
 
       switch( type ) {
-        case 'saw':
-          if( antialias === false ) {
-            osc = g.phasor( frequency )
-          }else{
-            osc = feedbackOsc( frequency, 1 )
-          }
-          break;
-        case 'square':
-          if( antialias === true ) {
-            osc = feedbackOsc( frequency, 1, .5, { type:1 })
-          }else{
-            osc = g.wavetable( frequency, { buffer:Oscillators.Square.buffer, name:'square' } )
-          }
-          break;
-        case 'sine':
-          osc = g.cycle( frequency )
-          break;
         case 'pwm':
           let pulsewidth = g.in('pulsewidth')
           if( antialias === true ) {
@@ -126,6 +120,26 @@ module.exports = function( Gibberish ) {
             let phase = g.phasor( frequency, 0, { min:0 } )
             osc = g.lt( phase, pulsewidth )
           }
+          break;
+        case 'saw':
+          if( antialias === false ) {
+            osc = g.phasor( frequency )
+          }else{
+            osc = feedbackOsc( frequency, 1 )
+          }
+          break;
+        case 'sine':
+          osc = g.cycle( frequency )
+          break;
+        case 'square':
+          if( antialias === true ) {
+            osc = feedbackOsc( frequency, 1, .5, { type:1 })
+          }else{
+            osc = g.wavetable( frequency, { buffer:Oscillators.Square.buffer, name:'square' } )
+          }
+          break;
+        case 'triangle':
+          osc = g.wavetable( frequency, { buffer:Oscillators.Triangle.buffer, name:'triangle' } )
           break;
       }
 
@@ -138,6 +152,11 @@ module.exports = function( Gibberish ) {
   for( let i = 1023; i >= 0; i-- ) { 
     Oscillators.Square.buffer [ i ] = i / 1024 > .5 ? 1 : -1
   }
+
+  Oscillators.Triangle.buffer = new Float32Array( 1024 )
+
+  
+  for( let i = 1024; i--; i = i ) { Oscillators.Triangle.buffer[i] = 1 - 4 * Math.abs(( (i / 1024) + 0.25) % 1 - 0.5); }
 
   Oscillators.defaults = {
     frequency: 440,

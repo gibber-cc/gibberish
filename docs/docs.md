@@ -1276,6 +1276,18 @@ The square oscillator uses either a wavetable with linear interpolation, or, if 
 ###square.antialias###
 *boolean* Default:false. If true, the oscillator will use a higher-quality bandlimited algorithm. If false, the oscillator will use a wavetable with linear interpolation. This property can only be set during the initial call to the constructor. 
 
+Triangle
+---
+*Prototype: [Gibberish.prototypes.ugen](#prototypes-ugen)*
+
+The triangle oscillator uses a wavetable with linear interpolation
+
+####Properties####
+###triangle.frequency###
+*number* or *ugen*. Default:440. The frequency in Hz that the oscillator runs at.
+###triangle.gain###
+*number* or *ugen*. Default:1. A scalar to adjust the output range of the oscillator.
+
 #Scheduling
 
 Scheduler

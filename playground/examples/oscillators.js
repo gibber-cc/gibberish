@@ -65,14 +65,14 @@ brown = Noise({ color:'brown' }).connect()
 
 // we can use any of these oscillators (well, not noise) 
 // in our various synthesizers.
-syn = Synth({ waveform:'square', antialiased:true }).connect()
+syn = Synth({ waveform:'square', antialias:true }).connect()
 syn.note( 220 )
 
-syn2 = Synth({ waveform:'pwm', antialiased:true }).connect()
+syn2 = Synth({ waveform:'pwm', antialias:true }).connect()
 syn2.pulsewidth = Add( .5, Sine({ frequency:1, gain:.495 }) )
 syn2.decay = 88200
 syn2.note( 220 )
 
-syn2 = Synth({ waveform:'saw', antialiased:true }).connect()
+syn2 = Synth({ waveform:'saw', antialias:true }).connect()
 syn2.attack = 88200
 syn2.note( 220 )
