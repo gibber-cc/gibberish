@@ -6,50 +6,48 @@ module.exports = function( Gibberish ) {
   const Bus = Object.create( ugen )
 
   Object.assign( Bus, {
-    create() {
-      const bus = Object.create( this )
+    __gain : {
+      set( v ) {
+        this.mul.inputs[ 1 ] = v
+        Gibberish.dirty( this )
+      },
+      get() {
+        return this.mul[ 1 ]
+      }
+    },
 
-      Object.assign( 
-        bus, 
+    __addInput( input ) {
+      this.sum.inputs.push( input )
+      Gibberish.dirty( this )
+    },
 
-        {
-          callback() {
-            let output = 0
+    create( _props ) {
+      const props = Object.assign({}, Bus.defaults, _props )
 
-            for( let i = 0, length = arguments.length; i < length; i++ ) {
-              let input = arguments[ i ],
-                  isArray = input instanceof Float32Array
+      const sum = Gibberish.binops.Add( ...props.inputs )
+      const mul = Gibberish.binops.Mul( sum, props.gain )
 
-              output += isArray ? input[ 0 ] : input
-            }
+      const graph = Gibberish.Panner({ input:mul, pan: props.pan })
 
-            return output * bus.gain
-          },
-          id : Gibberish.factory.getUID(),
-          dirty : true,
-          type : 'bus',
-          inputs : [],
-          inputNames : [],
-        },
+      graph.sum = sum
+      graph.mul = mul
+      graph.disconnectUgen = Bus.disconnectUgen
 
-        this.defaults 
-      )
+      Object.defineProperty( graph, 'gain', Bus.__gain )
 
-      bus.ugenName = bus.callback.ugenName = 'bus_' + bus.id
-
-      return bus
+      return graph
     },
 
     disconnectUgen( ugen ) {
-      let removeIdx = this.inputs.indexOf( ugen )
+      let removeIdx = this.sum.inputs.indexOf( ugen )
 
       if( removeIdx !== -1 ) {
-        this.inputs.splice( removeIdx, 1 )
+        this.sum.inputs.splice( removeIdx, 1 )
         Gibberish.dirty( this )
       }
     },
 
-    defaults: { gain:1 }
+    defaults: { gain:1, inputs:[0], pan:.5 }
   })
 
   return Bus.create.bind( Bus )

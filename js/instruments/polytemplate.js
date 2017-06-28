@@ -33,7 +33,7 @@ module.exports = function( Gibberish ) {
         dirty: true,
         type: 'bus',
         ugenName: 'poly' + ugen.name + '_' + synth.id,
-        inputs: [],
+        inputs:[],
         inputNames: [],
         properties
       })

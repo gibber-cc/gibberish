@@ -24,12 +24,7 @@ bass = Synth({
 .connect( Gibberish.output )
 .connect( verb.input, .5 )
 
-bassSeq = Sequencer({
-  target:bass,
-  key:'note',
-  values:[55,110,165,220],
-  timings:[beat/4]
-}).start()
+bassSeq = Sequencer.make( [55,110,165,220], [beat/4], bass, 'note' ).start()
 /*** end bassline ***/
 
 /*** drums ***/
@@ -42,15 +37,23 @@ kickSeq = Sequencer({
 }).start()
 
 snare = Snare()
-  .connect( verb.input, .25 )
-  .connect( Gibberish.output, .35 )
+  .connect( verb.input, .5 )
+  .connect( Gibberish.output, .75 )
 
-snareSeq = Sequencer({
-  target:snare,
-  key:'trigger',
-  values:[.25],
-  timings:[beat * 2]
-}).start( beat ) // delay start by one beat so snare aligns with beats 2 & 4
+// delay start by one beat so snare aligns with beats 2 & 4
+snareSeq = Sequencer.make( [.25], [beat*2], snare, 'trigger' ).start( beat )
+
+close = Hat({ decay:.05 }).connect()
+open  = Hat({ decay:.2 }).connect()
+
+hatz = ()=> {
+   if( Math.random() > .25 ) 
+     close.trigger( .035 )
+   else
+     open.trigger( .05 )
+}
+
+hatSeq = Sequencer.make( [ hatz ], [ beat / 4 ] ).start()
 /*** end drums ***/	
 
 /*** start chords ***/
@@ -61,7 +64,6 @@ chords = PolySynth({
   glide:15000,
   waveform:'pwm',
   pulsewidth:Add( .35, Sine({ frequency:.35, gain:.3 }) ),
-  pan : Add( .5, Sine({ frequency:1, gain:.35 }) )
 })
 
 chorus = Chorus({ input: chords, slowGain:8, fastFrequency:4, fastGain:1  })

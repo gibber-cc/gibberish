@@ -51,6 +51,7 @@ let Gibberish = {
   load() {
     this.factory = require( './ugenTemplate.js' )( this )
 
+    this.Panner       = require( './misc/panner.js' )( this )
     this.PolyTemplate = require( './instruments/polytemplate.js' )( this )
     this.oscillators  = require( './oscillators/oscillators.js' )( this )
     this.filters      = require( './filters/filters.js' )( this )
@@ -107,7 +108,7 @@ let Gibberish = {
 
   clear() {
     this.output.inputs = [0]
-    this.output.inputNames.length = 0
+    //this.output.inputNames.length = 0
     this.analyzers.length = 0
     this.scheduler.clear()
     this.dirty( this.output )
@@ -121,7 +122,7 @@ let Gibberish = {
 
     callbackBody = this.processGraph( this.output )
     lastLine = callbackBody[ callbackBody.length - 1]
-    callbackBody.unshift( "\t'use strict';" )
+    callbackBody.unshift( "\t'use strict'" )
 
     this.analyzers.forEach( v=> {
       const analysisBlock = Gibberish.processUgen( v )
@@ -197,6 +198,8 @@ let Gibberish = {
       //  console.log( e )
       //  err = true
       //}
+      //console.log( 'keys:', ugen.inputs, keys.length )
+
       
       //if( err === true ) return
 
@@ -216,7 +219,7 @@ let Gibberish = {
           if( typeof input === 'number' ) {
               line += input
           } else if( typeof input === 'boolean' ) {
-              line += ""+input
+              line += '' + input
           }else{
             //console.log( 'key:', key, 'input:', ugen.inputs, ugen.inputs[ key ] ) 
 
@@ -233,6 +236,7 @@ let Gibberish = {
             }
 
             line += `v_${input.id}`
+            input.__varname = `v_${input.id}`
           }
 
           if( i < keys.length - 1 ) {
@@ -242,8 +246,8 @@ let Gibberish = {
       }
       
       //if( ugen.type === 'bus' ) line += ', ' 
-      if( ugen.type === 'analysis' ) line += ','
-      if( !ugen.binop && ugen.type !== 'bus' && ugen.type !== 'seq' ) line += 'memory'
+      if( ugen.type === 'analysis' || (ugen.type === 'bus' && keys.length > 0) ) line += ','
+      if( !ugen.binop && ugen.type !== 'seq' ) line += 'memory'
       line += ugen.binop ? '' : ' )'
 
       block.push( line )

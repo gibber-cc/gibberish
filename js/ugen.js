@@ -14,10 +14,17 @@ let ugen = {
 
     if( target === undefined || target === null ) target = Gibberish.output 
 
-    if( target.inputs )
+
+    if( typeof target.__addInput == 'function' ) {
+      //console.log( '__addInput', input.isStereo )
+      //target.__addInput( input )
+    } else if( target.sum && target.sum.inputs ) {
+      target.sum.inputs.push( input )
+    } else if( target.inputs ) {
       target.inputs.push( input )
-    else
+    } else {
       target.input = input
+    }
 
     Gibberish.dirty( target )
 
