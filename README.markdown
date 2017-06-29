@@ -1,9 +1,20 @@
 # Gibberish
 
-[Gibberish][gibberish] is designed to be a fast audio API for the browser. It takes the low-level building blocks provided by [http://charlie-roberts.com/genish.js][genish.js] and uses them to create higher-level synthesizers, effects, and sequencers. Gibberish proceses each sample of each synthesis block one sample at a time, enabling a variety of effects not typically possible in browser-based synthesis systems, most importantly single-sample feedback loops and audio-rate modulation of scheduling. 
+[Gibberish][gibberish] is designed to be a fast audio API for the browser. It takes the low-level building blocks provided by [genish.js](http://charlie-roberts.com/genish.js) and uses them to create higher-level synthesizers, effects, and sequencers. Gibberish proceses each sample of each synthesis block one sample at a time, enabling a variety of effects not typically possible in browser-based synthesis systems, most importantly single-sample feedback loops and audio-rate modulation of scheduling. 
 
-## Live Demo
-[http://www.charlie-roberts.com/gibberish2][gibberish]
+## Live Code Playground
+http://www.charlie-roberts.com/gibberish2
+
+## Example Code
+```javascript
+kick = Kick().connect() // connects to master output by default
+seq  = Sequencer.make( [.25,.5], [22050], kick, 'trigger' ] ).start()
+
+chr = Chorus().connect()
+syn = PolySynth({ maxVoices:4, attack:44, decay:22050, gain:.1 })
+syn.connect( chr ).connect()
+syn.chord( [220,330,440,550] )
+```
 
 ## Dependencies
 
@@ -25,11 +36,8 @@ If you don't have gulp installed:
 
 This will create both a minimized and un-minimized version of the library.
 
-## Usage
-Gibberish uses the UMD pattern, so it can be used in node, with AMD, or via simple script tags. If used with script tags the `Gibberish` object will be exported into the global namespace.
-
 ## Ugens
-Gibberish has a long list of oscillators, fx, and synthesis algorithms built in.
+Gibberish includes a long list of oscillators, fx, and synthesis algorithms.
 
 ### Oscillators
 * Sine
@@ -40,7 +48,7 @@ Gibberish has a long list of oscillators, fx, and synthesis algorithms built in.
 * Noise( white, pink, brown )
 * Sampler - read audiofiles and playback at various speeds
 
-### Synthetic Percussion (tr-808 emulation)
+### Synthetic Percussion (TR-808 emulation)
 * Kick
 * Snare
 * Clave
@@ -50,7 +58,7 @@ Gibberish has a long list of oscillators, fx, and synthesis algorithms built in.
 * Conga
 
 ### Synths
-All synths except the monosynth also have polyphonic versions
+All synths also have polyphonic versions.
 
 * Synth - oscillator + optional filter + envelope
 * Monosynth - three oscillators + optional filter + envelope
@@ -59,13 +67,14 @@ All synths except the monosynth also have polyphonic versions
 
 ### Effects
 * BitCrusher - bit depth and sample rate reduction
-* Delay
-* Ring Modulation
-* Flanger
-* Vibrato
-* Reverb (freeverb and dattorro plate reverb model)
 * Buffer Shuffler
 * Chorus (arp solina model)
+* Delay
+* Distortion
+* Flanger
+* Ring Modulation
+* Reverb (freeverb and dattorro plate reverb models)
+* Vibrato
 
 ### Filters
 * State Variable Filter (12 db resonant)
@@ -78,13 +87,10 @@ All synths except the monosynth also have polyphonic versions
 * Envelope Follower
 
 ### Sequencing
-* Seq
-* Seq2 - audio rate sequencer with rate modulation
+* Seq  - sample-accurate scheduling
+* Seq2 - affords audio-rate modulation of timing
 
 ## License
 Gibberish is licensed under the MIT license.
 
-[gibberish]:http://www.charlie-roberts.com/gibberish2
-[audiolib]:https://github.com/jussi-kalliokoski/audiolib.js/
-[audiolet]:https://github.com/oampo/Audiolet
-
+[gibberish]:http://www.charlie-roberts.com/gibberish2/playground
