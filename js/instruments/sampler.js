@@ -1,5 +1,5 @@
-let g = require( 'genish.js' ),
-    instrument = require( './instrument.js' )
+const g = require( 'genish.js' ),
+      instrument = require( './instrument.js' )
 
 module.exports = function( Gibberish ) {
   let proto = Object.create( instrument )
@@ -12,28 +12,35 @@ module.exports = function( Gibberish ) {
       }else{
         this.__phase__.value = this.data.buffer.length - 1 
       }
-    }
+    },
   })
 
-  let Sampler = inputProps => {
-    let syn = Object.create( proto )
+  const Sampler = inputProps => {
+    const syn = Object.create( proto )
 
-    let props = Object.assign( { onload:null }, Sampler.defaults, inputProps )
+    const props = Object.assign( { onload:null }, Sampler.defaults, inputProps )
 
     syn.isStereo = props.isStereo !== undefined ? props.isStereo : false
 
-    let start = g.in( 'start' ), end = g.in( 'end' ), 
-        rate = g.in( 'rate' ), shouldLoop = g.in( 'loops' )
-    /* create dummy ugen until data for sampler is loaded...
-     * this will be overridden by a call to Gibberish.factory on load */
+    const start = g.in( 'start' ), end = g.in( 'end' ), 
+          rate = g.in( 'rate' ), shouldLoop = g.in( 'loops' )
+
+    /* 
+     * create dummy ugen until data for sampler is loaded...
+     * this will be overridden by a call to Gibberish.factory on load 
+     */
+
     syn.callback = function() { return 0 }
     syn.id = Gibberish.factory.getUID()
     syn.ugenName = syn.callback.ugenName = 'sampler_' + syn.id
     syn.inputNames = []
+
     /* end dummy ugen */
 
     syn.__bang__ = g.bang()
     syn.trigger = syn.__bang__.trigger
+
+    Object.assign( syn, props )
 
     if( props.filename ) {
       syn.data = g.data( props.filename )
@@ -68,6 +75,7 @@ module.exports = function( Gibberish ) {
     return syn
   }
   
+
   Sampler.defaults = {
     gain: 1,
     pan: .5,
@@ -75,10 +83,25 @@ module.exports = function( Gibberish ) {
     panVoices:false,
     loops: 0,
     start:0,
-    end:-999999999
+    end:-999999999,
   }
 
-  let PolySampler = Gibberish.PolyTemplate( Sampler, ['rate','pan','gain','start','end','loops'] ) 
+  const envCheckFactory = function( voice, _poly ) {
+
+    const envCheck = () => {
+      const phase = Gibberish.memory.heap[ voice.__phase__.memory.value.idx ]
+      if( ( voice.rate > 0 && phase > voice.end ) || ( voice.rate < 0 && phase < 0 ) ) {
+        _poly.disconnectUgen.call( _poly, voice )
+        voice.isConnected = false
+      }else{
+        Gibberish.blockCallbacks.push( envCheck )
+      }
+    }
+
+    return envCheck
+  }
+
+  const PolySampler = Gibberish.PolyTemplate( Sampler, ['rate','pan','gain','start','end','loops'], envCheckFactory ) 
 
   return [ Sampler, PolySampler ]
 }
