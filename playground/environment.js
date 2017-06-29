@@ -43,6 +43,7 @@ window.onload = function() {
       'oscillators.js',
       'filtering.js',
       'enveloping.js',
+      'fx_and_busses.js',
       'solina.js',
       'phasing.js',
       'three03.js',

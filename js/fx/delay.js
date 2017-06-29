@@ -7,10 +7,10 @@ let Delay = inputProps => {
   let props = Object.assign( { delayLength: 44100 }, Delay.defaults, inputProps ),
       delay = Object.create( effect )
 
-  let isStereo = props.input.isStereo !== undefined ? props.input.isStereo : true 
+  let isStereo = props.input.isStereo !== undefined ? props.input.isStereo : false 
   
   let input      = g.in( 'input' ),
-      delayTime  = g.in( 'delayTime' ),
+      delayTime  = g.in( 'time' ),
       wetdry     = g.in( 'wetdry' ),
       leftInput  = isStereo ? input[ 0 ] : input,
       rightInput = isStereo ? input[ 1 ] : null
@@ -46,7 +46,7 @@ let Delay = inputProps => {
 Delay.defaults = {
   input:0,
   feedback:.75,
-  delayTime: 11025,
+  time: 11025,
   wetdry: .5
 }
 
