@@ -38,6 +38,7 @@ window.onload = function() {
 
   let select = document.querySelector( 'select' ),
     files = [
+      'deepnote.js',
       'intro.js',
       'introOld.js',
       'oscillators.js',
@@ -46,9 +47,10 @@ window.onload = function() {
       'fx_and_busses.js',
       'sequencing.js',
       'making_ugens.js',
-      'solina.js',
       'phasing.js',
+      'solina.js',
       'three03.js',
+      'fm.js'
     ]
 
   select.onchange = function( e ) {
@@ -66,7 +68,7 @@ window.onload = function() {
     req.send()
   }
 
-  loadexample( 'intro.js' )
+  loadexample( 'deepnote.js' )
 
   setupSplit()
 }

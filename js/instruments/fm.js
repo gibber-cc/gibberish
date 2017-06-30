@@ -28,7 +28,7 @@ module.exports = function( Gibberish ) {
         props.triggerRelease
       )
 
-      const feedbackssd = g.history()
+      const feedbackssd = g.history( 0 )
 
       const modOsc = Gibberish.oscillators.factory( 
               syn.modulatorWaveform, 
@@ -38,13 +38,17 @@ module.exports = function( Gibberish ) {
 
       const modOscWithIndex = g.mul( modOsc, g.mul( slidingFreq, index ) )
       const modOscWithEnv   = g.mul( modOscWithIndex, env )
+      
+      const modOscWithEnvAvg = g.mul( .5, g.add( modOscWithEnv, feedbackssd.out ) )
 
-      feedbackssd.in( modOscWithEnv )
+      feedbackssd.in( modOscWithEnvAvg )
 
-      const carrierOsc = Gibberish.oscillators.factory( syn.carrierWaveform, g.add( slidingFreq, modOscWithEnv ), syn.antialias )
+      const carrierOsc = Gibberish.oscillators.factory( syn.carrierWaveform, g.add( slidingFreq, modOscWithEnvAvg ), syn.antialias )
       const carrierOscWithEnv = g.mul( carrierOsc, env )
 
-      const cutoff = g.add( g.in('cutoff'), g.mul( g.in('filterMult'), env ) )
+      const baseCutoffFreq = g.mul( g.in('cutoff'), frequency )
+      const cutoff = g.mul( g.mul( baseCutoffFreq, g.pow( 2, g.in('filterMult') )), env )
+      //const cutoff = g.add( g.in('cutoff'), g.mul( g.in('filterMult'), env ) )
       const filteredOsc = Gibberish.filters.factory( carrierOscWithEnv, cutoff, g.in('Q'), g.in('saturation'), syn )
 
       const synthWithGain = g.mul( filteredOsc, g.in( 'gain' ) )
@@ -90,15 +94,15 @@ module.exports = function( Gibberish ) {
     panVoices:false,
     glide:1,
     saturation:1,
-    filterMult:440,
+    filterMult:1.5,
     Q:.25,
-    cutoff:3520,
+    cutoff:.35,
     filterType:0,
     filterMode:0,
     isLowPass:1
   }
 
-  let PolyFM = Gibberish.PolyTemplate( FM, ['glide','frequency','attack','decay','pulsewidth','pan','gain','cmRatio','index', 'saturation', 'filterMult', 'Q', 'cutoff', 'antialias', 'filterType', 'carrierWaveform', 'modulatorWaveform','filterMode' ] ) 
+  let PolyFM = Gibberish.PolyTemplate( FM, ['glide','frequency','attack','decay','pulsewidth','pan','gain','cmRatio','index', 'saturation', 'filterMult', 'Q', 'cutoff', 'antialias', 'filterType', 'carrierWaveform', 'modulatorWaveform','filterMode', 'feedback' ] ) 
 
   return [ FM, PolyFM ]
 
