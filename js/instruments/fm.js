@@ -11,6 +11,7 @@ module.exports = function( Gibberish ) {
         slidingFreq = g.slide( frequency, glide, glide ),
         cmRatio = g.in( 'cmRatio' ),
         index = g.in( 'index' ),
+        feedback = g.in( 'feedback' ),
         attack = g.in( 'attack' ), decay = g.in( 'decay' ),
         sustain = g.in( 'sustain' ), sustainLevel = g.in( 'sustainLevel' ),
         release = g.in( 'release' )
@@ -27,13 +28,22 @@ module.exports = function( Gibberish ) {
         props.triggerRelease
       )
 
-      const modOsc = Gibberish.oscillators.factory( syn.modulatorWaveform, g.mul( slidingFreq, cmRatio ), syn.antialias )
+      const feedbackssd = g.history()
+
+      const modOsc = Gibberish.oscillators.factory( 
+              syn.modulatorWaveform, 
+              g.add( g.mul( slidingFreq, cmRatio ), g.mul( feedbackssd.out, feedback, index ) ), 
+              syn.antialias 
+            )
+
       const modOscWithIndex = g.mul( modOsc, g.mul( slidingFreq, index ) )
       const modOscWithEnv   = g.mul( modOscWithIndex, env )
 
+      feedbackssd.in( modOscWithEnv )
+
       const carrierOsc = Gibberish.oscillators.factory( syn.carrierWaveform, g.add( slidingFreq, modOscWithEnv ), syn.antialias )
       const carrierOscWithEnv = g.mul( carrierOsc, env )
- 
+
       const cutoff = g.add( g.in('cutoff'), g.mul( g.in('filterMult'), env ) )
       const filteredOsc = Gibberish.filters.factory( carrierOscWithEnv, cutoff, g.in('Q'), g.in('saturation'), syn )
 
@@ -62,6 +72,7 @@ module.exports = function( Gibberish ) {
     carrierWaveform:'sine',
     modulatorWaveform:'sine',
     attack: 44,
+    feedback: 0,
     decay: 22050,
     sustain:44100,
     sustainLevel:.6,

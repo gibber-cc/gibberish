@@ -214,7 +214,7 @@ FM
 ----
 *Prototype: [Gibberish.prototypes.instrument](#prototypes-instrument)*
 
-The `FM` unit generator provides two-operator FM synthesis with a choice of waveforms for both carrier and modulator, as well as a filter with selectable models (disabled by default). The envelopes of FM instances controls gain, modulation index, and filter cutoff (assuming an appropriate value for filterMult).
+The `FM` unit generator provides two-operator FM synthesis with a choice of waveforms for both carrier and modulator, as well as a filter with selectable models (disabled by default). In addition to modulating the frequency of the carrier oscillator, the modulator may also modulate itself via a single sample feedback loop. The amount of feedback is determined both by the `index` property of the FM instance (which also controls how much the modulator affects the carrier frequency) and a separate `feedback` parameter which scales the amount of self-modulation. The envelopes of FM instances controls gain, modulation index, and filter cutoff (assuming an appropriate value for filterMult).
 
 ```javascript
 // run all at once
@@ -250,6 +250,8 @@ Gibberish.Sequencer({
 *float* default: 2. This controls the relationship between the carrier oscillator's frequency and the modulating oscillator's frequency. A value of `2` means that, given a carrier frequency of 440, the modulator frequency will be 880.
 ###fm.index###
 *float* default: 5. In canonical FM synthesis, the amplitude of the modulating oscillator is controlled by the frequency of the carrier on the 'modulation index' parameter. Given a carrier frequency of 440 and `index` property of `5`, the amplitude of the modulating oscillator will be `440 * 5 = 2200`.
+###fm.feedback###  
+*float* default: 0. A scalar which determines how much the output of the modulating oscillator affects the frequency of the modulating oscillator via a single-sample feedback loop. Note: high values (>1) coupled with high index values can cause the algorithm to blow-up.
 ###fm.antialias###
 *boolean* default: false. If this property is true, both the carrier and modulator will use higher quality (and more computationally expensive) anti-aliasing oscillators.
 ###fm.panVoices###
