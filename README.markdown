@@ -5,7 +5,7 @@
 Note that this branch is for version 3 of the library. See [the master branch](https://github.com/gibber-cc/gibberish/tree/master) for the pre-June 2017 version that is currently used in Gibber. There is also a tagged release of the older version (2.0.0).
 
 ## Live Code Playground
-http://www.charlie-roberts.com/gibberish2
+http://www.charlie-roberts.com/gibberish/v3
 
 ## Example Code
 ```javascript
