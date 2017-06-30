@@ -9,12 +9,18 @@ http://www.charlie-roberts.com/gibberish2
 
 ## Example Code
 ```javascript
-kick = Kick().connect() // connects to master output by default
-seq  = Sequencer.make( [.25,.5], [22050], kick, 'trigger' ] ).start()
+kik = Kick().connect() // connects to master output by default
+
+// sequence calls to 'trigger' method of kick drum every 1/2 second
+// with alternating loudness levels.
+seq  = Sequencer.make( [.25,.5], [22050], kik, 'trigger' ] ).start()
 
 chr = Chorus().connect()
 syn = PolySynth({ maxVoices:4, attack:44, decay:22050, gain:.1 })
+
+// connect to chorus and master output
 syn.connect( chr ).connect()
+
 syn.chord( [220,330,440,550] )
 ```
 
