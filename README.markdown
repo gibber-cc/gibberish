@@ -24,7 +24,33 @@ syn.connect( chr ).connect()
 syn.chord( [220,330,440,550] )
 ```
 
-## Dependencies
+## HTML + Initialization
+```html
+<!doctype html >
+
+<html lang='en'>
+  <head>
+    <script src='dist/gibberish.js'></script>
+  </head>
+
+  <body></body>
+  
+  <script>
+  window.onload = function() {
+    Gibberish.init()
+    
+    // access objects in Gibberish namespace
+    Gibberish.oscillators.Sine({ frequency:220 }).connect()
+    
+    // or export namespace to object of your choice 
+    Gibberish.export( window )
+    Sine({ frequency:220 }).connect()
+  }
+  </script>
+</html>
+```
+
+## Development dependencies
 
 * node 6 or better
 * npm
@@ -40,9 +66,9 @@ If you don't have gulp installed:
 
 1. Run `npm install` in the top level directory
 2. Run `npm install gulp-cli` in the top level directory
-3. Run `./node_modules/.bin/gulp` in the top level directory
+3. Run `./node_modules/.bin/gulp` in the top level directory, or simply `gulp` if you have gulp installed globally.
 
-This will create both a minimized and un-minimized version of the library.
+This will create both a minimized and an un-minimized version of the library.
 
 ## Ugens
 Gibberish includes a long list of oscillators, fx, and synthesis algorithms.
