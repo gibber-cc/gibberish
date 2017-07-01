@@ -21,7 +21,7 @@ module.exports = function () {
   b4.in(genish.add(genish.mul(.55000, b4.out), genish.mul(white, .5329522)));
   b5.in(genish.sub(genish.mul(-.7616, b5.out), genish.mul(white, .0168980)));
 
-  out = genish.mul(genish.add(genish.add(genish.add(genish.add(genish.add(genish.add(genish.add(b0.out, b0.out), b0.out), b0.out), b0.out), b0.out), b0.out), genish.mul(white, .5362)), .11);
+  out = genish.mul(genish.add(genish.add(genish.add(genish.add(genish.add(genish.add(genish.add(b0.out, b1.out), b2.out), b3.out), b4.out), b5.out), b6.out), genish.mul(white, .5362)), .11);
 
   b6.in(genish.mul(white, .115926));
 

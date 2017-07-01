@@ -15,7 +15,7 @@ module.exports = function() {
   b4.in( ( .55000 * b4.out ) + ( white * .5329522 ) )
   b5.in( ( -.7616 * b5.out ) - ( white * .0168980 ) )
 
-  out = ( b0.out + b0.out + b0.out + b0.out + b0.out + b0.out + b0.out + white * .5362 ) * .11
+  out = ( b0.out + b1.out + b2.out + b3.out + b4.out + b5.out + b6.out + white * .5362 ) * .11
 
   b6.in( white * .115926 )
    
