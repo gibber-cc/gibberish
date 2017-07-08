@@ -3,10 +3,9 @@ let g = require( 'genish.js' ),
 
 module.exports = function( Gibberish ) {
 
-  let Synth = inputProps => {
-    let syn = Object.create( instrument )
+  const Synth = inputProps => {
+    const syn = Object.create( instrument )
 
-    //let env = g.ad( g.in('attack'), g.in('decay'), { shape:'linear' }),
     const frequency = g.in( 'frequency' ),
           loudness  = g.in( 'loudness' ), 
           glide = g.in( 'glide' ),
@@ -15,7 +14,7 @@ module.exports = function( Gibberish ) {
           sustain = g.in( 'sustain' ), sustainLevel = g.in( 'sustainLevel' ),
           release = g.in( 'release' )
 
-    let props = Object.assign( syn, Synth.defaults, inputProps )
+    const props = Object.assign( syn, Synth.defaults, inputProps )
 
     syn.__createGraph = function() {
       const osc = Gibberish.oscillators.factory( syn.waveform, slidingFreq, syn.antialias )
@@ -36,14 +35,14 @@ module.exports = function( Gibberish ) {
           panner
   
       const baseCutoffFreq = g.mul( g.in('cutoff'), frequency )
-      let cutoff = g.mul( g.mul( baseCutoffFreq, g.pow( 2, g.in('filterMult') )), env )
+      const cutoff = g.mul( g.mul( baseCutoffFreq, g.pow( 2, g.in('filterMult') )), env )
       const filteredOsc = Gibberish.filters.factory( oscWithEnv, cutoff, g.in('Q'), g.in('saturation'), props )
 
       let synthWithGain = g.mul( filteredOsc, g.in( 'gain' ) )
   
       if( syn.panVoices === true ) { 
         panner = g.pan( synthWithGain, synthWithGain, g.in( 'pan' ) ) 
-        syn.graph = [panner.left, panner.right]
+        syn.graph = [ panner.left, panner.right ]
       }else{
         syn.graph = synthWithGain
       }

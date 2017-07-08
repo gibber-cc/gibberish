@@ -3,9 +3,9 @@ let genish = require( 'genish.js' )
 module.exports = function( Gibberish ) {
 
 let utilities = {
-  createContext() {
+  createContext( ctx ) {
     let AC = typeof AudioContext === 'undefined' ? webkitAudioContext : AudioContext
-    Gibberish.ctx = new AC()
+    Gibberish.ctx = ctx === undefined ? new AC() : ctx
     genish.gen.samplerate = Gibberish.ctx.sampleRate
     genish.utilities.ctx = Gibberish.ctx
 

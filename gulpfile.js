@@ -53,7 +53,7 @@ gulp.task( 'test', ['js'], ()=> {
 
 // file watcher
 gulp.task( 'watch', function() {
-  gulp.watch( './js/**/*.js', ['test'] )
+  gulp.watch( './js/**/*.js', ['js'] )
 
   gulp.watch( './js/**/*.jsdsp', e => { 
     let pathArr = e.path.split('/')

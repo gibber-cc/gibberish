@@ -18,7 +18,8 @@ module.exports = function( Gibberish ) {
     factory( useADSR, shape, attack, decay, sustain, sustainLevel, release, triggerRelease=false ) {
       let env
 
-      if( useADSR !== true ) {
+      // deliberate use of single = to accomodate both 1 and true
+      if( useADSR != true ) {
         env = g.ad( attack, decay, { shape }) 
       }else {
         env = g.adsr( attack, decay, sustain, sustainLevel, release, { shape, triggerRelease })

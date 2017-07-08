@@ -30,8 +30,8 @@ let Gibberish = {
     polyinstrument: require( './instruments/polyMixin.js' )
   },
 
-  init( memAmount ) {
-    let numBytes = memAmount === undefined ? 20 * 60 * 44100 : memAmount
+  init( memAmount, ctx ) {
+    let numBytes = isNaN( memAmount ) ? 20 * 60 * 44100 : memAmount
 
     this.memory = MemoryHelper.create( numBytes )
 
@@ -39,7 +39,7 @@ let Gibberish = {
     
     this.output = this.Bus2()
 
-    this.utilities.createContext()
+    this.utilities.createContext( ctx )
     this.utilities.createScriptProcessor()
 
     this.analyzers.dirty = false

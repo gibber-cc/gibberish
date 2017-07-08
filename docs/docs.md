@@ -1,27 +1,27 @@
-#Gibberish
+# Gibberish
 
-####Methods####
-###gibberish.clear###
+#### Methods ####
+### gibberish.clear ###
 Disconnects all ugens from the master bus and stops all sequencers from runnning.
 
-###gibberish.init###
+### gibberish.init ###
 The `init` method creates an `AudioContext` object, a `ScriptProcessor Node`, and connects the output of the node to the `destination` property of the AudioContext. This single line should be enough to start a Gibberish session (assuming the Gibberish library has been properly included from your HTML file).
 
-***memorySize*** &nbsp; *int* &nbsp; Default:44100 * 60 * 20 (twenty minutes at 44.1 kHz). This determines the size of the memory block that Gibberish will use for all ugens. If you use a lot of samples (more than twenty minutes worth) you may want to increase this size.
+*** memorySize *** &nbsp; *int* &nbsp; Default:44100 * 60 * 20 (twenty minutes at 44.1 kHz). This determines the size of the memory block that Gibberish will use for all ugens. If you use a lot of samples (more than twenty minutes worth) you may want to increase this size.
 
-###gibberish.print###
+### gibberish.print ###
 Prints the current master audio callback to the console.
 
-###gibberish.export###
+### gibberish.export ###
 By default, the Gibberish library is contained within the global `Gibberish` object (or whatever variable you import it into using browserify / require.js etc). However, you can easily export the Gibberish namespace to another object (for example, the `window` object) for easier API access. 
 
-***target*** &nbsp; *object*. The object to export the Gibberish namespace to.  
-***shouldExportGenish*** &nbsp; *boolean* &nbsp; Default:false. Determines whether or not the lower-level unit generators found in genish.js are also exported to the target object. Note that many variables names in genish and Gibberish are only differentiated by lowercase vs uppercase letters... for example, Gibberish has `Add`, `ADSR`, and `Mod` ugens, while genish has `add`, `adsr`, and `mod`.
+*** target *** &nbsp; *object*. The object to export the Gibberish namespace to.  
+*** shouldExportGenish *** &nbsp; *boolean* &nbsp; Default:false. Determines whether or not the lower-level unit generators found in genish.js are also exported to the target object. Note that many variables names in genish and Gibberish are only differentiated by lowercase vs uppercase letters... for example, Gibberish has `Add`, `ADSR`, and `Mod` ugens, while genish has `add`, `adsr`, and `mod`. 
 
-####Properties####
-###gibberish.debug###
+#### Propertie s####
+### gibberish.debug ###
 *boolean* Default:false. When this value is set to true, callbacks will be printed to the console whenever they are generated.
-###gibberish.output###
+### gibberish.output ###
 *Bus2* The master bus that all Gibberish ugens eventually feed into. This bus is created during calls to `Gibberish.init()`.
 
 
@@ -33,14 +33,14 @@ ugen
 
 The ugen object is the primary prototype for all unit generators in Gibberish.js. All ugens with the exception of simple binop / monop math operations (add, mul, abs etc.) delegate to this prototype object. 
 
-####Methods####
-###ugen.print###
+#### Methods ####
+### ugen.print ###
 Calls to `ugen.print()` will write a unit generators callback function to the `console` object.
 
-###ugen.free###
+### ugen.free ###
 Frees the memory associated with a unit generator.
 
-###ugen.connect###
+### ugen.connect ###
 
 **ugen** &nbsp; *object* &nbsp; Optional. Another unit generator to connect to. If this arguement is undefined, the unit generator will create a default connection to `Gibberish.output`, which is essentially the master output bus.
 
@@ -68,7 +68,7 @@ syn2.connect( reverb.input, .25 )
 syn3.connect( reverb.input, .25 )
 ```
 
-###ugen.disconnect###
+### ugen.disconnect ###
 
 **ugen** &nbsp; *object* &nbsp; Optional. The unit generator calling `disconnect` will be disconnected from this destination. If this argument is ommitted, the unit generator will be disconnected from all unit generators it is currently connected to.
 
@@ -93,8 +93,8 @@ instrument
 
 Monophonic instruments in Gibberish (such as Synth, FM, and Monosynth) delegate to this prototype for `note` and `trigger` methods, while polyphonic instruments use a mixin (polytemplate.js). 
 
-####Methods####
-###instrument.note( frequency  )###
+#### Methods ####
+### instrument.note( frequency  ) ###
 **frequency** &nbsp;  *number* &nbsp; The frequency for the new note to be played.
 
 The `note` method assigns a new frequency to the instrument and re-triggers the instrument's envelope. For some percussion instruments that use fixed frequencies (Cowbell, Snare, and Hat) this method will trigger the instrument's envelope but the argument frequency will have no effect.
@@ -104,7 +104,7 @@ fm = Gibberish.FM().connect()
 fm.note( 330 )
 ```
 
-###instrument.trigger( loudness  )###
+### instrument.trigger( loudness  ) ###
 **loudness** &nbsp;  *number* &nbsp; A scalar applied to the gain envelope of the new note.
 
 Trigger a note at the last used frequency with the provided `loudness` as a scalar.
@@ -120,16 +120,16 @@ Gibberish.Sequencer({
 }).start()
 ```
 
-#Mixins
+# Mixins
 
 polyinstrument
 ----
 *Gibberish.mixins.polyinstrumentn*  
 
-Polyphonic instruments in Gibberish (such as Synth, FM, and Monosynth) use to this mixin for `note`, `trigger`, and `chord` methods. Note that polyphonic instruments also use `Bus` and `Bus2` objects as prototypes. 
+Polyphonic instruments in Gibberish (such as Synth, FM, and Monosynth) use this mixin for `note`, `trigger`, and `chord` methods. Note that polyphonic instruments also use `Bus` and `Bus2` objects as prototypes. 
 
-####Methods####
-###polyinstrument.chord( frequencies  )###
+#### Methods ####
+### polyinstrument.chord( frequencies  ) ###
 **frequency** &nbsp;  *array* &nbsp; The frequencies of the chord to be played.
 
 The `chord` method selects voices from the polyphonic instrument, assigns them new frequencies, and triggers their envelopes. The number of notes concurrently playable is determined by the instrument's `maxVoices` property. Using the `chord` method with three frequencies is functionally identical to calling `note` three times simultaneously.
@@ -138,7 +138,7 @@ The `chord` method selects voices from the polyphonic instrument, assigns them n
 fm = Gibberish.PolyFM({ maxVoices:3, decay: 88200 * 2 }).connect()
 fm.chord([ 330,440,550 ])
 ```
-###polyinstrument.note( frequency  )###
+### polyinstrument.note( frequency  ) ###
 **frequency** &nbsp;  *number* &nbsp; The frequency for the new note to be played.
 
 The `note` method selects a child voice from the polyphonic instrument, assigns it a new frequency, and triggers the instrument's envelope. The number of notes concurrently playable is determined by the instruments `maxVoices` property.
@@ -150,7 +150,7 @@ fm.note( 440 )
 fm.note( 550 )
 ```
 
-###polyinstrument.trigger( loudness  )###
+### polyinstrument.trigger( loudness  ) ###
 **loudness** &nbsp;  *number* &nbsp; A scalar applied to the gain envelope of the new note.
 
 Trigger a note or chord at the last used frequency(ies) with the provided `loudness` as a scalar.
@@ -184,10 +184,10 @@ conga.decay( .25 )
 conga.note( 440 )
 ```
 
-####Properties####
-###conga.decay###
+#### Properties ####
+### conga.decay ###
 *float* range: 0-1, default: .85 This value controls the decay length of each note.
-###conga.gain###
+### conga.gain ###
 *float* default: .25 This value controls the loudness of each note.
 
 Cowbell
@@ -204,10 +204,10 @@ conga.decay( .05 )
 conga.trigger( .75 )
 ```
 
-####Properties####
-###cowbell.decay###
+#### Properties ####
+### cowbell.decay ###
 *float* range: 0-1, default: .5 This value controls the decay length of each note. 0 represents a decay of 0 samples (and thus no sound, don't do this) while a value of 1 represents two seconds.
-###cowbell.gain###
+### cowbell.gain ###
 *float* default: .25 This value controls the loudness of each note.
 
 FM
@@ -245,53 +245,53 @@ Gibberish.Sequencer({
 }).start()
 ```
 
-####Properties####
-###fm.cmRatio###
+#### Properties ####
+### fm.cmRatio ###
 *float* default: 2. This controls the relationship between the carrier oscillator's frequency and the modulating oscillator's frequency. A value of `2` means that, given a carrier frequency of 440, the modulator frequency will be 880.
-###fm.index###
+### fm.index ###
 *float* default: 5. In canonical FM synthesis, the amplitude of the modulating oscillator is controlled by the frequency of the carrier on the 'modulation index' parameter. Given a carrier frequency of 440 and `index` property of `5`, the amplitude of the modulating oscillator will be `440 * 5 = 2200`.
-###fm.feedback###  
+### fm.feedback ###  
 *float* default: 0. A scalar which determines how much the output of the modulating oscillator affects the frequency of the modulating oscillator via a single-sample feedback loop. Note: high values (>1) coupled with high index values can cause the algorithm to blow-up.
-###fm.antialias###
+### fm.antialias ###
 *boolean* default: false. If this property is true, both the carrier and modulator will use higher quality (and more computationally expensive) anti-aliasing oscillators.
-###fm.panVoices###
+### fm.panVoices ###
 *boolean* default: false. If true, the synth will expose a pan property for stereo panning; otherwise, the synth is mono.
-###fm.pan###
+### fm.pan ###
 *float* range: 0-1, default: .5. If the `panVoices` property of the synth is `true`, this property will determine the position of the synth in the stereo spectrum. `0` = left, `.5` = center, `1` = right. 
-###fm.attack###
+### fm.attack ###
 *int* default: 44. The length of the attack portion of the synth's envelope measured in samples. The envelope modulates amplitude, the index property, and the filter cutoff frequency (if the filter is enabled. 
-###fm.decay###
+### fm.decay ###
 *int* default: 22050. The length of the decay portion of the synth's envelope measured in samples. The envelope modulates amplitude, the index property, and the filter cutoff frequency (if the filter is enabled.
-###fm.sustain###
+### fm.sustain ###
 *int* default: 44100. The length of the sustain portion of the synth's envelope measured in samples. The envelope modulates amplitude, the index property, and the filter cutoff frequency (if the filter is enabled. Note that the sustain will last until the synth's `synth.env.release()` method is triggered if the synth's `triggerRelease` property is set to `true`.
 ###fm.sustainLevel###
 *float* default: .6. The gain stage of the sustain portion of the synth's envelope. The envelope modulates amplitude, the index property, and the filter cutoff frequency (if the filter is enabled. Sustain and release are only used if the `useADSR` property of the synth is set to be true.
-###fm.release###
+### fm.release ###
 *int* default: 22050. The length of the decay portion of the synth's envelope measured in samples. The envelope modulates amplitude, the index property, and the filter cutoff frequency (if the filter is enabled.
-###fm.useADSR###
+### fm.useADSR ###
 *bool* default: false. Determines whether a synth uses a two stage (AD) or four-stage (ADSR) envelope.
-###fm.triggerRelease###
+### fm.triggerRelease ###
 *bool* default: false. Assuming a synth's `useADSR` property is also set to `true`, a value of `true` on this property will continue the sustain stage of an ADSR indefinitely until the synth's envelope receives a release  message (i.e `synth.env.release()`)
-###fm.gain###
+### fm.gain ###
 *float* default: 1. A scalar applied to the output of the synth. It is modulated by the synth's envelope.
-###fm.carrierWaveform###
+### fm.carrierWaveform ###
 *string* default: 'sine'. Controls the waveform of the carrier oscillator. Choose between 'sine','saw','square', and 'pwm'.
-###fm.modulatorWaveform###
+### fm.modulatorWaveform ###
 *string* default: 'sine'. Controls the waveform of the modulating oscillator. Choose between 'sine','saw','square', and 'pwm'.
-###fm.filterType###
+### fm.filterType ###
 *int* default: 0. Select a filter type. `0` - no filter. `1` - 'classic' Gibberish 4-pole resonant filter. `2` - Zero-delay (aka virtual analog) 4-pole Moog-style ladder filter. `2` - Zero-delay (aka virtual analog) resonant diode filter, modeled after the TB-303.
-###fm.filterMode###
+### fm.filterMode ###
 *int* default: 0. Select a filter mode. `0` - low pass. `1` - high pass, available for filter types 1, 4, and 5. `2` -
 bandpass, available for filter types 4 and 5. `3` - notch, available efor filter type 4.
-###fm.cutoff###
+### fm.cutoff ###
 *float* default: 440. Controls the cutoff frequncy of the filter, if enabled. IMPORTANT NOTE: If filter type 1 is chosen, the cutoff frequency should be provided as a value between 0 to 1... this will be connected in the future.
-###fm.filterMult###
+### fm.filterMult ###
 *float* default: 440. Controls modulation applied to the cutoff frequency by the synth's envelope. For example, given a `cutoff` property of `440` and a `filterMult` of `440`, the final cutoff frequency will vary between 440 and 880 Hz as the envelope increases and decreases in value. Use low `cutoff` values and high `filterMult` values to create filter sweeps for each note that is played. 
-###fm.Q###
+### fm.Q ###
 *float* default: 8. Controls the filter 'quality' (aka resonance), if the filter for the synth is enabled. IMPORTANT NOTE: Be careful with this setting as all filters are potentially self-oscillating and can explode. For filter type 2, stay lower than 10 to be safe, and even lower than that using high cutoff frequencies. For filter type 3, stay lower than 20 to be safe, and again, adjust this value depending on cutoff / filterMult property values.
-###fm.resonance###
+### fm.resonance ###
 *float* default: 3.5. This property only affects the resonance for filter type 1. Values above 4 are typically self-oscillating, depending on the cutoff frequency.
-###fm.saturation###
+### fm.saturation ###
 *float* default: 1. For filter type 3 (modeled TB-303), this value controls a non-linear waveshaping (distortion) applied to the signal before entering the filter stage. A value of 1 means no saturation is added, higher values yield increasing distortion.
 
 PolyFM
@@ -325,12 +325,12 @@ hat.tune = .25
 hat.trigger( .5 )
 ```
 
-####Properties####
-###hat.decay###
+#### Properties ####
+### hat.decay ###
 *float* range: 0-1, default: .5 This value controls the decay length of each note. 0 represents a decay of 0 samples (and thus no sound, don't do this) while a value of 1 represents two seconds.
-###hat.gain###
+### hat.gain ###
 *float* default: .25 This value controls the loudness of each note.
-###hat.tune###
+### hat.tune ###
 *float* range:0-1, default: .5. This value controls both the frequencies of the squarewave oscillators used in the synth and the cutoff frequencies of its filters.
 
 Karplus
@@ -346,18 +346,18 @@ pluck.decay = 4 // seconds
 pluck.note( 440 )
 ```
 
-####Properties####
-###karplus.decay###
+#### Properties ####
+### karplus.decay ###
 *float* default: .5 This value controls the decay length of each note, measured in seconds.
-###karplus.damping###
+### karplus.damping ###
 *float* range: 0-1, default: .2. The amount of damping on the string.  
-###karplus.gain###
+### karplus.gain ###
 *float* range:0-1, default:1. The loudness of notes
-###karplus.glide***
+### karplus.glide ###
 *int* range:1-?, default:1. A portamento affect applied to frequency. Increasing this will cause notes to slide into each other, as opposed to using discrete frequencies.
-###karplus.panVoices###
+### karplus.panVoices ###
 *boolean* default: false. If true, the synth will expose a pan property for stereo panning; otherwise, the synth is mono.
-###karplus.pan###
+### karplus.pan ###
 *float* range: 0-1, default: .5. If the `panVoices` property of the synth is `true`, this property will determine the position of the synth in the stereo spectrum. `0` = left, `.5` = center, `1` = right. 
 
 PolyKarplus
@@ -386,7 +386,7 @@ kick.decay( .25 )
 kick.note( 90 )
 ```
 
-####Properties####
+#### Properties ####
 ###kick.decay###
 *float* range: 0-1, default: .9. This value controls the decay length of each note.
 ###kick.gain###

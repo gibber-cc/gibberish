@@ -14,7 +14,7 @@ module.exports = function( Gibberish ) {
           sustain = g.in( 'sustain' ), sustainLevel = g.in( 'sustainLevel' ),
           release = g.in( 'release' )
 
-    let props = Object.assign( syn, Synth.defaults, argumentProps )
+    const props = Object.assign( syn, Synth.defaults, argumentProps )
 
     syn.__createGraph = function() {
       const env = Gibberish.envelopes.factory( 
@@ -37,7 +37,7 @@ module.exports = function( Gibberish ) {
             freq = g.add( slidingFreq, g.mul( slidingFreq, g.in('detune3') ) )
             break;
           default:
-            freq = slidingFreq//frequency
+            freq = slidingFreq
         }
 
         osc = Gibberish.oscillators.factory( syn.waveform, freq, syn.antialias )
@@ -45,17 +45,14 @@ module.exports = function( Gibberish ) {
         oscs[ i ] = osc
       }
 
-      let oscSum = g.add( ...oscs ),
-          oscWithGain = g.mul( g.mul( oscSum, env ), g.in( 'gain' ) ),
-          //cutoff = g.add( g.in('cutoff'), g.mul( g.in('filterMult'), env ) ),
-          filteredOsc, panner
-
-      const baseCutoffFreq = g.mul( g.in('cutoff'), frequency )
-      let cutoff = g.mul( g.mul( baseCutoffFreq, g.pow( 2, g.in('filterMult') )), env )
-      filteredOsc = Gibberish.filters.factory( oscWithGain, cutoff, g.in('Q'), g.in('saturation'), syn )
+      const oscSum = g.add( ...oscs ),
+            oscWithGain = g.mul( g.mul( oscSum, env ), g.in( 'gain' ) ),
+            baseCutoffFreq = g.mul( g.in('cutoff'), frequency ),
+            cutoff = g.mul( g.mul( baseCutoffFreq, g.pow( 2, g.in('filterMult') )), env ),
+            filteredOsc = Gibberish.filters.factory( oscWithGain, cutoff, g.in('Q'), g.in('saturation'), syn )
         
       if( props.panVoices ) {  
-        panner = g.pan( filteredOsc,filteredOsc, g.in( 'pan' ) )
+        const panner = g.pan( filteredOsc,filteredOsc, g.in( 'pan' ) )
         syn.graph = [ panner.left, panner.right ]
       }else{
         syn.graph = filteredOsc
