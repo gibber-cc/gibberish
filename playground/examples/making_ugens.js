@@ -36,7 +36,7 @@ OurUgen = function( source=0, gain=1 ) {
 mysin = Sine({ frequency: 220 })
 
 // create ourugen and connect it.
-myugen = OurUgen( a, .025 ).connect()
+myugen = OurUgen( mysin, .025 ).connect()
 
 
 

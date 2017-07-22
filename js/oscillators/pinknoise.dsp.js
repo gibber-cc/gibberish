@@ -1,24 +1,25 @@
 const genish = require( 'genish.js' ),
       ssd = genish.history,
+      data = genish.data,
       noise = genish.noise
 
 module.exports = function() {
   "use jsdsp"
 
-  const b0 = ssd(0), b1 = ssd(0), b2 = ssd(0), b3 = ssd(0), b4 = ssd(0), b5 = ssd(0), b6 = ssd(0)
-  const white = ( noise() * 2 ) - 1
+  const b = data( 8, 1, { meta: true })
+  const white = noise() * 2 - 1
 
-  b0.in( ( .99886 * b0.out ) + ( white * .0555179 ) )
-  b1.in( ( .99332 * b1.out ) + ( white * .0750579 ) )
-  b2.in( ( .96900 * b2.out ) + ( white * .1538520 ) )
-  b3.in( ( .88650 * b3.out ) + ( white * .3104856 ) )
-  b4.in( ( .55000 * b4.out ) + ( white * .5329522 ) )
-  b5.in( ( -.7616 * b5.out ) - ( white * .0168980 ) )
+  b[0] = ( .99886 * b[0] ) + ( white * .0555179 )
+  b[1] = ( .99332 * b[1] ) + ( white * .0750579 )
+  b[2] = ( .96900 * b[2] ) + ( white * .1538520 )
+  b[3] = ( .88650 * b[3] ) + ( white * .3104856 )
+  b[4] = ( .55000 * b[4] ) + ( white * .5329522 )
+  b[5] = ( -.7616 * b[5] ) - ( white * .0168980 )
+ 
+  const out = ( b[0] + b[1] + b[2] + b[3] + b[4] + b[5] + b[6] + white * .5362 ) * .11
 
-  out = ( b0.out + b1.out + b2.out + b3.out + b4.out + b5.out + b6.out + white * .5362 ) * .11
+  b[6] = white * .115926
 
-  b6.in( white * .115926 )
-   
   return out
 
 }
