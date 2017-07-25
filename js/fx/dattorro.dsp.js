@@ -113,7 +113,7 @@ const Tank  = function( in1, in2, in3, in4, in5 ) {
 module.exports = function( Gibberish ) {
 
   const Reverb = inputProps => {
-    const props = Object.assign( {}, Reverb.defaults, inputProps ),
+    const props = Object.assign( {}, Reverb.defaults, effect.defaults, inputProps ),
           reverb = Object.create( effect ) 
      
     const isStereo = props.input.isStereo !== undefined ? props.input.isStereo : true 

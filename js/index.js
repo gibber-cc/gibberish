@@ -182,6 +182,7 @@ let Gibberish = {
     } else if (ugen === true || ugen === false) {
       throw "Why is ugen a boolean? [true] or [false]";
     } else if( ugen.block === undefined || dirtyIndex !== -1 ) {
+
   
       let line = `\tvar v_${ugen.id} = ` 
       
@@ -216,6 +217,13 @@ let Gibberish = {
         }
 
         if( input !== undefined ) { 
+          if( input.bypass === true ) {
+            if( input.input !== 'undefined' ) {
+              // redefine input to be the next item in the chain...
+              input = input.input
+            }
+          }
+
           if( typeof input === 'number' ) {
               line += input
           } else if( typeof input === 'boolean' ) {
@@ -250,6 +258,7 @@ let Gibberish = {
       if( !ugen.binop && ugen.type !== 'seq' ) line += 'memory'
       line += ugen.binop ? '' : ' )'
 
+      if( ugen.bypass === true ) line = `var v_${ugen.id} = 0`
       block.push( line )
       
       //console.log( 'memo:', ugen.ugenName )

@@ -4,7 +4,7 @@ let g = require( 'genish.js' ),
 module.exports = function( Gibberish ) {
  
 let RingMod = inputProps => {
-  let props   = Object.assign( {}, RingMod.defaults, inputProps ),
+  let props   = Object.assign( {}, RingMod.defaults, effect.defaults, inputProps ),
       ringMod = Object.create( effect )
 
   let isStereo = props.input.isStereo !== undefined ? props.input.isStereo : true 

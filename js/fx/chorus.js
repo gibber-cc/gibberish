@@ -4,7 +4,7 @@ let g = require( 'genish.js' ),
 module.exports = function( Gibberish ) {
  
 let Chorus = inputProps => {
-  const props = Object.assign({}, Chorus.defaults, inputProps )
+  const props = Object.assign({}, Chorus.defaults, effect.defaults, inputProps )
   
   const chorus = Object.create( Gibberish.prototypes.ugen )
 

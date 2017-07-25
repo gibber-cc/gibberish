@@ -5,7 +5,7 @@
 Disconnects all ugens from the master bus and stops all sequencers from runnning.
 
 ### gibberish.init ###
-The `init` method creates an `AudioContext` object, a `ScriptProcessor Node`, and connects the output of the node to the `destination` property of the AudioContext. This single line should be enough to start a Gibberish session (assuming the Gibberish library has been properly included from your HTML file).
+The `init` method creates an `AudioContext` object, a `ScriptProcessor Node`, and connects the output of the node to the `destination` property of the AudioContext. This single line should be enough to start a Gibberish session (assuming the Gibberish library has been properly included from your HTML file).  
 
 *** memorySize *** &nbsp; *int* &nbsp; Default:44100 * 60 * 20 (twenty minutes at 44.1 kHz). This determines the size of the memory block that Gibberish will use for all ugens. If you use a lot of samples (more than twenty minutes worth) you may want to increase this size.
 
@@ -77,14 +77,22 @@ effect
 *Gibberish.prototypes.effect*  
 *Prototype: [Gibberish.prototypes.ugen](#prototypes-ugen)*
 
-This is the prototype for all effect unit generators. There are currently no methods associated with it.
+This is the prototype for all effect unit generators. 
+
+#### Properties ####
+### effect.defaults ###
+*Object* { bypass:false } These defaults are applied to all effects. Changing the bypass value of any effect to true will completely remove it from the audio callback. 
 
 filter
 ----
 *Gibberish.prototypes.filter*  
 *Prototype: [Gibberish.prototypes.ugen](#prototypes-ugen)*
 
-This is the prototype for all filters. There are currently no methods associated with it.
+This is the prototype for all filters.
+
+#### Properties ####
+### filter.defaults ###
+*Object* { bypass:false } These defaults are applied to all filters. Changing the bypass value of any filter to true will completely remove it from the audio callback. 
 
 instrument
 ----

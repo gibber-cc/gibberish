@@ -8,7 +8,7 @@ module.exports = function( Gibberish ) {
     let bufferShuffler = Object.create( proto ),
         bufferSize = 88200
 
-    let props = Object.assign( {}, Shuffler.defaults, inputProps )
+    let props = Object.assign( {}, Shuffler.defaults, effect.defaults, inputProps )
 
     let isStereo = props.input.isStereo !== undefined ? props.input.isStereo : false
     let phase = g.accum( 1,0,{ shouldWrap: false })

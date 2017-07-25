@@ -4,7 +4,7 @@ let g = require( 'genish.js' ),
 module.exports = function( Gibberish ) {
  
 let Vibrato = inputProps => {
-  let props   = Object.assign( {}, Vibrato.defaults, inputProps ),
+  let props   = Object.assign( {}, Vibrato.defaults, effect.defaults, inputProps ),
       vibrato = Object.create( effect )
 
   let isStereo = props.input.isStereo !== undefined ? props.input.isStereo : true 

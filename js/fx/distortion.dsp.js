@@ -14,7 +14,7 @@ const genish = g
 module.exports = function( Gibberish ) {
 
   let Distortion = inputProps => {
-    let props = Object.assign( {}, Distortion.defaults, inputProps ),
+    let props = Object.assign( {}, Distortion.defaults, effect.defaults, inputProps ),
         distortion= Object.create( effect )
 
     let isStereo = props.input.isStereo !== undefined ? props.input.isStereo : true 

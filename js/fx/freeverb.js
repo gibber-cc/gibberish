@@ -20,7 +20,7 @@ const tuning = {
 }
 
 const Freeverb = inputProps => {
-  let props = Object.assign( {}, Freeverb.defaults, inputProps ),
+  let props = Object.assign( {}, Freeverb.defaults, effect.defaults, inputProps ),
       reverb = Object.create( effect ) 
    
   let isStereo = props.input.isStereo !== undefined ? props.input.isStereo : true 

@@ -41,7 +41,7 @@ module.exports = function( Gibberish ) {
 
   let Filter24 = inputProps => {
     let filter24   = Object.create( filter )
-    let props    = Object.assign( {}, Filter24.defaults, inputProps )
+    let props    = Object.assign( {}, Filter24.defaults, filter.defaults, inputProps )
     let isStereo = props.input.isStereo 
 
     Gibberish.factory(

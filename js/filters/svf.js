@@ -41,7 +41,7 @@ module.exports = function( Gibberish ) {
 
   let SVF = inputProps => {
     const svf = Object.create( filter )
-    const props = Object.assign( {}, SVF.defaults, inputProps ) 
+    const props = Object.assign( {}, SVF.defaults, filter.defaults, inputProps ) 
 
     const isStereo = props.input.isStereo
     

@@ -23,6 +23,11 @@ Sequencer.make( [.5], [44100], kick, 'trigger' ).start()
 // make room bigger...
 verb.roomSize = .975
 
+// we can bypass our effects. If you look to the right you'll
+// see that after setting the bypass property to true our
+// reverb is completely removed from the audio callback.
+verb.bypass = true
+
 // We can also, of course, connect a synth both to an effect
 // as well as the main gibberish output
 

@@ -4,7 +4,7 @@ const g = require( 'genish.js' ),
 module.exports = function( Gibberish ) {
  
 const Tremolo = inputProps => {
-  const props   = Object.assign( {}, Tremolo.defaults, inputProps ),
+  const props   = Object.assign( {}, Tremolo.defaults, effect.defaults, inputProps ),
         tremolo = Object.create( effect )
 
   const isStereo = props.input.isStereo !== undefined ? props.input.isStereo : true 

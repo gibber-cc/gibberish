@@ -1,11 +1,11 @@
 let g = require( 'genish.js' ),
-    effect = require( './effect.js' )
+    proto = require( './effect.js' )
 
 module.exports = function( Gibberish ) {
  
 let Flanger = inputProps => {
-  let props   = Object.assign( { delayLength:44100 }, Flanger.defaults, inputProps ),
-      flanger = Object.create( effect )
+  let props   = Object.assign( { delayLength:44100 }, Flanger.defaults, proto.defaults, inputProps ),
+      flanger = Object.create( proto )
 
   let isStereo = props.input.isStereo !== undefined ? props.input.isStereo : true 
   

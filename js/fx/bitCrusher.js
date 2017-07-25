@@ -4,7 +4,7 @@ let g = require( 'genish.js' ),
 module.exports = function( Gibberish ) {
  
 let BitCrusher = inputProps => {
-  let props = Object.assign( { bitCrusherLength: 44100 }, BitCrusher.defaults, inputProps ),
+  let props = Object.assign( { bitCrusherLength: 44100 }, BitCrusher.defaults, effect.defaults, inputProps ),
       bitCrusher = Object.create( effect )
 
   let isStereo = props.input.isStereo !== undefined ? props.input.isStereo : true 

@@ -89,7 +89,7 @@ module.exports = function( Gibberish ) {
 
   const Zd24 = inputProps => {
     const filter   = Object.create( filter )
-    const props    = Object.assign( {}, Zd24.defaults, inputProps )
+    const props    = Object.assign( {}, Zd24.defaults, filter.defaults, inputProps )
     const isStereo = props.input.isStereo 
 
     Gibberish.factory(
