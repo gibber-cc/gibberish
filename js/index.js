@@ -222,7 +222,6 @@ let Gibberish = {
             while( input.input !== 'undefined' && found === false ) {
               if( typeof input.input.bypass !== 'undefined' ) {
                 input = input.input
-                console.log( input.bypass, input )
                 if( input.bypass === false ) found = true
               }else{
                 input = input.input
@@ -265,7 +264,6 @@ let Gibberish = {
       if( !ugen.binop && ugen.type !== 'seq' ) line += 'memory'
       line += ugen.binop ? '' : ' )'
 
-      //if( ugen.bypass === true ) line = `var v_${ugen.id} = 0`
       block.push( line )
       
       //console.log( 'memo:', ugen.ugenName )
