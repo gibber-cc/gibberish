@@ -218,7 +218,11 @@ let Gibberish = {
 
         if( input !== undefined ) { 
           if( input.bypass === true ) {
+            // loop through inputs of chain until one is found
+            // that is not being bypassed
+
             let found = false
+
             while( input.input !== 'undefined' && found === false ) {
               if( typeof input.input.bypass !== 'undefined' ) {
                 input = input.input
