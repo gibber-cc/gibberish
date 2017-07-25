@@ -218,9 +218,16 @@ let Gibberish = {
 
         if( input !== undefined ) { 
           if( input.bypass === true ) {
-            if( input.input !== 'undefined' ) {
-              // redefine input to be the next item in the chain...
-              input = input.input
+            let found = false
+            while( input.input !== 'undefined' && found === false ) {
+              if( typeof input.input.bypass !== 'undefined' ) {
+                input = input.input
+                console.log( input.bypass, input )
+                if( input.bypass === false ) found = true
+              }else{
+                input = input.input
+                found = true
+              }
             }
           }
 
@@ -258,7 +265,7 @@ let Gibberish = {
       if( !ugen.binop && ugen.type !== 'seq' ) line += 'memory'
       line += ugen.binop ? '' : ' )'
 
-      if( ugen.bypass === true ) line = `var v_${ugen.id} = 0`
+      //if( ugen.bypass === true ) line = `var v_${ugen.id} = 0`
       block.push( line )
       
       //console.log( 'memo:', ugen.ugenName )
