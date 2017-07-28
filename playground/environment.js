@@ -2,6 +2,7 @@ var cm, cmconsole, exampleCode, AudioContext = AudioContext || webkitAudioContex
 isStereo = false
 
 let environment = {}
+
 window.onload = function() {
   cm = CodeMirror( document.querySelector('#editor'), {
     mode:   'javascript',
@@ -48,6 +49,7 @@ window.onload = function() {
       'sequencing.js',
       'making_ugens.js',
       'phasing.js',
+      'ssd.js',
       'solina.js',
       'three03.js',
       'fm.js'

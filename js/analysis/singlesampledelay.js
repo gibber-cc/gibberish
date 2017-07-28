@@ -12,7 +12,7 @@ const Delay = inputProps => {
   ssd.id = Gibberish.factory.getUID()
 
   let props = Object.assign({}, Delay.defaults, inputProps )
-  let isStereo = false//props.input.isStereo !== undefined ? props.input.isStereo : true 
+  let isStereo = props.isStereo !== undefined ? props.isStereo : true 
   
   let input = g.in( 'input' )
     
@@ -108,6 +108,7 @@ const Delay = inputProps => {
 
 Delay.defaults = {
   input:0,
+  isStereo:false
 }
 
 return Delay

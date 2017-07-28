@@ -1200,6 +1200,48 @@ Bus2
 ###bus2.disconnecUgen###
 **ugen** &nbsp; *ugen* &nbsp; The ugen to disconnect from the bus.
 
+SSD
+---
+*Prototype: [Gibberish.prototypes.analyzer](#prototypes-analyzer)*
+
+The single-sample delay is a special ugen that can be used to create feedback loops within the audio graph. Every time Gibberish calculates the output of the audio graph, the SSD ugen reports the sample it recorded from the previous cycle so that it can be used as an input for the current cycle. After all outputs have been determined, the SSD ugen then records a single sample of whatever ugen it is listening to. For example the following (not musically interesting) example Gibberish code:
+
+```javascript
+ssd = SSD()
+
+sin = Sine({
+  frequency: Add( 440, Mul( ssd.out, 100 ) )
+}).connect()
+
+// sample our sine oscillator
+ssd.listen( sin )
+```
+
+Note that we use the `.out` property of the SSD ugen to refer to its output, not the SSD ugen itself which comprises separate input and output stages. The code above creates an output callback similar to the following:
+
+```javascript
+var v_34 = ssd_out_33( memory )
+var v_36 = v_34 * 100
+var v_37 = 440 + v_36
+var v_38 = sine_38( v_37, 1, memory )
+var v_20 = bus2_20( 0, v_38, memory )
+var v_35 = ssd_in_33( v_38, memory )
+
+return v_20
+```
+
+You can see how the SSD listens to the sine oscillator output on the last line before the return statement, but also functions as an input that helps determine the oscillator frequency. A demo exploring more complicated uses of the SSD ugen is included in the Gibberish playground.
+
+###ssd.listen###
+**ugen** &nbsp; *ugen* &nbsp; Set the ugen to listen to. 
+
+####Properties####
+###ssd.out###
+*ugen*. Read-only. The output of the single-sample delay.
+
+###ssd.isStereo###
+*boolean* Default:false. Can only be set on initialization, and determines whether or not the SSD will listen to a stereo or a mono unit generator.
+ 
 #Oscillators
 
 All oscillators accept a dictionary as their sole argument, containing properties such as frequency and gain.
