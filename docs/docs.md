@@ -1541,14 +1541,14 @@ A envelope follower.
 trackedUgen = Karplus({ gain:2 }).connect()
 
 Sequencer({
-  target:d, key:'note',
+  target:trackedUgen, key:'note',
   values:[440,880], timings:[22050]
 }).start()
 
 tracker = Follow({ input: trackedUgen })
 
 // modulate sine frequency based on tracked Karplus plucking
-Sine({ frequency:Add( 880, Mul( tracker,220 ) ) }).connect()
+Sine({ frequency:Add( 440, Mul( tracker,220 ) ), gain:.25 }).connect()
 ```
 
 ####Properties####
