@@ -12,7 +12,7 @@ module.exports = function( Gibberish ) {
     Tremolo     : require( './tremolo.js'   )( Gibberish ),
     Chorus      : require( './chorus.js'    )( Gibberish ),
     Shuffler    : require( './bufferShuffler.js'  )( Gibberish ),
-    Gate        : require( './gate.js'      )( Gibberish ),
+    //Gate        : require( './gate.js'      )( Gibberish ),
   }
 
   effects.export = target => {
