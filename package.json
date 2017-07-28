@@ -32,7 +32,10 @@
     "sound",
     "gibber",
     "ScriptProcessor",
-    "DSP"
+    "DSP",
+    "Web Audio API",
+    "WAAPI",
+    "synthesis"
   ],
   "author": "Charlie Roberts",
   "contributors": [],

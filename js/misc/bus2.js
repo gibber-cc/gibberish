@@ -91,7 +91,7 @@ module.exports = function( Gibberish ) {
   let bufferL, bufferR
   
   Object.assign( Bus2, { 
-    create() {
+    create( props ) {
       if( bufferL === undefined ) {
         bufferL = Gibberish.genish.gen.globals.panL.memory.values.idx
         bufferR = Gibberish.genish.gen.globals.panR.memory.values.idx
@@ -138,7 +138,9 @@ module.exports = function( Gibberish ) {
           inputs:[]
         },
 
-        Bus2.defaults
+        Bus2.defaults,
+
+        props
       )
 
       bus.ugenName = bus.callback.ugenName = 'bus2_' + bus.id

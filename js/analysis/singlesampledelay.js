@@ -1,17 +1,17 @@
-let g = require( 'genish.js' ),
-    analyzer = require( './analyzer.js' ),
-    ugen = require( '../ugen.js' )
+const g = require( 'genish.js' ),
+      analyzer = require( './analyzer.js' ),
+      ugen = require( '../ugen.js' )
 
 module.exports = function( Gibberish ) {
  
-let Delay = inputProps => {
+const Delay = inputProps => {
   let ssd = Object.create( analyzer )
   ssd.in  = Object.create( ugen )
   ssd.out = Object.create( ugen )
 
   ssd.id = Gibberish.factory.getUID()
 
-  let props = Object.assign({}, inputProps )
+  let props = Object.assign({}, Delay.defaults, inputProps )
   let isStereo = false//props.input.isStereo !== undefined ? props.input.isStereo : true 
   
   let input = g.in( 'input' )
@@ -97,7 +97,12 @@ let Delay = inputProps => {
     }
 
   }
-  
+
+  ssd.listen = ssd.in.listen
+  ssd.in.type = 'analysis'
+ 
+  ssd.out.inputs = []
+
   return ssd
 }
 

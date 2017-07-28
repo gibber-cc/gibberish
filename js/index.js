@@ -264,7 +264,7 @@ let Gibberish = {
       }
       
       //if( ugen.type === 'bus' ) line += ', ' 
-      if( ugen.type === 'analysis' || (ugen.type === 'bus' && keys.length > 0) ) line += ','
+      if( ugen.type === 'analysis' || (ugen.type === 'bus' && keys.length > 0) ) line += ', '
       if( !ugen.binop && ugen.type !== 'seq' ) line += 'memory'
       line += ugen.binop ? '' : ' )'
 
