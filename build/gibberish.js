@@ -334,6 +334,15 @@ Create a callback and start it running. Note that in iOS audio callbacks can onl
     // we will potentially delay start of audio until touch of screen for iOS devices
     start = function() {
       if( typeof audioContext !== 'undefined' ) {
+        Gibberish.context = new audioContext();
+        Gibberish.node = Gibberish.context.createScriptProcessor(bufferSize, 2, 2, Gibberish.context.sampleRate);	
+        Gibberish.node.onaudioprocess = Gibberish.audioProcess;
+        Gibberish.node.connect(Gibberish.context.destination);
+        
+        Gibberish.out = new Gibberish.Bus2();
+        Gibberish.out.codegen(); // make sure bus is first upvalue so that clearing works correctly
+        Gibberish.dirty(Gibberish.out);
+
         if( document && document.documentElement && 'ontouchstart' in document.documentElement ) {
           window.removeEventListener('touchstart', start);
 
@@ -342,6 +351,8 @@ Create a callback and start it running. Note that in iOS audio callbacks can onl
             mySource.connect(Gibberish.context.destination);
             mySource.noteOn(0);
           }
+        }else{
+          window.removeEventListener('click', start)
         }
       }else{
         alert('Your browser does not support javascript audio synthesis. Please download a modern web browser that is not Internet Explorer.')
@@ -350,19 +361,12 @@ Create a callback and start it running. Note that in iOS audio callbacks can onl
       if( Gibberish.onstart ) Gibberish.onstart()
     }
     
-    Gibberish.context = new audioContext();
-    Gibberish.node = Gibberish.context.createScriptProcessor(bufferSize, 2, 2, Gibberish.context.sampleRate);	
-    Gibberish.node.onaudioprocess = Gibberish.audioProcess;
-    Gibberish.node.connect(Gibberish.context.destination);
-    
-    Gibberish.out = new Gibberish.Bus2();
-    Gibberish.out.codegen(); // make sure bus is first upvalue so that clearing works correctly
-    Gibberish.dirty(Gibberish.out);
     
     if( document && document.documentElement && 'ontouchstart' in document.documentElement ) {
       window.addEventListener('touchstart', start);
     }else{
-      start();
+      window.addEventListener('click', start )
+      //start();
     }
     
     return this;
