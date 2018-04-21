@@ -39,8 +39,7 @@ let Gibberish = {
     
     this.output = this.Bus2()
 
-    this.utilities.createContext( ctx )
-    this.utilities.createScriptProcessor()
+    this.utilities.createContext( ctx, this.utilities.createScriptProcessor.bind( this.utilities ) )
 
     this.analyzers.dirty = false
 

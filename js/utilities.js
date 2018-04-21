@@ -3,14 +3,15 @@ let genish = require( 'genish.js' )
 module.exports = function( Gibberish ) {
 
 let utilities = {
-  createContext( ctx ) {
+  createContext( ctx, cb ) {
     let AC = typeof AudioContext === 'undefined' ? webkitAudioContext : AudioContext
-    Gibberish.ctx = ctx === undefined ? new AC() : ctx
-    genish.gen.samplerate = Gibberish.ctx.sampleRate
-    genish.utilities.ctx = Gibberish.ctx
 
     let start = () => {
       if( typeof AC !== 'undefined' ) {
+        Gibberish.ctx = ctx === undefined ? new AC() : ctx
+        genish.gen.samplerate = Gibberish.ctx.sampleRate
+        genish.utilities.ctx = Gibberish.ctx
+
         if( document && document.documentElement && 'ontouchstart' in document.documentElement ) {
           window.removeEventListener( 'touchstart', start )
 
@@ -19,12 +20,18 @@ let utilities = {
             mySource.connect( utilities.ctx.destination )
             mySource.noteOn( 0 )
           }
-         }
+        }else{
+          window.removeEventListener( 'mousedown', start )
+        }
       }
+
+      if( typeof cb === 'function' ) cb()
     }
 
     if( document && document.documentElement && 'ontouchstart' in document.documentElement ) {
       window.addEventListener( 'touchstart', start )
+    }else{
+      window.addEventListener( 'mousedown', start )
     }
 
     return Gibberish.ctx
