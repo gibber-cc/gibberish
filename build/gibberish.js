@@ -339,9 +339,7 @@ Create a callback and start it running. Note that in iOS audio callbacks can onl
         Gibberish.node.onaudioprocess = Gibberish.audioProcess;
         Gibberish.node.connect(Gibberish.context.destination);
         
-        Gibberish.out = new Gibberish.Bus2();
-        Gibberish.out.codegen(); // make sure bus is first upvalue so that clearing works correctly
-        Gibberish.dirty(Gibberish.out);
+
 
         if( document && document.documentElement && 'ontouchstart' in document.documentElement ) {
           window.removeEventListener('touchstart', start);
@@ -357,7 +355,11 @@ Create a callback and start it running. Note that in iOS audio callbacks can onl
       }else{
         alert('Your browser does not support javascript audio synthesis. Please download a modern web browser that is not Internet Explorer.')
       }
-      
+
+      Gibberish.out = new Gibberish.Bus2();
+      Gibberish.out.codegen(); // make sure bus is first upvalue so that clearing works correctly
+      Gibberish.dirty(Gibberish.out);     
+
       if( Gibberish.onstart ) Gibberish.onstart()
     }
     
