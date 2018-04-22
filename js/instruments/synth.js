@@ -14,7 +14,8 @@ module.exports = function( Gibberish ) {
           sustain = g.in( 'sustain' ), sustainLevel = g.in( 'sustainLevel' ),
           release = g.in( 'release' )
 
-    const props = Object.assign( syn, Synth.defaults, inputProps )
+    const props = Object.assign( {}, Synth.defaults, inputProps )
+    Object.assign( syn, props )
 
     syn.__createGraph = function() {
       const osc = Gibberish.oscillators.factory( syn.waveform, slidingFreq, syn.antialias )
@@ -50,10 +51,12 @@ module.exports = function( Gibberish ) {
       syn.env = env
       syn.osc = osc
       syn.filter = filteredOsc
+
     }
     
     syn.__requiresRecompilation = [ 'waveform', 'antialias', 'filterType','filterMode', 'useADSR', 'shape' ]
     syn.__createGraph()
+
 
     Gibberish.factory( syn, syn.graph, 'synth', props  )
 

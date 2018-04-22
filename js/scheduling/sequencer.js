@@ -6,14 +6,9 @@ module.exports = function( Gibberish ) {
 let Sequencer = props => {
   let seq = {
     __isRunning:false,
-    key: props.key, 
-    target:  props.target,
-    values:  props.values,
-    timings: props.timings,
+
     __valuesPhase:  0,
     __timingsPhase: 0,
-    __properties__: props,
-    priority: props.priority === undefined ? 0 : props.priority,
 
     tick() {
       let value  = seq.values[  seq.__valuesPhase++  % seq.values.length  ],
@@ -48,8 +43,17 @@ let Sequencer = props => {
     }
   }
 
+  props.id = Gibberish.factory.getUID()
+
+  // need a separate reference to the properties for worklet meta-programming
+  const properties = Object.assign( {}, Sequencer.defaults, props )
+  Object.assign( seq, properties ) 
+  seq.__properties__ = properties
+
   return seq 
 }
+
+Sequencer.defaults = { priority:0 }
 
 Sequencer.make = function( values, timings, target, key ) {
   return Sequencer({ values, timings, target, key })

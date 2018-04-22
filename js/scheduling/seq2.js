@@ -38,7 +38,12 @@ module.exports = function( Gibberish ) {
         seq.callFunction = typeof props.target[ props.key ] === 'function'
       }
 
-      Object.assign( seq, props )
+      props.id = Gibberish.factory.getUID()
+
+      // need a separate reference to the properties for worklet meta-programming
+      const properties = Object.assign( {}, Seq2.defaults, props )
+      Object.assign( seq, properties ) 
+      seq.__properties__ = properties
 
       seq.callback = function( rate ) {
         if( seq.phase >= seq.nextTime ) {

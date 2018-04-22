@@ -16,7 +16,8 @@ module.exports = function( Gibberish ) {
         sustain = g.in( 'sustain' ), sustainLevel = g.in( 'sustainLevel' ),
         release = g.in( 'release' )
 
-    let props = Object.assign( syn, FM.defaults, inputProps )
+    const props = Object.assign( {}, Synth.defaults, inputProps )
+    Object.assign( syn, props )
 
     syn.__createGraph = function() {
       const env = Gibberish.envelopes.factory( 
