@@ -1,8 +1,10 @@
 module.exports = function( Gibberish ) {
   let uid = 0
 
-  let factory = function( ugen, graph, name, values, cb ) {
+  let factory = function( ugen, graph, __name, values, cb ) {
     ugen.callback = cb === undefined ? Gibberish.genish.gen.createCallback( graph, Gibberish.memory, false, true ) : cb
+
+    let name = Array.isArray( __name ) ? __name[ __name.length - 1 ] : __name
 
     Object.assign( ugen, {
       type: 'ugen',
@@ -57,10 +59,43 @@ module.exports = function( Gibberish ) {
         })
       })      
     }
+
+    /* BEGIN WORKLET ADDTIONS */
+    if( Gibberish.mode === 'worklet' ) {
+
+      const properties = {}
+      for( let key in values ) {
+        if( typeof values[ key ] === 'object' && values[ key ].__meta__ !== undefined ) {
+          properties[ key ] = values[ key ].__meta__
+        }else{
+          properties[ key ] = values[ key ]
+        }
+      }
+
+      if( Array.isArray( __name ) ) {
+        const oldName = __name[ __name.length - 1 ]
+        __name[ __name.length - 1 ] = oldName[0].toUpperCase() + oldName.substring(1)
+      }else{
+        __name = [ __name[0].toUpperCase() + __name.substring(1) ]
+      }
+
+      ugen.__meta__ = {
+        address:'add',
+        name:__name,
+        properties, 
+        id:ugen.id
+      }
+
+      Gibberish.worklet.port.postMessage( ugen.__meta__ )
+    }
+    /* END WORKLET ADDITIONS */
+
     return ugen
   }
 
   factory.getUID = () => uid++
+
+  
 
   return factory
 }

@@ -19,6 +19,7 @@ let Gibberish = {
   scheduler: require( './scheduling/scheduler.js' ),
 
   memoed: {},
+  mode:'scriptProcessor',
 
   prototypes: {
     ugen: require('./ugen.js'),
@@ -30,12 +31,16 @@ let Gibberish = {
     polyinstrument: require( './instruments/polyMixin.js' )
   },
 
-  init( memAmount, ctx ) {
+  init( memAmount, ctx, mode, worklet ) {
+
     let numBytes = isNaN( memAmount ) ? 20 * 60 * 44100 : memAmount
 
     this.genish.gen.mode = 'scriptProcessor'
 
     this.memory = MemoryHelper.create( numBytes )
+
+    if( mode !== undefined ) this.mode = mode
+    if( mode === 'worklet' ) this.worklet = worklet
 
     this.load()
     

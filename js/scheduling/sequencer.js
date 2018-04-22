@@ -50,6 +50,26 @@ let Sequencer = props => {
   Object.assign( seq, properties ) 
   seq.__properties__ = properties
 
+  if( Gibberish.mode === 'worklet' ) {
+    const properties = {}
+    const values = seq.__properties__
+    for( let key in values ) {
+      if( typeof values[ key ] === 'object' && values[ key ].__meta__ !== undefined ) {
+        properties[ key ] = values[ key ].__meta__
+      }else{
+        properties[ key ] = values[ key ]
+      }
+    }
+    seq.__meta__ = {
+      address:'add',
+      name:['Sequencer'],
+      properties,
+      id:seq.id
+    }
+
+    Gibberish.worklet.port.postMessage( seq.__meta__ )
+  }
+
   return seq 
 }
 
