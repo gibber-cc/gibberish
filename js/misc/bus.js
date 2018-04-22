@@ -35,6 +35,8 @@ module.exports = function( Gibberish ) {
 
       Object.defineProperty( graph, 'gain', Bus.__gain )
 
+      graph.__properties__ = props
+
       return graph
     },
 

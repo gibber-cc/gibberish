@@ -13,7 +13,7 @@ module.exports = function( Gibberish ) {
      */
 
     const monoProto   = Object.create( Gibberish.Bus() ),
-          stereoProto = Object.create( Gibberish.Bus2())
+          stereoProto = Object.create( Gibberish.Bus2() )
 
     // since there are two prototypes we can't assign directly to one of them...
     Object.assign( monoProto,   Gibberish.mixins.polyinstrument )

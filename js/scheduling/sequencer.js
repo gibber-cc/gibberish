@@ -12,6 +12,7 @@ let Sequencer = props => {
     timings: props.timings,
     __valuesPhase:  0,
     __timingsPhase: 0,
+    __properties__: props,
     priority: props.priority === undefined ? 0 : props.priority,
 
     tick() {

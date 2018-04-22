@@ -135,7 +135,8 @@ module.exports = function( Gibberish ) {
           id : Gibberish.factory.getUID(),
           dirty : true,
           type : 'bus',
-          inputs:[]
+          inputs:[],
+          __properties__:props
         },
 
         Bus2.defaults,

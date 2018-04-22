@@ -9,9 +9,10 @@ module.exports = function( Gibberish ) {
       id: factory.getUID(), 
       ugenName: name + '_',
       graph: graph,
-      inputNames: Gibberish.genish.gen.parameters.slice(0),
+      inputNames: new Set( Gibberish.genish.gen.parameters ),
       isStereo: Array.isArray( graph ),
-      dirty: true
+      dirty: true,
+      __properties__:values
     })
     
     ugen.ugenName += ugen.id

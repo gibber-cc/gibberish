@@ -15,7 +15,6 @@ let Panner = inputProps => {
 
   let graph 
   if( isStereo ) {
-    console.log( input[0], input[1] )
     graph = g.pan( input[0], input[1], pan )  
   }else{
     graph = g.pan( input, input, pan )

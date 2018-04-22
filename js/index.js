@@ -33,13 +33,19 @@ let Gibberish = {
   init( memAmount, ctx ) {
     let numBytes = isNaN( memAmount ) ? 20 * 60 * 44100 : memAmount
 
+    this.genish.gen.mode = 'scriptProcessor'
+
     this.memory = MemoryHelper.create( numBytes )
 
     this.load()
     
     this.output = this.Bus2()
 
-    this.utilities.createContext( ctx, this.utilities.createScriptProcessor.bind( this.utilities ) )
+    this.hasWorklet = window.AudioWorklet !== undefined && typeof window.AudioWorklet === 'function'
+
+    const startup = this.hasWorklet ? this.utilities.createWorklet : this.utilities.createScriptProcessor
+    
+    //this.utilities.createContext( ctx, startup.bind( this.utilities ) )
 
     this.analyzers.dirty = false
 
@@ -191,15 +197,13 @@ let Gibberish = {
       let keys,err
       
       //try {
-      keys = ugen.binop || ugen.type === 'bus' || ugen.type === 'analysis' ? Object.keys( ugen.inputs ) : Object.keys( ugen.inputNames )
+      keys = ugen.binop || ugen.type === 'bus' || ugen.type === 'analysis' ? Object.keys( ugen.inputs ) : [...ugen.inputNames ] 
 
       //}catch( e ){
 
       //  console.log( e )
       //  err = true
       //}
-      //console.log( 'keys:', ugen.inputs, keys.length )
-
       
       //if( err === true ) return
 
@@ -212,7 +216,7 @@ let Gibberish = {
         }else{
           //if( key === 'memory' ) continue;
   
-          input = ugen[ ugen.inputNames[ key ] ]
+          input = ugen[ key ] 
         }
 
         if( input !== undefined ) { 

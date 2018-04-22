@@ -29,6 +29,7 @@ module.exports = function( Gibberish ) {
       seq.id = Gibberish.factory.getUID()
       seq.dirty = true
       seq.type = 'seq'
+      seq.__properties__ = props
 
       if( props.target === undefined ) {
         seq.anonFunction = true
