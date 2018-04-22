@@ -1,3 +1,5 @@
+const proxy = require( './workletProxy.js' )
+
 module.exports = function( Gibberish ) {
   let uid = 0
 
@@ -60,37 +62,9 @@ module.exports = function( Gibberish ) {
       })      
     }
 
-    /* BEGIN WORKLET ADDTIONS */
-    if( Gibberish.mode === 'worklet' ) {
-
-      const properties = {}
-      for( let key in values ) {
-        if( typeof values[ key ] === 'object' && values[ key ].__meta__ !== undefined ) {
-          properties[ key ] = values[ key ].__meta__
-        }else{
-          properties[ key ] = values[ key ]
-        }
-      }
-
-      if( Array.isArray( __name ) ) {
-        const oldName = __name[ __name.length - 1 ]
-        __name[ __name.length - 1 ] = oldName[0].toUpperCase() + oldName.substring(1)
-      }else{
-        __name = [ __name[0].toUpperCase() + __name.substring(1) ]
-      }
-
-      ugen.__meta__ = {
-        address:'add',
-        name:__name,
-        properties, 
-        id:ugen.id
-      }
-
-      Gibberish.worklet.port.postMessage( ugen.__meta__ )
-    }
-    /* END WORKLET ADDITIONS */
-
-    return ugen
+    // will only create proxy if worklets are being used
+    // otherwise will return unaltered ugen
+    return proxy( __name, values, ugen ) 
   }
 
   factory.getUID = () => uid++

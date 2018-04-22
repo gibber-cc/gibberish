@@ -17,6 +17,8 @@ let Gibberish = {
   factory: null, 
   genish,
   scheduler: require( './scheduling/scheduler.js' ),
+  workletProcessorLoader: require( './workletProcessor.js' ),
+  workletProcessor: null,
 
   memoed: {},
   mode:'scriptProcessor',
