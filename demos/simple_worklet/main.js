@@ -11,8 +11,8 @@ window.onload = function() {
    let seq = Gibberish.Sequencer({
       key:'note',
       target:syn,
-      values:[220,440],
-      timings:[22050]
+      values:[ 220,440 ],
+      timings:[ 22050 ]
     }).start()
   })
 } 

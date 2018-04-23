@@ -28,7 +28,7 @@ module.exports = function( Gibberish ) {
       const panner = g.pan( withGain, withGain, g.in( 'pan' ) )
       Gibberish.factory( syn, [panner.left, panner.right], 'karplus', props  )
     }else{
-      Gibberish.factory( syn, withGain, 'karplus', props )
+      Gibberish.factory( syn, withGain, ['instruments','karplus'], props )
     }
 
     Object.assign( syn, {

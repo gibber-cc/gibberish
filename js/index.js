@@ -10,6 +10,7 @@ let Gibberish = {
   graphIsDirty: false,
   ugens: {},
   debug: false,
+  id: -1,
 
   output: null,
 
@@ -52,6 +53,7 @@ let Gibberish = {
     this.analyzers.dirty = false
 
     if( this.mode === 'worklet' ) {
+
       const p = new Promise( (resolve, reject ) => {
 
         const pp = new Promise( (__resolve, __reject ) => {
@@ -136,6 +138,14 @@ let Gibberish = {
     this.analyzers.length = 0
     this.scheduler.clear()
     this.dirty( this.output )
+    if( this.mode === 'worklet' ) {
+      this.worklet.port.postMessage({ 
+        address:'method', 
+        object:this.id,
+        name:'clear',
+        args:[]
+      })
+    }
   },
 
   generateCallback() {

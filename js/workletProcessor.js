@@ -8,6 +8,7 @@ class GibberishProcessor extends AudioWorkletProcessor {
     Gibberish.init( undefined, undefined, 'processor' )
     this.port.onmessage = this.handleMessage.bind( this )
     this.ugens = new Map()
+    this.ugens.set( Gibberish.id, Gibberish )
   }
 
   handleMessage( event ) {

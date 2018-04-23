@@ -29,7 +29,7 @@ module.exports = function( Gibberish ) {
     let ife = g.switch( check, scaledOut, 0 )
     //let ife = g.ifelse( g.gt( eg, .005 ), cycle(440), 0 )
     
-    Gibberish.factory( snare, ife, 'snare', props  )
+    Gibberish.factory( snare, ife, ['instruments','snare'], props  )
     
     snare.env = eg 
 

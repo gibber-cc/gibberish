@@ -17,7 +17,7 @@ module.exports = function( Gibberish ) {
         bpf = g.svf( impulse, frequency, _decay, 2, false ),
         out = g.mul( bpf, gain )
     
-    Gibberish.factory( conga, out, 'conga', props  )
+    Gibberish.factory( conga, out, ['instruments','conga'], props  )
     
     conga.env = trigger
 

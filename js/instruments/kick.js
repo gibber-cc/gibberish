@@ -15,6 +15,7 @@ module.exports = function( Gibberish ) {
     
     // create initial property set
     let props = Object.assign( {}, Kick.defaults, inputProps )
+    Object.assign( kick, props )
 
     // create DSP graph
     let trigger = g.bang(),
@@ -25,11 +26,11 @@ module.exports = function( Gibberish ) {
         lpf = g.svf( bpf, scaledTone, .5, 0, false ),
         graph = g.mul( lpf, gain )
     
-    Gibberish.factory( kick, graph, 'kick', props  )
+    const out = Gibberish.factory( kick, graph, ['instruments','kick'], props  )
 
-    kick.env = trigger
+    out.env = trigger
 
-    return kick
+    return out
   }
   
   Kick.defaults = {

@@ -65,10 +65,9 @@ module.exports = function( Gibberish ) {
     syn.__requiresRecompilation = [ 'waveform', 'antialias', 'filterType', 'filterMode' ]
     syn.__createGraph()
 
-    Gibberish.factory( syn, syn.graph, 'mono', props )
+    const out = Gibberish.factory( syn, syn.graph, ['instruments','Monosynth'], props )
 
-
-    return syn
+    return out
   }
   
   Synth.defaults = {
