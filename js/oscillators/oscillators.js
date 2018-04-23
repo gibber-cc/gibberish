@@ -59,9 +59,9 @@ module.exports = function( Gibberish ) {
       const props = Object.assign({}, Oscillators.defaults, inputProps )
       const graph = g.mul( g.cycle( g.in('frequency') ), g.in('gain') )
 
-      Gibberish.factory( sine, graph, 'sine', props )
+      const out = Gibberish.factory( sine, graph, ['oscillators','sine'], props )
       
-      return sine
+      return out
     },
 
     Noise( inputProps ) {

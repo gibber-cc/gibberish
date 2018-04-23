@@ -24,8 +24,10 @@ window.onload = function() {
 
   cmconsole.setSize( null, '100%' )
 
-  Gibberish.init()
-  Gibberish.export( window )
+  Gibberish.workletPath = '../dist/gibberish_worklet.js' 
+  Gibberish.init().then( ()=> {
+    Gibberish.export( window )
+  })
 
   environment.editor = cm
   environment.console = cmconsole

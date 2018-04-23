@@ -50,6 +50,11 @@ module.exports = function( __name, values, obj ) {
       }
     })
 
+    // XXX XXX XXX XXX XXX XXX
+    // REMEMBER THAT YOU MUST ASSIGNED THE RETURNED VALUE TO YOUR UGEN,
+    // YOU CANNOT USE THIS FUNCTION TO MODIFY A UGEN IN PLACE.
+    // XXX XXX XXX XXX XXX XXX
+
     return proxy
   }
 

@@ -73,6 +73,9 @@ class GibberishProcessor extends AudioWorkletProcessor {
       let   callback  = this.callback
       let   ugens     = gibberish.callbackUgens 
 
+      // XXX is there some way to optimize this out?
+      if( callback === undefined && gibberish.graphIsDirty === false ) return true
+
       let callbacklength = gibberish.blockCallbacks.length
 
       if( callbacklength !== 0 ) {

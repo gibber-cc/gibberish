@@ -16,7 +16,7 @@ module.exports = function( Gibberish ) {
         sustain = g.in( 'sustain' ), sustainLevel = g.in( 'sustainLevel' ),
         release = g.in( 'release' )
 
-    const props = Object.assign( {}, Synth.defaults, inputProps )
+    const props = Object.assign( {}, FM.defaults, inputProps )
     Object.assign( syn, props )
 
     syn.__createGraph = function() {
@@ -68,9 +68,9 @@ module.exports = function( Gibberish ) {
     syn.__requiresRecompilation = [ 'carrierWaveform', 'modulatorWaveform', 'antialias', 'filterType', 'filterMode' ]
     syn.__createGraph()
 
-    Gibberish.factory( syn, syn.graph , 'fm', syn )
+    const out = Gibberish.factory( syn, syn.graph , ['instruments','FM'], props )
 
-    return syn
+    return out
   }
 
   FM.defaults = {
