@@ -17,7 +17,7 @@ let Gibberish = {
   factory: null, 
   genish,
   scheduler: require( './scheduling/scheduler.js' ),
-  workletProcessorLoader: require( './workletProcessor.js' ),
+  //workletProcessorLoader: require( './workletProcessor.js' ),
   workletProcessor: null,
 
   memoed: {},
@@ -33,7 +33,8 @@ let Gibberish = {
     polyinstrument: require( './instruments/polyMixin.js' )
   },
 
-  init( memAmount, ctx, mode, worklet ) {
+  workletPath: './gibberish_worklet.js',
+  init( memAmount, ctx, mode ) {
 
     let numBytes = isNaN( memAmount ) ? 20 * 60 * 44100 : memAmount
 
@@ -41,23 +42,34 @@ let Gibberish = {
 
     this.memory = MemoryHelper.create( numBytes )
 
+    this.mode = window.AudioWorklet !== undefined ? 'worklet' : 'scriptprocessor'
     if( mode !== undefined ) this.mode = mode
-    if( mode === 'worklet' ) this.worklet = worklet
-
-    this.load()
-    
-    this.output = this.Bus2()
 
     this.hasWorklet = window.AudioWorklet !== undefined && typeof window.AudioWorklet === 'function'
 
     const startup = this.hasWorklet ? this.utilities.createWorklet : this.utilities.createScriptProcessor
     
-    //this.utilities.createContext( ctx, startup.bind( this.utilities ) )
-
     this.analyzers.dirty = false
 
-    // XXX FOR DEVELOPMENT AND TESTING ONLY... REMOVE FOR PRODUCTION
-    this.export( window )
+    if( this.mode === 'worklet' ) {
+      const p = new Promise( (resolve, reject ) => {
+
+        const pp = new Promise( (__resolve, __reject ) => {
+          this.utilities.createContext( ctx, startup.bind( this.utilities ), __resolve )
+        }).then( ()=> {
+          Gibberish.load()
+          Gibberish.output = this.Bus2()
+          resolve()
+        })
+
+      })
+      return p
+    }else if( this.mode === 'processor' ) {
+      Gibberish.load()
+      Gibberish.output = this.Bus2()
+    }
+
+
   },
 
   load() {

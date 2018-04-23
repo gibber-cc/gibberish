@@ -7,10 +7,28 @@ var gulp = require('gulp'),
     babelify   = require('babelify'),
     mocha      = require('gulp-mocha'),
     jsdsp      = require('jsdsp'),
-    rename     = require('gulp-rename')
+    rename     = require('gulp-rename'),
+    workletStr = require( './js/workletString.js' ),
+    fs         = require( 'fs' )
+
+let workletBlob = workletStr.prefix
+
+gulp.task( 'workletblob', ()=> {
+ 
+  const gibberishText = fs.readFileSync( './dist/gibberish.js', 'utf-8' )
+  const processorText = fs.readFileSync( './js/workletProcessor.js', 'utf-8' )
+
+  workletBlob += gibberishText 
+  workletBlob += processorText
+  workletBlob += workletStr.postfix
+
+  fs.writeFileSync( './dist/gibberish_worklet.js', workletBlob )
+})
+
+
 
 // browserify
-gulp.task( 'js', ['jsdsp'], function() {
+gulp.task( 'js', ['jsdsp', 'workletblob' ], function() {
   browserify({ debug:true, standalone:'Gibberish' })
     .require( './js/index.js', { entry: true } )
     //.transform( babelify, { presets:['es2015'] }) 
@@ -26,6 +44,8 @@ gulp.task( 'js', ['jsdsp'], function() {
     //  }) 
     //)
 })
+
+
 
 // convert .jsdsp into .js files
 //gulp.task( 'jsdsp', ()=> {

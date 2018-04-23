@@ -1,5 +1,3 @@
-module.exports = function() {
-
 class GibberishProcessor extends AudioWorkletProcessor {
   static get parameterDescriptors() {}
 
@@ -7,7 +5,7 @@ class GibberishProcessor extends AudioWorkletProcessor {
     super(options);
     Gibberish = window.Gibberish
     Gibberish.genish.hasWorklet = false
-    Gibberish.init()
+    Gibberish.init( undefined, undefined, 'processor' )
     this.port.onmessage = this.handleMessage.bind( this )
     this.ugens = new Map()
   }
@@ -103,8 +101,4 @@ class GibberishProcessor extends AudioWorkletProcessor {
     // make sure this is always returned or the callback ceases!!!
     return true
   }
-}
-
-return GibberishProcessor
-
 }
