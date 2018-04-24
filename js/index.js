@@ -11,6 +11,7 @@ let Gibberish = {
   ugens: {},
   debug: false,
   id: -1,
+  preventProxy:false,
 
   output: null,
 
@@ -59,8 +60,12 @@ let Gibberish = {
         const pp = new Promise( (__resolve, __reject ) => {
           this.utilities.createContext( ctx, startup.bind( this.utilities ), __resolve )
         }).then( ()=> {
+          Gibberish.preventProxy = true
           Gibberish.load()
           Gibberish.output = this.Bus2()
+          console.log('after master')
+          Gibberish.preventProxy = false
+
           resolve()
         })
 

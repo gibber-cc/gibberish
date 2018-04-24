@@ -1,3 +1,15 @@
+const replace = obj => {
+  if( typeof obj === 'object' ) {
+    if( obj.id !== undefined ) {
+      return processor.ugens.get( obj.id )
+    } 
+  }
+
+  return obj
+}
+
+let processor = null
+
 class GibberishProcessor extends AudioWorkletProcessor {
   static get parameterDescriptors() {}
 
@@ -5,10 +17,14 @@ class GibberishProcessor extends AudioWorkletProcessor {
     super(options);
     Gibberish = window.Gibberish
     Gibberish.genish.hasWorklet = false
+    Gibberish.preventProxy = true
     Gibberish.init( undefined, undefined, 'processor' )
+    Gibberish.preventProxy = false
+    Gibberish.debug = true
     this.port.onmessage = this.handleMessage.bind( this )
     this.ugens = new Map()
     this.ugens.set( Gibberish.id, Gibberish )
+    processor = this
   }
 
   handleMessage( event ) {
@@ -16,6 +32,7 @@ class GibberishProcessor extends AudioWorkletProcessor {
 
       const rep = event.data
       let constructor = Gibberish
+
       for( let i = 0; i < rep.name.length; i++ ) { constructor = constructor[ rep.name[ i ] ] }
 
       for( let key in rep.properties) {
@@ -24,7 +41,6 @@ class GibberishProcessor extends AudioWorkletProcessor {
           let objCheck = this.ugens.get( prop.id )
           if( objCheck !== undefined ) {
             rep.properties[ key ] = objCheck
-            //console.log( key, objCheck )
           } 
         }
       } 
@@ -40,18 +56,19 @@ class GibberishProcessor extends AudioWorkletProcessor {
       initialized = true
 
     }else if( event.data.address === 'method' ) {
+      console.log( event.data.address, event.data.name, event.data.args, this.ugens )
       const dict = event.data
       const obj  = this.ugens.get( dict.object )
-      obj[ dict.name ]( ...dict.args )
+      obj[ dict.name ]( ...dict.args.map( replace ) ) 
     }else if( event.data.address === 'property' ) {
       const dict = event.data
       const obj  = this.ugens.get( dict.object )
       obj[ dict.name ] = dict.value
-    }else if( event.data.address === 'set' ) {
-      this.memory[ event.data.idx ] = event.data.value
-    }else if( event.data.address === 'get' ) {
-      this.port.postMessage({ address:'return', idx:event.data.idx, value:this.memory[event.data.idx] })     
-    }
+    }else if( event.data.address === 'print' ) {
+      const dict = event.data
+      const obj  = this.ugens.get( dict.object )
+      console.log( 'printing', dict.object, obj )
+    }  
   }
 
   deserialize( __arg ) {
@@ -89,15 +106,32 @@ class GibberishProcessor extends AudioWorkletProcessor {
         gibberish.blockCallbacks.splice( 0, callbacklength )
       }
 
-      let outputChannel = outputs[ 0 ][ 0 ]
-      for (let i = 0; i < outputChannel.length; ++i) {
+      const output = outputs[ 0 ]
+      const len = outputs[0][0].length
+      for (let i = 0; i < len; ++i) {
         scheduler.tick()
 
         if( gibberish.graphIsDirty ) {
-          this.callback = callback = gibberish.generateCallback()
-          ugens = gibberish.callbackUgens
+          const oldCallback = callback
+          const oldUgens = ugens
+
+          try{
+            this.callback = callback = gibberish.generateCallback()
+            ugens = gibberish.callbackUgens
+            //const out = callback.apply( null, ugens )
+            //output[0][ i ] = out[0]
+            //output[1][ i ] = out[1] 
+          }catch(e) {
+
+            console.log( 'callback error:', e, callback.toString() )
+            this.callback = callback = oldCallback
+            ugens = gibberish.callbackUgens = oldUgens
+            gibberish.callbackNames = ugens.map( v => v.ugenName )
+          }
         }
-        outputChannel[ i ] = callback.apply( null, ugens )[0]
+        const out = callback.apply( null, ugens )
+        output[0][ i ] = out[0]
+        //output[1][ i ] = out[1] 
       }
 
     }

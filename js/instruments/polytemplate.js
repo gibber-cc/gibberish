@@ -3,6 +3,7 @@
  */
 
 const g = require( 'genish.js' )
+const proxy = require( '../workletProxy.js' )
 
 module.exports = function( Gibberish ) {
 
@@ -22,7 +23,7 @@ module.exports = function( Gibberish ) {
     const Template = props => {
       const properties = Object.assign( {}, { isStereo:true }, props )
 
-      const synth = properties.isStereo ? Object.create( stereoProto ) : Object.create( monoProto )
+      const synth = properties.isStereo === true ? Object.create( stereoProto ) : Object.create( monoProto )
 
       Object.assign( synth, {
         voices: [],
@@ -34,7 +35,7 @@ module.exports = function( Gibberish ) {
         type: 'bus',
         ugenName: 'poly' + ugen.name + '_' + synth.id,
         inputs:[],
-        inputNames: [],
+        inputNames:[], //['input', 'gain'],
         properties
       })
 
@@ -56,7 +57,7 @@ module.exports = function( Gibberish ) {
 
       TemplateFactory.setupProperties( synth, ugen, properties.isStereo ? propertyList : _propertyList )
 
-      return synth
+      return proxy( ['instruments', 'Poly'+ugen.name], properties, synth ) 
     }
 
     return Template

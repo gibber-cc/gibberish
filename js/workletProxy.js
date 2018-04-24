@@ -1,6 +1,13 @@
+const replaceObj = obj => {
+  if( typeof obj === 'object' && obj.id !== undefined ) {
+    return { id:obj.id }
+  }
+  return obj
+}
+
 module.exports = function( __name, values, obj ) {
-  
-  if( Gibberish.mode === 'worklet' ) {
+
+  if( Gibberish.mode === 'worklet' && Gibberish.preventProxy === false ) {
     const properties = {}
     for( let key in values ) {
       if( typeof values[ key ] === 'object' && values[ key ].__meta__ !== undefined ) {
@@ -24,19 +31,23 @@ module.exports = function( __name, values, obj ) {
       id:obj.id
     }
 
+    console.log( obj.__meta__ )
+
     Gibberish.worklet.port.postMessage( obj.__meta__ )
 
     // proxy for all method calls to send to worklet
     const proxy = new Proxy( obj, {
       get( target, prop, receiver ) {
-        if( typeof target[ prop ] === 'function' ) {
+        if( typeof target[ prop ] === 'function' && prop.indexOf('__') === -1) {
           const proxy = new Proxy( target[ prop ], {
             apply( __target, thisArg, args ) {
+              const __args = args.map( replaceObj )
+              if( prop === 'connect' ) console.log( 'proxy connect:', __args )
               Gibberish.worklet.port.postMessage({ 
                 address:'method', 
                 object:obj.id,
                 name:prop,
-                args
+                args:__args
               })
 
               return target[ prop ].apply( thisArg, args )

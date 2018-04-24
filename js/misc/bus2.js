@@ -83,7 +83,8 @@ module.exports = function( Gibberish ) {
 
 
 const g = require( 'genish.js' ),
-      ugen = require( '../ugen.js' )
+      ugen = require( '../ugen.js' ),
+      proxy = require( '../workletProxy.js' )
 
 module.exports = function( Gibberish ) {
   const Bus2 = Object.create( ugen )
@@ -92,6 +93,7 @@ module.exports = function( Gibberish ) {
   
   Object.assign( Bus2, { 
     create( props ) {
+
       if( bufferL === undefined ) {
         bufferL = Gibberish.genish.gen.globals.panL.memory.values.idx
         bufferR = Gibberish.genish.gen.globals.panR.memory.values.idx
@@ -112,7 +114,7 @@ module.exports = function( Gibberish ) {
 
             for( var i = 0; i < lastIdx; i++ ) {
               var input = arguments[ i ],
-                  isArray = input instanceof Float32Array
+                  isArray = Array.isArray( input )//input instanceof Float32Array
 
               output[ 0 ] += isArray ? input[ 0 ] : input
               output[ 1 ] += isArray ? input[ 1 ] : input
@@ -133,7 +135,7 @@ module.exports = function( Gibberish ) {
             return output
           },
           id : Gibberish.factory.getUID(),
-          dirty : true,
+          dirty : false,
           type : 'bus',
           inputs:[],
           __properties__:props
@@ -146,7 +148,9 @@ module.exports = function( Gibberish ) {
 
       bus.ugenName = bus.callback.ugenName = 'bus2_' + bus.id
 
-      return bus
+      const out = proxy( ['Bus2'], props, bus )
+
+      return out
     },
     
     disconnectUgen( ugen ) {

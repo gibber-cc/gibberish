@@ -1,12 +1,14 @@
 module.exports = {
   note( freq, gain ) {
-    let voice = this.__getVoice__()
-    Object.assign( voice, this.properties )
-    if( gain === undefined ) gain = this.gain
-    voice.gain = gain
-    voice.note( freq )
-    this.__runVoice__( voice, this )
-    this.triggerNote = freq
+    if( Gibberish.mode !== 'worklet' ) {
+      let voice = this.__getVoice__()
+      Object.assign( voice, this.properties )
+      if( gain === undefined ) gain = this.gain
+      voice.gain = gain
+      voice.note( freq )
+      this.__runVoice__( voice, this )
+      this.triggerNote = freq
+    }
   },
 
   // XXX this is not particularly satisfying...
@@ -36,7 +38,7 @@ module.exports = {
 
   __runVoice__( voice, _poly ) {
     if( !voice.isConnected ) {
-      voice.connect( _poly, 1 )
+      voice.connect( _poly )
       voice.isConnected = true
     }
 
@@ -44,7 +46,7 @@ module.exports = {
     if( _poly.envCheck === undefined ) {
       envCheck = function() {
         if( voice.env.isComplete() ) {
-          _poly.disconnectUgen.call( _poly, voice )
+          _poly.disconnectUgen( voice )
           voice.isConnected = false
         }else{
           Gibberish.blockCallbacks.push( envCheck )
@@ -62,8 +64,11 @@ module.exports = {
   },
 
   chord( frequencies ) {
-    frequencies.forEach( v => this.note( v ) )
-    this.triggerChord = frequencies
+    if( Gibberish.mode !== 'worklet' ) {
+      console.log( 'processor chord', frequencies )
+      frequencies.forEach( v => this.note( v ) )
+      //this.triggerChord = frequencies
+    }
   },
 
   free() {
