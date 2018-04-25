@@ -82,6 +82,16 @@ module.exports = function( __name, values, obj ) {
         }
 
         return target[ prop ]
+      },
+      set( target, prop, value, receiver ) {
+        Gibberish.worklet.port.postMessage({ 
+          address:'set', 
+          object:obj.id,
+          name:prop,
+          value:replaceObj( value )
+        })
+
+        target[ prop ] = value
       }
     })
 

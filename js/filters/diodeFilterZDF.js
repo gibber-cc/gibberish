@@ -169,9 +169,9 @@ module.exports = function( Gibberish ) {
     }else{
      // returnValue = klp
     }
-    returnValue = klp
+    //returnValue = klp
     
-    return returnValue// klp//returnValue
+    return klp//returnValue// klp//returnValue
  }
 
   const DiodeZDF = inputProps => {

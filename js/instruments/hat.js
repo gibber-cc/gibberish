@@ -28,12 +28,12 @@ module.exports = function( Gibberish ) {
         hpf = g.filter24( envBpf, 0, hpfCutoff, 0 ),
         out = g.mul( hpf, gain )
 
-    Gibberish.factory( hat, out, 'hat', props  )
+    const __hat = Gibberish.factory( hat, out, ['instruments','hat'], props  )
     
-    hat.env = eg 
+    __hat.env = eg 
 
-    hat.isStereo = false
-    return hat
+    __hat.isStereo = false
+    return __hat
   }
   
   Hat.defaults = {

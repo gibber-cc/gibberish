@@ -81,10 +81,10 @@ module.exports = function( Gibberish ) {
 
       //returnValue = [left, right]
     }//else{
-      returnValue = klp
+      //returnValue = klp
     //}
 
-    return returnValue
+    return klp//returnValue
   }
 
   const Zd24 = inputProps => {
