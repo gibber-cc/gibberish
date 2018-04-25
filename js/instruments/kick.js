@@ -26,9 +26,8 @@ module.exports = function( Gibberish ) {
         lpf = g.svf( bpf, scaledTone, .5, 0, false ),
         graph = g.mul( lpf, gain )
     
+    kick.env = trigger
     const out = Gibberish.factory( kick, graph, ['instruments','kick'], props  )
-
-    out.env = trigger
 
     return out
   }

@@ -6,8 +6,11 @@ module.exports = function( Gibberish ) {
   const KPS = inputProps => {
 
     const props = Object.assign( {}, KPS.defaults, inputProps )
-    const syn = Object.create( instrument ),
-          trigger = g.bang(),
+    let syn = Object.create( instrument )
+    
+    let sampleRate = Gibberish.mode === 'processor' ? Gibberish.processor.sampleRate : Gibberish.ctx.sampleRate
+
+    const trigger = g.bang(),
           phase = g.accum( 1, trigger, { max:Infinity } ),
           env = g.gtp( g.sub( 1, g.div( phase, 200 ) ), 0 ),
           impulse = g.mul( g.noise(), env ),
@@ -15,7 +18,7 @@ module.exports = function( Gibberish ) {
           frequency = g.in('frequency'),
           glide = g.in( 'glide' ),
           slidingFrequency = g.slide( frequency, glide, glide ),
-          delay = g.delay( g.add( impulse, feedback.out ), g.div( Gibberish.ctx.sampleRate, slidingFrequency ), { size:2048 }),
+          delay = g.delay( g.add( impulse, feedback.out ), g.div( sampleRate, slidingFrequency ), { size:2048 }),
           decayed = g.mul( delay, g.t60( g.mul( g.in('decay'), slidingFrequency ) ) ),
           damped =  g.mix( decayed, feedback.out, g.in('damping') ),
           withGain = g.mul( damped, g.in('gain') )
@@ -23,13 +26,6 @@ module.exports = function( Gibberish ) {
     feedback.in( damped )
 
     const properties = Object.assign( {}, KPS.defaults, props )
-
-    if( properties.panVoices ) {  
-      const panner = g.pan( withGain, withGain, g.in( 'pan' ) )
-      Gibberish.factory( syn, [panner.left, panner.right], 'karplus', props  )
-    }else{
-      Gibberish.factory( syn, withGain, ['instruments','karplus'], props )
-    }
 
     Object.assign( syn, {
       properties : props,
@@ -41,6 +37,14 @@ module.exports = function( Gibberish ) {
         return Gibberish.memory.heap[ phase.memory.value.idx ]
       },
     })
+
+    if( properties.panVoices ) {  
+      const panner = g.pan( withGain, withGain, g.in( 'pan' ) )
+      syn = Gibberish.factory( syn, [panner.left, panner.right], ['instruments','karplus'], props  )
+    }else{
+      syn = Gibberish.factory( syn, withGain, ['instruments','karplus'], props )
+    }
+
     return syn
   }
   
@@ -57,7 +61,7 @@ module.exports = function( Gibberish ) {
   let envCheckFactory = ( syn,synth ) => {
     let envCheck = ()=> {
       let phase = syn.getPhase(),
-          endTime = synth.decay * Gibberish.ctx.sampleRate
+          endTime = synth.decay * sampleRate
 
       if( phase > endTime ) {
         synth.disconnectUgen( syn )

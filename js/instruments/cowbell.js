@@ -4,8 +4,9 @@ let g = require( 'genish.js' ),
 module.exports = function( Gibberish ) {
 
   const Cowbell = argumentProps => {
-    const cowbell = Object.create( instrument ),
-          decay   = g.in( 'decay' ),
+    let cowbell = Object.create( instrument )
+    
+    const decay   = g.in( 'decay' ),
           gain    = g.in( 'gain' )
 
     const props = Object.assign( {}, Cowbell.defaults, argumentProps )
@@ -18,12 +19,12 @@ module.exports = function( Gibberish ) {
           envBpf = g.mul( bpf, eg ),
           out = g.mul( envBpf, gain )
 
-    Gibberish.factory( cowbell, out, 'cowbell', props  )
-    
     cowbell.env = eg 
 
     cowbell.isStereo = false
 
+    cowbell = Gibberish.factory( cowbell, out, ['insturments', 'cowbell'], props  )
+    
     return cowbell
   }
   

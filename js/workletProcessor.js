@@ -138,7 +138,6 @@ class GibberishProcessor extends AudioWorkletProcessor {
         processor.sampleRate = event.data.value
       }else{
         const dict = event.data
-        console.log( 'data set', event.data )
         const obj = this.ugens.get( dict.object )
         obj[ dict.name ] = dict.value
       }

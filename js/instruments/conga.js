@@ -3,7 +3,7 @@ let g = require( 'genish.js' ),
 
 module.exports = function( Gibberish ) {
 
-  let Conga = argumentProps => {
+  const Conga = argumentProps => {
     let conga = Object.create( instrument ),
         frequency = g.in( 'frequency' ),
         decay = g.in( 'decay' ),
@@ -17,9 +17,9 @@ module.exports = function( Gibberish ) {
         bpf = g.svf( impulse, frequency, _decay, 2, false ),
         out = g.mul( bpf, gain )
     
-    Gibberish.factory( conga, out, ['instruments','conga'], props  )
-    
+
     conga.env = trigger
+    Gibberish.factory( conga, out, ['instruments','conga'], props  )
 
     return conga
   }
