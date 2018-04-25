@@ -40,6 +40,10 @@ let Gibberish = {
 
     let numBytes = isNaN( memAmount ) ? 20 * 60 * 44100 : memAmount
 
+    // regardless of whether or not gibberish is using worklets,
+    // we still want genish to output vanilla js functions instead
+    // of audio worklet classes; these functions will be called
+    // from within the gibberish audioworklet processor node.
     this.genish.gen.mode = 'scriptProcessor'
 
     this.memory = MemoryHelper.create( numBytes )
@@ -63,7 +67,6 @@ let Gibberish = {
           Gibberish.preventProxy = true
           Gibberish.load()
           Gibberish.output = this.Bus2()
-          console.log('after master')
           Gibberish.preventProxy = false
 
           resolve()
@@ -118,6 +121,7 @@ let Gibberish = {
     target.Bus2 = this.Bus2
     target.Scheduler = this.scheduler
     this.time.export( target )
+    this.utilities.export( target )
   },
 
   print() {
@@ -154,6 +158,10 @@ let Gibberish = {
   },
 
   generateCallback() {
+    if( this.mode === 'worklet' ) {
+      Gibberish.callback = function() { return 0 }
+      return Gibberish.callback
+    }
     let uid = 0,
         callbackBody, lastLine, analysis=''
 

@@ -37,7 +37,7 @@ let Vibrato = inputProps => {
   g.poke( delayBufferL, g.add( leftInput, g.mul( delayedOutL, feedbackCoeff ) ), writeIdx )
 
   let left = delayedOutL,
-      right
+      right, out
 
   if( isStereo === true ) {
     rightInput = input[1]
@@ -48,17 +48,17 @@ let Vibrato = inputProps => {
     g.poke( delayBufferR, g.add( rightInput, mul( delayedOutR, feedbackCoeff ) ), writeIdx )
     right = delayedOutR
 
-    Gibberish.factory( 
+    out = Gibberish.factory( 
       vibrato,
       [ left, right ], 
-      'vibrato', 
+      [ 'fx', 'vibrato'], 
       props 
     )
   }else{
-    Gibberish.factory( vibrato, left, 'vibrato', props )
+    out = Gibberish.factory( vibrato, left, ['fx','vibrato'], props )
   }
   
-  return vibrato
+  return out 
 }
 
 Vibrato.defaults = {

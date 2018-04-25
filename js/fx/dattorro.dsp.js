@@ -129,9 +129,8 @@ module.exports = function( Gibberish ) {
           indiffusion1 = g.in( 'indiffusion1' ),
           indiffusion2 = g.in( 'indiffusion2' )
 
-
     const summedInput = isStereo === true ? g.add( input[0], input[1] ) : input
-
+    let out
     {
       'use jsdsp'
 
@@ -157,10 +156,10 @@ module.exports = function( Gibberish ) {
       const left  = g.mix( isStereo ? input[0] : input, leftWet,  drywet )
       const right = g.mix( isStereo ? input[1] : input, rightWet, drywet )
 
-      Gibberish.factory( reverb, [left,right], 'dattorro', props )
+      out = Gibberish.factory( reverb, [left,right], ['fx','dattorro'], props )
     }
 
-    return reverb
+    return out
   }
 
   Reverb.defaults = {

@@ -1,6 +1,13 @@
+const serialize = require('serialize-javascript')
+
 const replaceObj = obj => {
   if( typeof obj === 'object' && obj.id !== undefined ) {
-    return { id:obj.id }
+    if( obj.__type !== 'seq' ) {
+      return { id:obj.id }
+    }else{
+      console.log( serialize( obj ) )
+      return serialize( obj )
+    }
   }
   return obj
 }
@@ -17,6 +24,8 @@ module.exports = function( __name, values, obj ) {
       }
     }
 
+    const serializedProperties = serialize( properties )
+
     if( Array.isArray( __name ) ) {
       const oldName = __name[ __name.length - 1 ]
       __name[ __name.length - 1 ] = oldName[0].toUpperCase() + oldName.substring(1)
@@ -27,11 +36,11 @@ module.exports = function( __name, values, obj ) {
     obj.__meta__ = {
       address:'add',
       name:__name,
-      properties, 
+      properties:serializedProperties, 
       id:obj.id
     }
 
-    console.log( obj.__meta__ )
+    //console.log( obj.__meta__ )
 
     Gibberish.worklet.port.postMessage( obj.__meta__ )
 
@@ -42,7 +51,8 @@ module.exports = function( __name, values, obj ) {
           const proxy = new Proxy( target[ prop ], {
             apply( __target, thisArg, args ) {
               const __args = args.map( replaceObj )
-              if( prop === 'connect' ) console.log( 'proxy connect:', __args )
+              //if( prop === 'connect' ) console.log( 'proxy connect:', __args )
+
               Gibberish.worklet.port.postMessage({ 
                 address:'method', 
                 object:obj.id,

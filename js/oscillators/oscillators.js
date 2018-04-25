@@ -27,9 +27,9 @@ module.exports = function( Gibberish ) {
       const osc   = Oscillators.factory( 'square', g.in( 'frequency' ), props.antialias )
       const graph = g.mul( osc, g.in('gain' ) )
 
-      Gibberish.factory( sqr, graph, 'sqr', props )
+      const out = Gibberish.factory( sqr, graph, ['oscillators','square'], props )
 
-      return sqr
+      return out
     },
 
     Triangle( inputProps ) {
@@ -38,9 +38,9 @@ module.exports = function( Gibberish ) {
       const osc   = Oscillators.factory( 'triangle', g.in( 'frequency' ), props.antialias )
       const graph = g.mul( osc, g.in('gain' ) )
 
-      Gibberish.factory( tri, graph, 'tri', props )
+      const out =Gibberish.factory( tri, graph, ['oscillators','triangle'], props )
 
-      return tri
+      return out
     },
 
     PWM( inputProps ) {
@@ -49,9 +49,9 @@ module.exports = function( Gibberish ) {
       const osc   = Oscillators.factory( 'pwm', g.in( 'frequency' ), props.antialias )
       const graph = g.mul( osc, g.in('gain' ) )
 
-      Gibberish.factory( pwm, graph, 'pwm', props )
+      const out = Gibberish.factory( pwm, graph, ['oscillators','PWM'], props )
 
-      return pwm
+      return out
     },
 
     Sine( inputProps ) {
@@ -81,9 +81,9 @@ module.exports = function( Gibberish ) {
           break;
       }
 
-      Gibberish.factory( noise, graph, 'noise', props )
+      const out = Gibberish.factory( noise, graph, ['oscillatorrs','noise'], props )
 
-      return noise
+      return out
     },
 
     Saw( inputProps ) {
@@ -92,9 +92,9 @@ module.exports = function( Gibberish ) {
       const osc   = Oscillators.factory( 'saw', g.in( 'frequency' ), props.antialias )
       const graph = g.mul( osc, g.in('gain' ) )
 
-      Gibberish.factory( saw, graph, 'saw', props )
+      const out = Gibberish.factory( saw, graph, ['oscillators','saw'], props )
 
-      return saw
+      return out
     },
 
     ReverseSaw( inputProps ) {
@@ -103,9 +103,9 @@ module.exports = function( Gibberish ) {
       const osc   = g.sub( 1, Oscillators.factory( 'saw', g.in( 'frequency' ), props.antialias ) )
       const graph = g.mul( osc, g.in( 'gain' ) )
 
-      Gibberish.factory( saw, graph, 'rsaw', props )
+      const out = Gibberish.factory( saw, graph, ['oscillators','ReverseSaw'], props )
       
-      return saw
+      return out
     },
 
     factory( type, frequency, antialias=false ) {

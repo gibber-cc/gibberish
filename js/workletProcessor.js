@@ -21,10 +21,63 @@ class GibberishProcessor extends AudioWorkletProcessor {
     Gibberish.init( undefined, undefined, 'processor' )
     Gibberish.preventProxy = false
     Gibberish.debug = true
+    Gibberish.processor = this
     this.port.onmessage = this.handleMessage.bind( this )
     this.ugens = new Map()
     this.ugens.set( Gibberish.id, Gibberish )
     processor = this
+    this.port.postMessage({ 
+      address:'get', 
+      name:['Gibberish', 'ctx', 'sampleRate']
+    })
+  }
+
+  replaceProperties( obj ) {
+    if( Array.isArray( obj ) ) {
+      const out = []
+      for( let i = 0; i < obj.length; i++ ){
+        const prop = obj[ i ]
+        if( typeof prop === 'object' && prop.id !== undefined ) {
+          let objCheck = this.ugens.get( prop.id )
+          if( objCheck !== undefined ) {
+            out[ i ] = objCheck
+          }else{
+            out[ i ]= prop
+          }
+        }else{
+          if( typeof prop === 'object' && prop.action === 'wrap' ) {
+            out[ i  ] = prop.value()
+            console.log( 'returning wrapped value!', out[i] )
+          }else if( Array.isArray( prop ) ) {
+            out[ i ] = this.replaceProperties( obj )
+          }else{
+            out[ i ] = prop
+          }
+        }
+      }
+
+      return out
+    }else{
+      const properties = obj
+      for( let key in properties) {
+        let prop = properties[ key ]
+        if( typeof prop === 'object' && prop.id !== undefined ) {
+          let objCheck = this.ugens.get( prop.id )
+          if( objCheck !== undefined ) {
+            properties[ key ] = objCheck
+          } 
+        }else if( Array.isArray( prop ) ) {
+          properties[ key ] = this.replaceProperties( prop )
+        }else{
+          if( typeof prop === 'object' && prop.action === 'wrap' ) {
+            properties[ key ] = prop.value()
+            console.log( 'returning wrapped value!', properties[ key ] )
+          }
+        }
+      } 
+      return properties
+    }
+    return obj
   }
 
   handleMessage( event ) {
@@ -35,17 +88,28 @@ class GibberishProcessor extends AudioWorkletProcessor {
 
       for( let i = 0; i < rep.name.length; i++ ) { constructor = constructor[ rep.name[ i ] ] }
 
-      for( let key in rep.properties) {
-        let prop = rep.properties[ key ]
-        if( typeof prop === 'object' && prop.id !== undefined ) {
-          let objCheck = this.ugens.get( prop.id )
-          if( objCheck !== undefined ) {
-            rep.properties[ key ] = objCheck
-          } 
-        }
-      } 
+      let properties = this.replaceProperties(  eval( '(' + rep.properties + ')' ) )
 
-      const ugen = constructor( rep.properties )
+      console.log( 'properties:', properties )
+
+
+      //for( let key in properties) {
+      //  let prop = properties[ key ]
+      //  if( typeof prop === 'object' && prop.id !== undefined ) {
+      //    let objCheck = this.ugens.get( prop.id )
+      //    if( objCheck !== undefined ) {
+      //      properties[ key ] = objCheck
+      //    } 
+      //  }else{
+      //    console.log( 'prop:', prop )
+      //    if( typeof prop === 'object' && prop.action === 'wrap' ) {
+      //      properties[ key ] = prop.value()
+      //      console.log( 'returning wrapped value!', properties[ key ] )
+      //    }
+      //  }
+      //} 
+
+      const ugen = constructor( properties )
 
       if( rep.post ) {
         ugen[ rep.post ]()
@@ -56,7 +120,7 @@ class GibberishProcessor extends AudioWorkletProcessor {
       initialized = true
 
     }else if( event.data.address === 'method' ) {
-      console.log( event.data.address, event.data.name, event.data.args, this.ugens )
+      //console.log( event.data.address, event.data.name, event.data.args, this.ugens )
       const dict = event.data
       const obj  = this.ugens.get( dict.object )
       obj[ dict.name ]( ...dict.args.map( replace ) ) 
@@ -68,6 +132,12 @@ class GibberishProcessor extends AudioWorkletProcessor {
       const dict = event.data
       const obj  = this.ugens.get( dict.object )
       console.log( 'printing', dict.object, obj )
+    }else if( event.data.address === 'set' ) {
+      if( event.data.name === 'Gibberish.ctx.sampleRate' ) {
+        processor.sampleRate = event.data.value
+      }else{
+        console.log( 'data set', event.data )
+      }
     }  
   }
 

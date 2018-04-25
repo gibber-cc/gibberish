@@ -16,7 +16,6 @@ let ugen = {
 
 
     if( typeof target.__addInput == 'function' ) {
-      console.log( '__addInput', input.isStereo )
       target.__addInput( input )
     } else if( target.sum && target.sum.inputs ) {
       target.sum.inputs.push( input )
@@ -27,8 +26,6 @@ let ugen = {
     }
 
     Gibberish.dirty( target )
-
-    console.log( 'CONNECT:', target.inputs )
 
     this.connected.push([ target, input ])
     

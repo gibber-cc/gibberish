@@ -57,9 +57,9 @@ const Freeverb = inputProps => {
   let outputL = g.add( g.mul( outL, wet1 ), g.mul( outR, wet2 ), g.mul( isStereo === true ? input[0] : input, dry ) ),
       outputR = g.add( g.mul( outR, wet1 ), g.mul( outL, wet2 ), g.mul( isStereo === true ? input[1] : input, dry ) )
 
-  Gibberish.factory( reverb, [ outputL, outputR ], 'freeverb', props )
+  const out = Gibberish.factory( reverb, [ outputL, outputR ], ['fx','freeverb'], props )
 
-  return reverb
+  return out
 }
 
 

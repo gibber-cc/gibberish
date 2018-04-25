@@ -99,7 +99,7 @@ module.exports = function( Gibberish ) {
         bufferR = Gibberish.genish.gen.globals.panR.memory.values.idx
       }
 
-      var output = new Float32Array( 2 )
+      var output = [0,0] 
 
       var bus = Object.create( Bus2 )
 

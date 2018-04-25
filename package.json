@@ -20,6 +20,7 @@
     "gulp-rename": "^1.2.2",
     "jsdsp": "^2.1.1",
     "memory-helper": "^1.1.0",
+    "serialize-javascript": "^1.5.0",
     "vinyl-source-stream": "^1.1.0"
   },
   "repository": {

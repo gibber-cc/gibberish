@@ -39,7 +39,8 @@ let Flanger = inputProps => {
   g.poke( delayBufferL, g.add( leftInput, g.mul( delayedOutL, feedbackCoeff ) ), writeIdx )
 
   let left = g.add( leftInput, delayedOutL ),
-      right
+      right, out
+
 
   if( isStereo === true ) {
     rightInput = input[1]
@@ -50,18 +51,18 @@ let Flanger = inputProps => {
     g.poke( delayBufferR, g.add( rightInput, g.mul( delayedOutR, feedbackCoeff ) ), writeIdx )
     right = g.add( rightInput, delayedOutR )
 
-    Gibberish.factory( 
+    out = Gibberish.factory( 
       flanger,
       [ left, right ], 
-      'flanger', 
+      ['fx','flanger'], 
       props 
     )
 
   }else{
-    Gibberish.factory( flanger, left, 'flanger', props )
+    out = Gibberish.factory( flanger, left, ['fx','flanger'], props )
   }
   
-  return flanger
+  return out 
 }
 
 Flanger.defaults = {

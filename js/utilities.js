@@ -90,10 +90,43 @@ let utilities = {
     Gibberish.ctx.audioWorklet.addModule( Gibberish.workletPath ).then( () => {
       Gibberish.worklet = new AudioWorkletNode( Gibberish.ctx, 'gibberish' )
       Gibberish.worklet.connect( Gibberish.ctx.destination )
+      Gibberish.worklet.port.onmessage = event => {
+        switch( event.data.address ) {
+          case 'get':
+            let name = event.data.name
+            let value
+            if( name[0] === 'Gibberish' ) {
+              value = Gibberish
+              name.shift()
+            }
+            for( let segment of name ) {
+              value = value[ segment ]
+            }
+
+            Gibberish.worklet.port.postMessage({
+              address:'set',
+              name:'Gibberish.' + name.join('.'),
+              value
+            })
+
+            break;
+        }
+      }
       resolve()
     })
-  }
+  },
 
+  wrap( func ) {
+    const out = {
+      action:'wrap',
+      value:func    
+    }
+    return out
+  },
+
+  export( obj ) {
+    obj.wrap = this.wrap
+  }
 }
 
 return utilities

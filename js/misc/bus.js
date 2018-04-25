@@ -25,8 +25,6 @@ module.exports = function( Gibberish ) {
     create( _props ) {
       const props = Object.assign({}, Bus.defaults, _props )
 
-      console.log( 'PROPS', props )
-
       const sum = Gibberish.binops.Add( ...props.inputs )
       const mul = Gibberish.binops.Mul( sum, props.gain )
 

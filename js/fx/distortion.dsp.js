@@ -25,7 +25,7 @@ module.exports = function( Gibberish ) {
           pregain = g.in( 'pregain' ),
           postgain = g.in( 'postgain' )
 
-    let lout
+    let lout, out
     {
       'use jsdsp'
       const linput = isStereo ? input[0] : input
@@ -44,17 +44,17 @@ module.exports = function( Gibberish ) {
         rout = ( rtop / rbottom ) * postgain
       }
 
-      Gibberish.factory( 
+      out = Gibberish.factory( 
         distortion,
         [ lout, rout ], 
-        'distortion', 
+        [ 'fx','distortion'], 
         props 
       )
     }else{
-      Gibberish.factory( distortion, lout, 'distortion', props )
+      out = Gibberish.factory( distortion, lout, ['fx','distortion'], props )
     }
     
-    return distortion 
+    return out 
   }
 
   Distortion.defaults = {

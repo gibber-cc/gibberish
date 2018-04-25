@@ -20,21 +20,22 @@ let RingMod = inputProps => {
   let left = g.add( g.mul( leftInput, g.sub( 1, mix )), g.mul( g.mul( leftInput, sine ), mix ) ), 
       right
 
+  let out
   if( isStereo === true ) {
     let rightInput = input[1]
     right = g.add( g.mul( rightInput, g.sub( 1, mix )), g.mul( g.mul( rightInput, sine ), mix ) ) 
     
-    Gibberish.factory( 
+    out = Gibberish.factory( 
       ringMod,
       [ left, right ], 
       'ringMod', 
       props 
     )
   }else{
-    Gibberish.factory( ringMod, left, 'ringMod', props )
+    out = Gibberish.factory( ringMod, left, ['fx','ringMod'], props )
   }
   
-  return ringMod
+  return out 
 }
 
 RingMod.defaults = {

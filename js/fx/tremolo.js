@@ -27,23 +27,23 @@ const Tremolo = inputProps => {
   const mod = g.mul( osc, amount )
  
   let left = g.sub( leftInput, g.mul( leftInput, mod ) ), 
-      right
+      right, out
 
   if( isStereo === true ) {
     let rightInput = input[1]
     right = g.mul( rightInput, mod )
 
-    Gibberish.factory( 
+    out = Gibberish.factory( 
       tremolo,
       [ left, right ], 
-      'tremolo', 
+      ['fx','tremolo'], 
       props 
     )
   }else{
-    Gibberish.factory( tremolo, left, 'tremolo', props )
+    out = Gibberish.factory( tremolo, left, ['fx','tremolo'], props )
   }
   
-  return tremolo
+  return out 
 }
 
 Tremolo.defaults = {

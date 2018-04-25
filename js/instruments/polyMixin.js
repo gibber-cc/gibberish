@@ -1,5 +1,6 @@
 module.exports = {
   note( freq, gain ) {
+    // will be sent to processor node via proxy method...
     if( Gibberish.mode !== 'worklet' ) {
       let voice = this.__getVoice__()
       Object.assign( voice, this.properties )
@@ -64,10 +65,10 @@ module.exports = {
   },
 
   chord( frequencies ) {
+    // will be sent to processor node via proxy method...
     if( Gibberish.mode !== 'worklet' ) {
-      console.log( 'processor chord', frequencies )
       frequencies.forEach( v => this.note( v ) )
-      //this.triggerChord = frequencies
+      this.triggerChord = frequencies
     }
   },
 

@@ -78,14 +78,14 @@ module.exports = function( Gibberish ) {
 
     let panner = g.pan( outputL, outputL, g.in( 'pan' ) )
     
-    Gibberish.factory( 
+    let out = Gibberish.factory( 
       bufferShuffler,
       [panner.left, panner.right],
-      'shuffler', 
+      ['fx','shuffler'], 
       props 
     ) 
 
-    return bufferShuffler
+    return out 
   }
   
   Shuffler.defaults = {

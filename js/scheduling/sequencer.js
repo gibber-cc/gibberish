@@ -10,6 +10,7 @@ let Sequencer = props => {
 
     __valuesPhase:  0,
     __timingsPhase: 0,
+    __type:'seq',
 
     tick() {
       let value  = seq.values[  seq.__valuesPhase++  % seq.values.length  ],

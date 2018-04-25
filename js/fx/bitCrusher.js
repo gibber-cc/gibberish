@@ -27,6 +27,7 @@ let BitCrusher = inputProps => {
     storeL.out
   )
 
+  let out
   if( isStereo ) {
     let storeR = g.history(0)
     let crushedR = g.div( g.floor( g.mul( rightInput, bitMult ) ), bitMult )
@@ -37,17 +38,17 @@ let BitCrusher = inputProps => {
       storeL.out
     )
 
-    Gibberish.factory( 
+    out = Gibberish.factory( 
       bitCrusher,
       [ outL, outR ], 
-      'bitCrusher', 
+      ['fx','bitCrusher'], 
       props 
     )
   }else{
-    Gibberish.factory( bitCrusher, outL, 'bitCrusher', props )
+    out = Gibberish.factory( bitCrusher, outL, ['fx','bitCrusher'], props )
   }
   
-  return bitCrusher
+  return out 
 }
 
 BitCrusher.defaults = {

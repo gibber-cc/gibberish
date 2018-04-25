@@ -1,6 +1,6 @@
-let g = require( 'genish.js' ),
-    effect = require( './effect.js' )
-
+const g = require( 'genish.js' ),
+      effect = require( './effect.js' )
+  
 module.exports = function( Gibberish ) {
  
 let Chorus = inputProps => {
@@ -32,7 +32,9 @@ let Chorus = inputProps => {
         fastPeek2  = g.mul( g.peek( win120, fastPhasor ), amp2 ),
         fastPeek3  = g.mul( g.peek( win240, fastPhasor ), amp2 )
 
-  const ms = Gibberish.ctx.sampleRate / 1000 
+  let sampleRate = Gibberish.mode === 'processor' ? Gibberish.processor.sampleRate : Gibberish.ctx.sampleRate
+   
+  const ms = sampleRate / 1000 
   const maxDelayTime = 100 * ms
 
   const time1 =  g.mul( g.add( slowPeek1, fastPeek1, 5 ), ms ),
@@ -58,9 +60,9 @@ let Chorus = inputProps => {
     chorus.graph = leftOutput
   }
   
-  Gibberish.factory( chorus, chorus.graph, 'chorus', props )
+  const out = Gibberish.factory( chorus, chorus.graph, ['fx','chorus'], props )
 
-  return chorus
+  return out 
 }
 
 Chorus.defaults = {
