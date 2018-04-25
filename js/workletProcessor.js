@@ -47,9 +47,8 @@ class GibberishProcessor extends AudioWorkletProcessor {
         }else{
           if( typeof prop === 'object' && prop.action === 'wrap' ) {
             out[ i  ] = prop.value()
-            console.log( 'returning wrapped value!', out[i] )
           }else if( Array.isArray( prop ) ) {
-            out[ i ] = this.replaceProperties( obj )
+            out[ i ] = this.replaceProperties( prop )
           }else{
             out[ i ] = prop
           }
@@ -109,13 +108,15 @@ class GibberishProcessor extends AudioWorkletProcessor {
       //  }
       //} 
 
-      const ugen = constructor( properties )
+      let ugen = properties.binop !== undefined ? constructor( ...properties.inputs ) :  constructor( properties )
 
       if( rep.post ) {
         ugen[ rep.post ]()
       }
 
       this.ugens.set( rep.id, ugen )
+
+      console.log( 'ugen:', ugen )
 
       initialized = true
 
@@ -139,19 +140,6 @@ class GibberishProcessor extends AudioWorkletProcessor {
         console.log( 'data set', event.data )
       }
     }  
-  }
-
-  deserialize( __arg ) {
-    const arg = JSON.parse( __arg )
-    const obj = {}
-    for( let key in arg ) {
-      if( typeof arg[ key ] === 'string' ) {
-        obj[ key ] = eval( arg[key] )
-      }else{
-        obj[ key ] = arg[ key ]
-      }
-    }
-    return obj
   }
 
   process(inputs, outputs, parameters) {

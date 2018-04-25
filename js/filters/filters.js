@@ -30,7 +30,7 @@ module.exports = function( Gibberish ) {
 
       switch( props.filterType ) {
         case 1:
-          isLowPass = g.param( 'lowPass', 1 ),
+          //isLowPass = g.param( 'lowPass', 1 ),
           filteredOsc = g.filter24( input, g.in('Q'), cutoff, props.filterMode, isStereo )
           break;
         case 2:

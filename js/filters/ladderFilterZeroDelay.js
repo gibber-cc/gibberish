@@ -80,9 +80,9 @@ module.exports = function( Gibberish ) {
       //let right = g.switch( isLowPass, polesR[3], g.sub( outputR, polesR[3] ) )
 
       //returnValue = [left, right]
-    }else{
+    }//else{
       returnValue = klp
-    }
+    //}
 
     return returnValue
   }
