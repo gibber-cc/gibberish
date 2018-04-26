@@ -91,23 +91,6 @@ class GibberishProcessor extends AudioWorkletProcessor {
 
       console.log( 'properties:', properties )
 
-
-      //for( let key in properties) {
-      //  let prop = properties[ key ]
-      //  if( typeof prop === 'object' && prop.id !== undefined ) {
-      //    let objCheck = this.ugens.get( prop.id )
-      //    if( objCheck !== undefined ) {
-      //      properties[ key ] = objCheck
-      //    } 
-      //  }else{
-      //    console.log( 'prop:', prop )
-      //    if( typeof prop === 'object' && prop.action === 'wrap' ) {
-      //      properties[ key ] = prop.value()
-      //      console.log( 'returning wrapped value!', properties[ key ] )
-      //    }
-      //  }
-      //} 
-
       let ugen = properties.binop !== undefined ? constructor( ...properties.inputs ) :  constructor( properties )
 
       if( rep.post ) {
@@ -116,11 +99,10 @@ class GibberishProcessor extends AudioWorkletProcessor {
 
       this.ugens.set( rep.id, ugen )
 
-      console.log( 'ugen:', ugen )
-
       initialized = true
 
     }else if( event.data.address === 'method' ) {
+      console.log( 'method:', event.data.name )
       //console.log( event.data.address, event.data.name, event.data.args, this.ugens )
       const dict = event.data
       const obj  = this.ugens.get( dict.object )
@@ -178,6 +160,7 @@ class GibberishProcessor extends AudioWorkletProcessor {
           try{
             this.callback = callback = gibberish.generateCallback()
             ugens = gibberish.callbackUgens
+            // XXX should we try/catch the callback here?
             //const out = callback.apply( null, ugens )
             //output[0][ i ] = out[0]
             //output[1][ i ] = out[1] 

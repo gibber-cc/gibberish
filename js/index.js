@@ -215,7 +215,15 @@ let Gibberish = {
 
     return body
   },
+  replace( obj ) {
+    if( typeof obj === 'object' ) {
+      if( obj.id !== undefined ) {
+        return processor.ugens.get( obj.id )
+      } 
+    }
 
+    return obj
+  },
   processUgen( ugen, block ) {
     if( block === undefined ) block = []
 
@@ -285,6 +293,14 @@ let Gibberish = {
               line += '' + input
           }else{
             //console.log( 'key:', key, 'input:', ugen.inputs, ugen.inputs[ key ] ) 
+            // XXX not sure why this has to be here, but somehow non-processed objects
+            // that only contain id numbers are being passed here...
+
+            if( Gibberish.mode === 'processor' ) {
+              if( input.ugenName === undefined && input.id !== undefined ) {
+                input = Gibberish.processor.ugens.get( input.id )
+              }
+            }
 
             Gibberish.processUgen( input, block )
 

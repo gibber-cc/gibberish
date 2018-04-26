@@ -1,3 +1,13 @@
+const replace = obj => {
+  if( typeof obj === 'object' ) {
+    if( obj.id !== undefined ) {
+      return processor.ugens.get( obj.id )
+    } 
+  }
+
+  return obj
+}
+
 let ugen = {
   free() {
     Gibberish.genish.gen.free( this.graph )
@@ -9,6 +19,7 @@ let ugen = {
 
   connect( target, level=1 ) {
     if( this.connected === undefined ) this.connected = []
+
 
     let input = level === 1 ? this : Gibberish.binops.Mul( this, level )
 
