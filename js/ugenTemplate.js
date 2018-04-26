@@ -55,6 +55,13 @@ module.exports = function( Gibberish ) {
           set( v ) {
             if( value !== v ) {
               value = v
+              
+              // needed for filterType at the very least, becauae the props
+              // are reused when re-creating the graph. This seems like a cheaper
+              // way to solve this problem.
+              values[ prop ] = v
+
+              if( Gibberish.mode !== 'worklet' ) console.log( 'redoing graph!', v )
               this.__redoGraph()
             }
           }

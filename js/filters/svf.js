@@ -46,21 +46,21 @@ module.exports = function( Gibberish ) {
     const isStereo = props.input.isStereo
     
     // XXX NEEDS REFACTORING
-    Gibberish.factory( 
+    const __out = Gibberish.factory( 
       svf,
       Gibberish.genish.svf( g.in('input'), g.mul( g.in('cutoff'), g.gen.samplerate / 5 ), g.sub( 1, g.in('Q') ), g.in('mode'), isStereo ), 
-      'svf', 
+      ['filters','Filter12SVF'], 
       props
     )
 
-    return svf
+    return __out
   }
 
 
   SVF.defaults = {
     input:0,
-    Q: .75,
-    cutoff:.35,
+    Q: .65,
+    cutoff:440,
     mode:0
   }
 

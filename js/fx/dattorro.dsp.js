@@ -156,7 +156,7 @@ module.exports = function( Gibberish ) {
       const left  = g.mix( isStereo ? input[0] : input, leftWet,  drywet )
       const right = g.mix( isStereo ? input[1] : input, rightWet, drywet )
 
-      out = Gibberish.factory( reverb, [left,right], ['fx','dattorro'], props )
+      out = Gibberish.factory( reverb, [left,right], ['fx','plate'], props )
     }
 
     return out

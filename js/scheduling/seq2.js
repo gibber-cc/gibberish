@@ -1,4 +1,5 @@
 const g = require( 'genish.js' ),
+      proxy = require( '../workletProxy.js' ),
       ugen = require( '../ugen.js' )
 
 module.exports = function( Gibberish ) {
@@ -85,7 +86,7 @@ module.exports = function( Gibberish ) {
         }
       })
 
-      return seq
+      return proxy( ['Sequencer2'], props, seq ) 
     }
   }
 

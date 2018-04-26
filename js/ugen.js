@@ -9,15 +9,15 @@ const replace = obj => {
 }
 
 let ugen = {
-  free() {
+  free:function() {
     Gibberish.genish.gen.free( this.graph )
   },
 
-  print() {
+  print:function() {
     console.log( this.callback.toString() )
   },
 
-  connect( target, level=1 ) {
+  connect:function( target, level=1 ) {
     if( this.connected === undefined ) this.connected = []
 
 
@@ -43,7 +43,7 @@ let ugen = {
     return this
   },
 
-  disconnect( target ) {
+  disconnect:function( target ) {
     if( target === undefined ){
       for( let connection of this.connected ) {
         connection[0].disconnectUgen( connection[1] )
@@ -57,17 +57,18 @@ let ugen = {
     }
   },
 
-  chain( target, level=1 ) {
+  chain:function( target, level=1 ) {
     this.connect( target,level )
 
     return target
   },
 
-  __redoGraph() {
+  __redoGraph:function() {
     this.__createGraph()
     this.callback = Gibberish.genish.gen.createCallback( this.graph, Gibberish.memory, false, true )
-    this.inputNames = Gibberish.genish.gen.parameters.slice(0)
+    this.inputNames = new Set( Gibberish.genish.gen.parameters ) 
     this.callback.ugenName = this.ugenName
+    Gibberish.dirty( this )
   },
 }
 

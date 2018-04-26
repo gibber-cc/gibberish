@@ -247,7 +247,7 @@ let Gibberish = {
       let keys,err
       
       //try {
-      keys = ugen.binop || ugen.type === 'bus' || ugen.type === 'analysis' ? Object.keys( ugen.inputs ) : [...ugen.inputNames ] 
+      keys = ugen.binop === true || ugen.type === 'bus' || ugen.type === 'analysis' ? Object.keys( ugen.inputs ) : [...ugen.inputNames ] 
 
       //}catch( e ){
 

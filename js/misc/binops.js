@@ -25,7 +25,7 @@ module.exports = function( Gibberish ) {
       const ugen = Object.create( ugenproto )
       Object.assign( ugen, { binop:true, op:'-', inputs:args, ugenName:'sub' + id, id } )
 
-      return proxy( ['binops','Add'], { inputs:args }, ugen )
+      return proxy( ['binops','Sub'], { binop:true, inputs:args }, ugen )
     },
 
     Mul( ...args ) {
@@ -33,7 +33,7 @@ module.exports = function( Gibberish ) {
       const ugen = Object.create( ugenproto )
       Object.assign( ugen, { binop:true, op:'*', inputs:args, ugenName:'mul' + id, id } )
 
-      return proxy( ['binops','Add'], { inputs:args }, ugen )
+      return proxy( ['binops','Mul'], { binop:true, inputs:args }, ugen )
     },
 
     Div( ...args ) {
@@ -41,7 +41,7 @@ module.exports = function( Gibberish ) {
       const ugen = Object.create( ugenproto )
       Object.assign( ugen, { binop:true, op:'/', inputs:args, ugenName:'div' + id, id } )
     
-      return proxy( ['binops','Add'], { inputs:args }, ugen )
+      return proxy( ['binops','Div'], { binop:true, inputs:args }, ugen )
     },
 
     Mod( ...args ) {
@@ -49,7 +49,7 @@ module.exports = function( Gibberish ) {
       const ugen = Object.create( ugenproto )
       Object.assign( ugen, { binop:true, op:'%', inputs:args, ugenName:'mod' + id, id } )
 
-      return proxy( ['binops','Add'], { inputs:args }, ugen )
+      return proxy( ['binops','Mod'], { binop:true, inputs:args }, ugen )
     },   
   }
 

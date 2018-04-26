@@ -1,5 +1,5 @@
 const g = require( 'genish.js' ),
-      filter = require( './filter.js' )
+      filterProto = require( './filter.js' )
 
 module.exports = function( Gibberish ) {
 
@@ -88,24 +88,24 @@ module.exports = function( Gibberish ) {
   }
 
   const Zd24 = inputProps => {
-    const filter   = Object.create( filter )
+    const filter   = Object.create( filterProto )
     const props    = Object.assign( {}, Zd24.defaults, filter.defaults, inputProps )
     const isStereo = props.input.isStereo 
 
-    Gibberish.factory(
+    const __out = Gibberish.factory(
       filter, 
       Gibberish.genish.zd24( g.in('input'), g.in('Q'), g.in('cutoff'), isStereo ), 
-      'zd24',
+      ['filters','Filter24Moog'],
       props
     )
 
-    return filter
+    return __out
   }
 
 
   Zd24.defaults = {
     input:0,
-    Q: 5,
+    Q: .75,
     cutoff: 440,
   }
 

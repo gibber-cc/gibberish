@@ -179,21 +179,23 @@ module.exports = function( Gibberish ) {
     const props    = Object.assign( {}, DiodeZDF.defaults, filter.defaults, inputProps )
     const isStereo = props.input.isStereo 
 
-    Gibberish.factory(
+    Object.assign( zdf, props )
+
+    const __out = Gibberish.factory(
       zdf, 
       Gibberish.genish.diodeZDF( g.in('input'), g.in('Q'), g.in('cutoff'), g.in('saturation'), isStereo ), 
-      'diodeZDF',
+      ['filters','Filter24TB303'],
       props
     )
 
-    return zdf
+    return __out 
   }
 
   DiodeZDF.defaults = {
     input:0,
-    Q: 5,
+    Q: .65,
     saturation: 1,
-    cutoff: 440,
+    cutoff: 880,
   }
 
   return DiodeZDF

@@ -92,7 +92,9 @@ module.exports = function( Gibberish ) {
 
   let Biquad = inputProps => {
     let biquad = Object.create( filter )
-    Object.assign( biquad, Biquad.defaults, inputProps ) 
+    let props = Object.assign( {}, Biquad.defaults, inputProps ) 
+    
+    Object.assign( biquad, props )
 
     let isStereo = biquad.input.isStereo
 
@@ -103,14 +105,14 @@ module.exports = function( Gibberish ) {
     biquad.__createGraph()
     biquad.__requiresRecompilation = [ 'mode' ]
 
-    Gibberish.factory(
+    const __out = Gibberish.factory(
       biquad,
       biquad.graph,
-      'biquad', 
-      biquad
+      ['filters','Filter12Biquad'], 
+      props
     )
 
-    return biquad
+    return __out
   }
 
   Biquad.defaults = {
