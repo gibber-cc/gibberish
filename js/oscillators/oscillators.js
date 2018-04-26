@@ -81,7 +81,7 @@ module.exports = function( Gibberish ) {
           break;
       }
 
-      const out = Gibberish.factory( noise, graph, ['oscillatorrs','noise'], props )
+      const out = Gibberish.factory( noise, graph, ['oscillators','noise'], props )
 
       return out
     },
