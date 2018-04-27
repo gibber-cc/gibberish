@@ -24,7 +24,20 @@ bass = Synth({
 .connect( Gibberish.output )
 .connect( verb.input, .5 )
 
+bassNotes = [55,110,165,220]
 bassSeq = Sequencer.make( [55,110,165,220], [beat/4], bass, 'note' ).start()
+noteSeq = Sequencer.make( 
+  [
+    bassNotes.map( v=>v*1.25 ),
+    bassNotes.map( v=>v*1.25*.8 ),
+    bassNotes.map( v=>v*1.25*.8*.8 ),
+    bassNotes.map( v=>v*1.25*.8*.8*1.25 ),    
+  ],
+  [beat*16],
+  bassSeq, 
+  'values' 
+).start()
+
 /*** end bassline ***/
 
 /*** drums ***/
@@ -43,18 +56,9 @@ snare = Snare()
 // delay start by one beat so snare aligns with beats 2 & 4
 snareSeq = Sequencer.make( [.25], [beat*2], snare, 'trigger' ).start( beat )
 
-close = Hat({ decay:.05 }).connect()
-open  = Hat({ decay:.2 }).connect()
-
-hatz = ()=> {
-   if( Math.random() > .25 ) 
-     close.trigger( .035 )
-   else
-     open.trigger( .05 )
-}
-
-hatSeq = Sequencer.make( [ hatz ], [ beat / 4 ] ).start()
-/*** end drums ***/	
+hat = Hat().connect()
+hatSeq = Sequencer.make( [ .04 ], [ beat / 4 ], hat, 'trigger' ).start()
+decSeq = Sequencer.make( [ ()=> Math.random() > .25 ? .05 : .2 ], [ beat / 4 ], hat, 'decay' ).start()
 
 /*** start chords ***/
 chords = PolySynth({
@@ -69,30 +73,15 @@ chords = PolySynth({
 chorus = Chorus({ input: chords, slowGain:8, fastFrequency:4, fastGain:1  })
   .connect( verb.input )
 
+chord = [440,550,660]
 chordsSeq = Sequencer({
   target:chords,
   key:'chord',
-  values:[[440, 550, 660]],
+  values:[
+    chord.map( v=>v*1.25 ),
+    chord.map( v=>v*1.25*.8 ),
+    chord.map( v=>v*1.25*.8*.8 ),
+    chord.map( v=>v*1.25*1.25*.8*.8 )
+  ],
   timings:[beat * 16]
 }).start()
-/*** end chords ***/
-
-/*** harmony... affects bass line and chords ***/
-modulateDown = ()=> {
-  chordsSeq.values[0] = chordsSeq.values[0].map( v => v * .8 )
-  bassSeq.values  = bassSeq.values.map(  v => v * .8 )
-}
-
-modulateUp = ()=> {
-  chordsSeq.values[0] = chordsSeq.values[0].map( v => v * 1.25 )
-  bassSeq.values  = bassSeq.values.map(  v => v * 1.25 )
-}
-
-// sequence function calls, priority 1 ensures that modulations are triggered
-// before chord messages occur on the same beat.
-harmony = Sequencer({
-  values:[ modulateUp, modulateDown, modulateDown, modulateUp ],
-  timings:[ beat * 16 ],
-  priority:1
-}).start()
-/*** end harmony ***/

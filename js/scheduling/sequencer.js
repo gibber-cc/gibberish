@@ -5,6 +5,7 @@ const proxy = require( '../workletProxy.js' )
 module.exports = function( Gibberish ) {
 
 let Sequencer = props => {
+  let __seq
   let seq = {
     __isRunning:false,
 
@@ -36,12 +37,12 @@ let Sequencer = props => {
     start( delay = 0 ) {
       seq.__isRunning = true
       Gibberish.scheduler.add( delay, seq.tick, seq.priority )
-      return seq
+      return __seq
     },
 
     stop() {
       seq.__isRunning = false
-      return seq
+      return __seq
     }
   }
 
@@ -52,10 +53,12 @@ let Sequencer = props => {
   Object.assign( seq, properties ) 
   seq.__properties__ = properties
 
-  return proxy( ['Sequencer'], properties, seq )
+  __seq =  proxy( ['Sequencer'], properties, seq )
+
+  return __seq
 }
 
-Sequencer.defaults = { priority:0 }
+Sequencer.defaults = { priority:0, values:[], timings:[] }
 
 Sequencer.make = function( values, timings, target, key ) {
   return Sequencer({ values, timings, target, key })
