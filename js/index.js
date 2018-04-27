@@ -248,13 +248,13 @@ let Gibberish = {
   
       let line = `\tvar v_${ugen.id} = ` 
       
-      if( !ugen.binop ) line += `${ugen.ugenName}( `
+      if( !ugen.isop ) line += `${ugen.ugenName}( `
 
       // must get array so we can keep track of length for comma insertion
       let keys,err
       
       //try {
-      keys = ugen.binop === true || ugen.type === 'bus' || ugen.type === 'analysis' ? Object.keys( ugen.inputs ) : [...ugen.inputNames ] 
+      keys = ugen.isop === true || ugen.type === 'bus' || ugen.type === 'analysis' ? Object.keys( ugen.inputs ) : [...ugen.inputNames ] 
 
       //}catch( e ){
 
@@ -268,7 +268,7 @@ let Gibberish = {
         let key = keys[ i ]
         // binop.inputs is actual values, not just property names
         let input 
-        if( ugen.binop || ugen.type ==='bus' || ugen.type === 'analysis' ) {
+        if( ugen.isop || ugen.type ==='bus' || ugen.type === 'analysis' ) {
           input = ugen.inputs[ key ]
         }else{
           //if( key === 'memory' ) continue;
@@ -314,7 +314,7 @@ let Gibberish = {
 
             //if( input.callback === undefined ) continue
 
-            if( !input.binop ) {
+            if( !input.isop ) {
               // check is needed so that graphs with ssds that refer to themselves
               // don't add the ssd in more than once
               if( Gibberish.callbackUgens.indexOf( input.callback ) === -1 ) {
@@ -327,15 +327,15 @@ let Gibberish = {
           }
 
           if( i < keys.length - 1 ) {
-            line += ugen.binop ? ' ' + ugen.op + ' ' : ', ' 
+            line += ugen.isop ? ' ' + ugen.op + ' ' : ', ' 
           }
         }
       }
       
       //if( ugen.type === 'bus' ) line += ', ' 
       if( ugen.type === 'analysis' || (ugen.type === 'bus' && keys.length > 0) ) line += ', '
-      if( !ugen.binop && ugen.type !== 'seq' ) line += 'memory'
-      line += ugen.binop ? '' : ' )'
+      if( !ugen.isop && ugen.type !== 'seq' ) line += 'memory'
+      line += ugen.isop ? '' : ' )'
 
       block.push( line )
       

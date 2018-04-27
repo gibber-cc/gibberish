@@ -15,41 +15,41 @@ module.exports = function( Gibberish ) {
     Add( ...args ) {
       const id = Gibberish.factory.getUID()
       const ugen = Object.create( ugenproto )
-      Object.assign( ugen, { binop:true, op:'+', inputs:args, ugenName:'add' + id, id } )
+      Object.assign( ugen, { isop:true, op:'+', inputs:args, ugenName:'add' + id, id } )
 
-      return proxy( ['binops','Add'], { binop:true, inputs:args }, ugen )
+      return proxy( ['binops','Add'], { isop:true, inputs:args }, ugen )
     },
 
     Sub( ...args ) {
       const id = Gibberish.factory.getUID()
       const ugen = Object.create( ugenproto )
-      Object.assign( ugen, { binop:true, op:'-', inputs:args, ugenName:'sub' + id, id } )
+      Object.assign( ugen, { isop:true, op:'-', inputs:args, ugenName:'sub' + id, id } )
 
-      return proxy( ['binops','Sub'], { binop:true, inputs:args }, ugen )
+      return proxy( ['binops','Sub'], { isop:true, inputs:args }, ugen )
     },
 
     Mul( ...args ) {
       const id = Gibberish.factory.getUID()
       const ugen = Object.create( ugenproto )
-      Object.assign( ugen, { binop:true, op:'*', inputs:args, ugenName:'mul' + id, id } )
+      Object.assign( ugen, { isop:true, op:'*', inputs:args, ugenName:'mul' + id, id } )
 
-      return proxy( ['binops','Mul'], { binop:true, inputs:args }, ugen )
+      return proxy( ['binops','Mul'], { isop:true, inputs:args }, ugen )
     },
 
     Div( ...args ) {
       const id = Gibberish.factory.getUID()
       const ugen = Object.create( ugenproto )
-      Object.assign( ugen, { binop:true, op:'/', inputs:args, ugenName:'div' + id, id } )
+      Object.assign( ugen, { isop:true, op:'/', inputs:args, ugenName:'div' + id, id } )
     
-      return proxy( ['binops','Div'], { binop:true, inputs:args }, ugen )
+      return proxy( ['binops','Div'], { isop:true, inputs:args }, ugen )
     },
 
     Mod( ...args ) {
       const id = Gibberish.factory.getUID()
       const ugen = Object.create( ugenproto )
-      Object.assign( ugen, { binop:true, op:'%', inputs:args, ugenName:'mod' + id, id } )
+      Object.assign( ugen, { isop:true, op:'%', inputs:args, ugenName:'mod' + id, id } )
 
-      return proxy( ['binops','Mod'], { binop:true, inputs:args }, ugen )
+      return proxy( ['binops','Mod'], { isop:true, inputs:args }, ugen )
     },   
   }
 

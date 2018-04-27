@@ -86,7 +86,7 @@ module.exports = function( __name, values, obj ) {
       set( target, prop, value, receiver ) {
         if( prop !== 'connected' ) {
           const __value = replaceObj( value )
-          console.log( 'setter:', prop, __value )
+          //console.log( 'setter:', prop, __value )
 
           Gibberish.worklet.port.postMessage({ 
             address:'set', 

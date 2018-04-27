@@ -84,7 +84,7 @@ class GibberishProcessor extends AudioWorkletProcessor {
 
       let properties = this.replaceProperties(  eval( '(' + rep.properties + ')' ) )
 
-      let ugen = properties.binop !== undefined ? constructor( ...properties.inputs ) :  constructor( properties )
+      let ugen = properties.isop !== undefined ? constructor( ...properties.inputs ) :  constructor( properties )
 
       if( rep.post ) {
         ugen[ rep.post ]()
