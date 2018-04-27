@@ -150,20 +150,20 @@ class GibberishProcessor extends AudioWorkletProcessor {
           const oldCallback = callback
           const oldUgens = ugens
 
-          try{
+          //try{
             this.callback = callback = gibberish.generateCallback()
             ugens = gibberish.callbackUgens
             // XXX should we try/catch the callback here?
             //const out = callback.apply( null, ugens )
             //output[0][ i ] = out[0]
             //output[1][ i ] = out[1] 
-          }catch(e) {
+          //}catch(e) {
 
-            console.log( 'callback error:', e, callback.toString() )
-            this.callback = callback = oldCallback
-            ugens = gibberish.callbackUgens = oldUgens
-            gibberish.callbackNames = ugens.map( v => v.ugenName )
-          }
+          //  console.log( 'callback error:', e, callback.toString() )
+          //  this.callback = callback = oldCallback
+          //  ugens = gibberish.callbackUgens = oldUgens
+          //  gibberish.callbackNames = ugens.map( v => v.ugenName )
+          //}
         }
         const out = callback.apply( null, ugens )
         output[0][ i ] = out[0]

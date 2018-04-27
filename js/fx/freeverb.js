@@ -69,7 +69,8 @@ Freeverb.defaults = {
   wet2: 0,
   dry: .5,
   roomSize: .84,
-  damping:  .5
+  damping:  .5,
+  bypass:false
 }
 
 return Freeverb 

@@ -1,4 +1,5 @@
 const proxy = require( './workletProxy.js' )
+const effectProto = require( './fx/effect.js' )
 
 module.exports = function( Gibberish ) {
   let uid = 0
@@ -45,6 +46,21 @@ module.exports = function( Gibberish ) {
           }
         }
       })
+    }
+
+    // add bypass dirty triffer
+    if( effectProto.isPrototypeOf( ugen ) ) {
+      let value = ugen.bypass
+      Object.defineProperty( ugen, 'bypass', {
+        get() { return value },
+        set( v ) {
+          if( value !== v ) {
+            Gibberish.dirty( ugen )
+            value = v
+          }
+        }
+      })
+
     }
 
     if( ugen.__requiresRecompilation !== undefined ) {

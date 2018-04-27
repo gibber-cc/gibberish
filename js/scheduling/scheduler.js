@@ -31,6 +31,9 @@ let Scheduler = {
         next.func()
         this.queue.pop()
         next = this.queue.peek()
+
+        // XXX this happens when calling sequencer.stop()... why?
+        if( next === undefined ) break
       }
 
     }
