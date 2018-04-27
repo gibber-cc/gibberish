@@ -16,7 +16,7 @@ module.exports = function( Gibberish ) {
       const abs = Object.create( ugen )
       const graph = g.abs( g.in('input') )
       
-      const __out = Gibberish.factory( abs, graph, ['monops','abs'], Object.assign({}, Monops.defaults, { input }) )
+      const __out = Gibberish.factory( abs, graph, ['monops','abs'], Object.assign({}, Monops.defaults, { input, binop:true }) )
 
       return __out
     },
@@ -25,7 +25,7 @@ module.exports = function( Gibberish ) {
       const pow = Object.create( ugen )
       const graph = g.pow( g.in('input'), g.in('exponent') )
       
-      Gibberish.factory( pow, graph, 'pow', Object.assign({}, Monops.defaults, { input, exponent }) )
+      Gibberish.factory( pow, graph, ['monops','pow'], Object.assign({}, Monops.defaults, { input, exponent }) )
 
       return pow
     },

@@ -28,8 +28,6 @@ module.exports = function( Gibberish ) {
       //}
       let props = Object.assign({}, filters.defaults, _props )
 
-      console.log( 'filter type:', props.filterType )
-
       switch( props.filterType ) {
         case 1:
           //isLowPass = g.param( 'lowPass', 1 ),

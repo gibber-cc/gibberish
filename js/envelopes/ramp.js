@@ -16,12 +16,13 @@ module.exports = function( Gibberish ) {
     const phase = g.accum( g.div( 1, length ), reset, { shouldWrap:props.shouldLoop, shouldClamp:true }),
           diff = g.sub( to, from ),
           graph = g.add( from, g.mul( phase, diff ) )
-
-    Gibberish.factory( ramp, graph, 'ramp', props )
-
+        
     ramp.trigger = reset.trigger
 
-    return ramp
+    const out = Gibberish.factory( ramp, graph, ['envelopes','ramp'], props )
+
+
+    return out
   }
 
   Ramp.defaults = { from:0, to:1, length:g.gen.samplerate, shouldLoop:false }

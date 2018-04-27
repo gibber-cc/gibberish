@@ -1,13 +1,3 @@
-const replace = obj => {
-  if( typeof obj === 'object' ) {
-    if( obj.id !== undefined ) {
-      return processor.ugens.get( obj.id )
-    } 
-  }
-
-  return obj
-}
-
 let processor = null
 
 class GibberishProcessor extends AudioWorkletProcessor {
@@ -37,10 +27,14 @@ class GibberishProcessor extends AudioWorkletProcessor {
       const out = []
       for( let i = 0; i < obj.length; i++ ){
         const prop = obj[ i ]
+        //console.log( 'PROP:', prop )
         if( typeof prop === 'object' && prop.id !== undefined ) {
           let objCheck = this.ugens.get( prop.id )
+
           if( objCheck !== undefined ) {
-            out[ i ] = objCheck
+            out[ i ] = prop.prop !== undefined ? objCheck[ prop.prop ] : objCheck
+
+            if( prop.prop !== undefined ) console.log( 'got a ssd.out', prop, objCheck )
           }else{
             out[ i ]= prop
           }
@@ -85,11 +79,10 @@ class GibberishProcessor extends AudioWorkletProcessor {
       const rep = event.data
       let constructor = Gibberish
 
+      //console.log( 'add:', rep.name )
       for( let i = 0; i < rep.name.length; i++ ) { constructor = constructor[ rep.name[ i ] ] }
 
       let properties = this.replaceProperties(  eval( '(' + rep.properties + ')' ) )
-
-      console.log( 'properties:', properties )
 
       let ugen = properties.binop !== undefined ? constructor( ...properties.inputs ) :  constructor( properties )
 
@@ -102,11 +95,11 @@ class GibberishProcessor extends AudioWorkletProcessor {
       initialized = true
 
     }else if( event.data.address === 'method' ) {
-      console.log( 'method:', event.data.name )
+      //console.log( 'method:', event.data.name )
       //console.log( event.data.address, event.data.name, event.data.args, this.ugens )
       const dict = event.data
       const obj  = this.ugens.get( dict.object )
-      obj[ dict.name ]( ...dict.args.map( replace ) ) 
+      obj[ dict.name ]( ...dict.args.map( Gibberish.proxyReplace ) ) 
     }else if( event.data.address === 'property' ) {
       const dict = event.data
       const obj  = this.ugens.get( dict.object )

@@ -3,8 +3,8 @@ const proxy = require( './workletProxy.js' )
 module.exports = function( Gibberish ) {
   let uid = 0
 
-  const factory = function( ugen, graph, __name, values, cb ) {
-    ugen.callback = cb === undefined ? Gibberish.genish.gen.createCallback( graph, Gibberish.memory, false, true ) : cb
+  const factory = function( ugen, graph, __name, values, cb=null, shouldProxy = true ) {
+    ugen.callback = cb === null ? Gibberish.genish.gen.createCallback( graph, Gibberish.memory, false, true ) : cb
 
     let name = Array.isArray( __name ) ? __name[ __name.length - 1 ] : __name
 
@@ -71,7 +71,7 @@ module.exports = function( Gibberish ) {
 
     // will only create proxy if worklets are being used
     // otherwise will return unaltered ugen
-    return proxy( __name, values, ugen ) 
+    return shouldProxy ? proxy( __name, values, ugen ) : ugen
   }
 
   factory.getUID = () => uid++

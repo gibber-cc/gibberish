@@ -173,6 +173,9 @@ let Gibberish = {
 
     this.analyzers.forEach( v=> {
       const analysisBlock = Gibberish.processUgen( v )
+      //if( Gibberish.mode === 'processor' ) {
+      //  console.log( 'analysis:', analysisBlock, v  )
+      //}
       const analysisLine = analysisBlock.pop()
 
       analysisBlock.forEach( v=> {
@@ -215,10 +218,14 @@ let Gibberish = {
 
     return body
   },
-  replace( obj ) {
+  proxyReplace( obj ) {
     if( typeof obj === 'object' ) {
       if( obj.id !== undefined ) {
-        return processor.ugens.get( obj.id )
+        const __obj = processor.ugens.get( obj.id )
+        //console.log( 'retrieved:', __obj.name )
+
+        //if( obj.prop !== undefined ) console.log( 'got a ssd.out', obj )
+        return obj.prop !== undefined ? __obj[ obj.prop ] : __obj
       } 
     }
 
@@ -261,7 +268,7 @@ let Gibberish = {
         let key = keys[ i ]
         // binop.inputs is actual values, not just property names
         let input 
-        if( ugen.binop || ugen.type ==='bus' ) {
+        if( ugen.binop || ugen.type ==='bus' || ugen.type === 'analysis' ) {
           input = ugen.inputs[ key ]
         }else{
           //if( key === 'memory' ) continue;
@@ -269,6 +276,7 @@ let Gibberish = {
           input = ugen[ key ] 
         }
 
+        //if( Gibberish.mode === 'processor' ) console.log( 'processor input:', input, key, ugen )
         if( input !== undefined ) { 
           if( input.bypass === true ) {
             // loop through inputs of chain until one is found

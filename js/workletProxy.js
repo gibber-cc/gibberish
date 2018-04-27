@@ -3,7 +3,7 @@ const serialize = require('serialize-javascript')
 const replaceObj = obj => {
   if( typeof obj === 'object' && obj.id !== undefined ) {
     if( obj.__type !== 'seq' ) { // XXX why?
-      return { id:obj.id }
+      return { id:obj.id, prop:obj.prop }
     }else{
       // shouldn't I be serializing most objects, not just seqs?
       return serialize( obj )
@@ -23,7 +23,6 @@ const makeAndSendObject = function( __name, values, obj ) {
         arr[ i ] = replaceObj( values[ key ][i] )
       }
       properties[ key ] = arr
-      console.log( 'array', key, arr )
     }else if( typeof values[key] === 'object' ){
       properties[ key ] = replaceObj( values[ key ] )
     }else{
@@ -66,7 +65,7 @@ module.exports = function( __name, values, obj ) {
           const proxy = new Proxy( target[ prop ], {
             apply( __target, thisArg, args ) {
               const __args = args.map( replaceObj )
-              if( prop === 'connect' ) console.log( 'proxy connect:', __args )
+              //if( prop === 'connect' ) console.log( 'proxy connect:', __args )
 
               Gibberish.worklet.port.postMessage({ 
                 address:'method', 
