@@ -1,8 +1,10 @@
-let genish = require( 'genish.js' )
+const genish = require( 'genish.js' )
 
 module.exports = function( Gibberish ) {
 
-let utilities = {
+let uid = 0
+
+const utilities = {
   createContext( ctx, cb, resolve ) {
     let AC = typeof AudioContext === 'undefined' ? webkitAudioContext : AudioContext
 
@@ -22,6 +24,7 @@ let utilities = {
           }
         }else{
           window.removeEventListener( 'mousedown', start )
+          window.removeEventListener( 'keydown', start )
         }
       }
 
@@ -32,6 +35,7 @@ let utilities = {
       window.addEventListener( 'touchstart', start )
     }else{
       window.addEventListener( 'mousedown', start )
+      window.addEventListener( 'keydown', start )
     }
 
     return Gibberish.ctx
@@ -88,45 +92,70 @@ let utilities = {
 
   createWorklet( resolve ) {
     Gibberish.ctx.audioWorklet.addModule( Gibberish.workletPath ).then( () => {
-      Gibberish.worklet = new AudioWorkletNode( Gibberish.ctx, 'gibberish' )
+      Gibberish.worklet = new AudioWorkletNode( Gibberish.ctx, 'gibberish', { outputChannelCount:[2] } )
       Gibberish.worklet.connect( Gibberish.ctx.destination )
       Gibberish.worklet.port.onmessage = event => {
-        switch( event.data.address ) {
-          case 'get':
-            let name = event.data.name
-            let value
-            if( name[0] === 'Gibberish' ) {
-              value = Gibberish
-              name.shift()
-            }
-            for( let segment of name ) {
-              value = value[ segment ]
-            }
-
-            Gibberish.worklet.port.postMessage({
-              address:'set',
-              name:'Gibberish.' + name.join('.'),
-              value
-            })
-
-            break;
-        }
+        Gibberish.utilities.workletHandlers[ event.data.address ]( event )        
       }
+      Gibberish.worklet.ugens = new Map()
+
       resolve()
     })
   },
 
-  wrap( func ) {
+  workletHandlers: {
+    get( event ) {
+      let name = event.data.name
+      let value
+      if( name[0] === 'Gibberish' ) {
+        value = Gibberish
+        name.shift()
+      }
+      for( let segment of name ) {
+        value = value[ segment ]
+      }
+
+      Gibberish.worklet.port.postMessage({
+        address:'set',
+        name:'Gibberish.' + name.join('.'),
+        value
+      })
+    },
+    state( event ){
+      const messages = event.data.messages
+      if( messages.length === 0 ) return
+      
+      Gibberish.preventProxy = true
+      for( let i = 0; i < messages.length; i+= 3 ) {
+        const id = messages[ i ]
+        const propName = messages[ i + 1 ]
+        const value = messages[ i + 2 ]
+        const obj = Gibberish.worklet.ugens.get( id )
+
+        if( obj !== undefined ) obj[ propName ] = value
+        // XXX double check and make sure this isn't getting sent back to processornode...
+        //console.log( propName, value, obj )
+      }
+      Gibberish.preventProxy = false
+    }
+  },
+
+  wrap( func, ...args ) {
     const out = {
       action:'wrap',
-      value:func    
+      value:func,
+      // must return objects containing only the id number to avoid
+      // creating circular JSON references that would result from passing actual ugens
+      args: args.map( v => { return { id:v.id } })
     }
     return out
   },
 
   export( obj ) {
     obj.wrap = this.wrap
-  }
+  },
+
+  getUID() { return uid++ }
 }
 
 return utilities

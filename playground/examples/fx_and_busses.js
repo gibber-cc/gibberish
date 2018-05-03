@@ -48,8 +48,8 @@ syn.note( 220 )
 chorus = Chorus().connect()
  
 syn2 = PolySynth({ maxVoices:3, gain:.1 })
-  .connect( chorus )
-  .connect()
+syn2.connect( chorus )
+syn2.connect()
 
 syn2.chord( [220,330,440] )
 

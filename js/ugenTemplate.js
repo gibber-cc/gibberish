@@ -2,8 +2,6 @@ const proxy = require( './workletProxy.js' )
 const effectProto = require( './fx/effect.js' )
 
 module.exports = function( Gibberish ) {
-  let uid = 0
-
   const factory = function( ugen, graph, __name, values, cb=null, shouldProxy = true ) {
     ugen.callback = cb === null ? Gibberish.genish.gen.createCallback( graph, Gibberish.memory, false, true ) : cb
 
@@ -11,7 +9,7 @@ module.exports = function( Gibberish ) {
 
     Object.assign( ugen, {
       type: 'ugen',
-      id: factory.getUID(), 
+      id: Gibberish.utilities.getUID(), 
       ugenName: name + '_',
       graph: graph,
       inputNames: new Set( Gibberish.genish.gen.parameters ),
@@ -90,7 +88,7 @@ module.exports = function( Gibberish ) {
     return shouldProxy ? proxy( __name, values, ugen ) : ugen
   }
 
-  factory.getUID = () => uid++
+  factory.getUID = () => { return Gibberish.utilities.getUID() }
 
   return factory
 }

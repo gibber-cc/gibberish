@@ -21,25 +21,28 @@ module.exports = function( Gibberish ) {
     Object.assign( stereoProto, Gibberish.mixins.polyinstrument )
 
     const Template = props => {
-      const properties = Object.assign( {}, { isStereo:true }, props )
+      const properties = Object.assign( {}, { isStereo:true, maxVoices:16 }, props )
 
-      const synth = properties.isStereo === true ? Object.create( stereoProto ) : Object.create( monoProto )
+      //const synth = properties.isStereo === true ? Object.create( stereoProto ) : Object.create( monoProto )
+      const synth = properties.isStereo === true ? Gibberish.Bus2({ __useProxy__:false }) : Gibberish.Bus({ __useProxy__:false }) 
 
-      Object.assign( synth, {
-        voices: [],
-        maxVoices: properties.maxVoices !== undefined ? properties.maxVoices : 16,
-        voiceCount: 0,
-        envCheck: _envCheck,
-        id: Gibberish.factory.getUID(),
-        dirty: true,
-        type: 'bus',
-        ugenName: 'poly' + ugen.name + '_' + synth.id,
-        inputs:[],
-        inputNames:[], //['input', 'gain'],
-        properties
-      })
+      Object.assign( 
+        synth, 
 
-      properties.panVoices = properties.isStereo
+        {
+          voices: [],
+          maxVoices: properties.maxVoices, 
+          voiceCount: 0,
+          envCheck: _envCheck,
+          dirty: true,
+          ugenName: 'poly' + ugen.name + '_' + synth.id + '_' + ( properties.isStereo ? 2 : 1 ),
+          properties
+        },
+
+        Gibberish.mixins.polyinstrument
+      )
+
+      properties.panVoices = true//false//properties.isStereo
       synth.callback.ugenName = synth.ugenName
 
       for( let i = 0; i < synth.maxVoices; i++ ) {

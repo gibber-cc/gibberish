@@ -46,7 +46,7 @@ let Gibberish = {
     // from within the gibberish audioworklet processor node.
     this.genish.gen.mode = 'scriptProcessor'
 
-    this.memory = MemoryHelper.create( numBytes )
+    this.memory = MemoryHelper.create( numBytes, Float64Array )
 
     this.mode = window.AudioWorklet !== undefined ? 'worklet' : 'scriptprocessor'
     if( mode !== undefined ) this.mode = mode
@@ -193,7 +193,7 @@ let Gibberish = {
 
     callbackBody.push( '\n\treturn ' + lastLine.split( '=' )[0].split( ' ' )[1] )
 
-    if( this.debug ) console.log( 'callback:\n', callbackBody.join('\n') )
+    if( this.debug === true ) console.log( 'callback:\n', callbackBody.join('\n') )
     this.callbackNames.push( 'memory' )
     this.callbackUgens.push( this.memory.heap )
     this.callback = Function( ...this.callbackNames, callbackBody.join( '\n' ) )

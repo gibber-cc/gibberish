@@ -2,7 +2,7 @@
   "name": "gibberish-dsp",
   "version": "3.0.1",
   "description": "Gibberish is designed to be an optimized API for audio synthesis using per-sample techniques.",
-  "main": "./dist/gibberish.js",
+  "main": "./js/index.js",
   "engines": {
     "node": ">=0.10.26"
   },
@@ -16,11 +16,15 @@
     "gulp": "^3.9.1",
     "gulp-babel": "^6.1.2",
     "gulp-buffer": "^0.0.2",
+    "gulp-gzip": "^1.4.2",
     "gulp-mocha": "^2.2.0",
     "gulp-rename": "^1.2.2",
+    "gulp-uglify": "^3.0.0",
     "jsdsp": "^2.1.1",
     "memory-helper": "^1.1.0",
     "serialize-javascript": "^1.5.0",
+    "uglify-es": "^3.3.9",
+    "vinyl-buffer": "^1.0.1",
     "vinyl-source-stream": "^1.1.0"
   },
   "repository": {

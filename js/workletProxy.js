@@ -46,6 +46,8 @@ const makeAndSendObject = function( __name, values, obj ) {
     id:obj.id
   }
 
+  Gibberish.worklet.ugens.set( obj.id, obj )
+
   //console.log( obj.__meta__ )
 
   Gibberish.worklet.port.postMessage( obj.__meta__ )
@@ -97,6 +99,9 @@ module.exports = function( __name, values, obj ) {
         }
 
         target[ prop ] = value
+
+        // must return true for any ES6 proxy setter
+        return true
       }
     })
 
@@ -104,6 +109,23 @@ module.exports = function( __name, values, obj ) {
     // REMEMBER THAT YOU MUST ASSIGNED THE RETURNED VALUE TO YOUR UGEN,
     // YOU CANNOT USE THIS FUNCTION TO MODIFY A UGEN IN PLACE.
     // XXX XXX XXX XXX XXX XXX
+
+    return proxy
+  }else if( Gibberish.mode === 'processor' && Gibberish.preventProxy === false ) {
+
+    const proxy = new Proxy( obj, {
+      //get( target, prop, receiver ) { return target[ prop ] },
+      set( target, prop, value, receiver ) {
+        if( prop.indexOf('__') === -1 ) {
+          if( Gibberish.processor !== undefined ) 
+            Gibberish.processor.messages.push( obj.id, prop, value )
+        }
+        target[ prop ] = value
+
+        // must return true for any ES6 proxy setter
+        return true
+      }
+    })
 
     return proxy
   }

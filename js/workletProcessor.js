@@ -10,16 +10,17 @@ class GibberishProcessor extends AudioWorkletProcessor {
     Gibberish.preventProxy = true
     Gibberish.init( undefined, undefined, 'processor' )
     Gibberish.preventProxy = false
-    Gibberish.debug = true
+    //Gibberish.debug = true
     Gibberish.processor = this
     this.port.onmessage = this.handleMessage.bind( this )
-    this.ugens = new Map()
+    Gibberish.ugens = this.ugens = new Map()
     this.ugens.set( Gibberish.id, Gibberish )
     processor = this
     this.port.postMessage({ 
       address:'get', 
       name:['Gibberish', 'ctx', 'sampleRate']
     })
+    this.messages = []
   }
 
   replaceProperties( obj ) {
@@ -40,7 +41,8 @@ class GibberishProcessor extends AudioWorkletProcessor {
           }
         }else{
           if( typeof prop === 'object' && prop.action === 'wrap' ) {
-            out[ i  ] = prop.value()
+            out[ i  ] = prop.value.bind( null, ...this.replaceProperties( prop.args ) )
+            console.log( out[ i ] ) 
           }else if( Array.isArray( prop ) ) {
             out[ i ] = this.replaceProperties( prop )
           }else{
@@ -126,6 +128,7 @@ class GibberishProcessor extends AudioWorkletProcessor {
       let   callback  = this.callback
       let   ugens     = gibberish.callbackUgens 
 
+      this.messages.length = 0
       // XXX is there some way to optimize this out?
       if( callback === undefined && gibberish.graphIsDirty === false ) return true
 
@@ -167,11 +170,17 @@ class GibberishProcessor extends AudioWorkletProcessor {
         }
         const out = callback.apply( null, ugens )
         output[0][ i ] = out[0]
-        //output[1][ i ] = out[1] 
+        output[1][ i ] = out[1] 
       }
-
+      
+      if( this.messages.length > 0 ) {
+        this.port.postMessage({ 
+          address:'state', 
+          messages:this.messages 
+        })
+      }
     }
-
+   
     // make sure this is always returned or the callback ceases!!!
     return true
   }

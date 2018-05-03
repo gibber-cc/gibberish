@@ -99,9 +99,12 @@ module.exports = function( Gibberish ) {
         bufferR = Gibberish.genish.gen.globals.panR.memory.values.idx
       }
 
-      var output = [0,0] 
+      // XXX must be same type as what is returned by genish for type checks to work correctly
+      const output = new Float64Array( 2 ) 
 
-      var bus = Object.create( Bus2 )
+      const bus = Object.create( Bus2 )
+
+      let init = false
 
       Object.assign( 
         bus,
@@ -114,9 +117,10 @@ module.exports = function( Gibberish ) {
 
             for( var i = 0; i < lastIdx; i++ ) {
               var input = arguments[ i ],
-                  isArray = Array.isArray( input )//input instanceof Float32Array
+                  isArray = input instanceof Float64Array
 
               output[ 0 ] += isArray ? input[ 0 ] : input
+
               output[ 1 ] += isArray ? input[ 1 ] : input
             }
 
@@ -148,7 +152,7 @@ module.exports = function( Gibberish ) {
 
       bus.ugenName = bus.callback.ugenName = 'bus2_' + bus.id
 
-      const out = proxy( ['Bus2'], props, bus )
+      const out = bus.__useProxy__ ?  proxy( ['Bus2'], props, bus ) : bus
 
       return out
     },
@@ -162,7 +166,7 @@ module.exports = function( Gibberish ) {
       }
     },
 
-    defaults: { gain:1, pan:.5 }
+    defaults: { gain:1, pan:.5, __useProxy__:true }
   })
 
   return Bus2.create.bind( Bus2 )
