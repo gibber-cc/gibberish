@@ -7,47 +7,52 @@ let BitCrusher = inputProps => {
   let props = Object.assign( { bitCrusherLength: 44100 }, BitCrusher.defaults, effect.defaults, inputProps ),
       bitCrusher = Object.create( effect )
 
-  let isStereo = props.input.isStereo !== undefined ? props.input.isStereo : true 
-  
-  let input = g.in( 'input' ),
-      bitDepth = g.in( 'bitDepth' ),
-      sampleRate = g.in( 'sampleRate' ),
-      leftInput = isStereo ? input[ 0 ] : input,
-      rightInput = isStereo ? input[ 1 ] : null
-  
-  let storeL = g.history(0)
-  let sampleReduxCounter = g.counter( sampleRate, 0, 1 )
+  bitCrusher.__createGraph = function() {
+    let isStereo = props.input.isStereo !== undefined ? props.input.isStereo : true 
+    
+    let input = g.in( 'input' ),
+        bitDepth = g.in( 'bitDepth' ),
+        sampleRate = g.in( 'sampleRate' ),
+        leftInput = isStereo ? input[ 0 ] : input,
+        rightInput = isStereo ? input[ 1 ] : null
+    
+    let storeL = g.history(0)
+    let sampleReduxCounter = g.counter( sampleRate, 0, 1 )
 
-  let bitMult = g.pow( g.mul( bitDepth, 16 ), 2 )
-  let crushedL = g.div( g.floor( g.mul( leftInput, bitMult ) ), bitMult )
+    let bitMult = g.pow( g.mul( bitDepth, 16 ), 2 )
+    let crushedL = g.div( g.floor( g.mul( leftInput, bitMult ) ), bitMult )
 
-  let outL = g.switch(
-    sampleReduxCounter.wrap,
-    crushedL,
-    storeL.out
-  )
-
-  let out
-  if( isStereo ) {
-    let storeR = g.history(0)
-    let crushedR = g.div( g.floor( g.mul( rightInput, bitMult ) ), bitMult )
-
-    let outR = ternary( 
+    let outL = g.switch(
       sampleReduxCounter.wrap,
-      crushedR,
+      crushedL,
       storeL.out
     )
 
-    out = Gibberish.factory( 
-      bitCrusher,
-      [ outL, outR ], 
-      ['fx','bitCrusher'], 
-      props 
-    )
-  }else{
-    out = Gibberish.factory( bitCrusher, outL, ['fx','bitCrusher'], props )
+    if( isStereo ) {
+      let storeR = g.history(0)
+      let crushedR = g.div( g.floor( g.mul( rightInput, bitMult ) ), bitMult )
+
+      let outR = ternary( 
+        sampleReduxCounter.wrap,
+        crushedR,
+        storeL.out
+      )
+
+      bitCrusher.graph = [ outL, outR ]
+    }else{
+      bitCrusher.graph = outL
+    }
   }
-  
+
+  bitCrusher.__createGraph()
+  bitCrusher.__requiresRecompilation = [ 'input' ]
+
+  const out = Gibberish.factory( 
+    bitCrusher,
+    bitCrusher.graph,
+    ['fx','bitCrusher'], 
+    props 
+  )
   return out 
 }
 

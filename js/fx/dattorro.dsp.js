@@ -116,51 +116,54 @@ module.exports = function( Gibberish ) {
     const props = Object.assign( {}, Reverb.defaults, effect.defaults, inputProps ),
           reverb = Object.create( effect ) 
      
-    const isStereo = props.input.isStereo !== undefined ? props.input.isStereo : true 
-    
-    const input    = g.in( 'input' ),
-          damping  = g.in( 'damping' ),
-          drywet   = g.in( 'drywet' ),
-          decay    = g.in( 'decay' ),
-          predelay = g.in( 'predelay' ),
-          inbandwidth = g.in( 'inbandwidth' ),
-          decaydiffusion1 = g.in( 'decaydiffusion1' ),
-          decaydiffusion2 = g.in( 'decaydiffusion2' ),
-          indiffusion1 = g.in( 'indiffusion1' ),
-          indiffusion2 = g.in( 'indiffusion2' )
+    reverb.__createGraph = function() {
+      const isStereo = props.input.isStereo !== undefined ? props.input.isStereo : true 
+      
+      const input    = g.in( 'input' ),
+            damping  = g.in( 'damping' ),
+            drywet   = g.in( 'drywet' ),
+            decay    = g.in( 'decay' ),
+            predelay = g.in( 'predelay' ),
+            inbandwidth = g.in( 'inbandwidth' ),
+            decaydiffusion1 = g.in( 'decaydiffusion1' ),
+            decaydiffusion2 = g.in( 'decaydiffusion2' ),
+            indiffusion1 = g.in( 'indiffusion1' ),
+            indiffusion2 = g.in( 'indiffusion2' )
 
-    const summedInput = isStereo === true ? g.add( input[0], input[1] ) : input
-    let out
-    {
-      'use jsdsp'
+      const summedInput = isStereo === true ? g.add( input[0], input[1] ) : input
+      {
+        'use jsdsp'
 
-      // calculcate predelay
-      const predelay_samps = g.mstosamps( predelay )
-      const predelay_delay = g.delay( summedInput, predelay_samps, { size: 4410 })  
-      const z_pd = g.history(0)
-      const mix1 = g.mix( z_pd.out, predelay_delay, inbandwidth )
-      z_pd.in( mix1 )
+        // calculcate predelay
+        const predelay_samps = g.mstosamps( predelay )
+        const predelay_delay = g.delay( summedInput, predelay_samps, { size: 4410 })  
+        const z_pd = g.history(0)
+        const mix1 = g.mix( z_pd.out, predelay_delay, inbandwidth )
+        z_pd.in( mix1 )
 
-      const predelay_out = mix1
+        const predelay_out = mix1
 
-      // run input + predelay through all-pass chain
-      const ap_out = AllPassChain( predelay_out, indiffusion1, indiffusion2 )
+        // run input + predelay through all-pass chain
+        const ap_out = AllPassChain( predelay_out, indiffusion1, indiffusion2 )
 
-      // run filtered signal into "tank" model
-      const tank_outs = Tank( ap_out, decaydiffusion1, decaydiffusion2, damping, decay )
+        // run filtered signal into "tank" model
+        const tank_outs = Tank( ap_out, decaydiffusion1, decaydiffusion2, damping, decay )
 
-      const leftWet  = (tank_outs[1] - tank_outs[2]) * .6
-      const rightWet = (tank_outs[3] - tank_outs[4]) * .6
+        const leftWet  = (tank_outs[1] - tank_outs[2]) * .6
+        const rightWet = (tank_outs[3] - tank_outs[4]) * .6
 
-      // mix wet and dry signal for final output
-      const left  = g.mix( isStereo ? input[0] : input, leftWet,  drywet )
-      const right = g.mix( isStereo ? input[1] : input, rightWet, drywet )
+        // mix wet and dry signal for final output
+        const left  = g.mix( isStereo ? input[0] : input, leftWet,  drywet )
+        const right = g.mix( isStereo ? input[1] : input, rightWet, drywet )
 
-      out = Gibberish.factory( reverb, [left,right], ['fx','plate'], props )
+        reverb.graph = [ left, right ]
+      }
     }
 
-    return out
-  }
+    reverb.__createGraph()
+    reverb.__requiresRecompilation( 'input' )
+
+    return Gibberish.factory( reverb, reverb.graph, ['fx','plate'], props )  }
 
   Reverb.defaults = {
     input:0,
