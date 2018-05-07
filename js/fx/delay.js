@@ -7,40 +7,47 @@ let Delay = inputProps => {
   let props = Object.assign( { delayLength: 44100 }, Delay.defaults, inputProps ),
       delay = Object.create( effect )
 
-  let isStereo = props.input.isStereo !== undefined ? props.input.isStereo : false 
-  
-  let input      = g.in( 'input' ),
-      delayTime  = g.in( 'time' ),
-      wetdry     = g.in( 'wetdry' ),
-      leftInput  = isStereo ? input[ 0 ] : input,
-      rightInput = isStereo ? input[ 1 ] : null
+  delay.__createGraph = function() {
+    let isStereo = props.input.isStereo !== undefined ? props.input.isStereo : false 
     
-  let feedback = g.in( 'feedback' )
+    let input      = g.in( 'input' ),
+        delayTime  = g.in( 'time' ),
+        wetdry     = g.in( 'wetdry' ),
+        leftInput  = isStereo ? input[ 0 ] : input,
+        rightInput = isStereo ? input[ 1 ] : null
+      
+    let feedback = g.in( 'feedback' )
 
-  // left channel
-  let feedbackHistoryL = g.history()
-  let echoL = g.delay( g.add( leftInput, g.mul( feedbackHistoryL.out, feedback ) ), delayTime, { size:props.delayLength })
-  feedbackHistoryL.in( echoL )
-  let left = g.mix( leftInput, echoL, wetdry )
+    // left channel
+    let feedbackHistoryL = g.history()
+    let echoL = g.delay( g.add( leftInput, g.mul( feedbackHistoryL.out, feedback ) ), delayTime, { size:props.delayLength })
+    feedbackHistoryL.in( echoL )
+    let left = g.mix( leftInput, echoL, wetdry )
 
-  let out
-  if( isStereo ) {
-    // right channel
-    let feedbackHistoryR = g.history()
-    let echoR = g.delay( g.add( rightInput, g.mul( feedbackHistoryR.out, feedback ) ), delayTime, { size:props.delayLength })
-    feedbackHistoryR.in( echoR )
-    const right = g.mix( rightInput, echoR, wetdry )
+    if( isStereo ) {
+      // right channel
+      let feedbackHistoryR = g.history()
+      let echoR = g.delay( g.add( rightInput, g.mul( feedbackHistoryR.out, feedback ) ), delayTime, { size:props.delayLength })
+      feedbackHistoryR.in( echoR )
+      const right = g.mix( rightInput, echoR, wetdry )
 
-    out = Gibberish.factory( 
-      delay,
-      [ left, right ], 
-      ['fx','delay'], 
-      props 
-    )
-  }else{
-    out = Gibberish.factory( delay, left, ['fx','delay'], props )
+      delay.graph = [ left, right ]
+    }else{
+      delay.graph = left 
+    }
+
   }
+
+  delay.__createGraph()
+  delay.__requiresRecompilation = [ 'input' ]
   
+  const out = Gibberish.factory( 
+    delay,
+    delay.graph, 
+    ['fx','delay'], 
+    props 
+  )
+
   return out
 }
 

@@ -10,7 +10,7 @@ class GibberishProcessor extends AudioWorkletProcessor {
     Gibberish.preventProxy = true
     Gibberish.init( undefined, undefined, 'processor' )
     Gibberish.preventProxy = false
-    //Gibberish.debug = true
+    Gibberish.debug = true
     Gibberish.processor = this
     this.port.onmessage = this.handleMessage.bind( this )
     Gibberish.ugens = this.ugens = new Map()
@@ -174,10 +174,11 @@ class GibberishProcessor extends AudioWorkletProcessor {
       }
       
       if( this.messages.length > 0 ) {
+        /*console.log( 'msgs:', this.messages )
         this.port.postMessage({ 
           address:'state', 
           messages:this.messages 
-        })
+        })*/
       }
     }
    

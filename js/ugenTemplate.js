@@ -35,6 +35,7 @@ module.exports = function( Gibberish ) {
       }
 
       Object.defineProperty( ugen, param, {
+        configurable:true,
         get() { return value },
         set( v ) {
           if( value !== v ) {
@@ -50,6 +51,7 @@ module.exports = function( Gibberish ) {
     if( effectProto.isPrototypeOf( ugen ) ) {
       let value = ugen.bypass
       Object.defineProperty( ugen, 'bypass', {
+        configurable:true,
         get() { return value },
         set( v ) {
           if( value !== v ) {
@@ -65,6 +67,7 @@ module.exports = function( Gibberish ) {
       ugen.__requiresRecompilation.forEach( prop => {
         let value = ugen[ prop ]
         Object.defineProperty( ugen, prop, {
+          configurable:true,
           get() { return value },
           set( v ) {
             if( value !== v ) {
@@ -75,7 +78,6 @@ module.exports = function( Gibberish ) {
               // way to solve this problem.
               values[ prop ] = v
 
-              if( Gibberish.mode !== 'worklet' ) console.log( 'redoing graph!', v )
               this.__redoGraph()
             }
           }

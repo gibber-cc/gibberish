@@ -3,7 +3,7 @@ module.exports = {
     // will be sent to processor node via proxy method...
     if( Gibberish.mode !== 'worklet' ) {
       let voice = this.__getVoice__()
-      Object.assign( voice, this.properties )
+      //Object.assign( voice, this.properties )
       if( gain === undefined ) gain = this.gain
       voice.gain = gain
       voice.note( freq )
