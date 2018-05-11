@@ -1,7 +1,8 @@
-const ugenproto = require( '../ugen.js' )
-const proxy     = require( '../workletProxy.js' )
+const ugenproto = require( '../ugen.js' )()
+const __proxy     = require( '../workletProxy.js' )
 
 module.exports = function( Gibberish ) {
+  const proxy = __proxy( Gibberish )
 
   let Binops = {
     export( obj ) {

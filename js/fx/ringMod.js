@@ -38,7 +38,7 @@ let RingMod = inputProps => {
   const out = Gibberish.factory( 
     ringMod,
     ringMod.graph, 
-    'ringMod', 
+    [ 'fx','ringMod'], 
     props 
   )
   

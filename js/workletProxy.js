@@ -1,5 +1,7 @@
 const serialize = require('serialize-javascript')
 
+module.exports = function( Gibberish ) {
+
 const replaceObj = obj => {
   if( typeof obj === 'object' && obj.id !== undefined ) {
     if( obj.__type !== 'seq' ) { // XXX why?
@@ -54,7 +56,7 @@ const makeAndSendObject = function( __name, values, obj ) {
 
 }
 
-module.exports = function( __name, values, obj ) {
+const __proxy = function( __name, values, obj ) {
 
   if( Gibberish.mode === 'worklet' && Gibberish.preventProxy === false ) {
 
@@ -131,4 +133,8 @@ module.exports = function( __name, values, obj ) {
   }
 
   return obj
+}
+
+return __proxy
+
 }

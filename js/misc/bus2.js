@@ -83,11 +83,12 @@ module.exports = function( Gibberish ) {
 
 
 const g = require( 'genish.js' ),
-      ugen = require( '../ugen.js' ),
-      proxy = require( '../workletProxy.js' )
+      ugen = require( '../ugen.js' )(),
+      __proxy = require( '../workletProxy.js' )
 
 module.exports = function( Gibberish ) {
   const Bus2 = Object.create( ugen )
+  const proxy = __proxy( Gibberish )
 
   let bufferL, bufferR
   

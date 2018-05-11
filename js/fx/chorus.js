@@ -6,7 +6,7 @@ module.exports = function( Gibberish ) {
 let __Chorus = inputProps => {
   const props = Object.assign({}, __Chorus.defaults, effect.defaults, inputProps )
   
-  const chorus = Object.create( Gibberish.prototypes.ugen )
+  const chorus = Object.create( Gibberish.prototypes.Ugen )
 
   chorus.__createGraph = function() {
     const input = g.in('input'),
@@ -35,7 +35,7 @@ let __Chorus = inputProps => {
 
 
     // XXX figure out how to ensure the proper samplerate here...
-    let sampleRate = Gibberish.mode === 'processor' ? Gibberish.processor.sampleRate || 44100 : Gibberish.ctx.sampleRate
+    let sampleRate = Gibberish.ctx.sampleRate
      
     const ms = sampleRate / 1000 
     const maxDelayTime = 100 * ms

@@ -3,23 +3,23 @@ let processor = null
 class GibberishProcessor extends AudioWorkletProcessor {
   static get parameterDescriptors() {}
 
-  constructor(options) {
-    super(options);
+  constructor( options ) {
+    super( options )
+    
     Gibberish = window.Gibberish
+    Gibberish.ctx = { sampleRate }
     Gibberish.genish.hasWorklet = false
     Gibberish.preventProxy = true
     Gibberish.init( undefined, undefined, 'processor' )
     Gibberish.preventProxy = false
-    Gibberish.debug = true
+    //Gibberish.debug = true
     Gibberish.processor = this
+
     this.port.onmessage = this.handleMessage.bind( this )
     Gibberish.ugens = this.ugens = new Map()
     this.ugens.set( Gibberish.id, Gibberish )
     processor = this
-    this.port.postMessage({ 
-      address:'get', 
-      name:['Gibberish', 'ctx', 'sampleRate']
-    })
+
     this.messages = []
   }
 
@@ -42,7 +42,6 @@ class GibberishProcessor extends AudioWorkletProcessor {
         }else{
           if( typeof prop === 'object' && prop.action === 'wrap' ) {
             out[ i  ] = prop.value.bind( null, ...this.replaceProperties( prop.args ) )
-            console.log( out[ i ] ) 
           }else if( Array.isArray( prop ) ) {
             out[ i ] = this.replaceProperties( prop )
           }else{
@@ -66,7 +65,6 @@ class GibberishProcessor extends AudioWorkletProcessor {
         }else{
           if( typeof prop === 'object' && prop.action === 'wrap' ) {
             properties[ key ] = prop.value()
-            console.log( 'returning wrapped value!', properties[ key ] )
           }
         }
       } 
@@ -109,15 +107,11 @@ class GibberishProcessor extends AudioWorkletProcessor {
     }else if( event.data.address === 'print' ) {
       const dict = event.data
       const obj  = this.ugens.get( dict.object )
-      console.log( 'printing', dict.object, obj )
+      console.log( 'printing:', dict.object, obj )
     }else if( event.data.address === 'set' ) {
-      if( event.data.name === 'Gibberish.ctx.sampleRate' ) {
-        processor.sampleRate = event.data.value
-      }else{
-        const dict = event.data
-        const obj = this.ugens.get( dict.object )
-        obj[ dict.name ] = dict.value
-      }
+      const dict = event.data
+      const obj = this.ugens.get( dict.object )
+      obj[ dict.name ] = dict.value
     }  
   }
 

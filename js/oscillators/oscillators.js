@@ -1,5 +1,5 @@
 const g = require( 'genish.js' ),
-      ugen = require( '../ugen.js' ),
+      ugen = require( '../ugen.js' )(),
       feedbackOsc = require( './fmfeedbackosc.js' )
 
 //  __makeOscillator__( type, frequency, antialias ) {

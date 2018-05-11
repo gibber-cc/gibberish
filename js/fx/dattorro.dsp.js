@@ -161,7 +161,7 @@ module.exports = function( Gibberish ) {
     }
 
     reverb.__createGraph()
-    reverb.__requiresRecompilation( 'input' )
+    reverb.__requiresRecompilation= [ 'input' ]
 
     return Gibberish.factory( reverb, reverb.graph, ['fx','plate'], props )  }
 

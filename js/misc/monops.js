@@ -1,5 +1,5 @@
 const  g    = require( 'genish.js'  ),
-       ugen = require( '../ugen.js' )
+       ugen = require( '../ugen.js' )()
 
 module.exports = function( Gibberish ) {
 

@@ -3,9 +3,10 @@
  */
 
 const g = require( 'genish.js' )
-const proxy = require( '../workletProxy.js' )
+const __proxy = require( '../workletProxy.js' )
 
 module.exports = function( Gibberish ) {
+  const proxy = __proxy( Gibberish )
 
   const TemplateFactory = ( ugen, propertyList, _envCheck ) => {
     /* 

@@ -1,6 +1,6 @@
 const g = require( 'genish.js' )
 
-const ugen = require( '../ugen.js' )
+const ugen = require( '../ugen.js' )()
 
 module.exports = function( Gibberish ) {
  

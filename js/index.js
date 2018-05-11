@@ -26,7 +26,7 @@ let Gibberish = {
   mode:'scriptProcessor',
 
   prototypes: {
-    ugen: require('./ugen.js'),
+    ugen: null,//require('./ugen.js'),
     instrument: require( './instruments/instrument.js' ),
     effect: require( './fx/effect.js' ),
   },
@@ -84,7 +84,7 @@ let Gibberish = {
 
   load() {
     this.factory = require( './ugenTemplate.js' )( this )
-
+    
     this.Panner       = require( './misc/panner.js' )( this )
     this.PolyTemplate = require( './instruments/polytemplate.js' )( this )
     this.oscillators  = require( './oscillators/oscillators.js' )( this )
@@ -252,7 +252,7 @@ let Gibberish = {
 
       // must get array so we can keep track of length for comma insertion
       let keys,err
-      
+
       //try {
       keys = ugen.isop === true || ugen.type === 'bus' || ugen.type === 'analysis' ? Object.keys( ugen.inputs ) : [...ugen.inputNames ] 
 
@@ -355,6 +355,7 @@ let Gibberish = {
     
 }
 
+Gibberish.prototypes.Ugen = require( './ugen.js' )( Gibberish )
 Gibberish.utilities = require( './utilities.js' )( Gibberish )
 
 

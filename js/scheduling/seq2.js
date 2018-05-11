@@ -1,9 +1,11 @@
 const g = require( 'genish.js' ),
-      proxy = require( '../workletProxy.js' ),
-      ugen = require( '../ugen.js' )
+      __proxy = require( '../workletProxy.js' ),
+      ugen = require( '../ugen.js' )()
 
 module.exports = function( Gibberish ) {
   const __proto__ = Object.create( ugen )
+
+  const proxy = __proxy( Gibberish )
 
   Object.assign( __proto__, {
     start() {

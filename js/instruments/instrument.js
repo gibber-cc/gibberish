@@ -1,4 +1,4 @@
-let ugen = require( '../ugen.js' ),
+let ugen = require( '../ugen.js' )(),
     g = require( 'genish.js' )
 
 let instrument = Object.create( ugen )

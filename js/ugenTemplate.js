@@ -1,7 +1,9 @@
-const proxy = require( './workletProxy.js' )
+const __proxy = require( './workletProxy.js' )
 const effectProto = require( './fx/effect.js' )
 
 module.exports = function( Gibberish ) {
+  const proxy = __proxy( Gibberish )
+  
   const factory = function( ugen, graph, __name, values, cb=null, shouldProxy = true ) {
     ugen.callback = cb === null ? Gibberish.genish.gen.createCallback( graph, Gibberish.memory, false, true ) : cb
 
