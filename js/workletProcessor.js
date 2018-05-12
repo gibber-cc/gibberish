@@ -12,7 +12,7 @@ class GibberishProcessor extends AudioWorkletProcessor {
     Gibberish.preventProxy = true
     Gibberish.init( undefined, undefined, 'processor' )
     Gibberish.preventProxy = false
-    //Gibberish.debug = true
+    Gibberish.debug = true
     Gibberish.processor = this
 
     this.port.onmessage = this.handleMessage.bind( this )
@@ -28,6 +28,7 @@ class GibberishProcessor extends AudioWorkletProcessor {
       const out = []
       for( let i = 0; i < obj.length; i++ ){
         const prop = obj[ i ]
+        if( prop === null ) continue
         //console.log( 'PROP:', prop )
         if( typeof prop === 'object' && prop.id !== undefined ) {
           let objCheck = this.ugens.get( prop.id )

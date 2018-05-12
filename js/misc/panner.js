@@ -20,7 +20,7 @@ let Panner = inputProps => {
     graph = g.pan( input, input, pan )
   }
 
-  Gibberish.factory( panner, [ graph.left, graph.right], 'panner', props )
+  Gibberish.factory( panner, [ graph.left, graph.right], ['panner'], props )
   
   return panner
 }

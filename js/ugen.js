@@ -26,6 +26,7 @@ const __ugen = function( __Gibberish ) {
       if( this.connected === undefined ) this.connected = []
 
 
+      console.log( 'connect level:', level )
       let input = level === 1 ? this : Gibberish.binops.Mul( this, level )
 
       if( target === undefined || target === null ) target = Gibberish.output 

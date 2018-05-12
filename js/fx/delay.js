@@ -35,7 +35,6 @@ let Delay = inputProps => {
     }else{
       delay.graph = left 
     }
-
   }
 
   delay.__createGraph()
