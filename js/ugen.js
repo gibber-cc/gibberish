@@ -27,7 +27,8 @@ const __ugen = function( __Gibberish ) {
 
 
       console.log( 'connect level:', level )
-      let input = level === 1 ? this : Gibberish.binops.Mul( this, level )
+      //let input = level === 1 ? this : Gibberish.binops.Mul( this, level )
+      let input = this
 
       if( target === undefined || target === null ) target = Gibberish.output 
 
@@ -37,7 +38,7 @@ const __ugen = function( __Gibberish ) {
       } else if( target.sum && target.sum.inputs ) {
         target.sum.inputs.push( input )
       } else if( target.inputs ) {
-        target.inputs.push( input )
+        target.inputs.unshift( input, level, input.isStereo )
       } else {
         target.input = input
       }

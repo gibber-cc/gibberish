@@ -113,36 +113,40 @@ module.exports = function( Gibberish ) {
         {
           callback() {
             output[ 0 ] = output[ 1 ] = 0
-            var lastIdx = arguments.length - 1
-            var memory  = arguments[ lastIdx ]
+            const lastIdx = arguments.length - 1
+            const memory  = arguments[ lastIdx ]
+            const pan  = arguments[ lastIdx - 1 ]
+            const gain = arguments[ lastIdx - 2 ]
 
-            for( var i = 0; i < lastIdx; i++ ) {
-              var input = arguments[ i ],
-                  isArray = input instanceof Float64Array
+            for( let i = 0; i < lastIdx - 2; i+= 3 ) {
+              const input = arguments[ i ],
+                    level = arguments[ i + 1 ],
+                    isStereo = arguments[ i + 2 ]
 
-              output[ 0 ] += isArray ? input[ 0 ] : input
+              output[ 0 ] += isStereo === true ? input[ 0 ] * level : input * level
 
-              output[ 1 ] += isArray ? input[ 1 ] : input
+              output[ 1 ] += isStereo === true ? input[ 1 ] * level : input * level
             }
 
-            var panRawIndex  = .5 * 1023,
-                panBaseIndex = panRawIndex | 0,
-                panNextIndex = (panBaseIndex + 1) & 1023,
-                interpAmount = panRawIndex - panBaseIndex,
-                panL = memory[ bufferL + panBaseIndex ] 
-                  + ( interpAmount * ( memory[ bufferL + panNextIndex ] - memory[ bufferL + panBaseIndex ] ) ),
-                panR = memory[ bufferR + panBaseIndex ] 
-                  + ( interpAmount * ( memory[ bufferR + panNextIndex ] - memory[ bufferR + panBaseIndex ] ) )
+            const panRawIndex  = pan * 1023,
+                  panBaseIndex = panRawIndex | 0,
+                  panNextIndex = (panBaseIndex + 1) & 1023,
+                  interpAmount = panRawIndex - panBaseIndex,
+                  panL = memory[ bufferL + panBaseIndex ] 
+                    + ( interpAmount * ( memory[ bufferL + panNextIndex ] - memory[ bufferL + panBaseIndex ] ) ),
+                  panR = memory[ bufferR + panBaseIndex ] 
+                    + ( interpAmount * ( memory[ bufferR + panNextIndex ] - memory[ bufferR + panBaseIndex ] ) )
             
-            output[0] *= bus.gain * panL
-            output[1] *= bus.gain * panR
+            output[0] *= gain * panL
+            output[1] *= gain * panR
 
             return output
           },
           id : Gibberish.factory.getUID(),
           dirty : false,
           type : 'bus',
-          inputs:[],
+          inputs:[ 1, .5 ],
+          isStereo: true,
           __properties__:props
         },
 
@@ -151,9 +155,20 @@ module.exports = function( Gibberish ) {
         props
       )
 
+
       bus.ugenName = bus.callback.ugenName = 'bus2_' + bus.id
 
       const out = bus.__useProxy__ ?  proxy( ['Bus2'], props, bus ) : bus
+
+      let pan = .5
+      Object.defineProperty( out, 'pan', {
+        get() { return pan },
+        set(v){ 
+          pan = v
+          out.inputs[ out.inputs.length - 1 ] = pan
+          Gibberish.dirty( out )
+        }
+      })
 
       return out
     },
@@ -162,7 +177,7 @@ module.exports = function( Gibberish ) {
       let removeIdx = this.inputs.indexOf( ugen )
 
       if( removeIdx !== -1 ) {
-        this.inputs.splice( removeIdx, 1 )
+        this.inputs.splice( removeIdx, 3 )
         Gibberish.dirty( this )
       }
     },

@@ -142,7 +142,7 @@ let Gibberish = {
   },
 
   clear() {
-    this.output.inputs = [0]
+    this.output.inputs = [0,0,false]
     //this.output.inputNames.length = 0
     this.analyzers.length = 0
     this.scheduler.clear()

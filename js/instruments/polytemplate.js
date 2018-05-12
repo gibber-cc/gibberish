@@ -69,13 +69,14 @@ module.exports = function( Gibberish ) {
 
   TemplateFactory.setupProperties = function( synth, ugen, props ) {
     for( let property of props ) {
+      if( property === 'pan' ) continue
       Object.defineProperty( synth, property, {
         get() {
           return synth.properties[ property ] || ugen.defaults[ property ]
         },
         set( v ) {
           synth.properties[ property ] = v
-          for( let child of synth.inputs ) {
+          for( let child of synth.voices ) {
             child[ property ] = v
           }
         }
