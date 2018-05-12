@@ -8,23 +8,23 @@ let Flanger = inputProps => {
       flanger = Object.create( proto )
 
   flanger.__createGraph = function() {
-    let isStereo = props.input.isStereo !== undefined ? props.input.isStereo : true 
+    const isStereo = props.input.isStereo !== undefined ? props.input.isStereo : false 
     
-    let input = g.in( 'input' ),
-        delayLength = props.delayLength,
-        feedbackCoeff = g.in( 'feedback' ),
-        modAmount = g.in( 'offset' ),
-        frequency = g.in( 'frequency' ),
-        delayBufferL = g.data( delayLength ),
-        delayBufferR
+    const input = g.in( 'input' ),
+          inputGain = g.in( 'inputGain' ),
+          delayLength = props.delayLength,
+          feedbackCoeff = g.in( 'feedback' ),
+          modAmount = g.in( 'offset' ),
+          frequency = g.in( 'frequency' ),
+          delayBufferL = g.data( delayLength )
 
-    let writeIdx = g.accum( 1,0, { min:0, max:delayLength, interp:'none', mode:'samples' })
+    const writeIdx = g.accum( 1,0, { min:0, max:delayLength, interp:'none', mode:'samples' })
     
-    let offset = g.mul( modAmount, 500 )
+    const offset = g.mul( modAmount, 500 )
 
-    let mod = props.mod === undefined ? g.cycle( frequency ) : props.mod
+    const mod = props.mod === undefined ? g.cycle( frequency ) : props.mod
     
-    let readIdx = g.wrap( 
+    const readIdx = g.wrap( 
       g.add( 
         g.sub( writeIdx, offset ), 
         mod//g.mul( mod, g.sub( offset, 1 ) ) 
@@ -33,23 +33,22 @@ let Flanger = inputProps => {
       delayLength
     )
 
-    let leftInput = isStereo ? input[0] : input
+    const leftInput = isStereo ? input[0] : input
 
-    let delayedOutL = g.peek( delayBufferL, readIdx, { interp:'linear', mode:'samples' })
+    const delayedOutL = g.peek( delayBufferL, readIdx, { interp:'linear', mode:'samples' })
     
     g.poke( delayBufferL, g.add( leftInput, g.mul( delayedOutL, feedbackCoeff ) ), writeIdx )
 
-    let left = g.add( leftInput, delayedOutL ),
-        right
+    const left = g.add( leftInput, delayedOutL )
 
     if( isStereo === true ) {
-      rightInput = input[1]
-      delayBufferR = g.data( delayLength )
+      const rightInput = input[1]
+      const delayBufferR = g.data( delayLength )
       
       let delayedOutR = g.peek( delayBufferR, readIdx, { interp:'linear', mode:'samples' })
 
       g.poke( delayBufferR, g.add( rightInput, g.mul( delayedOutR, feedbackCoeff ) ), writeIdx )
-      right = g.add( rightInput, delayedOutR )
+      const right = g.add( rightInput, delayedOutR )
 
       flanger.graph = [ left, right ]
 
@@ -63,7 +62,7 @@ let Flanger = inputProps => {
 
   const out = Gibberish.factory( 
     flanger,
-    [ left, right ], 
+    flanger.graph, 
     ['fx','flanger'], 
     props 
   ) 

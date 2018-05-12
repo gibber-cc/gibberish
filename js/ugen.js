@@ -25,8 +25,6 @@ const __ugen = function( __Gibberish ) {
     connect:function( target, level=1 ) {
       if( this.connected === undefined ) this.connected = []
 
-
-      console.log( 'connect level:', level )
       //let input = level === 1 ? this : Gibberish.binops.Mul( this, level )
       let input = this
 
@@ -41,6 +39,7 @@ const __ugen = function( __Gibberish ) {
         target.inputs.unshift( input, level, input.isStereo )
       } else {
         target.input = input
+        target.inputGain = level
       }
 
       Gibberish.dirty( target )

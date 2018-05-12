@@ -120,6 +120,7 @@ module.exports = function( Gibberish ) {
       const isStereo = props.input.isStereo !== undefined ? props.input.isStereo : true 
       
       const input    = g.in( 'input' ),
+            inputGain= g.in( 'inputGain' ),
             damping  = g.in( 'damping' ),
             drywet   = g.in( 'drywet' ),
             decay    = g.in( 'decay' ),
@@ -130,7 +131,7 @@ module.exports = function( Gibberish ) {
             indiffusion1 = g.in( 'indiffusion1' ),
             indiffusion2 = g.in( 'indiffusion2' )
 
-      const summedInput = isStereo === true ? g.add( input[0], input[1] ) : input
+      const summedInput = isStereo === true ? g.mul( g.add( input[0], input[1] ), inputGain ): g.mul( input, inputGain )
       {
         'use jsdsp'
 
@@ -153,8 +154,8 @@ module.exports = function( Gibberish ) {
         const rightWet = (tank_outs[3] - tank_outs[4]) * .6
 
         // mix wet and dry signal for final output
-        const left  = g.mix( isStereo ? input[0] : input, leftWet,  drywet )
-        const right = g.mix( isStereo ? input[1] : input, rightWet, drywet )
+        const left  = g.mix( isStereo ? g.mul( input[0], inputGain ) : g.mul( input, inputGain ), leftWet,  drywet )
+        const right = g.mix( isStereo ? g.mul( input[1], inputGain ) : g.mul( input, inputGain ), rightWet, drywet )
 
         reverb.graph = [ left, right ]
       }

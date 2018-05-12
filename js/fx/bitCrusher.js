@@ -8,9 +8,10 @@ let BitCrusher = inputProps => {
       bitCrusher = Object.create( effect )
 
   bitCrusher.__createGraph = function() {
-    let isStereo = props.input.isStereo !== undefined ? props.input.isStereo : true 
+    let isStereo = props.input.isStereo !== undefined ? props.input.isStereo :false 
     
     let input = g.in( 'input' ),
+        inputGain = g.in( 'inputGain' ),
         bitDepth = g.in( 'bitDepth' ),
         sampleRate = g.in( 'sampleRate' ),
         leftInput = isStereo ? input[ 0 ] : input,
@@ -20,7 +21,7 @@ let BitCrusher = inputProps => {
     let sampleReduxCounter = g.counter( sampleRate, 0, 1 )
 
     let bitMult = g.pow( g.mul( bitDepth, 16 ), 2 )
-    let crushedL = g.div( g.floor( g.mul( leftInput, bitMult ) ), bitMult )
+    let crushedL = g.div( g.floor( g.mul( g.mul( leftInput, inputGain ), bitMult ) ), bitMult )
 
     let outL = g.switch(
       sampleReduxCounter.wrap,
@@ -30,7 +31,7 @@ let BitCrusher = inputProps => {
 
     if( isStereo ) {
       let storeR = g.history(0)
-      let crushedR = g.div( g.floor( g.mul( rightInput, bitMult ) ), bitMult )
+      let crushedR = g.div( g.floor( g.mul( g.mul( rightInput, inputGain ), bitMult ) ), bitMult )
 
       let outR = ternary( 
         sampleReduxCounter.wrap,

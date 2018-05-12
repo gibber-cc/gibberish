@@ -4,30 +4,31 @@ let g = require( 'genish.js' ),
 module.exports = function( Gibberish ) {
  
 let Delay = inputProps => {
-  let props = Object.assign( { delayLength: 44100 }, Delay.defaults, inputProps ),
+  let props = Object.assign( { delayLength: 44100 }, effect.defaults, Delay.defaults, inputProps ),
       delay = Object.create( effect )
 
   delay.__createGraph = function() {
-    let isStereo = props.input.isStereo !== undefined ? props.input.isStereo : false 
+    const isStereo = props.input.isStereo !== undefined ? props.input.isStereo : false 
     
-    let input      = g.in( 'input' ),
-        delayTime  = g.in( 'time' ),
-        wetdry     = g.in( 'wetdry' ),
-        leftInput  = isStereo ? input[ 0 ] : input,
-        rightInput = isStereo ? input[ 1 ] : null
+    const input      = g.in( 'input' ),
+          inputGain  = g.in( 'inputGain' ),
+          delayTime  = g.in( 'time' ),
+          wetdry     = g.in( 'wetdry' ),
+          leftInput  = isStereo ? g.mul( input[ 0 ], inputGain ) : g.mul( input, inputGain ),
+          rightInput = isStereo ? g.mul( input[ 1 ], inputGain ) : null
       
-    let feedback = g.in( 'feedback' )
+    const feedback = g.in( 'feedback' )
 
     // left channel
-    let feedbackHistoryL = g.history()
-    let echoL = g.delay( g.add( leftInput, g.mul( feedbackHistoryL.out, feedback ) ), delayTime, { size:props.delayLength })
+    const feedbackHistoryL = g.history()
+    const echoL = g.delay( g.add( leftInput, g.mul( feedbackHistoryL.out, feedback ) ), delayTime, { size:props.delayLength })
     feedbackHistoryL.in( echoL )
-    let left = g.mix( leftInput, echoL, wetdry )
+    const left = g.mix( leftInput, echoL, wetdry )
 
     if( isStereo ) {
       // right channel
-      let feedbackHistoryR = g.history()
-      let echoR = g.delay( g.add( rightInput, g.mul( feedbackHistoryR.out, feedback ) ), delayTime, { size:props.delayLength })
+      const feedbackHistoryR = g.history()
+      const echoR = g.delay( g.add( rightInput, g.mul( feedbackHistoryR.out, feedback ) ), delayTime, { size:props.delayLength })
       feedbackHistoryR.in( echoR )
       const right = g.mix( rightInput, echoR, wetdry )
 

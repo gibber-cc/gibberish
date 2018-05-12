@@ -8,23 +8,22 @@ let RingMod = inputProps => {
       ringMod = Object.create( effect )
 
   ringMod.__createGraph = function() {
-    let isStereo = props.input.isStereo !== undefined ? props.input.isStereo : true 
+    const isStereo = props.input.isStereo !== undefined ? props.input.isStereo : false 
     
-    let input = g.in( 'input' ),
-        frequency = g.in( 'frequency' ),
-        gain = g.in( 'gain' ),
-        mix = g.in( 'mix' )
+    const input = g.in( 'input' ),
+          inputGain = g.in( 'inputGain' ),
+          frequency = g.in( 'frequency' ),
+          gain = g.in( 'gain' ),
+          mix = g.in( 'mix' )
     
-    let leftInput = isStereo ? input[0] : input,
-        sine = g.mul( g.cycle( frequency ), gain )
+    const leftInput = isStereo ? g.mul( input[0], inputGain ) : g.mul( input, inputGain ),
+          sine = g.mul( g.cycle( frequency ), gain )
    
-    let left = g.add( g.mul( leftInput, g.sub( 1, mix )), g.mul( g.mul( leftInput, sine ), mix ) ), 
-        right
-
-    let out
+    const left = g.add( g.mul( leftInput, g.sub( 1, mix )), g.mul( g.mul( leftInput, sine ), mix ) ) 
+        
     if( isStereo === true ) {
-      let rightInput = input[1]
-      right = g.add( g.mul( rightInput, g.sub( 1, mix )), g.mul( g.mul( rightInput, sine ), mix ) ) 
+      const rightInput = g.mul( input[1], inputGain ),
+            right = g.add( g.mul( rightInput, g.sub( 1, mix )), g.mul( g.mul( rightInput, sine ), mix ) ) 
       
       ringMod.graph = [ left, right ]
     }else{

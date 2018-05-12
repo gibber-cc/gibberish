@@ -20,20 +20,25 @@ const tuning = {
 }
 
 const Freeverb = inputProps => {
-  let props = Object.assign( {}, Freeverb.defaults, effect.defaults, inputProps ),
-      reverb = Object.create( effect ) 
+  const props = Object.assign( {}, effect.defaults, Freeverb.defaults, inputProps ),
+        reverb = Object.create( effect ) 
    
   reverb.__createGraph = function() {
-    let isStereo = props.input.isStereo !== undefined ? props.input.isStereo : true 
+    const  isStereo = props.input.isStereo !== undefined ? props.input.isStereo : false 
     
-    let combsL = [], combsR = []
+    const combsL = [], combsR = []
 
-    let input = g.in( 'input' ),
-        wet1 = g.in( 'wet1'), wet2 = g.in( 'wet2' ),  dry = g.in( 'dry' ), 
-        roomSize = g.in( 'roomSize' ), damping = g.in( 'damping' )
+    const input = g.in( 'input' ),
+          inputGain = g.in( 'inputGain' ),
+          wet1 = g.in( 'wet1'),
+          wet2 = g.in( 'wet2' ),  
+          dry = g.in( 'dry' ), 
+          roomSize = g.in( 'roomSize' ), 
+          damping = g.in( 'damping' )
     
-    let summedInput = isStereo === true ? g.add( input[0], input[1] ) : input,
-        attenuatedInput = g.memo( g.mul( summedInput, tuning.fixedGain ) )
+    const __summedInput = isStereo === true ? g.add( input[0], input[1] ) : input,
+         summedInput = g.mul( __summedInput, inputGain ),
+         attenuatedInput = g.memo( g.mul( summedInput, tuning.fixedGain ) )
     
     // create comb filters in parallel...
     for( let i = 0; i < 8; i++ ) { 
@@ -45,7 +50,7 @@ const Freeverb = inputProps => {
       )
     }
     
-    // ... and sum them with attenuated input
+    // ... and sum them with attenuated input, use of let is deliberate here
     let outL = g.add( attenuatedInput, ...combsL )
     let outR = g.add( attenuatedInput, ...combsR )
     
@@ -55,8 +60,8 @@ const Freeverb = inputProps => {
       outR = allPass( outR, tuning.allPassTuning[ i ] + tuning.stereoSpread )
     }
     
-    let outputL = g.add( g.mul( outL, wet1 ), g.mul( outR, wet2 ), g.mul( isStereo === true ? input[0] : input, dry ) ),
-        outputR = g.add( g.mul( outR, wet1 ), g.mul( outL, wet2 ), g.mul( isStereo === true ? input[1] : input, dry ) )
+    const outputL = g.add( g.mul( outL, wet1 ), g.mul( outR, wet2 ), g.mul( isStereo === true ? input[0] : input, dry ) ),
+          outputR = g.add( g.mul( outR, wet1 ), g.mul( outL, wet2 ), g.mul( isStereo === true ? input[1] : input, dry ) )
 
     reverb.graph = [ outputL, outputR ]
 
@@ -72,13 +77,12 @@ const Freeverb = inputProps => {
 
 
 Freeverb.defaults = {
-  input:0,
+  input: 0,
   wet1: 1,
   wet2: 0,
   dry: .5,
   roomSize: .84,
   damping:  .5,
-  bypass:false
 }
 
 return Freeverb 

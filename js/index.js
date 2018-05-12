@@ -142,7 +142,8 @@ let Gibberish = {
   },
 
   clear() {
-    this.output.inputs = [0,0,false]
+    // do not delete the gain and the pan of the master bus 
+    this.output.inputs.splice( 0, this.output.inputs.length - 2 )
     //this.output.inputNames.length = 0
     this.analyzers.length = 0
     this.scheduler.clear()

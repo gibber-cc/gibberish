@@ -10,20 +10,23 @@ module.exports = function( Gibberish ) {
 
     bufferShuffler.__createGraph = function() {
 
-      let props = Object.assign( {}, Shuffler.defaults, effect.defaults, inputProps )
+      const props = Object.assign( {}, Shuffler.defaults, effect.defaults, inputProps )
 
-      let isStereo = props.input.isStereo !== undefined ? props.input.isStereo : false
-      let phase = g.accum( 1,0,{ shouldWrap: false })
+      const isStereo = props.input.isStereo !== undefined ? props.input.isStereo : false
+      const phase = g.accum( 1,0,{ shouldWrap: false })
 
-      let input = g.in( 'input' ),
-          leftInput = isStereo ? input[ 0 ] : input,
-          rightInput = isStereo ? input[ 1 ] : null,
-          rateOfShuffling = g.in( 'rate' ),
-          chanceOfShuffling = g.in( 'chance' ),
-          reverseChance = g.in( 'reverseChance' ),
-          repitchChance = g.in( 'repitchChance' ),
-          repitchMin = g.in( 'repitchMin' ),
-          repitchMax = g.in( 'repitchMax' )
+      const input = g.in( 'input' ),
+            inputGain = g.in( 'inputGain' ),
+            __leftInput = isStereo ? input[ 0 ] : input,
+            __rightInput = isStereo ? input[ 1 ] : null,
+            leftInput = g.mul( __leftInput, inputGain ),
+            rightInput = g.mul( __rightInput, inputGain ),
+            rateOfShuffling = g.in( 'rate' ),
+            chanceOfShuffling = g.in( 'chance' ),
+            reverseChance = g.in( 'reverseChance' ),
+            repitchChance = g.in( 'repitchChance' ),
+            repitchMin = g.in( 'repitchMin' ),
+            repitchMax = g.in( 'repitchMax' )
 
       let pitchMemory = g.history(1)
 

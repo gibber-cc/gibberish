@@ -8,13 +8,14 @@ const Tremolo = inputProps => {
         tremolo = Object.create( effect )
 
   tremolo.__createGraph = function() {
-    const isStereo = props.input.isStereo !== undefined ? props.input.isStereo : true 
+    const isStereo = props.input.isStereo !== undefined ? props.input.isStereo : false  
     
     const input = g.in( 'input' ),
+          inputGain = g.in( 'inputGain' ),
           frequency = g.in( 'frequency' ),
           amount = g.in( 'amount' )
     
-    const leftInput = isStereo ? input[0] : input
+    const leftInput = isStereo ? g.mul( input[0], inputGain ) : g.mul( input, inputGain )
 
     let osc
     if( props.shape === 'square' ) {
@@ -27,12 +28,11 @@ const Tremolo = inputProps => {
 
     const mod = g.mul( osc, amount )
    
-    let left = g.sub( leftInput, g.mul( leftInput, mod ) ), 
-        right
+    const left = g.sub( leftInput, g.mul( leftInput, mod ) )
 
     if( isStereo === true ) {
-      let rightInput = input[1]
-      right = g.mul( rightInput, mod )
+      const rightInput = g.mul( input[1], inputGain ),
+            right = g.mul( rightInput, mod )
 
       tremolo.graph = [ left, right ]
     }else{

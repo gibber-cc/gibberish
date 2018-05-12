@@ -10,14 +10,15 @@ let __Chorus = inputProps => {
 
   chorus.__createGraph = function() {
     const input = g.in('input'),
+          inputGain = g.in( 'inputGain' ),
           freq1 = g.in('slowFrequency'),
           freq2 = g.in('fastFrequency'),
           amp1  = g.in('slowGain'),
           amp2  = g.in('fastGain')
 
-    const isStereo = typeof props.input.isStereo !== 'undefined' ? props.input.isStereo : true 
+    const isStereo = typeof props.input.isStereo !== 'undefined' ? props.input.isStereo : false 
 
-    const leftInput = isStereo ? input[0] : input
+    const leftInput = isStereo ? g.mul( input[0], inputGain ) : g.mul( input, inputGain )
 
     const win0   = g.env( 'inversewelch', 1024 ),
           win120 = g.env( 'inversewelch', 1024, 0, .333 ),
@@ -51,7 +52,7 @@ let __Chorus = inputProps => {
     
     const leftOutput = g.add( delay1L, delay2L, delay3L )
     if( isStereo ) {
-      const rightInput = input[1]
+      const rightInput = g.mul( input[1], inputGain )
       const delay1R = g.delay(rightInput, time1, { size:maxDelayTime }),
             delay2R = g.delay(rightInput, time2, { size:maxDelayTime }),
             delay3R = g.delay(rightInput, time3, { size:maxDelayTime })
