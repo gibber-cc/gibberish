@@ -5,11 +5,18 @@ module.exports = function( Gibberish ) {
  
 let Flanger = inputProps => {
   let props   = Object.assign( { delayLength:44100 }, Flanger.defaults, proto.defaults, inputProps ),
-      flanger = Object.create( proto )
+      flanger = Object.create( proto ),
+      out
 
   flanger.__createGraph = function() {
-    const isStereo = props.input.isStereo !== undefined ? props.input.isStereo : false 
-    
+    let isStereo = false
+    if( out === undefined ) {
+      isStereo = typeof props.input.isStereo !== 'undefined' ? props.input.isStereo : false 
+    }else{
+      isStereo = out.input.isStereo
+      out.isStereo = isStereo
+    }
+
     const input = g.in( 'input' ),
           inputGain = g.in( 'inputGain' ),
           delayLength = props.delayLength,
@@ -60,7 +67,7 @@ let Flanger = inputProps => {
   flanger.__createGraph()
   flanger.__requiresRecompilation = [ 'input' ]
 
-  const out = Gibberish.factory( 
+  out = Gibberish.factory( 
     flanger,
     flanger.graph, 
     ['fx','flanger'], 

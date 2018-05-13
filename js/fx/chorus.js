@@ -5,6 +5,7 @@ module.exports = function( Gibberish ) {
  
 let __Chorus = inputProps => {
   const props = Object.assign({}, __Chorus.defaults, effect.defaults, inputProps )
+  let out
   
   const chorus = Object.create( Gibberish.prototypes.Ugen )
 
@@ -16,7 +17,13 @@ let __Chorus = inputProps => {
           amp1  = g.in('slowGain'),
           amp2  = g.in('fastGain')
 
-    const isStereo = typeof props.input.isStereo !== 'undefined' ? props.input.isStereo : false 
+    let isStereo = false
+    if( out === undefined ) {
+      isStereo = typeof props.input.isStereo !== 'undefined' ? props.input.isStereo : false 
+    }else{
+      isStereo = out.input.isStereo
+      out.isStereo = isStereo
+    }
 
     const leftInput = isStereo ? g.mul( input[0], inputGain ) : g.mul( input, inputGain )
 
@@ -68,8 +75,7 @@ let __Chorus = inputProps => {
   chorus.__createGraph()
   chorus.__requiresRecompilation = [ 'input' ]
 
-  
-  const out = Gibberish.factory( chorus, chorus.graph, ['fx','chorus'], props )
+  out = Gibberish.factory( chorus, chorus.graph, ['fx','chorus'], props )
 
   return out 
 }

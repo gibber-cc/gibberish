@@ -116,9 +116,17 @@ module.exports = function( Gibberish ) {
     const props = Object.assign( {}, Reverb.defaults, effect.defaults, inputProps ),
           reverb = Object.create( effect ) 
      
+    let out
+
     reverb.__createGraph = function() {
-      const isStereo = props.input.isStereo !== undefined ? props.input.isStereo : true 
-      
+      let isStereo = false
+      if( out === undefined ) {
+        isStereo = typeof props.input.isStereo !== 'undefined' ? props.input.isStereo : false 
+      }else{
+        isStereo = out.input.isStereo
+        out.isStereo = isStereo
+      }      
+
       const input    = g.in( 'input' ),
             inputGain= g.in( 'inputGain' ),
             damping  = g.in( 'damping' ),
@@ -164,7 +172,10 @@ module.exports = function( Gibberish ) {
     reverb.__createGraph()
     reverb.__requiresRecompilation= [ 'input' ]
 
-    return Gibberish.factory( reverb, reverb.graph, ['fx','plate'], props )  }
+    out = Gibberish.factory( reverb, reverb.graph, ['fx','plate'], props )
+
+    return out
+  }
 
   Reverb.defaults = {
     input:0,

@@ -5,11 +5,18 @@ module.exports = function( Gibberish ) {
  
 let RingMod = inputProps => {
   let props   = Object.assign( {}, RingMod.defaults, effect.defaults, inputProps ),
-      ringMod = Object.create( effect )
+      ringMod = Object.create( effect ),
+      out
 
   ringMod.__createGraph = function() {
-    const isStereo = props.input.isStereo !== undefined ? props.input.isStereo : false 
-    
+    let isStereo = false
+    if( out === undefined ) {
+      isStereo = typeof props.input.isStereo !== 'undefined' ? props.input.isStereo : false 
+    }else{
+      isStereo = out.input.isStereo
+      out.isStereo = isStereo
+    }    
+
     const input = g.in( 'input' ),
           inputGain = g.in( 'inputGain' ),
           frequency = g.in( 'frequency' ),
@@ -34,7 +41,7 @@ let RingMod = inputProps => {
   ringMod.__createGraph() 
   ringMod.__requiresRecompilation = [ 'input' ]
 
-  const out = Gibberish.factory( 
+  out = Gibberish.factory( 
     ringMod,
     ringMod.graph, 
     [ 'fx','ringMod'], 

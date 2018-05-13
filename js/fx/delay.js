@@ -7,9 +7,16 @@ let Delay = inputProps => {
   let props = Object.assign( { delayLength: 44100 }, effect.defaults, Delay.defaults, inputProps ),
       delay = Object.create( effect )
 
+  let out
   delay.__createGraph = function() {
-    const isStereo = props.input.isStereo !== undefined ? props.input.isStereo : false 
-    
+    let isStereo = false
+    if( out === undefined ) {
+      isStereo = typeof props.input.isStereo !== 'undefined' ? props.input.isStereo : false 
+    }else{
+      isStereo = out.input.isStereo
+      out.isStereo = isStereo
+    }    
+
     const input      = g.in( 'input' ),
           inputGain  = g.in( 'inputGain' ),
           delayTime  = g.in( 'time' ),
@@ -41,7 +48,7 @@ let Delay = inputProps => {
   delay.__createGraph()
   delay.__requiresRecompilation = [ 'input' ]
   
-  const out = Gibberish.factory( 
+  out = Gibberish.factory( 
     delay,
     delay.graph, 
     ['fx','delay'], 

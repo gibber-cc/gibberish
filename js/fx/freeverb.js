@@ -22,10 +22,16 @@ const tuning = {
 const Freeverb = inputProps => {
   const props = Object.assign( {}, effect.defaults, Freeverb.defaults, inputProps ),
         reverb = Object.create( effect ) 
-   
+
+  let out 
   reverb.__createGraph = function() {
-    const  isStereo = props.input.isStereo !== undefined ? props.input.isStereo : false 
-    
+    let isStereo = false
+    if( out === undefined ) {
+      isStereo = typeof props.input.isStereo !== 'undefined' ? props.input.isStereo : false 
+    }else{
+      isStereo = out.input.isStereo
+    }    
+
     const combsL = [], combsR = []
 
     const input = g.in( 'input' ),
@@ -43,10 +49,20 @@ const Freeverb = inputProps => {
     // create comb filters in parallel...
     for( let i = 0; i < 8; i++ ) { 
       combsL.push( 
-        combFilter( attenuatedInput, tuning.combTuning[i], g.mul(damping,.4), g.mul( tuning.scaleRoom + tuning.offsetRoom, roomSize ) ) 
+        combFilter( 
+          attenuatedInput, 
+          tuning.combTuning[i], 
+          g.mul(damping,.4),
+          g.mul( tuning.scaleRoom + tuning.offsetRoom, roomSize ) 
+        ) 
       )
       combsR.push( 
-        combFilter( attenuatedInput, tuning.combTuning[i] + tuning.stereoSpread, g.mul(damping,.4), g.mul( tuning.scaleRoom + tuning.offsetRoom, roomSize ) ) 
+        combFilter( 
+          attenuatedInput, 
+          tuning.combTuning[i] + tuning.stereoSpread, 
+          g.mul(damping,.4), 
+          g.mul( tuning.scaleRoom + tuning.offsetRoom, roomSize ) 
+        ) 
       )
     }
     
@@ -64,13 +80,12 @@ const Freeverb = inputProps => {
           outputR = g.add( g.mul( outR, wet1 ), g.mul( outL, wet2 ), g.mul( isStereo === true ? input[1] : input, dry ) )
 
     reverb.graph = [ outputL, outputR ]
-
   }
 
   reverb.__createGraph()
   reverb.__requiresRecompilation = [ 'input' ]
 
-  const out = Gibberish.factory( reverb, reverb.graph, ['fx','freeverb'], props )
+  out = Gibberish.factory( reverb, reverb.graph, ['fx','freeverb'], props )
 
   return out
 }

@@ -4,12 +4,20 @@ let g = require( 'genish.js' ),
 module.exports = function( Gibberish ) {
  
 let BitCrusher = inputProps => {
-  let props = Object.assign( { bitCrusherLength: 44100 }, BitCrusher.defaults, effect.defaults, inputProps ),
-      bitCrusher = Object.create( effect )
+  const  props = Object.assign( { bitCrusherLength: 44100 }, BitCrusher.defaults, effect.defaults, inputProps ),
+         bitCrusher = Object.create( effect )
+
+  let out
 
   bitCrusher.__createGraph = function() {
-    let isStereo = props.input.isStereo !== undefined ? props.input.isStereo :false 
-    
+    let isStereo = false
+    if( out === undefined ) {
+      isStereo = typeof props.input.isStereo !== 'undefined' ? props.input.isStereo : false 
+    }else{
+      isStereo = out.input.isStereo
+      out.isStereo = isStereo
+    }
+
     let input = g.in( 'input' ),
         inputGain = g.in( 'inputGain' ),
         bitDepth = g.in( 'bitDepth' ),
@@ -48,7 +56,7 @@ let BitCrusher = inputProps => {
   bitCrusher.__createGraph()
   bitCrusher.__requiresRecompilation = [ 'input' ]
 
-  const out = Gibberish.factory( 
+  out = Gibberish.factory( 
     bitCrusher,
     bitCrusher.graph,
     ['fx','bitCrusher'], 

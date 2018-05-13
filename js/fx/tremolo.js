@@ -6,10 +6,17 @@ module.exports = function( Gibberish ) {
 const Tremolo = inputProps => {
   const props   = Object.assign( {}, Tremolo.defaults, effect.defaults, inputProps ),
         tremolo = Object.create( effect )
-
+  
+  let out
   tremolo.__createGraph = function() {
-    const isStereo = props.input.isStereo !== undefined ? props.input.isStereo : false  
-    
+    let isStereo = false
+    if( out === undefined ) {
+      isStereo = typeof props.input.isStereo !== 'undefined' ? props.input.isStereo : false 
+    }else{
+      isStereo = out.input.isStereo
+      out.isStereo = isStereo
+    }    
+
     const input = g.in( 'input' ),
           inputGain = g.in( 'inputGain' ),
           frequency = g.in( 'frequency' ),
@@ -43,7 +50,7 @@ const Tremolo = inputProps => {
   tremolo.__createGraph()
   tremolo.__requiresRecompilation = [ 'input' ]
 
-  const out = Gibberish.factory( 
+  out = Gibberish.factory( 
     tremolo,
     tremolo.graph,
     ['fx','tremolo'], 

@@ -8,11 +8,20 @@ module.exports = function( Gibberish ) {
     let bufferShuffler = Object.create( proto ),
         bufferSize = 88200
 
+    let out
+
     bufferShuffler.__createGraph = function() {
 
       const props = Object.assign( {}, Shuffler.defaults, effect.defaults, inputProps )
 
-      const isStereo = props.input.isStereo !== undefined ? props.input.isStereo : false
+      let isStereo = false
+      if( out === undefined ) {
+        isStereo = typeof props.input.isStereo !== 'undefined' ? props.input.isStereo : false 
+      }else{
+        isStereo = out.input.isStereo
+        //out.isStereo = isStereo
+      }      
+      
       const phase = g.accum( 1,0,{ shouldWrap: false })
 
       const input = g.in( 'input' ),
@@ -50,7 +59,8 @@ module.exports = function( Gibberish ) {
       let fadeLength = g.memo( g.div( rateOfShuffling, 100 ) ),
           fadeIncr = g.memo( g.div( 1, fadeLength ) )
 
-      let bufferL = g.data( bufferSize ), bufferR = isStereo ? g.data( bufferSize ) : null
+      const bufferL = g.data( bufferSize )
+      const bufferR = isStereo ? g.data( bufferSize ) : null
       let readPhase = g.accum( pitchMemory.out, 0, { shouldWrap:false }) 
       let stutter = g.wrap( g.sub( g.mod( readPhase, bufferSize ), 22050 ), 0, bufferSize )
 
@@ -89,7 +99,7 @@ module.exports = function( Gibberish ) {
     bufferShuffler.__createGraph()
     bufferShuffler.__requiresRecompilation = [ 'input' ]
     
-    const out = Gibberish.factory( 
+    out = Gibberish.factory( 
       bufferShuffler,
       bufferShuffler.graph,
       ['fx','shuffler'], 

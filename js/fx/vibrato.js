@@ -7,9 +7,16 @@ const Vibrato = inputProps => {
   const props   = Object.assign( {}, Vibrato.defaults, effect.defaults, inputProps ),
         vibrato = Object.create( effect )
 
+  let out
   vibrato.__createGraph = function() {
-    const isStereo = props.input.isStereo !== undefined ? props.input.isStereo : true 
-    
+    let isStereo = false
+    if( out === undefined ) {
+      isStereo = typeof props.input.isStereo !== 'undefined' ? props.input.isStereo : false 
+    }else{
+      isStereo = out.input.isStereo
+      out.isStereo = isStereo
+    }    
+
     const input = g.in( 'input' ),
           inputGain = g.in( 'inputGain' ),
           delayLength = 44100,
@@ -57,7 +64,7 @@ const Vibrato = inputProps => {
   vibrato.__createGraph()
   vibrato.__requiresRecompilation = [ 'input' ]
 
-  const out = Gibberish.factory( 
+  out = Gibberish.factory( 
     vibrato,
     vibrato.graph,    
     [ 'fx', 'vibrato' ], 

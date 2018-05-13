@@ -15,10 +15,17 @@ module.exports = function( Gibberish ) {
 
   let Distortion = inputProps => {
     let props = Object.assign( {}, effect.defaults, Distortion.defaults, inputProps ),
-        distortion= Object.create( effect )
+        distortion= Object.create( effect ),
+        out
 
     distortion.__createGraph = function() {
-      let isStereo = props.input.isStereo !== undefined ? props.input.isStereo : false
+      let isStereo = false
+      if( out === undefined ) {
+        isStereo = typeof props.input.isStereo !== 'undefined' ? props.input.isStereo : false 
+      }else{
+        isStereo = out.input.isStereo
+        out.isStereo = isStereo
+      }
 
       const input = g.in( 'input' ),
             inputGain = g.in( 'inputGain' ),
@@ -55,7 +62,7 @@ module.exports = function( Gibberish ) {
     distortion.__createGraph()
     distortion.__requiresRecompilation = [ 'input' ]
 
-    const out = Gibberish.factory( 
+    out = Gibberish.factory( 
       distortion,
       distortion.graph, 
       [ 'fx','distortion' ], 

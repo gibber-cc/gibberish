@@ -70,11 +70,33 @@ const __ugen = function( __Gibberish ) {
     },
 
     __redoGraph:function() {
+      let isStereo = this.isStereo
       this.__createGraph()
       this.callback = Gibberish.genish.gen.createCallback( this.graph, Gibberish.memory, false, true )
       this.inputNames = new Set( Gibberish.genish.gen.parameters ) 
       this.callback.ugenName = this.ugenName
       Gibberish.dirty( this )
+
+      // if channel count has changed after recompiling graph...
+      if( isStereo !== this.isStereo ) {
+        // loop through all busses the ugen is connected to
+        for( let connection of this.connected ) {
+          // set the dirty flag of the bus
+          Gibberish.dirty( connection[ 0 ] )
+
+          // check for inputs array, which indicates connection is to a bus
+          if( connection[0].inputs !== undefined ) {
+            // find the input in the busses 'inputs' array
+            const inputIdx = connection[ 0 ].inputs.indexOf( connection[ 1 ] )
+
+            // assumiing it is found...
+            if( inputIdx !== -1 ) {
+              // change stereo field
+              connection[ 0 ].inputs[ inputIdx + 2 ] = this.isStereo
+            }
+          }
+        }
+      }
     },
   }
 
