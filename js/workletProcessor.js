@@ -29,7 +29,7 @@ class GibberishProcessor extends AudioWorkletProcessor {
       for( let i = 0; i < obj.length; i++ ){
         const prop = obj[ i ]
         if( prop === null ) continue
-        //console.log( 'PROP:', prop )
+        console.log( 'PROP:', prop )
         if( typeof prop === 'object' && prop.id !== undefined ) {
           let objCheck = this.ugens.get( prop.id )
 
@@ -56,7 +56,7 @@ class GibberishProcessor extends AudioWorkletProcessor {
       const properties = obj
       for( let key in properties) {
         let prop = properties[ key ]
-        if( typeof prop === 'object' && prop.id !== undefined ) {
+        if( typeof prop === 'object' && prop !== null && prop.id !== undefined ) {
           let objCheck = this.ugens.get( prop.id )
           if( objCheck !== undefined ) {
             properties[ key ] = objCheck
@@ -64,7 +64,7 @@ class GibberishProcessor extends AudioWorkletProcessor {
         }else if( Array.isArray( prop ) ) {
           properties[ key ] = this.replaceProperties( prop )
         }else{
-          if( typeof prop === 'object' && prop.action === 'wrap' ) {
+          if( typeof prop === 'object' && prop !== null && prop.action === 'wrap' ) {
             properties[ key ] = prop.value()
           }
         }
@@ -80,7 +80,6 @@ class GibberishProcessor extends AudioWorkletProcessor {
       const rep = event.data
       let constructor = Gibberish
 
-      //console.log( 'add:', rep.name )
       for( let i = 0; i < rep.name.length; i++ ) { constructor = constructor[ rep.name[ i ] ] }
 
       let properties = this.replaceProperties(  eval( '(' + rep.properties + ')' ) )
@@ -113,6 +112,9 @@ class GibberishProcessor extends AudioWorkletProcessor {
       const dict = event.data
       const obj = this.ugens.get( dict.object )
       obj[ dict.name ] = dict.value
+    }else if( event.data.address === 'copy' ) {
+      const target = this.ugens.get( event.data.id )
+      target.data.onload( event.data.buffer )
     }  
   }
 

@@ -30,49 +30,88 @@ module.exports = function( Gibberish ) {
      * this will be overridden by a call to Gibberish.factory on load 
      */
 
-    syn.callback = function() { return 0 }
-    syn.id = Gibberish.factory.getUID()
-    syn.ugenName = syn.callback.ugenName = 'sampler_' + syn.id
-    syn.inputNames = []
+    //syn.callback = function() { return 0 }
+    //syn.id = Gibberish.factory.getUID()
+    //syn.ugenName = syn.callback.ugenName = 'sampler_' + syn.id
+    //syn.inputNames = []
 
     /* end dummy ugen */
 
-    syn.__bang__ = g.bang()
-    syn.trigger = syn.__bang__.trigger
-
     Object.assign( syn, props )
 
+    if( Gibberish.mode === 'worklet' ) {
+      syn.__meta__ = {
+        address:'add',
+        name: ['instruments', 'Sampler'],
+        properties: JSON.stringify(props), 
+        id: syn.id
+      }
+
+      Gibberish.worklet.ugens.set( syn.id, syn )
+
+      Gibberish.worklet.port.postMessage( syn.__meta__ )
+    }
+
+    syn.__createGraph = function() {
+      syn.__bang__ = g.bang()
+      syn.trigger = syn.__bang__.trigger
+
+      syn.__phase__ = g.counter( rate, start, end, syn.__bang__, shouldLoop, { shouldWrap:false })
+      syn.graph = g.mul( 
+        g.ifelse( 
+          g.and( g.gte( syn.__phase__, start ), g.lt( syn.__phase__, end ) ),
+          g.peek( 
+            syn.data, 
+            syn.__phase__,
+            { mode:'samples' }
+          ),
+          0
+        ), 
+        g.in('gain') 
+      )
+    }
+
     if( props.filename ) {
-      syn.data = g.data( props.filename )
+      if( Gibberish.mode !== 'processor' ) { 
+        syn.data = g.data( props.filename )
+      }else{
+        syn.data = g.data( new Float32Array() )
+      }
 
-      syn.data.onload = () => {
-        syn.__phase__ = g.counter( rate, start, end, syn.__bang__, shouldLoop, { shouldWrap:false })
+      syn.data.onload = buffer => {
+        if( Gibberish.mode === 'worklet' ) {
+          const memIdx = Gibberish.memory.alloc( syn.data.memory.values.length, true )
 
-        Gibberish.factory( 
-          syn,
-          g.mul( 
-          g.ifelse( 
-            g.and( g.gte( syn.__phase__, start ), g.lt( syn.__phase__, end ) ),
-            g.peek( 
-              syn.data, 
-              syn.__phase__,
-              { mode:'samples' }
-            ),
-            0
-          ), g.in('gain') ),
-          'sampler', 
-          props 
-        ) 
+          Gibberish.worklet.port.postMessage({
+            address:'copy',
+            id: syn.id,
+            idx: memIdx,
+            buffer: syn.data.buffer
+          })
 
-        if( syn.end === -999999999 ) syn.end = syn.data.buffer.length - 1
+        }else if ( Gibberish.mode === 'processor' ) {
+          syn.data.buffer = buffer
+          syn.data.memory.values.length = syn.data.dim = buffer.length
+          syn.__redoGraph() 
+        }else{
+          syn.__redoGraph()
+        }
 
         if( syn.onload !== null ) { syn.onload() }
-
-        Gibberish.dirty( syn )
+        if( syn.end === -999999999 ) syn.end = syn.data.buffer.length - 1
       }
     }
 
-    return syn
+    syn.__createGraph()
+    
+    const out = Gibberish.factory( 
+      syn,
+      syn.graph,
+      ['instruments','sampler'], 
+      props 
+    ) 
+
+    return out
   }
   
 

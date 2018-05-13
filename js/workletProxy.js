@@ -17,7 +17,7 @@ const replaceObj = obj => {
 const makeAndSendObject = function( __name, values, obj ) {
   const properties = {}
   for( let key in values ) {
-    if( typeof values[ key ] === 'object' && values[ key ].__meta__ !== undefined ) {
+    if( typeof values[ key ] === 'object' && values[ key ] !== null && values[ key ].__meta__ !== undefined ) {
       properties[ key ] = values[ key ].__meta__
     }else if( Array.isArray( values[ key ] ) ) {
       const arr = []
@@ -25,7 +25,7 @@ const makeAndSendObject = function( __name, values, obj ) {
         arr[ i ] = replaceObj( values[ key ][i] )
       }
       properties[ key ] = arr
-    }else if( typeof values[key] === 'object' ){
+    }else if( typeof values[key] === 'object' && values[key] !== null ){
       properties[ key ] = replaceObj( values[ key ] )
     }else{
       properties[ key ] = values[ key ]
@@ -49,8 +49,6 @@ const makeAndSendObject = function( __name, values, obj ) {
   }
 
   Gibberish.worklet.ugens.set( obj.id, obj )
-
-  //console.log( obj.__meta__ )
 
   Gibberish.worklet.port.postMessage( obj.__meta__ )
 
