@@ -10,7 +10,9 @@ const replaceObj = obj => {
       // shouldn't I be serializing most objects, not just seqs?
       return serialize( obj )
     }
-  }
+  }/*else if( typeof obj === 'function' ) {
+    return serialize( obj )
+  }*/
   return obj
 }
 
@@ -88,7 +90,7 @@ const __proxy = function( __name, values, obj ) {
       set( target, prop, value, receiver ) {
         if( prop !== 'connected' ) {
           const __value = replaceObj( value )
-          //console.log( 'setter:', prop, __value )
+          console.log( 'setter:', prop, __value )
 
           Gibberish.worklet.port.postMessage({ 
             address:'set', 

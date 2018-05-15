@@ -90,6 +90,8 @@ module.exports = function( Gibberish ) {
     // will only create proxy if worklets are being used
     // otherwise will return unaltered ugen
 
+    if( values.shouldAddToUgen === true ) Object.assign( ugen, values )
+
     return shouldProxy ? proxy( __name, values, ugen ) : ugen
   }
 

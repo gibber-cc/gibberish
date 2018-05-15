@@ -17,6 +17,10 @@ class GibberishProcessor extends AudioWorkletProcessor {
 
     this.port.onmessage = this.handleMessage.bind( this )
     Gibberish.ugens = this.ugens = new Map()
+
+    // XXX ridiculous hack to get around processor not having a worklet property
+    Gibberish.worklet = { ugens: this.ugens }
+
     this.ugens.set( Gibberish.id, Gibberish )
     processor = this
 
@@ -29,7 +33,7 @@ class GibberishProcessor extends AudioWorkletProcessor {
       for( let i = 0; i < obj.length; i++ ){
         const prop = obj[ i ]
         if( prop === null ) continue
-        console.log( 'PROP:', prop )
+        //console.log( 'PROP:', prop )
         if( typeof prop === 'object' && prop.id !== undefined ) {
           let objCheck = this.ugens.get( prop.id )
 
@@ -75,6 +79,7 @@ class GibberishProcessor extends AudioWorkletProcessor {
   }
 
   handleMessage( event ) {
+    //console.log( 'addr:', event.data.address )
     if( event.data.address === 'add' ) {
 
       const rep = event.data
@@ -83,9 +88,17 @@ class GibberishProcessor extends AudioWorkletProcessor {
       for( let i = 0; i < rep.name.length; i++ ) { constructor = constructor[ rep.name[ i ] ] }
 
       let properties = this.replaceProperties(  eval( '(' + rep.properties + ')' ) )
+      //console.log( 'properties:', properties )
 
-      let ugen = properties.isop !== undefined ? constructor( ...properties.inputs ) :  constructor( properties )
+      let ugen
 
+      // if object is not a gibberish ugen...
+      if( properties.nogibberish ) {
+        ugen = properties
+      }else{
+        ugen = properties.isop !== undefined ? constructor( ...properties.inputs ) :  constructor( properties )
+      }
+      
       if( rep.post ) {
         ugen[ rep.post ]()
       }

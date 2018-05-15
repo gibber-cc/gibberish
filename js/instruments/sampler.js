@@ -8,7 +8,16 @@ module.exports = function( Gibberish ) {
     note( rate ) {
       this.rate = rate
       if( rate > 0 ) {
-        this.trigger()
+        this.__trigger()
+      }else{
+        this.__phase__.value = this.data.buffer.length - 1 
+      }
+    },
+    trigger( volume ) {
+      if( volume !== undefined ) this.gain = volume
+
+      if( this.rate > 0 ) {
+        this.__trigger()
       }else{
         this.__phase__.value = this.data.buffer.length - 1 
       }
@@ -24,18 +33,6 @@ module.exports = function( Gibberish ) {
 
     const start = g.in( 'start' ), end = g.in( 'end' ), 
           rate = g.in( 'rate' ), shouldLoop = g.in( 'loops' )
-
-    /* 
-     * create dummy ugen until data for sampler is loaded...
-     * this will be overridden by a call to Gibberish.factory on load 
-     */
-
-    //syn.callback = function() { return 0 }
-    //syn.id = Gibberish.factory.getUID()
-    //syn.ugenName = syn.callback.ugenName = 'sampler_' + syn.id
-    //syn.inputNames = []
-
-    /* end dummy ugen */
 
     Object.assign( syn, props )
 
@@ -54,9 +51,10 @@ module.exports = function( Gibberish ) {
 
     syn.__createGraph = function() {
       syn.__bang__ = g.bang()
-      syn.trigger = syn.__bang__.trigger
+      syn.__trigger = syn.__bang__.trigger
 
-      syn.__phase__ = g.counter( rate, start, end, syn.__bang__, shouldLoop, { shouldWrap:false })
+      syn.__phase__ = g.counter( rate, start, end, syn.__bang__, shouldLoop, { shouldWrap:false, initialValue:9999999 })
+      
       syn.graph = g.mul( 
         g.ifelse( 
           g.and( g.gte( syn.__phase__, start ), g.lt( syn.__phase__, end ) ),
@@ -97,7 +95,9 @@ module.exports = function( Gibberish ) {
           syn.__redoGraph()
         }
 
-        if( syn.onload !== null ) { syn.onload() }
+        //if( typeof syn.onload === 'function' ){  
+        //  syn.onload()  
+        //}
         if( syn.end === -999999999 ) syn.end = syn.data.buffer.length - 1
       }
     }
@@ -144,3 +144,4 @@ module.exports = function( Gibberish ) {
 
   return [ Sampler, PolySampler ]
 }
+
