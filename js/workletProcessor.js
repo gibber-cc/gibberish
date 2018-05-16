@@ -12,7 +12,7 @@ class GibberishProcessor extends AudioWorkletProcessor {
     Gibberish.preventProxy = true
     Gibberish.init( undefined, undefined, 'processor' )
     Gibberish.preventProxy = false
-    Gibberish.debug = true
+    //Gibberish.debug = true
     Gibberish.processor = this
 
     this.port.onmessage = this.handleMessage.bind( this )

@@ -41,7 +41,7 @@ let BitCrusher = inputProps => {
       let storeR = g.history(0)
       let crushedR = g.div( g.floor( g.mul( g.mul( rightInput, inputGain ), bitMult ) ), bitMult )
 
-      let outR = ternary( 
+      let outR = g.ternary( 
         sampleReduxCounter.wrap,
         crushedR,
         storeL.out

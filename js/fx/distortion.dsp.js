@@ -34,7 +34,7 @@ module.exports = function( Gibberish ) {
             pregain = g.in( 'pregain' ),
             postgain = g.in( 'postgain' )
 
-      let lout, out
+      let lout
       {
         'use jsdsp'
         const linput = isStereo ? g.mul( input[0], inputGain ) : g.mul( input, inputGain )

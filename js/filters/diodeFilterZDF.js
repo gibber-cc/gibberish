@@ -195,7 +195,7 @@ module.exports = function( Gibberish ) {
     input:0,
     Q: .65,
     saturation: 1,
-    cutoff: 880,
+    cutoff:.5 
   }
 
   return DiodeZDF
