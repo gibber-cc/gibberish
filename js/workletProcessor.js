@@ -12,7 +12,7 @@ class GibberishProcessor extends AudioWorkletProcessor {
     Gibberish.preventProxy = true
     Gibberish.init( undefined, undefined, 'processor' )
     Gibberish.preventProxy = false
-    //Gibberish.debug = true
+    Gibberish.debug = true
     Gibberish.processor = this
 
     this.port.onmessage = this.handleMessage.bind( this )
@@ -128,6 +128,8 @@ class GibberishProcessor extends AudioWorkletProcessor {
     }else if( event.data.address === 'copy' ) {
       const target = this.ugens.get( event.data.id )
       target.data.onload( event.data.buffer )
+    }else if( event.data.address === 'callback' ) {
+      console.log( Gibberish.callback.toString() )
     }  
   }
 

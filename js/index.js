@@ -297,7 +297,12 @@ let Gibberish = {
           }
 
           if( typeof input === 'number' ) {
+            if( isNaN(key) ) {
+              console.log( 'key:', key, input )
+              line += `memory[${ugen.__addresses__[ key ]}]`//input
+            }else{
               line += input
+            }
           } else if( typeof input === 'boolean' ) {
               line += '' + input
           }else{

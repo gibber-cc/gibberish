@@ -17,7 +17,8 @@ module.exports = function( Gibberish ) {
       inputNames: new Set( Gibberish.genish.gen.parameters ),
       isStereo: Array.isArray( graph ),
       dirty: true,
-      __properties__:values
+      __properties__:values,
+      __addresses__:{}
     })
     
     ugen.ugenName += ugen.id
@@ -26,7 +27,15 @@ module.exports = function( Gibberish ) {
     for( let param of ugen.inputNames ) {
       if( param === 'memory' ) continue
 
-      let value = values[ param ]
+      let value = values[ param ],
+          isNumber = !isNaN( value ),
+          idx
+
+      if( isNumber ) { 
+        idx = Gibberish.memory.alloc( 1 )
+        Gibberish.memory.heap[ idx ] = value
+        ugen.__addresses__[ param ] = idx
+      }
 
       // TODO: do we need to check for a setter?
       let desc = Object.getOwnPropertyDescriptor( ugen, param ),
@@ -38,18 +47,31 @@ module.exports = function( Gibberish ) {
 
       Object.defineProperty( ugen, param, {
         configurable:true,
-        get() { return value },
+        get() { 
+          if( isNumber ) {
+            return Gibberish.memory.heap[ idx ]
+          }else{
+            return value 
+          }
+        },
         set( v ) {
           if( value !== v ) {
-            Gibberish.dirty( ugen )
             if( setter !== undefined ) setter( v )
-            value = v
+            if( !isNaN( v ) ) {
+              Gibberish.memory.heap[ idx ] = v
+              if( isNumber === false ) Gibberish.dirty( ugen )
+              isNumber = true
+            }else{
+              value = v
+              if( isNumber === true ) Gibberish.dirty( ugen )
+              isNumber = false
+            }
           }
         }
       })
     }
 
-    // add bypass dirty triffer
+    // add bypass 
     if( effectProto.isPrototypeOf( ugen ) ) {
       let value = ugen.bypass
       Object.defineProperty( ugen, 'bypass', {
