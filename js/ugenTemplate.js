@@ -55,6 +55,7 @@ module.exports = function( Gibberish ) {
           }
         },
         set( v ) {
+          if( param === 'input' ) console.log( 'INPUT:', v, isNumber )
           if( value !== v ) {
             if( setter !== undefined ) setter( v )
             if( !isNaN( v ) ) {
@@ -64,6 +65,7 @@ module.exports = function( Gibberish ) {
             }else{
               value = v
               if( isNumber === true ) Gibberish.dirty( ugen )
+              console.log( 'switching from number:', param, value )
               isNumber = false
             }
           }
@@ -89,18 +91,43 @@ module.exports = function( Gibberish ) {
 
     if( ugen.__requiresRecompilation !== undefined ) {
       ugen.__requiresRecompilation.forEach( prop => {
-        let value = ugen[ prop ]
+        let value = values[ prop ]
+        let isNumber = !isNaN( value )
+
         Object.defineProperty( ugen, prop, {
           configurable:true,
-          get() { return value },
+          get() { 
+            if( isNumber ) {
+              let idx = ugen.__addresses__[ prop ]
+              return Gibberish.memory.heap[ idx ]
+            }else{
+              //console.log( 'returning:', prop, value, Gibberish.mode )
+              return value 
+            }
+          },
           set( v ) {
             if( value !== v ) {
-              value = v
+              if( !isNaN( v ) ) {
+                let idx = ugen.__addrresses__[ prop ]
+                if( idx === undefined ){
+                  idx = Gibberish.memory.alloc( 1 )
+                  ugen.__addresses__[ prop ] = idx
+                }
+                value = values[ prop ] = Gibberish.memory.heap[ idx ] = v
+                isNumber = true
+              }else{
+                value = values[ prop ] = v
+                isNumber = false
+                //console.log( 'setting ugen', value, Gibberish.mode )
+                Gibberish.dirty( ugen )
+              }
+
+              //console.log( 'SETTING REDO GRAPH', prop, Gibberish.mode )
               
               // needed for filterType at the very least, becauae the props
               // are reused when re-creating the graph. This seems like a cheaper
               // way to solve this problem.
-              values[ prop ] = v
+              //values[ prop ] = v
 
               this.__redoGraph()
             }

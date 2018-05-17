@@ -88,16 +88,17 @@ const __proxy = function( __name, values, obj ) {
         return target[ prop ]
       },
       set( target, prop, value, receiver ) {
-        if( prop !== 'connected' ) {
+        if( prop !== 'connected' && prop !== 'input' && prop !== 'callback' && prop !== 'inputNames' ) {
           const __value = replaceObj( value )
-          console.log( 'setter:', prop, __value )
 
-          Gibberish.worklet.port.postMessage({ 
-            address:'set', 
-            object:obj.id,
-            name:prop,
-            value:__value
-          })
+          if( __value !== undefined ) {
+            Gibberish.worklet.port.postMessage({ 
+              address:'set', 
+              object:obj.id,
+              name:prop,
+              value:__value
+            })
+          }
         }
 
         target[ prop ] = value

@@ -79,6 +79,7 @@ const __ugen = function( __Gibberish ) {
 
       // if channel count has changed after recompiling graph...
       if( isStereo !== this.isStereo ) {
+        //console.log( 'CHANGING STEREO:', isStereo )
         // loop through all busses the ugen is connected to
         for( let connection of this.connected ) {
           // set the dirty flag of the bus
@@ -94,6 +95,9 @@ const __ugen = function( __Gibberish ) {
               // change stereo field
               connection[ 0 ].inputs[ inputIdx + 2 ] = this.isStereo
             }
+          }else if( connection[0].input !== undefined ) {
+            //console.log( 'redo graph???' )
+            connection[0].__redoGraph()
           }
         }
       }
