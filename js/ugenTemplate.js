@@ -10,7 +10,7 @@ module.exports = function( Gibberish ) {
     let name = Array.isArray( __name ) ? __name[ __name.length - 1 ] : __name
 
     Object.assign( ugen, {
-      type: 'ugen',
+      //type: 'ugen',
       id: Gibberish.utilities.getUID(), 
       ugenName: name + '_',
       graph: graph,

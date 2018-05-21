@@ -100,6 +100,7 @@ let Gibberish = {
     this.envelopes    = require( './envelopes/envelopes.js' )( this );
     this.analysis     = require( './analysis/analyzers.js' )( this )
     this.time         = require( './misc/time.js' )( this )
+    this.Proxy        = require( './workletProxy.js' )( this )
   },
 
   export( target, shouldExportGenish=false ) {
@@ -195,7 +196,7 @@ let Gibberish = {
     callbackBody.push( '\n\treturn ' + lastLine.split( '=' )[0].split( ' ' )[1] )
 
     if( this.debug === true ) console.log( 'callback:\n', callbackBody.join('\n') )
-    this.callbackNames.push( 'memory' )
+    this.callbackNames.push( 'mem' )
     this.callbackUgens.push( this.memory.heap )
     this.callback = Function( ...this.callbackNames, callbackBody.join( '\n' ) )
     this.callback.out = []
@@ -299,7 +300,7 @@ let Gibberish = {
           if( typeof input === 'number' ) {
             if( isNaN(key) ) {
               //console.log( 'key:', key, input )
-              line += `memory[${ugen.__addresses__[ key ]}]`//input
+              line += `mem[${ugen.__addresses__[ key ]}]`//input
             }else{
               line += input
             }
@@ -340,7 +341,7 @@ let Gibberish = {
       
       //if( ugen.type === 'bus' ) line += ', ' 
       if( ugen.type === 'analysis' || (ugen.type === 'bus' && keys.length > 0) ) line += ', '
-      if( !ugen.isop && ugen.type !== 'seq' ) line += 'memory'
+      if( !ugen.isop && ugen.type !== 'seq' ) line += 'mem'
       line += ugen.isop ? '' : ' )'
 
       block.push( line )

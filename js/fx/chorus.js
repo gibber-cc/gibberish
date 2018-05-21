@@ -7,7 +7,7 @@ let __Chorus = inputProps => {
   const props = Object.assign({}, __Chorus.defaults, effect.defaults, inputProps )
   let out
   
-  const chorus = Object.create( Gibberish.prototypes.Ugen )
+  const chorus = Object.create( effect )
 
   chorus.__createGraph = function() {
     const input = g.in('input'),

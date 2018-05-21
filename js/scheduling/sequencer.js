@@ -16,8 +16,8 @@ let Sequencer = props => {
     __type:'seq',
 
     tick() {
-      let value  = seq.values[  seq.__valuesPhase++  % seq.values.length  ],
-          timing = seq.timings[ seq.__timingsPhase++ % seq.timings.length ]
+      let value  = typeof seq.values  === 'function' ? seq.values  : seq.values[  seq.__valuesPhase++  % seq.values.length  ],
+          timing = typeof seq.timings === 'function' ? seq.timings : seq.timings[ seq.__timingsPhase++ % seq.timings.length ]
 
       if( typeof timing === 'function' ) timing = timing()
 
@@ -55,6 +55,7 @@ let Sequencer = props => {
   Object.assign( seq, properties ) 
   seq.__properties__ = properties
 
+  //console.log( 'sequencer:', Gibberish.mode, seq.values, seq.timings )
   __seq =  proxy( ['Sequencer'], properties, seq )
 
   return __seq

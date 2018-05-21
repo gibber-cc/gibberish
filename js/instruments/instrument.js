@@ -4,6 +4,8 @@ let ugen = require( '../ugen.js' )(),
 let instrument = Object.create( ugen )
 
 Object.assign( instrument, {
+  type:'instrument',
+
   note( freq ) {
     this.frequency = freq
     this.env.trigger()

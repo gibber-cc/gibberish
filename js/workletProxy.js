@@ -18,9 +18,15 @@ const replaceObj = obj => {
 
 const makeAndSendObject = function( __name, values, obj ) {
   const properties = {}
+
+  // object has already been sent through messageport...
+
   for( let key in values ) {
-    if( typeof values[ key ] === 'object' && values[ key ] !== null && values[ key ].__meta__ !== undefined ) {
-      properties[ key ] = values[ key ].__meta__
+    const alreadyProcessed = (typeof values[ key ] === 'object' && values[ key ] !== null && values[ key ].__meta__ !== undefined) ||
+      (typeof values[key] === 'function' && values[ key ].__meta__ !== undefined )
+
+    if( alreadyProcessed ) { 
+      properties[ key ] = { id:values[ key ].__meta__.id }
     }else if( Array.isArray( values[ key ] ) ) {
       const arr = []
       for( let i = 0; i < values[ key ].length; i++ ) {
