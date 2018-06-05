@@ -8,7 +8,7 @@ const proxy = __proxy( Gibberish )
 
 let Sequencer = props => {
   let __seq
-  let seq = {
+  const seq = {
     __isRunning:false,
 
     __valuesPhase:  0,
@@ -31,7 +31,7 @@ let Sequencer = props => {
         seq.target[ seq.key ] = value
       }
       
-      if( seq.__isRunning === true ) {
+      if( seq.__isRunning === true && !isNaN( timing ) ) {
         Gibberish.scheduler.add( timing, seq.tick, seq.priority )
       }
     },
@@ -55,7 +55,7 @@ let Sequencer = props => {
   Object.assign( seq, properties ) 
   seq.__properties__ = properties
 
-  //console.log( 'sequencer:', Gibberish.mode, seq.values, seq.timings )
+  console.log( 'sequencer:', Gibberish.mode, seq.values, seq.timings )
   __seq =  proxy( ['Sequencer'], properties, seq )
 
   return __seq

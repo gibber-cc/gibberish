@@ -27,6 +27,10 @@ let Scheduler = {
     if( this.queue.length ) {
       let next = this.queue.peek()
 
+      if( isNaN( next.time ) ) {
+        this.queue.pop()
+      }
+      
       while( this.phase >= next.time ) {
         next.func()
         this.queue.pop()
@@ -35,7 +39,6 @@ let Scheduler = {
         // XXX this happens when calling sequencer.stop()... why?
         if( next === undefined ) break
       }
-
     }
 
     this.phase++

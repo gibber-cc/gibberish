@@ -2,7 +2,7 @@ const serialize = require('serialize-javascript')
 
 module.exports = function( Gibberish ) {
 
-const replaceObj = obj => {
+const replaceObj = function( obj, shouldSerializeFunctions = true ) {
   if( typeof obj === 'object' && obj.id !== undefined ) {
     if( obj.__type !== 'seq' ) { // XXX why?
       return { id:obj.id, prop:obj.prop }
@@ -10,9 +10,9 @@ const replaceObj = obj => {
       // shouldn't I be serializing most objects, not just seqs?
       return serialize( obj )
     }
-  }/*else if( typeof obj === 'function' ) {
-    return serialize( obj )
-  }*/
+  }else if( typeof obj === 'function' && shouldSerializeFunctions === true ) {
+    return { isFunc:true, value:serialize( obj ) }
+  }
   return obj
 }
 
@@ -30,11 +30,11 @@ const makeAndSendObject = function( __name, values, obj ) {
     }else if( Array.isArray( values[ key ] ) ) {
       const arr = []
       for( let i = 0; i < values[ key ].length; i++ ) {
-        arr[ i ] = replaceObj( values[ key ][i] )
+        arr[ i ] = replaceObj( values[ key ][i], false  )
       }
       properties[ key ] = arr
     }else if( typeof values[key] === 'object' && values[key] !== null ){
-      properties[ key ] = replaceObj( values[ key ] )
+      properties[ key ] = replaceObj( values[ key ], false )
     }else{
       properties[ key ] = values[ key ]
     }
@@ -74,9 +74,10 @@ const __proxy = function( __name, values, obj ) {
         if( typeof target[ prop ] === 'function' && prop.indexOf('__') === -1) {
           const proxy = new Proxy( target[ prop ], {
             apply( __target, thisArg, args ) {
-              const __args = args.map( replaceObj )
+              const __args = args.map( __value => replaceObj( __value, true ) )
               //if( prop === 'connect' ) console.log( 'proxy connect:', __args )
 
+              console.log( 'args:', prop,  __args )
               Gibberish.worklet.port.postMessage({ 
                 address:'method', 
                 object:obj.id,

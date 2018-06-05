@@ -228,7 +228,13 @@ let Gibberish = {
 
         //if( obj.prop !== undefined ) console.log( 'got a ssd.out', obj )
         return obj.prop !== undefined ? __obj[ obj.prop ] : __obj
-      } 
+      }else if( obj.isFunc === true ) {
+        let func =  eval( '(' + obj.value + ')' )
+
+        console.log( 'replacing function:', func )
+
+        return func
+      }
     }
 
     return obj
