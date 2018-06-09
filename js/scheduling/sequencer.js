@@ -6,7 +6,7 @@ module.exports = function( Gibberish ) {
 
 const proxy = __proxy( Gibberish )
 
-let Sequencer = props => {
+const Sequencer = props => {
   let __seq
   const seq = {
     __isRunning:false,
@@ -55,7 +55,7 @@ let Sequencer = props => {
   Object.assign( seq, properties ) 
   seq.__properties__ = properties
 
-  console.log( 'sequencer:', Gibberish.mode, seq.values, seq.timings )
+  //console.log( 'sequencer:', Gibberish.mode, seq.values, seq.timings )
   __seq =  proxy( ['Sequencer'], properties, seq )
 
   return __seq

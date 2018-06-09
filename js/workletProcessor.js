@@ -110,7 +110,7 @@ class GibberishProcessor extends AudioWorkletProcessor {
         ugen[ rep.post ]()
       }
 
-      //console.log( 'adding ugen:', ugen )
+      //console.log( 'adding ugen:', ugen.id, ugen, rep )
       this.ugens.set( rep.id, ugen )
 
       initialized = true
@@ -132,6 +132,7 @@ class GibberishProcessor extends AudioWorkletProcessor {
     }else if( event.data.address === 'set' ) {
       const dict = event.data
       const obj = this.ugens.get( dict.object )
+      //console.log( 'setting:', dict.name, dict.value, obj )
       obj[ dict.name ] = dict.value
     }else if( event.data.address === 'copy' ) {
       const target = this.ugens.get( event.data.id )
@@ -141,7 +142,11 @@ class GibberishProcessor extends AudioWorkletProcessor {
     }else if( event.data.address === 'addConstructor' ) {
       const wrapper = eval( '(' + event.data.constructorString + ')' )
       Gibberish[ event.data.name ] = wrapper( Gibberish )
-    } 
+    }else if( event.data.address === 'addToProperty' ) {
+      const dict = event.data
+      const obj  = this.ugens.get( dict.object )
+      obj[ dict.name ][ dict.key ] = dict.value
+    }
   }
 
   process(inputs, outputs, parameters) {
