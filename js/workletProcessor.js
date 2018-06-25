@@ -12,7 +12,7 @@ class GibberishProcessor extends AudioWorkletProcessor {
     Gibberish.preventProxy = true
     Gibberish.init( undefined, undefined, 'processor' )
     Gibberish.preventProxy = false
-    Gibberish.debug = true
+    Gibberish.debug = false 
     Gibberish.processor = this
 
     this.port.onmessage = this.handleMessage.bind( this )
@@ -45,6 +45,8 @@ class GibberishProcessor extends AudioWorkletProcessor {
             out[ i ]= prop
           }
         }else{
+          if( prop === null ) continue
+
           if( typeof prop === 'object' && prop.action === 'wrap' ) {
             out[ i  ] = prop.value.bind( null, ...this.replaceProperties( prop.args ) )
           }else if( Array.isArray( prop ) ) {
@@ -79,7 +81,6 @@ class GibberishProcessor extends AudioWorkletProcessor {
   }
 
   handleMessage( event ) {
-    // console.log( 'addr:', event.data.address )
     if( event.data.address === 'add' ) {
 
       const rep = event.data
@@ -142,6 +143,21 @@ class GibberishProcessor extends AudioWorkletProcessor {
     }else if( event.data.address === 'addConstructor' ) {
       const wrapper = eval( '(' + event.data.constructorString + ')' )
       Gibberish[ event.data.name ] = wrapper( Gibberish )
+    }else if( event.data.address === 'addMethod' ) {
+      if( target[ event.data.key ] === undefined ) {
+        target[ event.data.key ] = eval( '(' + event.data.function + ')' )
+        console.log( 'adding method:', target, event.data.key )
+      }
+    }else if( event.data.address === 'monkeyPatch' ) {
+      const target = this.ugens.get( event.data.id )
+      if( target['___'+event.data.key] === undefined ) {
+        target[ '___' + event.data.key ] = target[ event.data.key ]
+        target[ event.data.key ] = eval( '(' + event.data.function + ')' )
+        //console.log( 'monkey patch:', target, event.data.key )
+      }
+    }else if( event.data.address === 'dirty' ) {
+      const obj = this.ugens.get( event.data.id )
+      Gibberish.dirty( obj )
     }else if( event.data.address === 'addToProperty' ) {
       const dict = event.data
       const obj  = this.ugens.get( dict.object )

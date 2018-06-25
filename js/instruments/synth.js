@@ -91,6 +91,7 @@ module.exports = function( Gibberish ) {
 
   // do not include velocity, which shoudl always be per voice
   let PolySynth = Gibberish.PolyTemplate( Synth, ['frequency','attack','decay','pulsewidth','pan','gain','glide', 'saturation', 'filterMult', 'Q', 'cutoff', 'resonance', 'antialias', 'filterType', 'waveform', 'filterMode'] ) 
+  PolySynth.defaults = Synth.defaults
 
   return [ Synth, PolySynth ]
 

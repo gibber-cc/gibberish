@@ -57,7 +57,9 @@ module.exports = {
       envCheck = _poly.envCheck( voice, _poly )
     }
 
-    Gibberish.blockCallbacks.push( envCheck )
+    // XXX uncomment this line to turn on dynamically connecting
+    // disconnecting individual voices from graph
+    // Gibberish.blockCallbacks.push( envCheck )
   },
 
   __getVoice__() {

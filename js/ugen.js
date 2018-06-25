@@ -14,6 +14,8 @@ const __ugen = function( __Gibberish ) {
   }
 
   const ugen = {
+    __Gibberish:Gibberish,
+
     free:function() {
       Gibberish.genish.gen.free( this.graph )
     },
@@ -51,10 +53,12 @@ const __ugen = function( __Gibberish ) {
 
     disconnect:function( target ) {
       if( target === undefined ){
-        for( let connection of this.connected ) {
-          connection[0].disconnectUgen( connection[1] )
+        if( Array.isArray( this.connected ) ) {
+          for( let connection of this.connected ) {
+            connection[0].disconnectUgen( connection[1] )
+          }
+          this.connected.length = 0
         }
-        this.connected.length = 0
       }else{
         const connection = this.connected.find( v => v[0] === target )
         target.disconnectUgen( connection[1] )

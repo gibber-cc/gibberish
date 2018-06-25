@@ -103,6 +103,7 @@ module.exports = function( Gibberish ) {
     ['frequency','attack','decay','cutoff','Q',
      'detune2','detune3','pulsewidth','pan','gain', 'glide', 'saturation', 'filterMult',  'antialias', 'filterType', 'waveform', 'filterMode']
   ) 
+  PolyMono.defaults = Synth.defaults
 
   return [ Synth, PolyMono ]
 }

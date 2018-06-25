@@ -55,7 +55,7 @@ module.exports = function( Gibberish ) {
           }
         },
         set( v ) {
-          if( param === 'input' ) console.log( 'INPUT:', v, isNumber )
+          //if( param === 'input' ) console.log( 'INPUT:', v, isNumber )
           if( value !== v ) {
             if( setter !== undefined ) setter( v )
             if( !isNaN( v ) ) {
@@ -64,8 +64,8 @@ module.exports = function( Gibberish ) {
               isNumber = true
             }else{
               value = v
-              if( isNumber === true ) Gibberish.dirty( ugen )
-              console.log( 'switching from number:', param, value )
+              /*if( isNumber === true )*/ Gibberish.dirty( ugen )
+              //console.log( 'switching from number:', param, value )
               isNumber = false
             }
           }

@@ -221,7 +221,7 @@ let Gibberish = {
     return body
   },
   proxyReplace( obj ) {
-    if( typeof obj === 'object' ) {
+    if( typeof obj === 'object' && obj !== null ) {
       if( obj.id !== undefined ) {
         const __obj = processor.ugens.get( obj.id )
         //console.log( 'retrieved:', __obj.name )
@@ -231,7 +231,7 @@ let Gibberish = {
       }else if( obj.isFunc === true ) {
         let func =  eval( '(' + obj.value + ')' )
 
-        console.log( 'replacing function:', func )
+        //console.log( 'replacing function:', func )
 
         return func
       }

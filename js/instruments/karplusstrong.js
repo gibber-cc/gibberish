@@ -74,7 +74,8 @@ module.exports = function( Gibberish ) {
     return envCheck
   }
 
-  let PolyKPS = Gibberish.PolyTemplate( KPS, ['frequency','decay','damping','pan','gain', 'glide'], envCheckFactory ) 
+  const PolyKPS = Gibberish.PolyTemplate( KPS, ['frequency','decay','damping','pan','gain', 'glide'], envCheckFactory ) 
+  PolyKPS.defaults = KPS.defaults
 
   return [ KPS, PolyKPS ]
 

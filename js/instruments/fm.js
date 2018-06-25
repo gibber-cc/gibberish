@@ -1,9 +1,9 @@
-let g = require( 'genish.js' ),
-    instrument = require( './instrument.js' )
+const g = require( 'genish.js' ),
+      instrument = require( './instrument.js' )
 
 module.exports = function( Gibberish ) {
 
-  let FM = inputProps => {
+  const FM = inputProps => {
     let syn = Object.create( instrument )
 
     let frequency = g.in( 'frequency' ),
@@ -103,7 +103,8 @@ module.exports = function( Gibberish ) {
     isLowPass:1
   }
 
-  let PolyFM = Gibberish.PolyTemplate( FM, ['glide','frequency','attack','decay','pulsewidth','pan','gain','cmRatio','index', 'saturation', 'filterMult', 'Q', 'cutoff', 'antialias', 'filterType', 'carrierWaveform', 'modulatorWaveform','filterMode', 'feedback', 'useADSR', 'sustain', 'release', 'sustainLevel' ] ) 
+  const PolyFM = Gibberish.PolyTemplate( FM, ['glide','frequency','attack','decay','pulsewidth','pan','gain','cmRatio','index', 'saturation', 'filterMult', 'Q', 'cutoff', 'antialias', 'filterType', 'carrierWaveform', 'modulatorWaveform','filterMode', 'feedback', 'useADSR', 'sustain', 'release', 'sustainLevel' ] ) 
+  PolyFM.defaults = FM.defaults
 
   return [ FM, PolyFM ]
 
