@@ -47,16 +47,16 @@ module.exports = function( Gibberish ) {
       }
 
       const oscSum = g.add( ...oscs ),
-            oscWithGain = g.mul( g.mul( oscSum, env ), g.in( 'gain' ) ),
+            oscWithEnv = g.mul( oscSum, env ),
             baseCutoffFreq = g.mul( g.in('cutoff'), frequency ),
             cutoff = g.mul( g.mul( baseCutoffFreq, g.pow( 2, g.in('filterMult') )), env ),
-            filteredOsc = Gibberish.filters.factory( oscWithGain, cutoff, g.in('Q'), g.in('saturation'), syn )
+            filteredOsc = Gibberish.filters.factory( oscWithEnv, cutoff, g.in('Q'), g.in('saturation'), syn )
         
       if( props.panVoices ) {  
         const panner = g.pan( filteredOsc,filteredOsc, g.in( 'pan' ) )
-        syn.graph = [ panner.left, panner.right ]
+        syn.graph = [ g.mul( panner.left, g.in('gain') ), g.mul( panner.right, g.in('gain') ) ]
       }else{
-        syn.graph = filteredOsc
+        syn.graph = g.mul( filteredOsc, g.in('gain') )
       }
 
       syn.env = env
