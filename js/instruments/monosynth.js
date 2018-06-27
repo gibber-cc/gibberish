@@ -68,7 +68,7 @@ module.exports = function( Gibberish ) {
     const out = Gibberish.factory( syn, syn.graph, ['instruments','Monosynth'], props )
 
     return out
-  }
+  } 
   
   Synth.defaults = {
     waveform: 'saw',
