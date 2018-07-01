@@ -37,7 +37,7 @@ module.exports = function( Gibberish ) {
           filteredOsc = g.zd24( input, g.min( g.in('Q'), .9999 ),  g.min( cutoff, 20000 ) )
           break;
         case 3:
-          filteredOsc = g.diodeZDF( input, g.in('Q'), cutoff, g.in('saturation'), isStereo ) 
+          filteredOsc = g.diodeZDF( input, g.min( g.in('Q'), .9999 ), g.min( cutoff, 20000 ), g.in('saturation'), isStereo ) 
           break;
         case 4:
           filteredOsc = g.svf( input, cutoff, g.sub( 1, g.in('Q')), props.filterMode, isStereo ) 

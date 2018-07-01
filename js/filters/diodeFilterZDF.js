@@ -15,7 +15,8 @@ module.exports = function( Gibberish ) {
           ka4 = 0.5,
           kindx = 0   
 
-    const Q = g.memo( g.add( .5, g.mul( _Q, 11 ) ) )
+    // XXX this is where the magic number hapens for Q...
+    const Q = g.memo( g.add( .5, g.mul( _Q, g.add( 5, g.sub( 5, g.mul( g.div( freq, 20000  ), 5 ) ) ) ) ) )
     // kwd = 2 * $M_PI * acf[kindx]
     const kwd = g.memo( g.mul( Math.PI * 2, freq ) )
 
