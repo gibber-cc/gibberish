@@ -30,21 +30,21 @@ module.exports = function( Gibberish ) {
 
       switch( props.filterType ) {
         case 1:
+          filteredOsc = g.zd24( input, g.min( g.in('Q'), .9999 ),  g.min( cutoff, 20000 ) )
+          break;
+        case 2:
+          filteredOsc = g.diodeZDF( input, g.min( g.in('Q'), .9999 ), g.min( cutoff, 20000 ), g.in('saturation'), isStereo ) 
+          break;
+        case 3:
+          filteredOsc = g.svf( input, cutoff, g.sub( 1, g.in('Q')), props.filterMode, isStereo ) 
+          break; 
+        case 4:
+          filteredOsc = g.biquad( input, cutoff,  g.in('Q'), props.filterMode, isStereo ) 
+          break; 
+        case 5:
           //isLowPass = g.param( 'lowPass', 1 ),
           filteredOsc = g.filter24( input, g.in('Q'), cutoff, props.filterMode, isStereo )
           break;
-        case 2:
-          filteredOsc = g.zd24( input, g.min( g.in('Q'), .9999 ),  g.min( cutoff, 20000 ) )
-          break;
-        case 3:
-          filteredOsc = g.diodeZDF( input, g.min( g.in('Q'), .9999 ), g.min( cutoff, 20000 ), g.in('saturation'), isStereo ) 
-          break;
-        case 4:
-          filteredOsc = g.svf( input, cutoff, g.sub( 1, g.in('Q')), props.filterMode, isStereo ) 
-          break; 
-        case 5:
-          filteredOsc = g.biquad( input, cutoff,  g.in('Q'), props.filterMode, isStereo ) 
-          break; 
         default:
           // return unfiltered signal
           filteredOsc = input //g.filter24( oscWithGain, g.in('resonance'), cutoff, isLowPass )
