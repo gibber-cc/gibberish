@@ -16,6 +16,7 @@ class GibberishProcessor extends AudioWorkletProcessor {
     Gibberish.processor = this
 
     this.port.onmessage = this.handleMessage.bind( this )
+    this.queue = []
     Gibberish.ugens = this.ugens = new Map()
 
     // XXX ridiculous hack to get around processor not having a worklet property
@@ -80,7 +81,24 @@ class GibberishProcessor extends AudioWorkletProcessor {
     return obj
   }
 
+  // playback delayed messages and clear the queue
+  playQueue() {
+    // must set delay property to false!!! otherwise the message
+    // will be delayed continually...
+    this.queue.forEach( m => { m.data.delay = false; this.handleMessage( m ) } )
+    this.queue.length = 0
+  }
+
   handleMessage( event ) {
+    if( event.data.delay === true ) {
+      // we want to delay this message for some time in the future,
+      // for example, when forcing code to execute at the start of the next
+      // measure. playQueue will trigger all messages in the queue
+      this.queue.push( event )
+
+      return
+    }
+
     if( event.data.address === 'add' ) {
 
       const rep = event.data
@@ -121,7 +139,13 @@ class GibberishProcessor extends AudioWorkletProcessor {
       //console.log( event.data.address, event.data.name, event.data.args, this.ugens )
       const dict = event.data
       const obj  = this.ugens.get( dict.object )
-      obj[ dict.name ]( ...dict.args.map( Gibberish.proxyReplace ) ) 
+
+      // for edge case when serialized functions are being passed to method calls
+      if( dict.functions === true ) {
+        obj[ dict.name ]( eval( '(' + dict.args + ')' ) ) 
+      }else{
+        obj[ dict.name ]( ...dict.args.map( Gibberish.proxyReplace ) ) 
+      }
     }else if( event.data.address === 'property' ) {
       const dict = event.data
       const obj  = this.ugens.get( dict.object )
