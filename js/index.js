@@ -77,6 +77,7 @@ let Gibberish = {
     }else if( this.mode === 'processor' ) {
       Gibberish.load()
       Gibberish.output = this.Bus2()
+      Gibberish.callback = Gibberish.generateCallback()
     }
 
 

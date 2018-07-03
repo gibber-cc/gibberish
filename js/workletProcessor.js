@@ -161,7 +161,16 @@ class GibberishProcessor extends AudioWorkletProcessor {
       obj[ dict.name ] = dict.value
     }else if( event.data.address === 'copy' ) {
       const target = this.ugens.get( event.data.id )
-      target.data.onload( event.data.buffer )
+
+      if( target === undefined ) {
+        // this should only occur when a buffer is loaded prior to a delayed instantiation. for example,
+        // if gibber starts downloading a file, on beat two and is finished by beat three, the next measure
+        // will not have occurred yet, meaning a delayed sampler instantiation will not yet have occurred.
+        // in this case, we wait until the next measure boundary.
+        this.queue.push( event )
+      }else{
+        target.data.onload( event.data.buffer )
+      }
     }else if( event.data.address === 'callback' ) {
       console.log( Gibberish.callback.toString() )
     }else if( event.data.address === 'addConstructor' ) {
@@ -170,7 +179,7 @@ class GibberishProcessor extends AudioWorkletProcessor {
     }else if( event.data.address === 'addMethod' ) {
       if( target[ event.data.key ] === undefined ) {
         target[ event.data.key ] = eval( '(' + event.data.function + ')' )
-        console.log( 'adding method:', target, event.data.key )
+        //console.log( 'adding method:', target, event.data.key )
       }
     }else if( event.data.address === 'monkeyPatch' ) {
       const target = this.ugens.get( event.data.id )
@@ -241,13 +250,13 @@ class GibberishProcessor extends AudioWorkletProcessor {
         output[1][ i ] = out[1] 
       }
       
-      if( this.messages.length > 0 ) {
-        /*console.log( 'msgs:', this.messages )
+      /*if( this.messages.length > 0 ) {
+        console.log( 'msgs:', this.messages )
         this.port.postMessage({ 
           address:'state', 
           messages:this.messages 
-        })*/
-      }
+        })
+      }*/
     }
    
     // make sure this is always returned or the callback ceases!!!
