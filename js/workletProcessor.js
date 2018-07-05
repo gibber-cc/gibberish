@@ -140,6 +140,7 @@ class GibberishProcessor extends AudioWorkletProcessor {
       const dict = event.data
       const obj  = this.ugens.get( dict.object )
 
+      if( typeof obj[ dict.name ] !== 'function' ) return
       // for edge case when serialized functions are being passed to method calls
       if( dict.functions === true ) {
         obj[ dict.name ]( eval( '(' + dict.args + ')' ) ) 
@@ -195,6 +196,8 @@ class GibberishProcessor extends AudioWorkletProcessor {
       const dict = event.data
       const obj  = this.ugens.get( dict.object )
       obj[ dict.name ][ dict.key ] = dict.value
+    }else if( event.data.address === 'messages' ) {
+      console.log( 'messages:', this.messages )
     }
   }
 
@@ -250,13 +253,12 @@ class GibberishProcessor extends AudioWorkletProcessor {
         output[1][ i ] = out[1] 
       }
       
-      /*if( this.messages.length > 0 ) {
-        console.log( 'msgs:', this.messages )
+      if( this.messages.length > 0 ) {
         this.port.postMessage({ 
           address:'state', 
           messages:this.messages 
         })
-      }*/
+      }
     }
    
     // make sure this is always returned or the callback ceases!!!

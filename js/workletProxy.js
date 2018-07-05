@@ -96,16 +96,18 @@ const __proxy = function( __name, values, obj ) {
       },
       set( target, prop, value, receiver ) {
         if( prop !== 'connected' && prop !== 'input' && prop !== 'callback' && prop !== 'inputNames' ) {
-          const __value = replaceObj( value )
+          if( Gibberish.proxyEnabled === true ) {
+            const __value = replaceObj( value )
 
-          if( __value !== undefined ) {
-            Gibberish.worklet.port.postMessage({ 
-              address:'set', 
-              object:obj.id,
-              name:prop,
-              value:__value
-            })
-          }
+            if( __value !== undefined ) {
+              Gibberish.worklet.port.postMessage({ 
+                address:'set', 
+                object:obj.id,
+                name:prop,
+                value:__value
+              })
+            }
+            }
         }
 
         target[ prop ] = value
@@ -126,9 +128,11 @@ const __proxy = function( __name, values, obj ) {
     const proxy = new Proxy( obj, {
       //get( target, prop, receiver ) { return target[ prop ] },
       set( target, prop, value, receiver ) {
-        if( prop.indexOf('__') === -1 ) {
-          if( Gibberish.processor !== undefined ) 
+        let valueType = typeof value
+        if( prop.indexOf('__') === -1 && valueType !== 'function' && valueType !== 'object' ) {
+          if( Gibberish.processor !== undefined ) { 
             Gibberish.processor.messages.push( obj.id, prop, value )
+          }
         }
         target[ prop ] = value
 

@@ -127,14 +127,37 @@ const utilities = {
       
       Gibberish.preventProxy = true
       for( let i = 0; i < messages.length; i+= 3 ) {
-        const id = messages[ i ]
+        const id = messages[ i ] 
         const propName = messages[ i + 1 ]
         const value = messages[ i + 2 ]
         const obj = Gibberish.worklet.ugens.get( id )
 
-        if( obj !== undefined ) obj[ propName ] = value
+        //console.log( id, propName, value )
+
+        if( obj !== undefined && propName.indexOf('.') === -1 ) { 
+          if( obj[ propName ] !== undefined ) {
+            if( typeof obj[ propName ] !== 'function' ) {
+              obj[ propName ] = value
+            }else{
+              obj[ propName ]( value )
+            }
+          }else{
+            console.log( 'undefined single property:', id, propName, value, obj )
+          }
+        }else if( obj !== undefined ) {
+          const propSplit = propName.split('.')
+          if( obj[ propSplit[ 0 ] ] !== undefined ) {
+            if( typeof obj[ propSplit[ 0 ] ][ propSplit[ 1 ] ] !== 'function' ) {
+              obj[ propSplit[ 0 ] ][ propSplit[ 1 ] ] = value
+            }else{
+              obj[ propSplit[ 0 ] ][ propSplit[ 1 ] ]( value )
+            }
+          }else{
+            console.log( 'undefined split property!', id, propSplit[0], propSplit[1], value, obj )
+          }
+        }
         // XXX double check and make sure this isn't getting sent back to processornode...
-        //console.log( propName, value, obj )
+        // console.log( propName, value, obj )
       }
       Gibberish.preventProxy = false
     }

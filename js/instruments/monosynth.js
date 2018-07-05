@@ -92,7 +92,7 @@ module.exports = function( Gibberish ) {
     panVoices:false,
     glide: 1,
     antialias:false,
-    filterType: 2,
+    filterType: 1,
     filterMode: 0, // 0 = LP, 1 = HP, 2 = BP, 3 = Notch
     saturation:.5,
     filterMult: 4,

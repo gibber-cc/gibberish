@@ -22,7 +22,7 @@ module.exports = function( Gibberish ) {
     Object.assign( stereoProto, Gibberish.mixins.polyinstrument )
 
     const Template = props => {
-      const properties = Object.assign( {}, { isStereo:true, maxVoices:16 }, props )
+      const properties = Object.assign( {}, { isStereo:true, maxVoices:4 }, props )
 
       //const synth = properties.isStereo === true ? Object.create( stereoProto ) : Object.create( monoProto )
       const synth = properties.isStereo === true ? Gibberish.Bus2({ __useProxy__:false }) : Gibberish.Bus({ __useProxy__:false }) 

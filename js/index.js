@@ -12,6 +12,7 @@ let Gibberish = {
   debug: false,
   id: -1,
   preventProxy:false,
+  proxyEnabled: true,
 
   output: null,
 

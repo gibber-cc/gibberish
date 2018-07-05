@@ -96,7 +96,7 @@ Freeverb.defaults = {
   wet1: 1,
   wet2: 0,
   dry: .5,
-  roomSize: .84,
+  roomSize: .925,
   damping:  .5,
 }
 

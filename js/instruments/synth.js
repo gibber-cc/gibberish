@@ -72,7 +72,7 @@ module.exports = function( Gibberish ) {
     useADSR:false,
     shape:'linear',
     triggerRelease:false,
-    gain: 1,
+    gain: .5,
     pulsewidth:.25,
     frequency:220,
     pan: .5,
