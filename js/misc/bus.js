@@ -29,7 +29,6 @@ module.exports = function( Gibberish ) {
       const mul = Gibberish.binops.Mul( sum, props.gain )
 
       const graph = Gibberish.Panner({ input:mul, pan: props.pan })
-      
 
       graph.sum = sum
       graph.mul = mul
@@ -73,7 +72,9 @@ module.exports = function( Gibberish ) {
     defaults: { gain:1, inputs:[0], pan:.5 }
   })
 
-  return Bus.create.bind( Bus )
+  const constructor = Bus.create.bind( Bus )
+  constructor.defaults = Bus.defaults
 
+  return constructor
 }
 

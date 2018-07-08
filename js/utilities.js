@@ -142,7 +142,7 @@ const utilities = {
               obj[ propName ]( value )
             }
           }else{
-            console.log( 'undefined single property:', id, propName, value, obj )
+            //console.log( 'undefined single property:', id, propName, value, obj )
           }
         }else if( obj !== undefined ) {
           const propSplit = propName.split('.')
@@ -153,7 +153,7 @@ const utilities = {
               obj[ propSplit[ 0 ] ][ propSplit[ 1 ] ]( value )
             }
           }else{
-            console.log( 'undefined split property!', id, propSplit[0], propSplit[1], value, obj )
+            //console.log( 'undefined split property!', id, propSplit[0], propSplit[1], value, obj )
           }
         }
         // XXX double check and make sure this isn't getting sent back to processornode...

@@ -42,11 +42,12 @@ let __Chorus = inputProps => {
           fastPeek3  = g.mul( g.peek( win240, fastPhasor ), amp2 )
 
 
-    // XXX figure out how to ensure the proper samplerate here...
     let sampleRate = Gibberish.ctx.sampleRate
      
     const ms = sampleRate / 1000 
-    const maxDelayTime = 100 * ms
+    const maxDelayTime = 1000 * ms
+
+    console.log( 'sr:', sampleRate, 'ms:', ms, 'maxDelayTime:', maxDelayTime )
 
     const time1 =  g.mul( g.add( slowPeek1, fastPeek1, 5 ), ms ),
           time2 =  g.mul( g.add( slowPeek2, fastPeek2, 5 ), ms ),
@@ -66,7 +67,7 @@ let __Chorus = inputProps => {
 
       // flip a couple delay lines for stereo effect?
       const rightOutput = g.add( delay1R, delay2L, delay3R )
-      chorus.graph = [ g.add( delay1L, delay2R, delay3L ), rightOutput ]
+      chorus.graph = [ g.add( delay1L, delay2R, delay3L), rightOutput ]
     }else{
       chorus.graph = leftOutput
     }
@@ -85,7 +86,8 @@ __Chorus.defaults = {
   slowFrequency: .18,
   slowGain:1,
   fastFrequency:6,
-  fastGain:.2
+  fastGain:.2,
+  inputGain:1
 }
 
 return __Chorus

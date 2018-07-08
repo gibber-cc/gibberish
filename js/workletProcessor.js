@@ -178,6 +178,8 @@ class GibberishProcessor extends AudioWorkletProcessor {
       const wrapper = eval( '(' + event.data.constructorString + ')' )
       Gibberish[ event.data.name ] = wrapper( Gibberish )
     }else if( event.data.address === 'addMethod' ) {
+      const target = this.ugens.get( event.data.id )
+
       if( target[ event.data.key ] === undefined ) {
         target[ event.data.key ] = eval( '(' + event.data.function + ')' )
         //console.log( 'adding method:', target, event.data.key )

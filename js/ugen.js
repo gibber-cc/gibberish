@@ -84,6 +84,9 @@ const __ugen = function( __Gibberish ) {
       // if channel count has changed after recompiling graph...
       if( isStereo !== this.isStereo ) {
         //console.log( 'CHANGING STEREO:', isStereo )
+
+        // check for any connections before iterating...
+        if( this.connected === undefined ) return
         // loop through all busses the ugen is connected to
         for( let connection of this.connected ) {
           // set the dirty flag of the bus

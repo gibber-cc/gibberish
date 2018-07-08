@@ -1,3 +1,7 @@
+// XXX TOO MANY GLOBAL GIBBERISH VALUES
+
+const Gibberish = require( '../index.js' )
+
 module.exports = {
   note( freq, gain ) {
     // will be sent to processor node via proxy method...

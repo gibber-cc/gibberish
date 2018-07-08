@@ -14,6 +14,7 @@ Object.assign( instrument, {
         obj.inputs[0] = freq
         this.frequency = obj
       }else{
+        console.log( 'note mod?', this )
         this.frequency.inputs[0] = freq
         Gibberish.dirty( this )
       }

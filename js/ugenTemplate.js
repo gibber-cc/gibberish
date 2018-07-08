@@ -59,7 +59,7 @@ module.exports = function( Gibberish ) {
           if( value !== v ) {
             if( setter !== undefined ) setter( v )
             if( !isNaN( v ) ) {
-              Gibberish.memory.heap[ idx ] = v
+              Gibberish.memory.heap[ idx ] = value = v
               if( isNumber === false ) Gibberish.dirty( ugen )
               isNumber = true
             }else{

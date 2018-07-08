@@ -101,7 +101,10 @@ module.exports = function( Gibberish ) {
     defaults: { gain:1, pan:.5, __useProxy__:true }
   })
 
-  return Bus2.create.bind( Bus2 )
+  const constructor = Bus2.create.bind( Bus2 )
+  constructor.defaults = Bus2.defaults
+
+  return constructor
 
 }
 
