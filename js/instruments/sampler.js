@@ -69,38 +69,55 @@ module.exports = function( Gibberish ) {
       )
     }
 
-    if( props.filename ) {
+    const onload = buffer => {
+      if( Gibberish.mode === 'worklet' ) {
+        const memIdx = Gibberish.memory.alloc( syn.data.memory.values.length, true )
+
+        Gibberish.worklet.port.postMessage({
+          address:'copy',
+          id: syn.id,
+          idx: memIdx,
+          buffer: syn.data.buffer
+        })
+
+      }else if ( Gibberish.mode === 'processor' ) {
+        syn.data.buffer = buffer
+        syn.data.memory.values.length = syn.data.dim = buffer.length
+        syn.__redoGraph() 
+      }
+
+      if( typeof syn.onload === 'function' ){  
+        syn.onload( buffer || syn.data.buffer )
+      }
+      if( syn.end === -999999999 ) syn.end = syn.data.buffer.length - 1
+    }
+
+    //if( props.filename ) {
+    syn.loadFile = function( filename ) {
       if( Gibberish.mode !== 'processor' ) { 
-        syn.data = g.data( props.filename )
+        syn.data = g.data( filename )
       }else{
         syn.data = g.data( new Float32Array() )
       }
 
-      syn.data.onload = buffer => {
-        if( Gibberish.mode === 'worklet' ) {
-          const memIdx = Gibberish.memory.alloc( syn.data.memory.values.length, true )
+      syn.data.onload = onload
+    }
 
-          Gibberish.worklet.port.postMessage({
-            address:'copy',
-            id: syn.id,
-            idx: memIdx,
-            buffer: syn.data.buffer
-          })
-
-        }else if ( Gibberish.mode === 'processor' ) {
-          syn.data.buffer = buffer
-          syn.data.memory.values.length = syn.data.dim = buffer.length
-          syn.__redoGraph() 
-        }else{
-          syn.__redoGraph()
-        }
-
-        //if( typeof syn.onload === 'function' ){  
-        //  syn.onload()  
-        //}
-        if( syn.end === -999999999 ) syn.end = syn.data.buffer.length - 1
+    syn.loadBuffer = function( buffer ) {
+      if( Gibberish.mode === 'processor' ) {
+        syn.data.buffer = buffer
+        syn.data.memory.values.length = syn.data.dim = buffer.length
+        syn.__redoGraph() 
       }
     }
+
+    if( props.filename !== undefined ) {
+      syn.loadFile( props.filename )
+    }else{
+      syn.data = g.data( new Float32Array() )
+    }
+
+    syn.data.onload = onload
 
     syn.__createGraph()
     
@@ -113,7 +130,6 @@ module.exports = function( Gibberish ) {
 
     return out
   }
-  
 
   Sampler.defaults = {
     gain: 1,

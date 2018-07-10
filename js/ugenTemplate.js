@@ -11,7 +11,7 @@ module.exports = function( Gibberish ) {
 
     Object.assign( ugen, {
       //type: 'ugen',
-      id: Gibberish.utilities.getUID(), 
+      id: values.id || Gibberish.utilities.getUID(), 
       ugenName: name + '_',
       graph: graph,
       inputNames: new Set( Gibberish.genish.gen.parameters ),
@@ -23,6 +23,7 @@ module.exports = function( Gibberish ) {
     
     ugen.ugenName += ugen.id
     ugen.callback.ugenName = ugen.ugenName // XXX hacky
+    ugen.callback.id = ugen.id
 
     for( let param of ugen.inputNames ) {
       if( param === 'memory' ) continue

@@ -114,6 +114,7 @@ class GibberishProcessor extends AudioWorkletProcessor {
         ugen = properties
       }else{
         for( let i = 0; i < rep.name.length; i++ ) { constructor = constructor[ rep.name[ i ] ] }
+        properties.id = rep.id
         ugen = properties.isop === true || properties.isPattern === true ? constructor( ...properties.inputs ) :  constructor( properties )
 
         if( properties.isPattern ) {
@@ -132,10 +133,10 @@ class GibberishProcessor extends AudioWorkletProcessor {
       //console.log( 'adding ugen:', ugen.id, ugen, rep )
       this.ugens.set( rep.id, ugen )
 
+      ugen.id = rep.id
       initialized = true
 
     }else if( event.data.address === 'method' ) {
-      //console.log( 'method:', event.data.name )
       //console.log( event.data.address, event.data.name, event.data.args, this.ugens )
       const dict = event.data
       const obj  = this.ugens.get( dict.object )
@@ -256,6 +257,9 @@ class GibberishProcessor extends AudioWorkletProcessor {
       }
       
       if( this.messages.length > 0 ) {
+        //for( let i = 1; i < this.callbackUgens.length - 1; i++ ) {
+        //  this.messages.push(
+        //}
         this.port.postMessage({ 
           address:'state', 
           messages:this.messages 

@@ -23,7 +23,7 @@ module.exports = function( Gibberish ) {
     },
 
     create( _props ) {
-      const props = Object.assign({}, Bus.defaults, _props )
+      const props = Object.assign({}, Bus.defaults, { inputs:[0] }, _props )
 
       const sum = Gibberish.binops.Add( ...props.inputs )
       const mul = Gibberish.binops.Mul( sum, props.gain )
@@ -69,7 +69,9 @@ module.exports = function( Gibberish ) {
       }
     },
 
-    defaults: { gain:1, inputs:[0], pan:.5 }
+    // can't include inputs here as it will be sucked up by Gibber,
+    // instead pass during Object.assign() after defaults.
+    defaults: { gain:1, pan:.5 }
   })
 
   const constructor = Bus.create.bind( Bus )

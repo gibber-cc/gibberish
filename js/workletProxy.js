@@ -74,16 +74,19 @@ const __proxy = function( __name, values, obj ) {
         if( typeof target[ prop ] === 'function' && prop.indexOf('__') === -1) {
           const proxy = new Proxy( target[ prop ], {
             apply( __target, thisArg, args ) {
-              const __args = args.map( __value => replaceObj( __value, true ) )
-              //if( prop === 'connect' ) console.log( 'proxy connect:', __args )
 
-              //console.log( 'args:', prop,  __args )
-              Gibberish.worklet.port.postMessage({ 
-                address:'method', 
-                object:obj.id,
-                name:prop,
-                args:__args
-              })
+              if( Gibberish.proxyEnabled === true ) {
+                const __args = args.map( __value => replaceObj( __value, true ) )
+                //if( prop === 'connect' ) console.log( 'proxy connect:', __args )
+
+                //console.log( 'args:', prop,  __args )
+                Gibberish.worklet.port.postMessage({ 
+                  address:'method', 
+                  object:obj.id,
+                  name:prop,
+                  args:__args
+                })
+              }
 
               return target[ prop ].apply( thisArg, args )
             }
@@ -107,7 +110,7 @@ const __proxy = function( __name, values, obj ) {
                 value:__value
               })
             }
-            }
+          }
         }
 
         target[ prop ] = value
