@@ -7,7 +7,7 @@ module.exports = function( Gibberish ) {
   const Bus = Object.create( ugen )
 
   Object.assign( Bus, {
-    __gain : {
+    gain: {
       set( v ) {
         this.mul.inputs[ 1 ] = v
         Gibberish.dirty( this )
@@ -34,12 +34,11 @@ module.exports = function( Gibberish ) {
       graph.mul = mul
       graph.disconnectUgen = Bus.disconnectUgen
 
-      Object.defineProperty( graph, 'gain', Bus.__gain )
-
       graph.__properties__ = props
 
       const out = proxy( ['Bus'], props, graph )
 
+      Object.defineProperty( out, 'gain', Bus.gain )
 
       if( false && Gibberish.preventProxy === false && Gibberish.mode === 'worklet' ) {
         const meta = {

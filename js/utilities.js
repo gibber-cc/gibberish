@@ -132,9 +132,7 @@ const utilities = {
         const value = messages[ i + 2 ]
         const obj = Gibberish.worklet.ugens.get( id )
 
-        //console.log( id, propName, value )
-
-        if( obj !== undefined && propName.indexOf('.') === -1 ) { 
+        if( obj !== undefined && propName.indexOf('.') === -1 && propName !== 'id' ) { 
           if( obj[ propName ] !== undefined ) {
             if( typeof obj[ propName ] !== 'function' ) {
               obj[ propName ] = value
@@ -142,7 +140,7 @@ const utilities = {
               obj[ propName ]( value )
             }
           }else{
-            //console.log( 'undefined single property:', id, propName, value, obj )
+            obj[ propName ] = value
           }
         }else if( obj !== undefined ) {
           const propSplit = propName.split('.')

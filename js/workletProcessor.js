@@ -149,13 +149,14 @@ class GibberishProcessor extends AudioWorkletProcessor {
         obj[ dict.name ]( ...dict.args.map( Gibberish.proxyReplace ) ) 
       }
     }else if( event.data.address === 'property' ) {
+      // XXX this is the exact same as the 'set' key... ugh.
       const dict = event.data
       const obj  = this.ugens.get( dict.object )
       obj[ dict.name ] = dict.value
     }else if( event.data.address === 'print' ) {
       const dict = event.data
       const obj  = this.ugens.get( dict.object )
-      console.log( 'printing:', dict.object, obj )
+      console.log( 'printing:', dict.object, obj, event.data )
     }else if( event.data.address === 'set' ) {
       const dict = event.data
       const obj = this.ugens.get( dict.object )
@@ -255,11 +256,16 @@ class GibberishProcessor extends AudioWorkletProcessor {
         output[0][ i ] = out[0]
         output[1][ i ] = out[1] 
       }
-      
+      if( ugens.length > 1 ) {
+        for( let i = 1; i < ugens.length - 1; i++ ) {
+          const ugen = ugens[ i ]
+          if( ugen.out !== undefined ) {
+            this.messages.push( ugen.id, 'output', ugen.out[ 0 ] )
+          }
+        }
+      }     
       if( this.messages.length > 0 ) {
-        //for( let i = 1; i < this.callbackUgens.length - 1; i++ ) {
-        //  this.messages.push(
-        //}
+ 
         this.port.postMessage({ 
           address:'state', 
           messages:this.messages 
