@@ -36,7 +36,7 @@ module.exports = function( Gibberish ) {
 
       graph.__properties__ = props
 
-      const out = proxy( ['Bus'], props, graph )
+      const out = props.__useProxy__ === true ? proxy( ['Bus'], props, graph ) : graph
 
       Object.defineProperty( out, 'gain', Bus.gain )
 
@@ -70,7 +70,7 @@ module.exports = function( Gibberish ) {
 
     // can't include inputs here as it will be sucked up by Gibber,
     // instead pass during Object.assign() after defaults.
-    defaults: { gain:1, pan:.5 }
+    defaults: { gain:1, pan:.5, __useProxy__:true }
   })
 
   const constructor = Bus.create.bind( Bus )

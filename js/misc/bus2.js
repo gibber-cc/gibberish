@@ -23,7 +23,7 @@ module.exports = function( Gibberish ) {
 
       let init = false
 
-      const props = Object.assign({}, __props, Bus2.defaults )
+      const props = Object.assign({}, Bus2.defaults, __props )
 
       Object.assign( 
         bus,
@@ -75,7 +75,7 @@ module.exports = function( Gibberish ) {
 
       bus.ugenName = bus.callback.ugenName = 'bus2_' + bus.id
 
-      const out = bus.__useProxy__ ? proxy( ['Bus2'], props, bus ) : bus
+      const out = bus.__useProxy__ === true ? proxy( ['Bus2'], props, bus ) : bus
 
 
       // we have to include custom properties for these as the argument list for
