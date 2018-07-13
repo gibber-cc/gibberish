@@ -124,8 +124,10 @@ const utilities = {
     state( event ){
       const messages = event.data.messages
       if( messages.length === 0 ) return
-      
+
+      // XXX is preventProxy actually used?
       Gibberish.preventProxy = true
+      Gibberish.proxyEnabled = false
       for( let i = 0; i < messages.length; i+= 3 ) {
         const id = messages[ i ] 
         const propName = messages[ i + 1 ]
@@ -158,6 +160,7 @@ const utilities = {
         // console.log( propName, value, obj )
       }
       Gibberish.preventProxy = false
+      Gibberish.proxyEnabled = true
     }
   },
 

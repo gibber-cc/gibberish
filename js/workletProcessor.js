@@ -196,6 +196,8 @@ class GibberishProcessor extends AudioWorkletProcessor {
     }else if( event.data.address === 'dirty' ) {
       const obj = this.ugens.get( event.data.id )
       Gibberish.dirty( obj )
+    }else if( event.data.address === 'initialize' ) {
+      initialized = true
     }else if( event.data.address === 'addToProperty' ) {
       const dict = event.data
       const obj  = this.ugens.get( dict.object )

@@ -1,6 +1,6 @@
 // XXX TOO MANY GLOBAL GIBBERISH VALUES
 
-//const Gibberish = require( '../index.js' )
+const Gibberish = require( '../index.js' )
 
 module.exports = {
   note( freq, gain ) {
@@ -63,7 +63,7 @@ module.exports = {
 
     // XXX uncomment this line to turn on dynamically connecting
     // disconnecting individual voices from graph
-    Gibberish.blockCallbacks.push( envCheck )
+    //Gibberish.blockCallbacks.push( envCheck )
   },
 
   __getVoice__() {
@@ -72,7 +72,7 @@ module.exports = {
 
   chord( frequencies ) {
     // will be sent to processor node via proxy method...
-    if( Gibberish.mode !== 'worklet' ) {
+    if( Gibberish !== undefined && Gibberish.mode !== 'worklet' ) {
       frequencies.forEach( v => this.note( v ) )
       this.triggerChord = frequencies
     }
