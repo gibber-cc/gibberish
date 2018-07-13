@@ -46,6 +46,8 @@ module.exports = function( Gibberish ) {
       properties.panVoices = true//false//properties.isStereo
       synth.callback.ugenName = synth.ugenName
 
+      if( properties.id !== undefined ) delete properties.id 
+
       for( let i = 0; i < synth.maxVoices; i++ ) {
         synth.voices[i] = ugen( properties )
         synth.voices[i].callback.ugenName = synth.voices[i].ugenName
@@ -69,7 +71,7 @@ module.exports = function( Gibberish ) {
 
   TemplateFactory.setupProperties = function( synth, ugen, props ) {
     for( let property of props ) {
-      if( property === 'pan' ) continue
+      if( property === 'pan' || property === 'id' ) continue
       Object.defineProperty( synth, property, {
         get() {
           return synth.properties[ property ] || ugen.defaults[ property ]

@@ -55,13 +55,24 @@ const __ugen = function( __Gibberish ) {
       if( target === undefined ){
         if( Array.isArray( this.connected ) ) {
           for( let connection of this.connected ) {
-            connection[0].disconnectUgen( connection[1] )
+            if( connection[0].disconnectUgen !== undefined ) {
+              connection[0].disconnectUgen( connection[1] )
+            }else if( connection[0].input === this ) {
+              connection[0].input = 0
+            }
           }
           this.connected.length = 0
         }
       }else{
         const connection = this.connected.find( v => v[0] === target )
-        target.disconnectUgen( connection[1] )
+        // if target is a bus...
+        if( target.disconnectUgen !== undefined ) {
+          target.disconnectUgen( connection[1] )
+        }else{
+          // must be an effect, set input to 0
+          target.input = 0
+        }
+
         const targetIdx = this.connected.indexOf( connection )
         this.connected.splice( targetIdx, 1 )
       }
@@ -104,7 +115,9 @@ const __ugen = function( __Gibberish ) {
             }
           }else if( connection[0].input !== undefined ) {
             //console.log( 'redo graph???' )
-            connection[0].__redoGraph()
+            if( connection[0].__redoGraph !== undefined ) {
+              connection[0].__redoGraph()
+            }
           }
         }
       }

@@ -109,7 +109,7 @@ module.exports = function( Gibberish ) {
           set( v ) {
             if( value !== v ) {
               if( !isNaN( v ) ) {
-                let idx = ugen.__addrresses__[ prop ]
+                let idx = ugen.__addresses__[ prop ]
                 if( idx === undefined ){
                   idx = Gibberish.memory.alloc( 1 )
                   ugen.__addresses__[ prop ] = idx

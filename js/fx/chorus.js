@@ -47,7 +47,7 @@ let __Chorus = inputProps => {
     const ms = sampleRate / 1000 
     const maxDelayTime = 1000 * ms
 
-    console.log( 'sr:', sampleRate, 'ms:', ms, 'maxDelayTime:', maxDelayTime )
+    //console.log( 'sr:', sampleRate, 'ms:', ms, 'maxDelayTime:', maxDelayTime )
 
     const time1 =  g.mul( g.add( slowPeek1, fastPeek1, 5 ), ms ),
           time2 =  g.mul( g.add( slowPeek2, fastPeek2, 5 ), ms ),
@@ -84,9 +84,9 @@ let __Chorus = inputProps => {
 __Chorus.defaults = {
   input:0,
   slowFrequency: .18,
-  slowGain:1,
+  slowGain:3,
   fastFrequency:6,
-  fastGain:.2,
+  fastGain:1,
   inputGain:1
 }
 

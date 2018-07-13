@@ -79,7 +79,6 @@ const __proxy = function( __name, values, obj ) {
                 const __args = args.map( __value => replaceObj( __value, true ) )
                 //if( prop === 'connect' ) console.log( 'proxy connect:', __args )
 
-                //console.log( 'args:', prop,  __args )
                 Gibberish.worklet.port.postMessage({ 
                   address:'method', 
                   object:obj.id,
@@ -88,7 +87,11 @@ const __proxy = function( __name, values, obj ) {
                 })
               }
 
-              return target[ prop ].apply( thisArg, args )
+              const temp = Gibberish.proxyEnabled
+              Gibberish.proxyEnabled = false
+              const out =  __target.apply( thisArg, args )
+              Gibberish.proxyEnabled = temp
+              return out
             }
           })
           
