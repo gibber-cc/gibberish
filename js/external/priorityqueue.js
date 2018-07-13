@@ -15,6 +15,8 @@
  *
  * var heapq = new HeapQueue();
  *
+ * //IF NEGATIVE, RETURN A
+ *
  * var customq = new HeapQueue(function(a, b){
  *   // if b > a, return negative
  *   // means that it spits out the smallest item first
@@ -54,7 +56,7 @@
  * heapq.pop(); // ==> 2
  * heapq.pop(); // ==> 3
  */
-let HeapQueue = function(cmp){
+const HeapQueue = function(cmp){
   this.cmp = (cmp || function(a, b){ return a - b; });
   this.length = 0;
   this.data = [];

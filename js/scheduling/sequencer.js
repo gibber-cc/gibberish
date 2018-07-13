@@ -1,5 +1,3 @@
-const Queue = require( '../external/priorityqueue.js' )
-const Big   = require( 'big.js' )
 const __proxy = require( '../workletProxy.js' )
 
 module.exports = function( Gibberish ) {
@@ -15,7 +13,7 @@ const Sequencer = props => {
     __timingsPhase: 0,
     __type:'seq',
 
-    tick() {
+    tick( priority ) {
       let value  = typeof seq.values  === 'function' ? seq.values  : seq.values[  seq.__valuesPhase++  % seq.values.length  ],
           timing = typeof seq.timings === 'function' ? seq.timings : seq.timings[ seq.__timingsPhase++ % seq.timings.length ],
           shouldRun = true
@@ -46,8 +44,10 @@ const Sequencer = props => {
         }
       }
       
-      if( seq.__isRunning === true && !isNaN( timing ) ) {
-        Gibberish.scheduler.add( timing, seq.tick, seq.priority )
+      if( Gibberish.mode === 'processor' ) {
+        if( seq.__isRunning === true && !isNaN( timing ) ) {
+          Gibberish.scheduler.add( timing, seq.tick, seq.priority )
+        }
       }
     },
 
@@ -70,16 +70,15 @@ const Sequencer = props => {
   Object.assign( seq, properties ) 
   seq.__properties__ = properties
 
-  //console.log( 'sequencer:', Gibberish.mode, seq.values, seq.timings )
   __seq =  proxy( ['Sequencer'], properties, seq )
 
   return __seq
 }
 
-Sequencer.defaults = { priority:0, values:[], timings:[] }
+Sequencer.defaults = { priority:100000, values:[], timings:[] }
 
-Sequencer.make = function( values, timings, target, key ) {
-  return Sequencer({ values, timings, target, key })
+Sequencer.make = function( values, timings, target, key, priority ) {
+  return Sequencer({ values, timings, target, key, priority })
 }
 
 return Sequencer

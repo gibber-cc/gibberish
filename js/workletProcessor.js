@@ -155,8 +155,12 @@ class GibberishProcessor extends AudioWorkletProcessor {
       obj[ dict.name ] = dict.value
     }else if( event.data.address === 'print' ) {
       const dict = event.data
+      const obj  = this.ugens.get( dict.object ) 
+      console.log( 'printing:', dict.object, obj )
+    }else if( event.data.address === 'printProperty' ) {
+      const dict = event.data
       const obj  = this.ugens.get( dict.object )
-      console.log( 'printing:', dict.object, obj, event.data )
+      console.log( 'printing:', obj[ dict.name ] )    
     }else if( event.data.address === 'set' ) {
       const dict = event.data
       const obj = this.ugens.get( dict.object )

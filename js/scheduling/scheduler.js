@@ -6,7 +6,9 @@ let Scheduler = {
 
   queue: new Queue( ( a, b ) => {
     if( a.time === b.time ) { //a.time.eq( b.time ) ) {
-      return b.priority - a.priority
+      return a.priority < b.priority ? -1 : a.priority > b.priority ? 1 : 0;
+//b.priority - a.priority 
+
     }else{
       return a.time - b.time //a.time.minus( b.time )
     }
@@ -32,7 +34,7 @@ let Scheduler = {
       }
       
       while( this.phase >= next.time ) {
-        next.func()
+        next.func( next.priority )
         this.queue.pop()
         next = this.queue.peek()
 
