@@ -33,12 +33,23 @@ const __ugen = function( __Gibberish ) {
       if( target === undefined || target === null ) target = Gibberish.output 
 
 
+      // XXX I forgot, where is __addInput found? Can we control the
+      // level of the input?
       if( typeof target.__addInput == 'function' ) {
         target.__addInput( input )
       } else if( target.sum && target.sum.inputs ) {
         target.sum.inputs.push( input )
       } else if( target.inputs ) {
-        target.inputs.unshift( input, level, input.isStereo )
+        const idx = target.inputs.indexOf( input )
+
+        // if no connection exists...
+        if( idx === -1 ) {
+          target.inputs.unshift( input, level, input.isStereo )
+        }else{
+          // ... otherwise update the connection's level, which is stored
+          // one index higher in the input list.
+          target.inputs[ idx + 1 ] = level
+        }
       } else {
         target.input = input
         target.inputGain = level
@@ -46,7 +57,7 @@ const __ugen = function( __Gibberish ) {
 
       Gibberish.dirty( target )
 
-      this.connected.push([ target, input ])
+      this.connected.push([ target, input, level ])
       
       return this
     },
@@ -114,7 +125,6 @@ const __ugen = function( __Gibberish ) {
               connection[ 0 ].inputs[ inputIdx + 2 ] = this.isStereo
             }
           }else if( connection[0].input !== undefined ) {
-            //console.log( 'redo graph???' )
             if( connection[0].__redoGraph !== undefined ) {
               connection[0].__redoGraph()
             }
