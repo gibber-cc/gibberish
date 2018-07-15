@@ -1,111 +1,109 @@
-const g = require( 'genish.js' ),
-      instrument = require( './instrument.js' )
+const g = require('genish.js'),
+      instrument = require('./instrument.js');
 
-module.exports = function( Gibberish ) {
+const genish = g;
+
+module.exports = function (Gibberish) {
 
   const FM = inputProps => {
-    let syn = Object.create( instrument )
+    let syn = Object.create(instrument);
 
-    let frequency = g.in( 'frequency' ),
-        glide = g.in( 'glide' ),
-        slidingFreq = g.slide( frequency, glide, glide ),
-        cmRatio = g.in( 'cmRatio' ),
-        index = g.in( 'index' ),
-        feedback = g.in( 'feedback' ),
-        attack = g.in( 'attack' ), decay = g.in( 'decay' ),
-        sustain = g.in( 'sustain' ), sustainLevel = g.in( 'sustainLevel' ),
-        release = g.in( 'release' )
+    let frequency = g.in('frequency'),
+        glide = g.in('glide'),
+        slidingFreq = g.slide(frequency, glide, glide),
+        cmRatio = g.in('cmRatio'),
+        index = g.in('index'),
+        feedback = g.in('feedback'),
+        attack = g.in('attack'),
+        decay = g.in('decay'),
+        sustain = g.in('sustain'),
+        sustainLevel = g.in('sustainLevel'),
+        release = g.in('release'),
+        loudness = g.in('loudness');
 
-    const props = Object.assign( {}, FM.defaults, inputProps )
-    Object.assign( syn, props )
+    const props = Object.assign({}, FM.defaults, inputProps);
+    Object.assign(syn, props);
 
-    syn.__createGraph = function() {
-      const env = Gibberish.envelopes.factory( 
-        props.useADSR, 
-        props.shape, 
-        attack, decay, 
-        sustain, sustainLevel, 
-        release, 
-        props.triggerRelease
-      )
+    syn.__createGraph = function () {
+      const env = Gibberish.envelopes.factory(props.useADSR, props.shape, attack, decay, sustain, sustainLevel, release, props.triggerRelease);
 
-      const feedbackssd = g.history( 0 )
+      const feedbackssd = g.history(0);
 
-      const modOsc = Gibberish.oscillators.factory( 
-              syn.modulatorWaveform, 
-              g.add( g.mul( slidingFreq, cmRatio ), g.mul( feedbackssd.out, feedback, index ) ), 
-              syn.antialias 
-            )
+      const modOsc = Gibberish.oscillators.factory(syn.modulatorWaveform, g.add(g.mul(slidingFreq, cmRatio), g.mul(feedbackssd.out, feedback, index)), syn.antialias);
 
-      const modOscWithIndex = g.mul( modOsc, g.mul( slidingFreq, index ) )
-      const modOscWithEnv   = g.mul( modOscWithIndex, env )
-      
-      const modOscWithEnvAvg = g.mul( .5, g.add( modOscWithEnv, feedbackssd.out ) )
+      {
+        'use jsdsp';
+        const modOscWithIndex = genish.mul(genish.mul(genish.mul(modOsc, slidingFreq), index), loudness);
+        const modOscWithEnv = genish.mul(modOscWithIndex, env);
 
-      feedbackssd.in( modOscWithEnvAvg )
+        const modOscWithEnvAvg = genish.mul(.5, genish.add(modOscWithEnv, feedbackssd.out));
 
-      const carrierOsc = Gibberish.oscillators.factory( syn.carrierWaveform, g.add( slidingFreq, modOscWithEnvAvg ), syn.antialias )
-      const carrierOscWithEnv = g.mul( carrierOsc, env )
+        feedbackssd.in(modOscWithEnvAvg);
 
-      const baseCutoffFreq = g.mul( g.in('cutoff'), frequency )
-      const cutoff = g.mul( g.mul( baseCutoffFreq, g.pow( 2, g.in('filterMult') )), env )
-      //const cutoff = g.add( g.in('cutoff'), g.mul( g.in('filterMult'), env ) )
-      const filteredOsc = Gibberish.filters.factory( carrierOscWithEnv, cutoff, g.in('Q'), g.in('saturation'), syn )
+        const carrierOsc = Gibberish.oscillators.factory(syn.carrierWaveform, g.add(slidingFreq, modOscWithEnvAvg), syn.antialias);
+        const carrierOscWithEnv = genish.mul(carrierOsc, env);
 
-      const synthWithGain = g.mul( filteredOsc, g.in( 'gain' ) )
-      
-      let panner
-      if( props.panVoices === true ) { 
-        panner = g.pan( synthWithGain, synthWithGain, g.in( 'pan' ) ) 
-        syn.graph = [panner.left, panner.right ]
-      }else{
-        syn.graph = synthWithGain
+        const baseCutoffFreq = genish.mul(g.in('cutoff'), frequency);
+        const cutoff = genish.mul(genish.mul(baseCutoffFreq, g.pow(2, genish.mul(g.in('filterMult'), loudness))), env);
+        //const cutoff = g.add( g.in('cutoff'), g.mul( g.in('filterMult'), env ) )
+        const filteredOsc = Gibberish.filters.factory(carrierOscWithEnv, cutoff, g.in('Q'), g.in('saturation'), syn);
+
+        const synthWithGain = genish.mul(genish.mul(filteredOsc, g.in('gain')), loudness);
+
+        let panner;
+        if (props.panVoices === true) {
+          panner = g.pan(synthWithGain, synthWithGain, g.in('pan'));
+          syn.graph = [panner.left, panner.right];
+        } else {
+          syn.graph = synthWithGain;
+        }
       }
 
-      syn.env = env
-    }
-    
-    syn.__requiresRecompilation = [ 'carrierWaveform', 'modulatorWaveform', 'antialias', 'filterType', 'filterMode' ]
-    syn.__createGraph()
+      syn.env = env;
+    };
 
-    const out = Gibberish.factory( syn, syn.graph , ['instruments','FM'], props )
+    syn.__requiresRecompilation = ['carrierWaveform', 'modulatorWaveform', 'antialias', 'filterType', 'filterMode'];
+    syn.__createGraph();
 
-    return out
-  }
+    const out = Gibberish.factory(syn, syn.graph, ['instruments', 'FM'], props);
+
+    return out;
+  };
 
   FM.defaults = {
-    carrierWaveform:'sine',
-    modulatorWaveform:'sine',
+    carrierWaveform: 'sine',
+    modulatorWaveform: 'sine',
     attack: 44,
     feedback: 0,
     decay: 22050,
-    sustain:44100,
-    sustainLevel:.6,
-    release:22050,
-    useADSR:false,
-    shape:'linear',
-    triggerRelease:false,
+    sustain: 44100,
+    sustainLevel: .6,
+    release: 22050,
+    useADSR: false,
+    shape: 'linear',
+    triggerRelease: false,
     gain: .25,
-    cmRatio:2,
-    index:5,
-    pulsewidth:.25,
-    frequency:220,
+    cmRatio: 2,
+    index: 5,
+    pulsewidth: .25,
+    frequency: 220,
     pan: .5,
-    antialias:false,
-    panVoices:false,
-    glide:1,
-    saturation:1,
-    filterMult:1.5,
-    Q:.25,
-    cutoff:.35,
-    filterType:0,
-    filterMode:0,
-    isLowPass:1
-  }
+    antialias: false,
+    panVoices: false,
+    glide: 1,
+    saturation: 1,
+    filterMult: 1.5,
+    Q: .25,
+    cutoff: .35,
+    filterType: 0,
+    filterMode: 0,
+    isLowPass: 1,
+    loudness: 1
 
-  const PolyFM = Gibberish.PolyTemplate( FM, ['glide','frequency','attack','decay','pulsewidth','pan','gain','cmRatio','index', 'saturation', 'filterMult', 'Q', 'cutoff', 'antialias', 'filterType', 'carrierWaveform', 'modulatorWaveform','filterMode', 'feedback', 'useADSR', 'sustain', 'release', 'sustainLevel' ] ) 
-  PolyFM.defaults = FM.defaults
+  };
 
-  return [ FM, PolyFM ]
+  const PolyFM = Gibberish.PolyTemplate(FM, ['glide', 'frequency', 'attack', 'decay', 'pulsewidth', 'pan', 'gain', 'cmRatio', 'index', 'saturation', 'filterMult', 'Q', 'cutoff', 'antialias', 'filterType', 'carrierWaveform', 'modulatorWaveform', 'filterMode', 'feedback', 'useADSR', 'sustain', 'release', 'sustainLevel']);
+  PolyFM.defaults = FM.defaults;
 
-}
+  return [FM, PolyFM];
+};

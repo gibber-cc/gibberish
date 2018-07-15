@@ -5,7 +5,7 @@ const instrument = Object.create( ugen )
 Object.assign( instrument, {
   type:'instrument',
 
-  note( freq ) {
+  note( freq, loudness=null ) {
     // if binop is should be used...
     if( isNaN( this.frequency ) ) { 
       // and if we are assigning binop for the first time...
@@ -21,11 +21,13 @@ Object.assign( instrument, {
       this.frequency = freq
     }
 
+    if( loudness !== null ) this.loudness = loudness 
+
     this.env.trigger()
   },
 
-  trigger( gain = 1 ) {
-    this.gain = gain
+  trigger( loudness = 1 ) {
+    this.loudness = loudness
     this.env.trigger()
   },
 
