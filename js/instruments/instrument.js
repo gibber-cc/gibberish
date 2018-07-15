@@ -24,8 +24,8 @@ Object.assign( instrument, {
     this.env.trigger()
   },
 
-  trigger( _gain = 1 ) {
-    this.gain = _gain
+  trigger( gain = 1 ) {
+    this.gain = gain
     this.env.trigger()
   },
 

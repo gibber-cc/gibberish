@@ -159,10 +159,11 @@ let Gibberish = {
         args:[]
       })
     }
-
-    // clear memory... XXX should this be a MemoryHelper function?
-    this.memory.heap.fill(0)
-    this.memory.list = {}
+      // clear memory... XXX should this be a MemoryHelper function?
+    //this.memory.heap.fill(0)
+    //this.memory.list = {}
+    //Gibberish.output = this.Bus2()
+    
   },
 
   generateCallback() {

@@ -78,14 +78,19 @@ const __ugen = function( __Gibberish ) {
         const connection = this.connected.find( v => v[0] === target )
         // if target is a bus...
         if( target.disconnectUgen !== undefined ) {
-          target.disconnectUgen( connection[1] )
+          if( connection !== undefined ) {
+            target.disconnectUgen( connection[1] )
+          }
         }else{
           // must be an effect, set input to 0
           target.input = 0
         }
 
         const targetIdx = this.connected.indexOf( connection )
-        this.connected.splice( targetIdx, 1 )
+
+        if( targetIdx !== -1 ) {
+          this.connected.splice( targetIdx, 1 )
+        }
       }
     },
 

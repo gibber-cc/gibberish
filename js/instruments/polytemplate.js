@@ -46,9 +46,11 @@ module.exports = function( Gibberish ) {
       properties.panVoices = true//false//properties.isStereo
       synth.callback.ugenName = synth.ugenName
 
+      const storedId = properties.id
       if( properties.id !== undefined ) delete properties.id 
 
       for( let i = 0; i < synth.maxVoices; i++ ) {
+        properties.id = synth.id +'_'+i
         synth.voices[i] = ugen( properties )
         synth.voices[i].callback.ugenName = synth.voices[i].ugenName
         synth.voices[i].isConnected = false
@@ -60,6 +62,8 @@ module.exports = function( Gibberish ) {
         const idx =  _propertyList.indexOf( 'pan' )
         if( idx  > -1 ) _propertyList.splice( idx, 1 )
       }
+
+      properties.id = storedId
 
       TemplateFactory.setupProperties( synth, ugen, properties.isStereo ? propertyList : _propertyList )
 

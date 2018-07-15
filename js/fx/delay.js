@@ -60,7 +60,7 @@ let Delay = inputProps => {
 
 Delay.defaults = {
   input:0,
-  feedback:.75,
+  feedback:.5,
   time: 11025,
   wetdry: .5
 }
