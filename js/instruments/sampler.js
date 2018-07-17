@@ -34,6 +34,7 @@ module.exports = function( Gibberish ) {
 
     const start = g.in( 'start' ), end = g.in( 'end' ), 
           rate = g.in( 'rate' ), shouldLoop = g.in( 'loops' ),
+          loudness = g.in( 'loudness' ),
           // rate storage is used to determine whether we're playing
           // the sample forward or in reverse, for use in the 'trigger' method.
           rateStorage = g.data([0], 1, { meta:true })
@@ -76,7 +77,7 @@ module.exports = function( Gibberish ) {
           ),
           0
         ), 
-        g.in('gain') 
+        g.mul( loudness, g.in('gain') )
       ), rateStorage[0], g.mul( rateStorage[0], -1 ) )
     }
 

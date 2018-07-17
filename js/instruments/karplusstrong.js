@@ -21,7 +21,7 @@ module.exports = function( Gibberish ) {
           delay = g.delay( g.add( impulse, feedback.out ), g.div( sampleRate, slidingFrequency ), { size:2048 }),
           decayed = g.mul( delay, g.t60( g.mul( g.in('decay'), slidingFrequency ) ) ),
           damped =  g.mix( decayed, feedback.out, g.in('damping') ),
-          withGain = g.mul( damped, g.in('gain') )
+          withGain = g.mul( damped, g.mul( g.in('loudness'),g.in('gain')) )
 
     feedback.in( damped )
 
@@ -55,7 +55,8 @@ module.exports = function( Gibberish ) {
     frequency:220,
     pan: .5,
     glide:1,
-    panVoices:false
+    panVoices:false,
+    loudness:1
   }
 
   let envCheckFactory = ( syn,synth ) => {

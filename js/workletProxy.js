@@ -3,7 +3,7 @@ const serialize = require('serialize-javascript')
 module.exports = function( Gibberish ) {
 
 const replaceObj = function( obj, shouldSerializeFunctions = true ) {
-  if( typeof obj === 'object' && obj.id !== undefined ) {
+  if( typeof obj === 'object' && obj !== null && obj.id !== undefined ) {
     if( obj.__type !== 'seq' ) { // XXX why?
       return { id:obj.id, prop:obj.prop }
     }else{

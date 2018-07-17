@@ -7,7 +7,8 @@ module.exports = function( Gibberish ) {
     let cowbell = Object.create( instrument )
     
     const decay   = g.in( 'decay' ),
-          gain    = g.in( 'gain' )
+          gain    = g.in( 'gain' ),
+          loudness = g.in( 'loudness' )
 
     const props = Object.assign( {}, Cowbell.defaults, argumentProps )
 
@@ -17,7 +18,7 @@ module.exports = function( Gibberish ) {
           eg = g.decay( g.mul( decay, g.gen.samplerate * 2 ) ), 
           bpf = g.svf( g.add( s1,s2 ), bpfCutoff, 3, 2, false ),
           envBpf = g.mul( bpf, eg ),
-          out = g.mul( envBpf, gain )
+          out = g.mul( envBpf, g.mul( gain, loudness ) )
 
     cowbell.env = eg 
 
