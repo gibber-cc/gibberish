@@ -29,8 +29,10 @@ const Sequencer = props => {
         }else{
           shouldRun = false
         }
-        timing = timing.time
+        timing = timing.time 
       }
+
+      timing *= seq.rate
 
       if( shouldRun ) {
         if( typeof value === 'function' && seq.target === undefined ) {
@@ -75,7 +77,7 @@ const Sequencer = props => {
   return __seq
 }
 
-Sequencer.defaults = { priority:100000, values:[], timings:[] }
+Sequencer.defaults = { priority:100000, values:[], timings:[], rate:1 }
 
 Sequencer.make = function( values, timings, target, key, priority ) {
   return Sequencer({ values, timings, target, key, priority })

@@ -151,6 +151,7 @@ module.exports = function( Gibberish ) {
     loops: 0,
     start:0,
     end:-999999999,
+    loudness:1
   }
 
   const envCheckFactory = function( voice, _poly ) {

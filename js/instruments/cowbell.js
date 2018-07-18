@@ -31,7 +31,8 @@ module.exports = function( Gibberish ) {
   
   Cowbell.defaults = {
     gain: 1,
-    decay:.5
+    decay:.5,
+    loudness:1
   }
 
   return Cowbell

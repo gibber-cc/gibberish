@@ -8,15 +8,13 @@ module.exports = function( Gibberish ) {
     let bufferShuffler = Object.create( proto ),
         bufferSize = 88200
 
+    const props = Object.assign( {}, Shuffler.defaults, effect.defaults, inputProps )
+    
     let out
-
     bufferShuffler.__createGraph = function() {
-
-      const props = Object.assign( {}, Shuffler.defaults, effect.defaults, inputProps )
-
       let isStereo = false
       if( out === undefined ) {
-        isStereo = typeof props.input.isStereo !== 'undefined' ? props.input.isStereo : false 
+        isStereo = typeof props.input.isStereo !== 'undefined' ? props.input.isStereo : true 
       }else{
         isStereo = out.input.isStereo
         //out.isStereo = isStereo

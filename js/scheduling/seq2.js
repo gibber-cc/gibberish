@@ -9,7 +9,8 @@ module.exports = function( Gibberish ) {
 
   Object.assign( __proto__, {
     start() {
-      this.connect()
+      Gibberish.analyzers.push( this )
+      Gibberish.dirty( Gibberish.analyzers )
       return this
     },
     stop() {
@@ -21,7 +22,7 @@ module.exports = function( Gibberish ) {
   const Seq2 = { 
     create( inputProps ) {
       const seq = Object.create( __proto__ ),
-            props = Object.assign({}, Seq2.defaults, inputProps )
+            properties = Object.assign({}, Seq2.defaults, inputProps )
 
       seq.phase = 0
       seq.inputNames = [ 'rate' ]
@@ -32,19 +33,18 @@ module.exports = function( Gibberish ) {
       seq.id = Gibberish.factory.getUID()
       seq.dirty = true
       seq.type = 'seq'
-      seq.__properties__ = props
+      seq.__addresses__ = {}
 
-      if( props.target === undefined ) {
+      if( properties.target === undefined ) {
         seq.anonFunction = true
       }else{ 
         seq.anonFunction = false
-        seq.callFunction = typeof props.target[ props.key ] === 'function'
+        seq.callFunction = typeof properties.target[ properties.key ] === 'function'
       }
 
-      props.id = Gibberish.factory.getUID()
+      properties.id = Gibberish.factory.getUID()
 
       // need a separate reference to the properties for worklet meta-programming
-      const properties = Object.assign( {}, Seq2.defaults, props )
       Object.assign( seq, properties ) 
       seq.__properties__ = properties
 
@@ -77,18 +77,23 @@ module.exports = function( Gibberish ) {
 
       seq.ugenName = seq.callback.ugenName = 'seq_' + seq.id
       
+      const idx = Gibberish.memory.alloc( 1 )
+      Gibberish.memory.heap[ idx ] = seq.rate
+      seq.__addresses__.rate = idx
+
       let value = seq.rate
       Object.defineProperty( seq, 'rate', {
         get() { return value },
         set( v ) {
           if( value !== v ) {
-            Gibberish.dirty( seq )
+            Gibberish.memory.heap[ idx ] = v
+            Gibberish.dirty( Gibberish.analyzers )
             value = v
           }
         }
       })
 
-      return proxy( ['Sequencer2'], props, seq ) 
+      return proxy( ['Sequencer2'], properties, seq ) 
     }
   }
 

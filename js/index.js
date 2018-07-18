@@ -288,10 +288,11 @@ let Gibberish = {
         }else{
           //if( key === 'memory' ) continue;
   
+          //console.log( 'ugen:', ugen, 'key:', key )
           input = ugen[ key ] 
         }
 
-        //if( Gibberish.mode === 'processor' ) console.log( 'processor input:', input, key, ugen )
+        //if( Gibberish.mode === 'processor' ) console.log( 'processor input:', key, input )
         if( input !== undefined ) { 
           if( input.bypass === true ) {
             // loop through inputs of chain until one is found
@@ -312,7 +313,6 @@ let Gibberish = {
 
           if( typeof input === 'number' ) {
             if( isNaN(key) ) {
-              //console.log( 'key:', key, input )
               line += `mem[${ugen.__addresses__[ key ]}]`//input
             }else{
               line += input
