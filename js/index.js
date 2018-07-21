@@ -166,6 +166,15 @@ let Gibberish = {
     
   },
 
+  // used to sort analysis ugens by priority.
+  // higher priorities mean lower ordering in the array,
+  // which means they will run first in the callback function.
+  // by defult, analysis ugens are assigned a priority of 0 in the
+  // analysis prototype.
+  analysisCompare( a,b ) {
+    return b.priority - a.priority
+  },
+
   generateCallback() {
     if( this.mode === 'worklet' ) {
       Gibberish.callback = function() { return 0 }
@@ -180,6 +189,7 @@ let Gibberish = {
     lastLine = callbackBody[ callbackBody.length - 1]
     callbackBody.unshift( "\t'use strict'" )
 
+    this.analyzers.sort( this.analysisCompare )
     this.analyzers.forEach( v=> {
       const analysisBlock = Gibberish.processUgen( v )
       //if( Gibberish.mode === 'processor' ) {
@@ -261,7 +271,7 @@ let Gibberish = {
     } else if( ugen.block === undefined || dirtyIndex !== -1 ) {
 
   
-      let line = `\tvar v_${ugen.id} = ` 
+      let line = `\tconst v_${ugen.id} = ` 
       
       if( !ugen.isop ) line += `${ugen.ugenName}( `
 

@@ -8,17 +8,28 @@ module.exports = function( Gibberish ) {
   const proxy = __proxy( Gibberish )
 
   Object.assign( __proto__, {
-    start() {
-      Gibberish.analyzers.push( this )
-      Gibberish.dirty( Gibberish.analyzers )
+    start( delay=0 ) {
+      if( delay !== 0 ) {
+        Gibberish.scheduler.add( delay, ()=> {
+          Gibberish.analyzers.push( this )
+          Gibberish.dirty( Gibberish.analyzers )
+        })
+      }else{
+        Gibberish.analyzers.push( this )
+        Gibberish.dirty( Gibberish.analyzers )
+      }
       return this
     },
     stop() {
-      this.disconnect()
+      const idx = Gibberish.analyzers.indexOf( this )
+      Gibberish.analyzers.splice( idx, 1 )
+      Gibberish.dirty( Gibberish.analyzers )
       return this
     }
   })
 
+  // XXX we need to implement priority, which will in turn determine the order
+  // that the sequencers are added to the callback function.
   const Seq2 = { 
     create( inputProps ) {
       const seq = Object.create( __proto__ ),
@@ -35,42 +46,16 @@ module.exports = function( Gibberish ) {
       seq.type = 'seq'
       seq.__addresses__ = {}
 
-      if( properties.target === undefined ) {
-        seq.anonFunction = true
-      }else{ 
-        seq.anonFunction = false
-        seq.callFunction = typeof properties.target[ properties.key ] === 'function'
-      }
-
       properties.id = Gibberish.factory.getUID()
 
-      // need a separate reference to the properties for worklet meta-programming
       Object.assign( seq, properties ) 
       seq.__properties__ = properties
 
+      
+      // XXX this needs to be optimized as much as humanly possible, since it's running at audio rate...
       seq.callback = function( rate ) {
         if( seq.phase >= seq.nextTime ) {
-          //let value = seq.values[ seq.valuesPhase++ % seq.values.length ]
-
-          //if( seq.anonFunction || typeof value === 'function' ) {
-          //  value = value()
-          //} else { 
-          //  if( seq.anonFunction === false ) {
-          //    if( seq.callFunction === false ) {
-          //      seq.target[ seq.key ] = value
-          //    }else{
-          //      seq.target[ seq.key ]( value ) 
-          //    }
-          //  }
-          //}
-
-          //seq.phase -= seq.nextTime
-
-          //let timing = seq.timings[ seq.timingsPhase++ % seq.timings.length ]
-          //if( typeof timing === 'function' ) timing = timing()
-
-          //seq.nextTime = timing
-          let value  = typeof seq.values  === 'function' ? seq.values  : seq.values[  seq.__valuesPhase++  % seq.values.length  ],
+          let value  = typeof seq.values  === 'function' ? seq.values  : seq.values[ seq.__valuesPhase++  % seq.values.length  ],
           timing = typeof seq.timings === 'function' ? seq.timings : seq.timings[ seq.__timingsPhase++ % seq.timings.length ],
           shouldRun = true
 
@@ -104,12 +89,6 @@ module.exports = function( Gibberish ) {
 
           seq.phase -= seq.nextTime
           seq.nextTime = timing
-          
-          //if( Gibberish.mode === 'processor' ) {
-          //  if( seq.__isRunning === true && !isNaN( timing ) ) {
-          //    Gibberish.scheduler.add( timing, seq.tick, seq.priority )
-          //  }
-          //}
         }
 
         seq.phase += rate
@@ -118,28 +97,32 @@ module.exports = function( Gibberish ) {
       }
 
       seq.ugenName = seq.callback.ugenName = 'seq_' + seq.id
-      
-      const idx = Gibberish.memory.alloc( 1 )
-      Gibberish.memory.heap[ idx ] = seq.rate
-      seq.__addresses__.rate = idx
 
-      let value = seq.rate
-      Object.defineProperty( seq, 'rate', {
-        get() { return value },
-        set( v ) {
-          if( value !== v ) {
-            Gibberish.memory.heap[ idx ] = v
-            Gibberish.dirty( Gibberish.analyzers )
-            value = v
-          }
-        }
-      })
+      console.log( 'gibberish rate:', seq.rate )
+      // since we're not passing our sequencer through the ugen template, we need
+      // to grab a memory address for its rate so it can be sequenced and define
+      // a property that manipulates that memory address.
+      //const idx = Gibberish.memory.alloc( 1 )
+      //Gibberish.memory.heap[ idx ] = seq.rate
+      //seq.__addresses__.rate = idx
+
+      //let value = seq.rate
+      //Object.defineProperty( seq, 'rate', {
+      //  get() { return value },
+      //  set( v ) {
+      //    if( value !== v ) {
+      //      Gibberish.memory.heap[ idx ] = v
+      //      Gibberish.dirty( Gibberish.analyzers )
+      //      value = v
+      //    }
+      //  }
+      //})
 
       return proxy( ['Sequencer2'], properties, seq ) 
     }
   }
 
-  Seq2.defaults = { rate: 1 }
+  Seq2.defaults = { rate: 1, priority:0 }
 
   return Seq2.create
 
