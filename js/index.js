@@ -328,7 +328,7 @@ let Gibberish = {
               line += input
             }
           } else if( typeof input === 'boolean' ) {
-              line += '' + input
+            line += '' + input
           }else{
             //console.log( 'key:', key, 'input:', ugen.inputs, ugen.inputs[ key ] ) 
             // XXX not sure why this has to be here, but somehow non-processed objects
@@ -357,7 +357,19 @@ let Gibberish = {
           }
 
           if( i < keys.length - 1 ) {
-            line += ugen.isop ? ' ' + ugen.op + ' ' : ', ' 
+            if( ugen.isop === true ) {
+              if( ugen.op === '*' || ugen.op === '/' ) {
+                if( input != 1 ) {
+                  line += ' ' + ugen.op + ' '
+                }else{
+                  line = line.slice( 0, -1 * (''+input).length )
+                }
+              }else{
+                line += ' ' + ugen.op + ' '
+              }
+            }else{
+              line += ', '
+            }
           }
         }
       }

@@ -98,25 +98,25 @@ module.exports = function( Gibberish ) {
 
       seq.ugenName = seq.callback.ugenName = 'seq_' + seq.id
 
-      console.log( 'gibberish rate:', seq.rate )
       // since we're not passing our sequencer through the ugen template, we need
       // to grab a memory address for its rate so it can be sequenced and define
       // a property that manipulates that memory address.
-      //const idx = Gibberish.memory.alloc( 1 )
-      //Gibberish.memory.heap[ idx ] = seq.rate
-      //seq.__addresses__.rate = idx
+      const idx = Gibberish.memory.alloc( 1 )
+      Gibberish.memory.heap[ idx ] = seq.rate
+      seq.__addresses__.rate = idx
 
-      //let value = seq.rate
-      //Object.defineProperty( seq, 'rate', {
-      //  get() { return value },
-      //  set( v ) {
-      //    if( value !== v ) {
-      //      Gibberish.memory.heap[ idx ] = v
-      //      Gibberish.dirty( Gibberish.analyzers )
-      //      value = v
-      //    }
-      //  }
-      //})
+      let value = seq.rate
+      Object.defineProperty( seq, 'rate', {
+        get() { return value },
+        set( v ) {
+          if( value !== v ) {
+            if( typeof v === 'number' ) Gibberish.memory.heap[ idx ] = v
+
+            Gibberish.dirty( Gibberish.analyzers )
+            value = v
+          }
+        }
+      })
 
       return proxy( ['Sequencer2'], properties, seq ) 
     }
