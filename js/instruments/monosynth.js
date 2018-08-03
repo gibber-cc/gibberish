@@ -83,6 +83,7 @@ module.exports = function (Gibberish) {
     detune2: .005,
     detune3: -.005,
     cutoff: 1,
+    resonance: .25,
     Q: .5,
     panVoices: false,
     glide: 1,

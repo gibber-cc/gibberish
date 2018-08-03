@@ -24,7 +24,7 @@ module.exports = function( Gibberish ) {
 
     cowbell.isStereo = false
 
-    cowbell = Gibberish.factory( cowbell, out, ['insturments', 'cowbell'], props  )
+    cowbell = Gibberish.factory( cowbell, out, ['instruments', 'cowbell'], props  )
     
     return cowbell
   }

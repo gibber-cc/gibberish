@@ -6,7 +6,8 @@ const instruments = {
   Clave       : require( './conga.js' )( Gibberish ), // clave is same as conga with different defaults, see below
   Hat         : require( './hat.js' )( Gibberish ),
   Snare       : require( './snare.js' )( Gibberish ),
-  Cowbell     : require( './cowbell.js' )( Gibberish )
+  Cowbell     : require( './cowbell.js' )( Gibberish ),
+  Tom         : require( './tom.js' )( Gibberish )
 }
 
 instruments.Clave.defaults.frequency = 2500
