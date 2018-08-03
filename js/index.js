@@ -215,7 +215,7 @@ let Gibberish = {
     if( this.debug === true ) console.log( 'callback:\n', callbackBody.join('\n') )
     this.callbackNames.push( 'mem' )
     this.callbackUgens.push( this.memory.heap )
-    this.callback = Function( ...this.callbackNames, callbackBody.join( '\n' ) )
+    this.callback = Function( ...this.callbackNames, callbackBody.join( '\n' ) )//.bind( null, ...this.callbackUgens )
     this.callback.out = []
 
     if( this.oncallback ) this.oncallback( this.callback )

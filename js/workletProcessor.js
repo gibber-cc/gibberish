@@ -259,6 +259,8 @@ class GibberishProcessor extends AudioWorkletProcessor {
           //}
         }
         const out = callback.apply( null, ugens )
+        //const out = callback()
+
         output[0][ i ] = out[0]
         output[1][ i ] = out[1] 
       }
