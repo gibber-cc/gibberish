@@ -4,7 +4,7 @@ const g = require( 'genish.js' ),
 
 module.exports = function( Gibberish ) {
 
-  const Synth = argumentProps => {
+  const Mono = argumentProps => {
     const syn = Object.create( instrument ),
           oscs = [], 
           frequency = g.in( 'frequency' ),
@@ -15,7 +15,7 @@ module.exports = function( Gibberish ) {
           release = g.in( 'release' ),
           loudness = g.in( 'loudness' )
 
-    const props = Object.assign( {}, Synth.defaults, argumentProps )
+    const props = Object.assign( {}, Mono.defaults, argumentProps )
     Object.assign( syn, props )
 
     syn.__createGraph = function() {
@@ -71,7 +71,7 @@ module.exports = function( Gibberish ) {
     return out
   } 
   
-  Synth.defaults = {
+  Mono.defaults = {
     waveform: 'saw',
     attack: 44,
     decay: 22050,
@@ -101,11 +101,11 @@ module.exports = function( Gibberish ) {
     loudness:1
   }
 
-  let PolyMono = Gibberish.PolyTemplate( Synth, 
+  let PolyMono = Gibberish.PolyTemplate( Mono, 
     ['frequency','attack','decay','cutoff','Q',
      'detune2','detune3','pulsewidth','pan','gain', 'glide', 'saturation', 'filterMult',  'antialias', 'filterType', 'waveform', 'filterMode']
   ) 
-  PolyMono.defaults = Synth.defaults
+  PolyMono.defaults = Mono.defaults
 
-  return [ Synth, PolyMono ]
+  return [ Mono, PolyMono ]
 }
