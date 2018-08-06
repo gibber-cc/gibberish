@@ -195,11 +195,17 @@ let Gibberish = {
       //if( Gibberish.mode === 'processor' ) {
       //  console.log( 'analysis:', analysisBlock, v  )
       //}
-      const analysisLine = analysisBlock.pop()
+      let analysisLine
 
-      analysisBlock.forEach( v=> {
-        callbackBody.splice( callbackBody.length - 1, 0, v )
-      })
+      if( typeof analysisBlock === 'object' ) {
+        analysisLine = analysisBlock.pop()
+
+        analysisBlock.forEach( v => {
+          callbackBody.splice( callbackBody.length - 1, 0, v )
+        })
+      }else{
+        analysisLine = analysisBlock
+      }
 
       callbackBody.push( analysisLine )
     })
