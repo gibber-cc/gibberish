@@ -3,15 +3,16 @@ const g = require( 'genish.js' ),
 
 module.exports = function( Gibberish ) {
 
-  const KPS = inputProps => {
+  const Karplus = inputProps => {
 
-    const props = Object.assign( {}, KPS.defaults, inputProps )
+    const props = Object.assign( {}, Karplus.defaults, inputProps )
     let syn = Object.create( instrument )
     
     let sampleRate = Gibberish.ctx.sampleRate 
 
     const trigger = g.bang(),
-          phase = g.accum( 1, trigger, { shouldWrapMax:false } ),
+          // high initialValue stops triggering on initialization
+          phase = g.accum( 1, trigger, { shouldWrapMax:false, initialValue:1000000 } ),
           env = g.gtp( g.sub( 1, g.div( phase, 200 ) ), 0 ),
           impulse = g.mul( g.noise(), env ),
           feedback = g.history(),
@@ -27,7 +28,7 @@ module.exports = function( Gibberish ) {
 
     feedback.in( damped )
 
-    const properties = Object.assign( {}, KPS.defaults, props )
+    const properties = Object.assign( {}, Karplus.defaults, props )
 
     Object.assign( syn, {
       properties : props,
@@ -50,7 +51,7 @@ module.exports = function( Gibberish ) {
     return syn
   }
   
-  KPS.defaults = {
+  Karplus.defaults = {
     decay: .97,
     damping:.2,
     gain: .15,
@@ -78,9 +79,9 @@ module.exports = function( Gibberish ) {
     return envCheck
   }
 
-  const PolyKPS = Gibberish.PolyTemplate( KPS, ['frequency','decay','damping','pan','gain', 'glide'], envCheckFactory ) 
-  PolyKPS.defaults = KPS.defaults
+  const PolyKarplus = Gibberish.PolyTemplate( Karplus, ['frequency','decay','damping','pan','gain', 'glide'], envCheckFactory ) 
+  PolyKarplus.defaults = Karplus.defaults
 
-  return [ KPS, PolyKPS ]
+  return [ Karplus, PolyKarplus ]
 
 }
