@@ -27,7 +27,7 @@ let Scheduler = {
     if( this.queue.length ) {
       let next = this.queue.peek()
 
-      while( this.phase >= next.time ) {
+      while( next && this.phase >= next.time ) {
         next.func()
         this.queue.pop()
         next = this.queue.peek()
