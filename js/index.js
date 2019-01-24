@@ -37,7 +37,7 @@ let Gibberish = {
   },
 
   workletPath: './gibberish_worklet.js',
-  init( memAmount, ctx, mode ) {
+  init( memAmount, ctx, mode=null, sac=null ) {
 
     let numBytes = isNaN( memAmount ) ? 20 * 60 * 44100 : memAmount
 
@@ -50,7 +50,7 @@ let Gibberish = {
     this.memory = MemoryHelper.create( numBytes, Float64Array )
 
     this.mode = window.AudioWorklet !== undefined ? 'worklet' : 'scriptprocessor'
-    if( mode !== undefined ) this.mode = mode
+    if( mode !== null ) this.mode = mode
 
     this.hasWorklet = window.AudioWorklet !== undefined && typeof window.AudioWorklet === 'function'
 
@@ -63,7 +63,7 @@ let Gibberish = {
       const p = new Promise( (resolve, reject ) => {
 
         const pp = new Promise( (__resolve, __reject ) => {
-          this.utilities.createContext( ctx, startup.bind( this.utilities ), __resolve )
+          this.utilities.createContext( ctx, startup.bind( this.utilities ), __resolve, sac )
         }).then( ()=> {
           Gibberish.preventProxy = true
           Gibberish.load()
@@ -74,14 +74,14 @@ let Gibberish = {
         })
 
       })
+      
       return p
+
     }else if( this.mode === 'processor' ) {
       Gibberish.load()
       Gibberish.output = this.Bus2()
       Gibberish.callback = Gibberish.generateCallback()
     }
-
-
   },
 
   load() {

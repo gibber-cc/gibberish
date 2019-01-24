@@ -62,6 +62,8 @@ const makeAndSendObject = function( __name, values, obj ) {
 
 }
 
+const doNotProxy = [ 'connected', 'input', 'callback', 'inputNames' ]
+   
 const __proxy = function( __name, values, obj ) {
 
   if( Gibberish.mode === 'worklet' && Gibberish.preventProxy === false ) {
@@ -77,7 +79,6 @@ const __proxy = function( __name, values, obj ) {
 
               if( Gibberish.proxyEnabled === true ) {
                 const __args = args.map( __value => replaceObj( __value, true ) )
-                //if( prop === 'connect' ) console.log( 'proxy connect:', __args )
 
                 Gibberish.worklet.port.postMessage({ 
                   address:'method', 
@@ -101,7 +102,7 @@ const __proxy = function( __name, values, obj ) {
         return target[ prop ]
       },
       set( target, prop, value, receiver ) {
-        if( prop !== 'connected' && prop !== 'input' && prop !== 'callback' && prop !== 'inputNames' ) {
+        if( doNotProxy.indexOf( prop ) === -1 ) { 
           if( Gibberish.proxyEnabled === true ) {
             const __value = replaceObj( value )
 
@@ -124,7 +125,7 @@ const __proxy = function( __name, values, obj ) {
     })
 
     // XXX XXX XXX XXX XXX XXX
-    // REMEMBER THAT YOU MUST ASSIGNED THE RETURNED VALUE TO YOUR UGEN,
+    // REMEMBER THAT YOU MUST ASSIGN THE RETURNED VALUE TO YOUR UGEN,
     // YOU CANNOT USE THIS FUNCTION TO MODIFY A UGEN IN PLACE.
     // XXX XXX XXX XXX XXX XXX
 

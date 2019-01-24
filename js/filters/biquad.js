@@ -96,14 +96,14 @@ module.exports = function( Gibberish ) {
     
     Object.assign( biquad, props )
 
-    let isStereo = biquad.input.isStereo
+    let isStereo = props.isStereo || biquad.input.isStereo
 
     biquad.__createGraph = function() {
       biquad.graph = Gibberish.genish.biquad( g.in('input'), g.mul( g.in('cutoff'), g.gen.samplerate / 4 ),  g.in('Q'), biquad.mode, isStereo )
     }
 
     biquad.__createGraph()
-    biquad.__requiresRecompilation = [ 'mode' ]
+    biquad.__requiresRecompilation = [ 'mode', 'input' ]
 
     const __out = Gibberish.factory(
       biquad,

@@ -22,8 +22,10 @@ module.exports = function( Gibberish ) {
     },
     stop() {
       const idx = Gibberish.analyzers.indexOf( this )
-      Gibberish.analyzers.splice( idx, 1 )
-      Gibberish.dirty( Gibberish.analyzers )
+      if( idx > -1 ) {
+        Gibberish.analyzers.splice( idx, 1 )
+        Gibberish.dirty( Gibberish.analyzers )
+      }
       return this
     }
   })
@@ -36,8 +38,8 @@ module.exports = function( Gibberish ) {
             properties = Object.assign({}, Seq2.defaults, inputProps )
 
       seq.phase = 0
-      seq.inputNames = [ 'rate' ]
-      seq.inputs = [ 1 ]
+      seq.inputNames = [ 'rate', 'density' ]
+      seq.inputs = [ 1, 1 ]
       seq.nextTime = 0
       seq.__valuesPhase = 0
       seq.__timingsPhase = 0
@@ -53,7 +55,7 @@ module.exports = function( Gibberish ) {
 
       
       // XXX this needs to be optimized as much as humanly possible, since it's running at audio rate...
-      seq.callback = function( rate ) {
+      seq.callback = function( rate, density ) {
         if( seq.phase >= seq.nextTime ) {
           let value  = typeof seq.values  === 'function' ? seq.values  : seq.values[ seq.__valuesPhase++  % seq.values.length  ],
           timing = typeof seq.timings === 'function' ? seq.timings : seq.timings[ seq.__timingsPhase++ % seq.timings.length ],
@@ -71,6 +73,8 @@ module.exports = function( Gibberish ) {
               shouldRun = false
             }
             timing = timing.time 
+          }else{
+            if( Math.random() >= density ) shouldRun = false
           }
 
           if( shouldRun ) {
@@ -118,11 +122,28 @@ module.exports = function( Gibberish ) {
         }
       })
 
+      const didx = Gibberish.memory.alloc( 1 )
+      Gibberish.memory.heap[ didx ] = seq.density
+      seq.__addresses__.density = didx
+
+      let dvalue = seq.density
+      Object.defineProperty( seq, 'density', {
+        get() { return dvalue },
+        set( v ) {
+          if( dvalue !== v ) {
+            if( typeof v === 'number' ) Gibberish.memory.heap[ didx ] = v
+
+            Gibberish.dirty( Gibberish.analyzers )
+            dvalue = v
+          }
+        }
+      })
+
       return proxy( ['Sequencer2'], properties, seq ) 
     }
   }
 
-  Seq2.defaults = { rate: 1, priority:0 }
+  Seq2.defaults = { rate: 1, density:1, priority:0 }
 
   return Seq2.create
 

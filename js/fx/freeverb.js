@@ -43,8 +43,8 @@ const Freeverb = inputProps => {
           damping = g.in( 'damping' )
     
     const __summedInput = isStereo === true ? g.add( input[0], input[1] ) : input,
-         summedInput = g.mul( __summedInput, inputGain ),
-         attenuatedInput = g.memo( g.mul( summedInput, tuning.fixedGain ) )
+          summedInput = g.mul( __summedInput, inputGain ),
+          attenuatedInput = g.memo( g.mul( summedInput, tuning.fixedGain ) )
     
     // create comb filters in parallel...
     for( let i = 0; i < 8; i++ ) { 

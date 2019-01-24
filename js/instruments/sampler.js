@@ -2,7 +2,8 @@ const g = require( 'genish.js' ),
       instrument = require( './instrument.js' )
 
 module.exports = function( Gibberish ) {
-  let proto = Object.create( instrument )
+  const proto = Object.create( instrument )
+  const memo = {}
 
   Object.assign( proto, {
     note( rate ) {
@@ -81,15 +82,19 @@ module.exports = function( Gibberish ) {
       ), rateStorage[0], g.mul( rateStorage[0], -1 ) )
     }
 
-    const onload = buffer => {
+    const onload = (buffer,filename) => {
+      //console.log( 'gibberish loaded:', Gibberish.mode, buffer, syn.data )
       if( Gibberish.mode === 'worklet' ) {
-        const memIdx = Gibberish.memory.alloc( syn.data.memory.values.length, true )
+        //const memIdx = memo[ filename ].idx !== undefined ? memo[ filename ].idx : Gibberish.memory.alloc( syn.data.memory.values.length, true )
+
+        const memIdx = Gibberish.memory.alloc( buffer.length, true )
+        memo[ filename ].idx = memIdx
 
         Gibberish.worklet.port.postMessage({
           address:'copy',
-          id: syn.id,
-          idx: memIdx,
-          buffer: syn.data.buffer
+          id:     syn.id,
+          idx:    memIdx,
+          buffer
         })
 
       }else if ( Gibberish.mode === 'processor' ) {
@@ -106,13 +111,34 @@ module.exports = function( Gibberish ) {
 
     //if( props.filename ) {
     syn.loadFile = function( filename ) {
-      if( Gibberish.mode !== 'processor' ) { 
-        syn.data = g.data( filename )
-      }else{
-        syn.data = g.data( new Float32Array() )
-      }
+      //if( memo[ filename ] === undefined ) {
+        if( Gibberish.mode !== 'processor' ) {
+          syn.data = g.data( filename, 1, {})
 
-      syn.data.onload = onload
+          // check to see if a promise is returned; a valid
+          // data object is only return if the file has been
+          // previously loaded and the corresponding buffer has
+          // been cached.
+          if( syn.data instanceof Promise ) {
+            syn.data.then( d => {
+              syn.data = d
+              memo[ filename ] = syn.data
+              onload( d.buffer, filename )
+            })
+          }else{
+            // using a cached data buffer, no need
+            // for asynchronous loading.
+            onload( syn.data.buffer, filename )
+          }     
+        }else{
+          syn.data = g.data( new Float32Array(), 1, { onload })
+          //memo[ filename ] = syn.data
+        }
+      //}else{
+      //  syn.data = memo[ filename ]
+      //  console.log( 'memo data:', syn.data )
+      //  onload( syn.data.buffer, filename )
+      //}
     }
 
     syn.loadBuffer = function( buffer ) {
@@ -129,9 +155,11 @@ module.exports = function( Gibberish ) {
       syn.data = g.data( new Float32Array() )
     }
 
-    syn.data.onload = onload
+    if( syn.data !== undefined ) {
+      syn.data.onload = onload
 
-    syn.__createGraph()
+      syn.__createGraph()
+    }
     
     const out = Gibberish.factory( 
       syn,

@@ -11,7 +11,7 @@ verb = Freeverb({ input:Bus2(), roomSize:.975, damping:.5 }).connect()
 
 /*** bassline ***/
 bass = Synth({ 
-  gain:.5, 
+  gain:.15, 
   attack:44, 
   decay: 5512,
   Q:.8, // CAREFUL!!!
@@ -45,7 +45,7 @@ kick = Kick().connect()
 kickSeq = Sequencer({
   target:kick,
   key:'trigger',
-  values:[.5,.35,.5,.5,.25,.5,.25],
+  values:[.75,.5,.75,.75,.35,.75,.5],
   timings:[beat *.75, beat * .25, beat, beat * .5, beat * .5, beat *.5, beat * .5]
 }).start()
 
@@ -54,10 +54,10 @@ snare = Snare()
   .connect( Gibberish.output, .75 )
 
 // delay start by one beat so snare aligns with beats 2 & 4
-snareSeq = Sequencer.make( [.25], [beat*2], snare, 'trigger' ).start( beat )
+snareSeq = Sequencer.make( [1], [beat*2], snare, 'trigger' ).start( beat )
 
 hat = Hat().connect()
-hatSeq = Sequencer.make( [ .04 ], [ beat / 4 ], hat, 'trigger' ).start()
+hatSeq = Sequencer.make( [ .075 ], [ beat / 4 ], hat, 'trigger' ).start()
 decSeq = Sequencer.make( [ ()=> Math.random() > .25 ? .05 : .2 ], [ beat / 4 ], hat, 'decay' ).start()
 
 /*** start chords ***/
@@ -69,6 +69,8 @@ chords = PolySynth({
   waveform:'pwm',
   pulsewidth:Add( .35, Sine({ frequency:.35, gain:.3 }) ),
 })
+
+chords.connect()
 
 chorus = Chorus({ input: chords, slowGain:8, fastFrequency:4, fastGain:1  })
   .connect( verb.input )
@@ -85,3 +87,4 @@ chordsSeq = Sequencer({
   ],
   timings:[beat * 16]
 }).start()
+

@@ -2,6 +2,7 @@ const g = require( 'genish.js' ),
       ugen = require( '../ugen.js' )(),
       __proxy = require( '../workletProxy.js' )
 
+
 module.exports = function( Gibberish ) {
   const Bus2 = Object.create( ugen )
   const proxy = __proxy( Gibberish )
@@ -12,8 +13,14 @@ module.exports = function( Gibberish ) {
     create( __props ) {
 
       if( bufferL === undefined ) {
-        bufferL = Gibberish.genish.gen.globals.panL.memory.values.idx
-        bufferR = Gibberish.genish.gen.globals.panR.memory.values.idx
+        const p = g.pan()
+        
+        // copy memory... otherwise the wavetables don't have memory indices.
+        bufferL = Gibberish.memory.alloc(1024)
+        Gibberish.memory.heap.set( Gibberish.genish.gen.globals.panL.buffer, bufferL )
+
+        bufferR = Gibberish.memory.alloc(1024)
+        Gibberish.memory.heap.set( Gibberish.genish.gen.globals.panR.buffer, bufferR )
       }
 
       // XXX must be same type as what is returned by genish for type checks to work correctly
@@ -33,7 +40,7 @@ module.exports = function( Gibberish ) {
             output[ 0 ] = output[ 1 ] = 0
             const lastIdx = arguments.length - 1
             const memory  = arguments[ lastIdx ]
-            const pan  = arguments[ lastIdx - 1 ]
+            let pan  = arguments[ lastIdx - 1 ]
             const gain = arguments[ lastIdx - 2 ]
 
             for( let i = 0; i < lastIdx - 2; i+= 3 ) {
@@ -44,6 +51,12 @@ module.exports = function( Gibberish ) {
               output[ 0 ] += isStereo === true ? input[ 0 ] * level : input * level
 
               output[ 1 ] += isStereo === true ? input[ 1 ] * level : input * level
+            }
+
+            if( pan < 0 ) {
+              pan = 0
+            }else if( pan > 1 ){
+              pan = 1
             }
 
             const panRawIndex  = pan * 1023,
@@ -93,7 +106,7 @@ module.exports = function( Gibberish ) {
 
       let gain = 1
       Object.defineProperty( out, 'gain', {
-        get() { return pan },
+        get() { return gain },
         set(v){ 
           gain = v
           out.inputs[ out.inputs.length - 2 ] = gain

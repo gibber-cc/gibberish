@@ -49,5 +49,8 @@
   "bugs": {
     "url": "https://github.com/charlieroberts/Gibberish/issues"
   },
-  "homepage": "http://www.charlie-roberts.com/gibberish"
+  "homepage": "http://www.charlie-roberts.com/gibberish",
+  "dependencies": {
+    "codemirror": "^5.42.2"
+  }
 }

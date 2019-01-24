@@ -3,10 +3,12 @@ const genish = require( 'genish.js' )
 module.exports = function( Gibberish ) {
 
 let uid = 0
-
+let sac = null
 const utilities = {
-  createContext( ctx, cb, resolve ) {
+  createContext( ctx, cb, resolve, __sac=null ) {
     let AC = typeof AudioContext === 'undefined' ? webkitAudioContext : AudioContext
+
+    sac = __sac
 
     let start = () => {
       if( typeof AC !== 'undefined' ) {
@@ -93,6 +95,8 @@ const utilities = {
   createWorklet( resolve ) {
     Gibberish.ctx.audioWorklet.addModule( Gibberish.workletPath ).then( () => {
       Gibberish.worklet = new AudioWorkletNode( Gibberish.ctx, 'gibberish', { outputChannelCount:[2] } )
+        //: new sac.AudioWorkletNode( Gibberish.ctx, 'gibbersh', { outputChannelCount:[2] } )
+
       Gibberish.worklet.connect( Gibberish.ctx.destination )
       Gibberish.worklet.port.onmessage = event => {
         Gibberish.utilities.workletHandlers[ event.data.address ]( event )        
@@ -128,6 +132,7 @@ const utilities = {
       // XXX is preventProxy actually used?
       Gibberish.preventProxy = true
       Gibberish.proxyEnabled = false
+
       for( let i = 0; i < messages.length; i+= 3 ) {
         const id = messages[ i ] 
         const propName = messages[ i + 1 ]
