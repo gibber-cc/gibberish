@@ -4264,7 +4264,7 @@ module.exports = function (Gibberish) {
     if (!isStereo) {
       Gibberish.factory(follow, avg, 'follow_out', props);
 
-      follow.callback.ugenName = follow.ugenName = `follow_out_${ follow.id }`;
+      follow.callback.ugenName = follow.ugenName = `follow_out_${follow.id}`;
 
       // have to write custom callback for input to reuse components from output,
       // specifically the memory from our buffer
@@ -4286,7 +4286,7 @@ module.exports = function (Gibberish) {
       Gibberish.factory(follow.in, input, 'follow_in', props, callback);
 
       // lots of nonsense to make our custom function work
-      follow.in.callback.ugenName = follow.in.ugenName = `follow_in_${ follow.id }`;
+      follow.in.callback.ugenName = follow.in.ugenName = `follow_in_${follow.id}`;
       follow.in.inputNames = ['input'];
       follow.in.inputs = [input];
       follow.in.input = props.input;
@@ -4837,7 +4837,6 @@ module.exports = function( Gibberish ) {
 
     let isStereo = props.isStereo || biquad.input.isStereo
 
-    console.log( 'isStereo:', isStereo, 'props.isStereo:', props.isStereo )
     biquad.__createGraph = function() {
       biquad.graph = Gibberish.genish.biquad( g.in('input'), g.mul( g.in('cutoff'), g.gen.samplerate / 4 ),  g.in('Q'), biquad.mode, isStereo )
     }
@@ -4890,6 +4889,7 @@ module.exports = combFilter
 const g = require( 'genish.js' ),
       filter = require( './filter.js' )
 
+const genish = g
 module.exports = function( Gibberish ) {
   Gibberish.genish.diodeZDF = ( input, _Q, freq, saturation, isStereo=false ) => {
     const iT = 1 / g.gen.samplerate,
@@ -4904,10 +4904,14 @@ module.exports = function( Gibberish ) {
           ka4 = 0.5,
           kindx = 0   
 
+
+    let __freq = g.mul( freq,  genish.gen.samplerate / 2 )
+
     // XXX this is where the magic number hapens for Q...
-    const Q = g.memo( g.add( .5, g.mul( _Q, g.add( 5, g.sub( 5, g.mul( g.div( freq, 20000  ), 5 ) ) ) ) ) )
+    const Q = g.memo( g.add( .5, g.mul( _Q, g.add( 5, g.sub( 5, g.mul( g.div( __freq, 20000  ), 5 ) ) ) ) ) )
     // kwd = 2 * $M_PI * acf[kindx]
-    const kwd = g.memo( g.mul( Math.PI * 2, freq ) )
+    //const kwd = g.memo( g.mul( Math.PI * 2, freq ) )
+    const kwd = g.memo( g.mul( Math.PI * 2, __freq ) )
 
     // kwa = (2/iT) * tan(kwd * iT/2) 
     const kwa =g.memo( g.mul( 2/iT, g.tan( g.mul( kwd, iT/2 ) ) ) )
@@ -5180,7 +5184,8 @@ module.exports = function( Gibberish ) {
 
   const filters = {
     Filter24Classic : require( './filter24.js'  )( Gibberish ),
-    Filter24Moog    : require( './ladderFilterZeroDelay.js' )( Gibberish ),
+    //Filter24Moog    : require( './ladderFilterZeroDelay.js' )( Gibberish ),
+    Filter24Moog    : require( './ladder.js' )( Gibberish ),
     Filter24TB303   : require( './diodeFilterZDF.js' )( Gibberish ),
     Filter12Biquad  : require( './biquad.js'    )( Gibberish ),
     Filter12SVF     : require( './svf.js'       )( Gibberish ),
@@ -5245,123 +5250,118 @@ return filters
 
 }
 
-},{"./allpass.js":84,"./biquad.js":85,"./combfilter.js":86,"./diodeFilterZDF.js":87,"./filter24.js":89,"./ladderFilterZeroDelay.js":91,"./svf.js":92}],91:[function(require,module,exports){
-const g = require( 'genish.js' ),
-      filterProto = require( './filter.js' )
+},{"./allpass.js":84,"./biquad.js":85,"./combfilter.js":86,"./diodeFilterZDF.js":87,"./filter24.js":89,"./ladder.js":91,"./svf.js":92}],91:[function(require,module,exports){
+const genish = require('genish.js'),
+      filterProto = require('./filter.js');
 
-module.exports = function( Gibberish ) {
+module.exports = function (Gibberish) {
 
-  Gibberish.genish.zd24 = ( input, _Q, freq, isStereo=false ) => {
-    const iT = 1 / g.gen.samplerate,
-          z1 = g.history(0),
-          z2 = g.history(0),
-          z3 = g.history(0),
-          z4 = g.history(0)
-    
-    const Q = g.memo( g.add( .5, g.mul( _Q, 23 ) ) )
+  const makeChannel = function (input, _Q, freq) {
+    'use jsdsp';
+
+    const iT = genish.div(1, genish.gen.samplerate),
+          z = genish.data([0, 0, 0, 0], 1, { meta: true });
+
+    const Q = genish.add(.5, genish.mul(_Q, 23));
     // kwd = 2 * $M_PI * acf[kindx]
-    const kwd = g.memo( g.mul( Math.PI * 2, freq ) )
+    const kwd = genish.div(genish.mul(genish.mul(genish.mul(Math.PI, 2), freq), genish.gen.samplerate), 2);
 
     // kwa = (2/iT) * tan(kwd * iT/2) 
-    const kwa =g.memo( g.mul( 2/iT, g.tan( g.mul( kwd, iT/2 ) ) ) )
+    const kwa = genish.mul(genish.div(2, iT), genish.tan(genish.div(genish.mul(kwd, iT), 2)));
 
     // kG  = kwa * iT/2 
-    const kg = g.memo( g.mul( kwa, iT/2 ) )
+    const kg = genish.div(genish.mul(kwa, iT), 2);
 
     // kk = 4.0*(kQ - 0.5)/(25.0 - 0.5)
-    const kk = g.memo( g.mul( 4, g.div( g.sub( Q, .5 ), 24.5 ) ) )
+    const kk = genish.div(genish.mul(4, genish.sub(Q, .5)), 24.5);
 
     // kg_plus_1 = (1.0 + kg)
-    const kg_plus_1 = g.add( 1, kg )
+    const kg_plus_1 = genish.add(1, kg);
 
     // kG = kg / kg_plus_1 
-    const kG     = g.memo( g.div( kg, kg_plus_1 ) ),
-          kG_2   = g.memo( g.mul( kG, kG ) ),
-          kG_3   = g.mul( kG_2, kG ),
-          kGAMMA = g.mul( kG_2, kG_2 )
+    const kG = genish.div(kg, kg_plus_1),
+          kG_2 = genish.mul(kG, kG),
+          kG_3 = genish.mul(kG_2, kG),
+          kGAMMA = genish.mul(kG_2, kG_2);
 
-    const kS1 = g.div( z1.out, kg_plus_1 ),
-          kS2 = g.div( z2.out, kg_plus_1 ),
-          kS3 = g.div( z3.out, kg_plus_1 ),
-          kS4 = g.div( z4.out, kg_plus_1 )
+    const kS1 = genish.div(z[0], kg_plus_1),
+          kS2 = genish.div(z[1], kg_plus_1),
+          kS3 = genish.div(z[2], kg_plus_1),
+          kS4 = genish.div(z[3], kg_plus_1);
 
     //kS = kG_3 * kS1  + kG_2 * kS2 + kG * kS3 + kS4 
-    const kS = g.memo( 
-      g.add(
-        g.add( g.mul(kG_3, kS1), g.mul( kG_2, kS2) ),
-        g.add( g.mul(kG, kS3), kS4 )
-      )
-    )
+    const kS = genish.add(genish.add(genish.add(genish.mul(kG_3, kS1), genish.mul(kG_2, kS2)), genish.mul(kG, kS3)), kS4);
 
     //ku = (kin - kk *  kS) / (1 + kk * kGAMMA)
-    const ku1 = g.sub( input, g.mul( kk, kS ) )
-    const ku2 = g.memo( g.add( 1, g.mul( kk, kGAMMA ) ) )
-    const ku  = g.memo( g.div( ku1, ku2 ) )
+    const ku = genish.div(genish.sub(input, genish.mul(kk, kS)), genish.add(1, genish.mul(kk, kGAMMA)));
 
-    let kv =  g.memo( g.mul( g.sub( ku, z1.out ), kG ) )
-    let klp = g.memo( g.add( kv, z1.out ) )
-    z1.in( g.add( klp, kv ) )
+    let kv = genish.mul(genish.sub(ku, z[0]), kG);
+    let klp = genish.add(kv, z[0]);
+    z[0] = genish.add(klp, kv);
 
-    kv  = g.memo( g.mul( g.sub( klp, z2.out ), kG ) )
-    klp = g.memo( g.add( kv, z2.out ) )
-    z2.in( g.add( klp, kv ) )
+    kv = genish.mul(genish.sub(klp, z[1]), kG);
+    klp = genish.add(kv, z[1]);
+    z[1] = genish.add(klp, kv);
 
-    kv  = g.memo( g.mul( g.sub( klp, z3.out ), kG ) )
-    klp = g.memo( g.add( kv, z3.out ) )
-    z3.in( g.add( klp, kv ) )
+    kv = genish.mul(genish.sub(klp, z[2]), kG);
+    klp = genish.add(kv, z[2]);
+    z[2] = genish.add(klp, kv);
 
-    kv  = g.memo( g.mul( g.sub( klp, z4.out ), kG ) )
-    klp = g.memo( g.add( kv, z4.out ) )
-    z4.in( g.add( klp, kv ) )
+    kv = genish.mul(genish.sub(klp, z[3]), kG);
+    klp = genish.add(kv, z[3]);
+    z[3] = genish.add(klp, kv);
 
+    return klp;
+  };
 
-    if( isStereo ) {
-      //let polesR = g.data([ 0,0,0,0 ], 1, { meta:true }),
-      //    rezzR = g.clamp( g.mul( polesR[3], rez ) ),
-      //    outputR = g.sub( input[1], rezzR )         
+  Gibberish.genish.zd24 = (input, _Q, freq, isStereo = false) => {
+    const leftInput = isStereo === true ? input[0] : input;
+    const left = makeChannel(leftInput, _Q, freq);
 
-      //polesR[0] = g.add( polesR[0], g.mul( g.add( g.mul(-1, polesR[0] ), outputR   ), cutoff ))
-      //polesR[1] = g.add( polesR[1], g.mul( g.add( g.mul(-1, polesR[1] ), polesR[0] ), cutoff ))
-      //polesR[2] = g.add( polesR[2], g.mul( g.add( g.mul(-1, polesR[2] ), polesR[1] ), cutoff ))
-      //polesR[3] = g.add( polesR[3], g.mul( g.add( g.mul(-1, polesR[3] ), polesR[2] ), cutoff ))
+    let out;
+    if (isStereo === true) {
+      const right = makeChannel(input[1], _Q, freq);
+      out = [left, right];
+    } else {
+      out = left;
+    }
 
-      //let right = g.switch( isLowPass, polesR[3], g.sub( outputR, polesR[3] ) )
-
-      //returnValue = [left, right]
-    }//else{
-      //returnValue = klp
-    //}
-
-    return klp//returnValue
-  }
+    return out;
+  };
 
   const Zd24 = inputProps => {
-    const filter   = Object.create( filterProto )
-    const props    = Object.assign( {}, Zd24.defaults, filter.defaults, inputProps )
-    const isStereo = props.input.isStereo 
+    const filter = Object.create(filterProto);
+    const props = Object.assign({}, Zd24.defaults, filter.defaults, inputProps);
+    let out;
 
-    const __out = Gibberish.factory(
-      filter, 
-      Gibberish.genish.zd24( g.in('input'), g.in('Q'), g.in('cutoff'), isStereo ), 
-      ['filters','Filter24Moog'],
-      props
-    )
+    filter.__requiresRecompilation = ['input'];
+    filter.__createGraph = function () {
+      let isStereo = false;
+      if (out === undefined) {
+        isStereo = props.input !== undefined && props.input.isStereo !== undefined ? props.input.isStereo : false;
+      } else {
+        isStereo = out.input.isStereo;
+        out.isStereo = isStereo;
+      }
 
-    return __out
-  }
+      filter.graph = Gibberish.genish.zd24(genish.in('input'), genish.in('Q'), genish.in('cutoff'), isStereo);
+    };
 
+    filter.__createGraph();
+
+    out = Gibberish.factory(filter, filter.graph, ['filters', 'Filter24Moog'], props);
+
+    return out;
+  };
 
   Zd24.defaults = {
-    input:0,
+    input: 0,
     Q: .75,
-    cutoff: 440,
-  }
+    cutoff: .25
+  };
 
-  return Zd24
-
-}
-
-
+  return Zd24;
+};
 },{"./filter.js":88,"genish.js":37}],92:[function(require,module,exports){
 const g = require( 'genish.js' ),
       filter = require( './filter.js' )
@@ -8042,10 +8042,9 @@ module.exports = function (Gibberish) {
     filterType: 0,
     filterMode: 0,
     isLowPass: 1
-  };
 
-  // do not include velocity, which shoudl always be per voice
-  let PolySynth = Gibberish.PolyTemplate(Synth, ['frequency', 'attack', 'decay', 'pulsewidth', 'pan', 'gain', 'glide', 'saturation', 'filterMult', 'Q', 'cutoff', 'resonance', 'antialias', 'filterType', 'waveform', 'filterMode']);
+    // do not include velocity, which shoudl always be per voice
+  };let PolySynth = Gibberish.PolyTemplate(Synth, ['frequency', 'attack', 'decay', 'pulsewidth', 'pan', 'gain', 'glide', 'saturation', 'filterMult', 'Q', 'cutoff', 'resonance', 'antialias', 'filterType', 'waveform', 'filterMode']);
   PolySynth.defaults = Synth.defaults;
 
   return [Synth, PolySynth];
@@ -9242,7 +9241,6 @@ const __ugen = function( __Gibberish ) {
 
       // if channel count has changed after recompiling graph...
       if( isStereo !== this.isStereo ) {
-        //console.log( 'CHANGING STEREO:', isStereo )
 
         // check for any connections before iterating...
         if( this.connected === undefined ) return

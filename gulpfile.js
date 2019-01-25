@@ -57,12 +57,12 @@ gulp.task( 'js', ['jsdsp' ], function() {
 })
 
 gulp.task( 'jsdsp', ()=> {
-  //gulp.src( './js/**/*.dsp.js', { base:'./' })
-  //    .pipe( babel({ plugins:jsdsp }) )
-  //    .pipe( rename( path => {
-  //      path.basename = path.basename.split('.')[0]
-  //    } ))
-  //    .pipe( gulp.dest('.') )
+  gulp.src( './js/**/*.dsp.js', { base:'./' })
+      .pipe( babel({ plugins:jsdsp }) )
+      .pipe( rename( path => {
+        path.basename = path.basename.split('.')[0]
+      } ))
+      .pipe( gulp.dest('.') )
 })
 
 // run unit tests
