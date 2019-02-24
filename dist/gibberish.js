@@ -4274,9 +4274,9 @@ module.exports = function (Gibberish) {
       let callback = function (input, memory) {
         'use strict';
 
-        memory[idx + phase] = abs(input);
+        memory[genish.add(idx, phase)] = abs(input);
         phase++;
-        if (phase > props.bufferSize - 1) {
+        if (phase > genish.sub(props.bufferSize, 1)) {
           phase = 0;
         }
 
@@ -4737,135 +4737,161 @@ let allPass = function( _input, length=500, feedback=.5 ) {
 module.exports = allPass
 
 },{"genish.js":37}],85:[function(require,module,exports){
-let g = require( 'genish.js' ),
-    filter = require( './filter.js' )
+let g = require('genish.js'),
+    filter = require('./filter.js');
 
-module.exports = function( Gibberish ) {
+module.exports = function (Gibberish) {
 
-  Gibberish.genish.biquad = ( input, cutoff, _Q, mode, isStereo ) => {
-    let a0,a1,a2,c,b1,b2,
-        in1a0,x1a1,x2a2,y1b1,y2b2,
-        in1a0_1,x1a1_1,x2a2_1,y1b1_1,y2b2_1
+  const genish = g;
+  Gibberish.genish.biquad = (input, __cutoff, __Q, mode, isStereo) => {
+    'use jsdsp';
 
-    let returnValue
-    
-    const Q = g.memo( g.add( .5, g.mul( _Q, 22 ) ) )
-    let x1 = g.history(), x2 = g.history(), y1 = g.history(), y2 = g.history()
-    
-    let w0 = g.memo( g.mul( 2 * Math.PI, g.div( cutoff,  g.gen.samplerate ) ) ),
-        sinw0 = g.sin( w0 ),
-        cosw0 = g.cos( w0 ),
-        alpha = g.memo( g.div( sinw0, g.mul( 2, Q ) ) )
+    let in1a0, x0a1, x1a2, y0b0, y1b1, in1a0_r, x0a1_r, x1a2_r, y0b0_r, y1b1_r, c;
 
-    let oneMinusCosW = g.sub( 1, cosw0 )
+    let returnValue;
 
-    switch( mode ) {
+    const x = genish.data([0, 0], 1, { meta: true });
+    const y = genish.data([0, 0], 1, { meta: true });
+    const a = genish.data([0, 0, 0], 1, { meta: true });
+    const b = genish.data([0, 0], 1, { meta: true });
+
+    const Q = g.min(genish.add(.5, genish.mul(__Q, 22)), 22.5);
+    const cutoff = genish.div(genish.mul(g.max(.005, g.min(__cutoff, .995)), g.gen.samplerate), 4);
+    //let w0 = g.memo( g.mul( 2 * Math.PI, g.div( g.max(.005, g.min(cutoff,.995)),  g.gen.samplerate ) ) ),
+    let w0 = genish.mul(genish.mul(2, Math.PI), genish.div(cutoff, g.gen.samplerate)),
+        sinw0 = g.sin(w0),
+        cosw0 = g.cos(w0),
+        alpha = genish.div(sinw0, genish.mul(2, Q));
+
+    //let w0 = g.memo( g.mul( 2 * Math.PI, g.div( cutoff,  g.gen.samplerate ) ) ),
+
+    let oneMinusCosW = genish.sub(1, cosw0);
+
+    /******** process coefficients ********/
+    switch (mode) {
       case 1:
-        a0 = g.memo( g.div( g.add( 1, cosw0) , 2) )
-        a1 = g.mul( g.add( 1, cosw0 ), -1 )
-        a2 = a0
-        c  = g.add( 1, alpha )
-        b1 = g.mul( -2 , cosw0 )
-        b2 = g.sub( 1, alpha )
+        a[0] = genish.div(genish.add(1, cosw0), 2);
+        a[1] = genish.mul(genish.add(1, cosw0), -1);
+        a[2] = a[0];
+        c = genish.add(1, alpha);
+        b[0] = genish.mul(-2, cosw0);
+        b[1] = genish.sub(1, alpha);
         break;
       case 2:
-        a0 = g.mul( Q, alpha )
-        a1 = 0
-        a2 = g.mul( a0, -1 )
-        c  = g.add( 1, alpha )
-        b1 = g.mul( -2 , cosw0 )
-        b2 = g.sub( 1, alpha )
+        a[0] = genish.mul(Q, alpha);
+        a[1] = 0;
+        a[2] = genish.mul(a[0], -1);
+        c = genish.add(1, alpha);
+        b[0] = genish.mul(-2, cosw0);
+        b[1] = genish.sub(1, alpha);
         break;
-      default: // LP
-        a0 = g.memo( g.div( oneMinusCosW, 2) )
-        a1 = oneMinusCosW
-        a2 = a0
-        c  = g.add( 1, alpha )
-        b1 = g.mul( -2 , cosw0 )
-        b2 = g.sub( 1, alpha )
+      default:
+        // LP
+        a[0] = genish.div(oneMinusCosW, 2);
+        a[1] = oneMinusCosW;
+        a[2] = a[0];
+        c = genish.add(1, alpha);
+        b[0] = genish.mul(-2, cosw0);
+        b[1] = genish.sub(1, alpha);
     }
 
-    a0 = g.div( a0, c ); a1 = g.div( a1, c ); a2 = g.div( a2, c )
-    b1 = g.div( b1, c ); b2 = g.div( b2, c )
+    a[0] = genish.div(a[0], c);a[1] = genish.div(a[1], c);a[2] = genish.div(a[2], c);
+    b[0] = genish.div(b[0], c);b[1] = genish.div(b[1], c);
 
-    in1a0 = g.mul( x1.in( isStereo ? input[0] : input ), a0 )
-    x1a1  = g.mul( x2.in( x1.out ), a1 )
-    x2a2  = g.mul( x2.out,          a2 )
+    /******** end coefficients ********/
 
-    let sumLeft = g.add( in1a0, x1a1, x2a2 )
+    /****** left / mono output ********/
 
-    y1b1 = g.mul( y2.in( y1.out ), b1 )
-    y2b2 = g.mul( y2.out, b2 )
+    let l = isStereo === true ? input[0] : input;
+    in1a0 = genish.mul(l, a[0]);
+    x0a1 = genish.mul(x[0], a[1]);
+    x1a2 = genish.mul(x[1], a[2]);
 
-    let sumRight = g.add( y1b1, y2b2 )
+    x[1] = x[0];
+    x[0] = l;
 
-    let diff = g.sub( sumLeft, sumRight )
+    let sumLeft = genish.add(genish.add(in1a0, x0a1), x1a2);
 
-    y1.in( diff )
+    y0b0 = genish.mul(y[0], b[0]);
+    y1b1 = genish.mul(y[1], b[1]);
+    y[1] = y[0];
 
-    if( isStereo ) {
-      let x1_1 = g.history(), x2_1 = g.history(), y1_1 = g.history(), y2_1 = g.history()
+    let sumRight = genish.add(y0b0, y1b1);
 
-      in1a0_1 = g.mul( x1_1.in( input[1] ), a0 )
-      x1a1_1  = g.mul( x2_1.in( x1_1.out ), a1 )
-      x2a2_1  = g.mul( x2_1.out,            a2 )
+    let diff = genish.sub(sumLeft, sumRight);
 
-      let sumLeft_1 = g.add( in1a0_1, x1a1_1, x2a2_1 )
+    y[0] = diff;
 
-      y1b1_1 = g.mul( y2_1.in( y1_1.out ), b1 )
-      y2b2_1 = g.mul( y2_1.out, b2 )
+    /******** end left/mono **********/
 
-      let sumRight_1 = g.add( y1b1_1, y2b2_1 )
+    if (isStereo) {
+      const xr = genish.data([0, 0], 1, { meta: true });
+      const yr = genish.data([0, 0], 1, { meta: true });
+      //let x1_1 = g.history(), x2_1 = g.history(), y1_1 = g.history(), y2_1 = g.history()
 
-      let diff_1 = g.sub( sumLeft_1, sumRight_1 )
+      const r = input[1];
+      in1a0_r = genish.mul(r, a[0]); //g.mul( x1_1.in( input[1] ), a0 )
+      x0a1_r = genish.mul(xr[1], a[1]); //g.mul( x2_1.in( x1_1.out ), a1 )
+      x1a2_r = genish.mul(xr[1], a[2]); //g.mul( x2_1.out,            a2 )
 
-      y1_1.in( diff_1 )
-      
-      returnValue = [ diff, diff_1 ]
-    }else{
-      returnValue = diff
+      xr[1] = xr[0];
+      xr[0] = r;
+
+      const sumLeft_r = genish.add(genish.add(in1a0_r, x0a1_r), x1a2_r);
+
+      yr[1] = yr[0];
+      y0b0_r = genish.mul(yr[1], b[0]); //g.mul( y2_1.in( y1_1.out ), b1 )
+      y1b1_r = genish.mul(yr[1], b[1]); //g.mul( y2_1.out, b2 )
+
+      const sumRight_r = genish.add(y0b0_r, y1b1_r);
+
+      const diff_r = genish.sub(sumLeft_r, sumRight_r);
+
+      yr[0] = diff_r;
+
+      returnValue = [diff, diff_r];
+    } else {
+      returnValue = diff;
     }
 
-    return returnValue
-  }
+    return returnValue;
+  };
 
   let Biquad = inputProps => {
-    let biquad = Object.create( filter )
-    let props = Object.assign( {}, Biquad.defaults, inputProps ) 
-    
-    Object.assign( biquad, props )
+    const biquad = Object.create(filter);
+    const props = Object.assign({}, Biquad.defaults, inputProps);
+    let __out;
 
-    let isStereo = props.isStereo || biquad.input.isStereo
+    Object.assign(biquad, props);
 
-    biquad.__createGraph = function() {
-      biquad.graph = Gibberish.genish.biquad( g.in('input'), g.mul( g.in('cutoff'), g.gen.samplerate / 4 ),  g.in('Q'), biquad.mode, isStereo )
-    }
+    biquad.__createGraph = function () {
+      let isStereo = false;
+      if (__out === undefined) {
+        isStereo = props.input !== undefined && props.input.isStereo !== undefined ? props.input.isStereo : false;
+      } else {
+        isStereo = __out.input.isStereo;
+        __out.isStereo = isStereo;
+      }
+      biquad.graph = Gibberish.genish.biquad(g.in('input'), g.in('cutoff'), g.in('Q'), biquad.mode, isStereo);
+    };
 
-    biquad.__createGraph()
-    biquad.__requiresRecompilation = [ 'mode', 'input' ]
+    biquad.__createGraph();
+    biquad.__requiresRecompilation = ['mode', 'input'];
 
-    const __out = Gibberish.factory(
-      biquad,
-      biquad.graph,
-      ['filters','Filter12Biquad'], 
-      props
-    )
+    __out = Gibberish.factory(biquad, biquad.graph, ['filters', 'Filter12Biquad'], props);
 
-    return __out
-  }
+    return __out;
+  };
 
   Biquad.defaults = {
-    input:0,
+    input: 0,
     Q: .15,
-    cutoff:.05,
-    mode:0
-  }
+    cutoff: .05,
+    mode: 0
+  };
 
-  return Biquad
-
-}
-
-
+  return Biquad;
+};
 },{"./filter.js":88,"genish.js":37}],86:[function(require,module,exports){
 let g = require( 'genish.js' )
 
@@ -4891,7 +4917,7 @@ const g = require( 'genish.js' ),
 
 const genish = g
 module.exports = function( Gibberish ) {
-  Gibberish.genish.diodeZDF = ( input, _Q, freq, saturation, isStereo=false ) => {
+  Gibberish.genish.diodeZDF = ( input, __Q, __freq, saturation, isStereo=false ) => {
     const iT = 1 / g.gen.samplerate,
           kz1 = g.history(0),
           kz2 = g.history(0),
@@ -4904,14 +4930,14 @@ module.exports = function( Gibberish ) {
           ka4 = 0.5,
           kindx = 0   
 
-
-    let __freq = g.mul( freq,  genish.gen.samplerate / 2 )
+    console.log( 'freq:', __freq )
+    const freq = g.mul( g.max(.005, g.min( __freq, .995)),  genish.gen.samplerate / 2 )
+    //const freq = g.max(.005, g.min( __freq, .995))
 
     // XXX this is where the magic number hapens for Q...
-    const Q = g.memo( g.add( .5, g.mul( _Q, g.add( 5, g.sub( 5, g.mul( g.div( __freq, 20000  ), 5 ) ) ) ) ) )
+    const Q = g.memo( g.add( .5, g.mul( __Q, g.add( 5, g.sub( 5, g.mul( g.div( freq, 20000  ), 5 ) ) ) ) ) )
     // kwd = 2 * $M_PI * acf[kindx]
-    //const kwd = g.memo( g.mul( Math.PI * 2, freq ) )
-    const kwd = g.memo( g.mul( Math.PI * 2, __freq ) )
+    const kwd = g.memo( g.mul( Math.PI * 2, freq ) )
 
     // kwa = (2/iT) * tan(kwd * iT/2) 
     const kwa =g.memo( g.mul( 2/iT, g.tan( g.mul( kwd, iT/2 ) ) ) )
@@ -5065,7 +5091,7 @@ module.exports = function( Gibberish ) {
     }
     //returnValue = klp
     
-    return klp//returnValue// klp//returnValue
+    return klp
  }
 
   const DiodeZDF = inputProps => {
@@ -5184,7 +5210,6 @@ module.exports = function( Gibberish ) {
 
   const filters = {
     Filter24Classic : require( './filter24.js'  )( Gibberish ),
-    //Filter24Moog    : require( './ladderFilterZeroDelay.js' )( Gibberish ),
     Filter24Moog    : require( './ladder.js' )( Gibberish ),
     Filter24TB303   : require( './diodeFilterZDF.js' )( Gibberish ),
     Filter12Biquad  : require( './biquad.js'    )( Gibberish ),
@@ -5211,10 +5236,10 @@ module.exports = function( Gibberish ) {
 
       switch( props.filterType ) {
         case 1:
-          filteredOsc = g.zd24( input, g.min( g.in('Q'), .9999 ),  g.min( cutoff, 20000 ) )
+          filteredOsc = g.zd24( input, g.min( g.in('Q'), .9999 ), cutoff ) // g.max(.005, g.min( cutoff, 1 ) ) )
           break;
         case 2:
-          filteredOsc = g.diodeZDF( input, g.min( g.in('Q'), .9999 ), g.min( cutoff, 20000 ), g.in('saturation'), isStereo ) 
+          filteredOsc = g.diodeZDF( input, g.min( g.in('Q'), .9999 ), cutoff, g.in('saturation'), isStereo ) 
           break;
         case 3:
           filteredOsc = g.svf( input, cutoff, g.sub( 1, g.in('Q')), props.filterMode, isStereo ) 
@@ -5256,12 +5281,13 @@ const genish = require('genish.js'),
 
 module.exports = function (Gibberish) {
 
-  const makeChannel = function (input, _Q, freq) {
+  const makeChannel = function (input, _Q, _freq) {
     'use jsdsp';
 
     const iT = genish.div(1, genish.gen.samplerate),
           z = genish.data([0, 0, 0, 0], 1, { meta: true });
 
+    const freq = genish.max(.005, genish.min(_freq, 1));
     const Q = genish.add(.5, genish.mul(_Q, 23));
     // kwd = 2 * $M_PI * acf[kindx]
     const kwd = genish.div(genish.mul(genish.mul(genish.mul(Math.PI, 2), freq), genish.gen.samplerate), 2);
@@ -7091,7 +7117,7 @@ module.exports = function (Gibberish) {
         const synthWithGain = genish.mul(genish.mul(filteredOsc, g.in('gain')), loudness);
 
         let panner;
-        if (genish.eq(props.panVoices, true)) {
+        if (props.panVoices === true) {
           panner = g.pan(synthWithGain, synthWithGain, g.in('pan'));
           syn.graph = [panner.left, panner.right];
         } else {
@@ -7453,9 +7479,11 @@ module.exports = function (Gibberish) {
         oscs[i] = osc;
       }
 
+      //const baseCutoffFreq = g.in('cutoff') * (frequency /  (g.gen.samplerate / 16 ))
+      //const cutoff = baseCutoffFreq * g.pow( 2, g.in('filterMult') * loudness ) * env 
       const oscSum = g.add(...oscs),
             oscWithEnv = g.mul(oscSum, env),
-            baseCutoffFreq = g.mul(g.in('cutoff'), frequency),
+            baseCutoffFreq = g.mul(g.in('cutoff'), g.div(frequency, g.gen.samplerate / 16)),
             cutoff = g.mul(g.mul(baseCutoffFreq, g.pow(2, g.mul(g.in('filterMult'), loudness))), env),
             filteredOsc = Gibberish.filters.factory(oscWithEnv, cutoff, g.in('Q'), g.in('saturation'), syn);
 
@@ -7502,7 +7530,7 @@ module.exports = function (Gibberish) {
     filterType: 1,
     filterMode: 0, // 0 = LP, 1 = HP, 2 = BP, 3 = Notch
     saturation: .5,
-    filterMult: 4,
+    filterMult: 2,
     isLowPass: true,
     loudness: 1
   };
@@ -7990,13 +8018,18 @@ module.exports = function (Gibberish) {
         let oscWithEnv = genish.mul(genish.mul(osc, env), loudness),
             panner;
 
-        const baseCutoffFreq = genish.mul(g.in('cutoff'), frequency);
-        const cutoff = genish.mul(genish.mul(baseCutoffFreq, g.pow(2, genish.mul(g.in('filterMult'), loudness))), env);
+        //baseCutoffFreq = g.mul( g.in('cutoff'), g.div( frequency, g.gen.samplerate / 16 ) ),
+        //cutoff = g.mul( g.mul( baseCutoffFreq, g.pow( 2, g.mul( g.in('filterMult'), loudness ) )), env ),
+        //filteredOsc = Gibberish.filters.factory( oscWithEnv, cutoff, g.in('Q'), g.in('saturation'), syn )
+
+        // 16 is an unfortunate empirically derived magic number...
+        const baseCutoffFreq = genish.mul(g.in('cutoff'), genish.div(frequency, genish.div(g.gen.samplerate, 16)));
+        const cutoff = g.min(genish.mul(genish.mul(baseCutoffFreq, g.pow(2, genish.mul(g.in('filterMult'), loudness))), env), .995);
         const filteredOsc = Gibberish.filters.factory(oscWithEnv, cutoff, g.in('Q'), g.in('saturation'), props);
 
         let synthWithGain = genish.mul(filteredOsc, g.in('gain'));
 
-        if (genish.eq(syn.panVoices, true)) {
+        if (syn.panVoices === true) {
           panner = g.pan(synthWithGain, synthWithGain, g.in('pan'));
           syn.graph = [panner.left, panner.right];
         } else {
@@ -8041,7 +8074,8 @@ module.exports = function (Gibberish) {
     cutoff: .5,
     filterType: 0,
     filterMode: 0,
-    isLowPass: 1
+    isLowPass: 1,
+    isStereo: false
 
     // do not include velocity, which shoudl always be per voice
   };let PolySynth = Gibberish.PolyTemplate(Synth, ['frequency', 'attack', 'decay', 'pulsewidth', 'pan', 'gain', 'glide', 'saturation', 'filterMult', 'Q', 'cutoff', 'resonance', 'antialias', 'filterType', 'waveform', 'filterMode']);

@@ -3,11 +3,12 @@ const genish = require( 'genish.js' ),
 
 module.exports = function( Gibberish ) {
 
-  const makeChannel = function( input, _Q, freq ) {
+  const makeChannel = function( input, _Q, _freq ) {
     'use jsdsp'
     const iT = 1 / genish.gen.samplerate,
           z  = genish.data([ 0,0,0,0 ], 1, { meta:true })
-    
+
+    const freq = genish.max(.005, genish.min( _freq, 1 ) ) 
     const Q = .5 + _Q * 23
     // kwd = 2 * $M_PI * acf[kindx]
     const kwd = ( Math.PI * 2 ) * freq * genish.gen.samplerate / 2
@@ -63,7 +64,6 @@ module.exports = function( Gibberish ) {
   Gibberish.genish.zd24 = ( input, _Q, freq, isStereo=false ) => {
     const leftInput = isStereo === true ? input[0] : input
     const left = makeChannel( leftInput, _Q, freq )
-
 
     let out
     if( isStereo === true ) {

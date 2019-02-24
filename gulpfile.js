@@ -15,8 +15,7 @@ var gulp = require('gulp'),
 
 let workletBlob = workletStr.prefix
 
-gulp.task( 'workletblob', ['js'], ()=> {
- 
+const workletFnc = () => {
   const gibberishText = fs.readFileSync( './dist/gibberish.js', 'utf-8' )
   const processorText = fs.readFileSync( './js/workletProcessor.js', 'utf-8' )
 
@@ -25,14 +24,13 @@ gulp.task( 'workletblob', ['js'], ()=> {
   workletBlob += workletStr.postfix
 
   fs.writeFileSync( './dist/gibberish_worklet.js', workletBlob )
+}
 
-  //const minified = uglify.minify( workletBlob )
-
-  //fs.writeFileSync( './dist/gibberish_worklet.min.js', minified )
-})
+gulp.task( 'workletblob', ['js'], workletFnc ) 
 
 // browserify
-gulp.task( 'js', ['jsdsp' ], function() {
+//
+const jsFunc = () => {
   browserify({ debug:false, standalone:'Gibberish' })
     .require( './js/index.js', { entry: true } )
     //.transform( babelify, { presets:['es2015'] }) 
@@ -54,7 +52,9 @@ gulp.task( 'js', ['jsdsp' ], function() {
     //    onLast:true
     //  }) 
     //)
-})
+
+}
+gulp.task( 'js', ['jsdsp' ], jsFunc )
 
 gulp.task( 'jsdsp', ()=> {
   gulp.src( './js/**/*.dsp.js', { base:'./' })
@@ -75,15 +75,17 @@ gulp.task( 'test', ['js'], ()=> {
 gulp.task( 'watch', function() {
   gulp.watch( './js/**/*.js', ['workletblob'] )
 
-  gulp.watch( './js/**/*.jsdsp', e => { 
-    let pathArr = e.path.split('/')
-    pathArr.pop()
-    pathArr = pathArr.join('/')
-
+  gulp.watch( './js/**/*.dsp.js', e => { 
     gulp.src( e.path )
       .pipe( babel({ plugins:jsdsp }) )
-      .pipe( rename( path => path.ext = '.js' ) )
-      .pipe( gulp.dest(pathArr) )
+      .pipe( rename( path => {
+        path.basename = path.basename.split('.')[0]
+      } ))
+      .pipe( gulp.dest('.') )
+
+    //jsFunc()
+    //workletFnc()
+
        
   })
 })

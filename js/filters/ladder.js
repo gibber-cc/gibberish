@@ -3,12 +3,13 @@ const genish = require('genish.js'),
 
 module.exports = function (Gibberish) {
 
-  const makeChannel = function (input, _Q, freq) {
+  const makeChannel = function (input, _Q, _freq) {
     'use jsdsp';
 
     const iT = genish.div(1, genish.gen.samplerate),
           z = genish.data([0, 0, 0, 0], 1, { meta: true });
 
+    const freq = genish.max(.005, genish.min(_freq, 1));
     const Q = genish.add(.5, genish.mul(_Q, 23));
     // kwd = 2 * $M_PI * acf[kindx]
     const kwd = genish.div(genish.mul(genish.mul(genish.mul(Math.PI, 2), freq), genish.gen.samplerate), 2);

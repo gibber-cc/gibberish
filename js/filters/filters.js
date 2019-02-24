@@ -4,7 +4,6 @@ module.exports = function( Gibberish ) {
 
   const filters = {
     Filter24Classic : require( './filter24.js'  )( Gibberish ),
-    //Filter24Moog    : require( './ladderFilterZeroDelay.js' )( Gibberish ),
     Filter24Moog    : require( './ladder.js' )( Gibberish ),
     Filter24TB303   : require( './diodeFilterZDF.js' )( Gibberish ),
     Filter12Biquad  : require( './biquad.js'    )( Gibberish ),
@@ -31,10 +30,10 @@ module.exports = function( Gibberish ) {
 
       switch( props.filterType ) {
         case 1:
-          filteredOsc = g.zd24( input, g.min( g.in('Q'), .9999 ),  g.min( cutoff, 20000 ) )
+          filteredOsc = g.zd24( input, g.min( g.in('Q'), .9999 ), cutoff ) // g.max(.005, g.min( cutoff, 1 ) ) )
           break;
         case 2:
-          filteredOsc = g.diodeZDF( input, g.min( g.in('Q'), .9999 ), g.min( cutoff, 20000 ), g.in('saturation'), isStereo ) 
+          filteredOsc = g.diodeZDF( input, g.min( g.in('Q'), .9999 ), cutoff, g.in('saturation'), isStereo ) 
           break;
         case 3:
           filteredOsc = g.svf( input, cutoff, g.sub( 1, g.in('Q')), props.filterMode, isStereo ) 

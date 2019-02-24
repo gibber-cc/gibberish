@@ -38,9 +38,14 @@ module.exports = function( Gibberish ) {
         'use jsdsp'
         let oscWithEnv = osc * env * loudness,
             panner
-    
-        const baseCutoffFreq = g.in('cutoff') * frequency
-        const cutoff = baseCutoffFreq * g.pow( 2, g.in('filterMult') * loudness ) * env 
+
+        //baseCutoffFreq = g.mul( g.in('cutoff'), g.div( frequency, g.gen.samplerate / 16 ) ),
+        //cutoff = g.mul( g.mul( baseCutoffFreq, g.pow( 2, g.mul( g.in('filterMult'), loudness ) )), env ),
+        //filteredOsc = Gibberish.filters.factory( oscWithEnv, cutoff, g.in('Q'), g.in('saturation'), syn )
+ 
+        // 16 is an unfortunate empirically derived magic number...
+        const baseCutoffFreq = g.in('cutoff') * ( frequency /  ( g.gen.samplerate / 16 ) ) 
+        const cutoff = g.min( baseCutoffFreq * g.pow( 2, g.in('filterMult') * loudness ) * env, .995 ) 
         const filteredOsc = Gibberish.filters.factory( oscWithEnv, cutoff, g.in('Q'), g.in('saturation'), props )
 
         let synthWithGain = filteredOsc * g.in( 'gain' )
@@ -91,7 +96,8 @@ module.exports = function( Gibberish ) {
     cutoff:.5,
     filterType:0,
     filterMode:0,
-    isLowPass:1
+    isLowPass:1,
+    isStereo:false
   }
 
   // do not include velocity, which shoudl always be per voice

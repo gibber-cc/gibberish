@@ -3,7 +3,7 @@ const g = require( 'genish.js' ),
 
 const genish = g
 module.exports = function( Gibberish ) {
-  Gibberish.genish.diodeZDF = ( input, _Q, freq, saturation, isStereo=false ) => {
+  Gibberish.genish.diodeZDF = ( input, __Q, __freq, saturation, isStereo=false ) => {
     const iT = 1 / g.gen.samplerate,
           kz1 = g.history(0),
           kz2 = g.history(0),
@@ -16,14 +16,14 @@ module.exports = function( Gibberish ) {
           ka4 = 0.5,
           kindx = 0   
 
-
-    let __freq = g.mul( freq,  genish.gen.samplerate / 2 )
+    console.log( 'freq:', __freq )
+    const freq = g.mul( g.max(.005, g.min( __freq, .995)),  genish.gen.samplerate / 2 )
+    //const freq = g.max(.005, g.min( __freq, .995))
 
     // XXX this is where the magic number hapens for Q...
-    const Q = g.memo( g.add( .5, g.mul( _Q, g.add( 5, g.sub( 5, g.mul( g.div( __freq, 20000  ), 5 ) ) ) ) ) )
+    const Q = g.memo( g.add( .5, g.mul( __Q, g.add( 5, g.sub( 5, g.mul( g.div( freq, 20000  ), 5 ) ) ) ) ) )
     // kwd = 2 * $M_PI * acf[kindx]
-    //const kwd = g.memo( g.mul( Math.PI * 2, freq ) )
-    const kwd = g.memo( g.mul( Math.PI * 2, __freq ) )
+    const kwd = g.memo( g.mul( Math.PI * 2, freq ) )
 
     // kwa = (2/iT) * tan(kwd * iT/2) 
     const kwa =g.memo( g.mul( 2/iT, g.tan( g.mul( kwd, iT/2 ) ) ) )
@@ -177,7 +177,7 @@ module.exports = function( Gibberish ) {
     }
     //returnValue = klp
     
-    return klp//returnValue// klp//returnValue
+    return klp
  }
 
   const DiodeZDF = inputProps => {

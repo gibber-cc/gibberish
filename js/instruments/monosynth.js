@@ -42,9 +42,11 @@ module.exports = function (Gibberish) {
         oscs[i] = osc;
       }
 
+      //const baseCutoffFreq = g.in('cutoff') * (frequency /  (g.gen.samplerate / 16 ))
+      //const cutoff = baseCutoffFreq * g.pow( 2, g.in('filterMult') * loudness ) * env 
       const oscSum = g.add(...oscs),
             oscWithEnv = g.mul(oscSum, env),
-            baseCutoffFreq = g.mul(g.in('cutoff'), frequency),
+            baseCutoffFreq = g.mul(g.in('cutoff'), g.div(frequency, g.gen.samplerate / 16)),
             cutoff = g.mul(g.mul(baseCutoffFreq, g.pow(2, g.mul(g.in('filterMult'), loudness))), env),
             filteredOsc = Gibberish.filters.factory(oscWithEnv, cutoff, g.in('Q'), g.in('saturation'), syn);
 
@@ -91,7 +93,7 @@ module.exports = function (Gibberish) {
     filterType: 1,
     filterMode: 0, // 0 = LP, 1 = HP, 2 = BP, 3 = Notch
     saturation: .5,
-    filterMult: 4,
+    filterMult: 2,
     isLowPass: true,
     loudness: 1
   };

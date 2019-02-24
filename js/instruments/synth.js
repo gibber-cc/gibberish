@@ -34,13 +34,18 @@ module.exports = function (Gibberish) {
         let oscWithEnv = genish.mul(genish.mul(osc, env), loudness),
             panner;
 
-        const baseCutoffFreq = genish.mul(g.in('cutoff'), frequency);
-        const cutoff = genish.mul(genish.mul(baseCutoffFreq, g.pow(2, genish.mul(g.in('filterMult'), loudness))), env);
+        //baseCutoffFreq = g.mul( g.in('cutoff'), g.div( frequency, g.gen.samplerate / 16 ) ),
+        //cutoff = g.mul( g.mul( baseCutoffFreq, g.pow( 2, g.mul( g.in('filterMult'), loudness ) )), env ),
+        //filteredOsc = Gibberish.filters.factory( oscWithEnv, cutoff, g.in('Q'), g.in('saturation'), syn )
+
+        // 16 is an unfortunate empirically derived magic number...
+        const baseCutoffFreq = genish.mul(g.in('cutoff'), genish.div(frequency, genish.div(g.gen.samplerate, 16)));
+        const cutoff = g.min(genish.mul(genish.mul(baseCutoffFreq, g.pow(2, genish.mul(g.in('filterMult'), loudness))), env), .995);
         const filteredOsc = Gibberish.filters.factory(oscWithEnv, cutoff, g.in('Q'), g.in('saturation'), props);
 
         let synthWithGain = genish.mul(filteredOsc, g.in('gain'));
 
-        if (genish.eq(syn.panVoices, true)) {
+        if (syn.panVoices === true) {
           panner = g.pan(synthWithGain, synthWithGain, g.in('pan'));
           syn.graph = [panner.left, panner.right];
         } else {
@@ -85,7 +90,8 @@ module.exports = function (Gibberish) {
     cutoff: .5,
     filterType: 0,
     filterMode: 0,
-    isLowPass: 1
+    isLowPass: 1,
+    isStereo: false
 
     // do not include velocity, which shoudl always be per voice
   };let PolySynth = Gibberish.PolyTemplate(Synth, ['frequency', 'attack', 'decay', 'pulsewidth', 'pan', 'gain', 'glide', 'saturation', 'filterMult', 'Q', 'cutoff', 'resonance', 'antialias', 'filterType', 'waveform', 'filterMode']);
