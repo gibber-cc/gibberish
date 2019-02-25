@@ -6989,25 +6989,23 @@ let g = require( 'genish.js' ),
 module.exports = function( Gibberish ) {
 
   const Conga = argumentProps => {
-    let conga = Object.create( instrument ),
-        frequency = g.in( 'frequency' ),
-        decay = g.in( 'decay' ),
-        gain  = g.in( 'gain' ),
-        loudness = g.in( 'loudness' )
+    const conga = Object.create( instrument ),
+          frequency = g.in( 'frequency' ),
+          decay = g.in( 'decay' ),
+          gain  = g.in( 'gain' ),
+          loudness = g.in( 'loudness' )
 
-    let props = Object.assign( {}, Conga.defaults, argumentProps )
+    const props = Object.assign( {}, Conga.defaults, argumentProps )
 
-    let trigger = g.bang(),
-        impulse = g.mul( trigger, 60 ),
-        _decay =  g.sub( .101, g.div( decay, 10 ) ), // create range of .001 - .099
-        bpf = g.svf( impulse, frequency, _decay, 2, false ),
-        out = g.mul( bpf, g.mul( loudness, gain ) )
+    const trigger = g.bang(),
+          impulse = g.mul( trigger, 60 ),
+          _decay =  g.sub( .101, g.div( decay, 10 ) ), // create range of .001 - .099
+          bpf = g.svf( impulse, frequency, _decay, 2, false ),
+          out = g.mul( bpf, g.mul( loudness, gain ) )
     
-
+    conga.isStereo = false
     conga.env = trigger
-    Gibberish.factory( conga, out, ['instruments','conga'], props  )
-
-    return conga
+    return Gibberish.factory( conga, out, ['instruments','conga'], props  )
   }
   
   Conga.defaults = {
