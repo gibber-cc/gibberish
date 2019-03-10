@@ -43,10 +43,13 @@ module.exports = function (Gibberish) {
         const carrierOsc = Gibberish.oscillators.factory(syn.carrierWaveform, g.add(slidingFreq, modOscWithEnvAvg), syn.antialias);
         const carrierOscWithEnv = genish.mul(carrierOsc, env);
 
-        const baseCutoffFreq = genish.mul(g.in('cutoff'), frequency);
-        const cutoff = genish.mul(genish.mul(baseCutoffFreq, g.pow(2, genish.mul(g.in('filterMult'), loudness))), env);
-        //const cutoff = g.add( g.in('cutoff'), g.mul( g.in('filterMult'), env ) )
+        const baseCutoffFreq = genish.mul(g.in('cutoff'), genish.div(frequency, genish.div(g.gen.samplerate, 16)));
+        const cutoff = g.min(genish.mul(genish.mul(baseCutoffFreq, g.pow(2, genish.mul(g.in('filterMult'), loudness))), env), .995);
         const filteredOsc = Gibberish.filters.factory(carrierOscWithEnv, cutoff, g.in('Q'), g.in('saturation'), syn);
+        //const baseCutoffFreq = g.in('cutoff') * frequency
+        //const cutoff =  baseCutoffFreq * g.pow( 2, g.in('filterMult') * loudness ) * env
+        //const cutoff = g.add( g.in('cutoff'), g.mul( g.in('filterMult'), env ) )
+        //const filteredOsc = Gibberish.filters.factory( carrierOscWithEnv, cutoff, g.in('Q'), g.in('saturation'), syn )
 
         const synthWithGain = genish.mul(genish.mul(filteredOsc, g.in('gain')), loudness);
 
@@ -97,7 +100,6 @@ module.exports = function (Gibberish) {
     cutoff: .35,
     filterType: 0,
     filterMode: 0,
-    isLowPass: 1,
     loudness: 1
 
   };

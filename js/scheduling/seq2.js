@@ -62,6 +62,8 @@ module.exports = function( Gibberish ) {
           shouldRun = true
 
           if( typeof timing === 'function' ) timing = timing()
+          
+          let shouldIncreaseSpeed = density <= 1 ? false : true
 
           // XXX this supports an edge case in Gibber, where patterns like Euclid / Hex return
           // objects indicating both whether or not they should should trigger values as well
@@ -92,6 +94,10 @@ module.exports = function( Gibberish ) {
           }
 
           seq.phase -= seq.nextTime
+
+          if( shouldIncreaseSpeed ) {
+            timing = Math.random() > (2 - density) ? timing / 2 : timing
+          }
           seq.nextTime = timing
         }
 

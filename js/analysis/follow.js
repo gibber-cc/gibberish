@@ -6,22 +6,11 @@ const genish = g;
 
 module.exports = function (Gibberish) {
 
-  const Follow = inputProps => {
-
-    // main follow object is also the output
-    const follow = Object.create(analyzer);
-    follow.in = Object.create(ugen);
-    follow.id = Gibberish.factory.getUID();
-
-    const props = Object.assign({}, inputProps, Follow.defaults);
-    let isStereo = props.input.isStereo !== undefined ? props.input.isStereo : true;
-
-    // the input to the follow ugen is buffered in this ugen
-    follow.buffer = g.data(props.bufferSize, 1);
+  const fout = (input, buffer, props) => {
+    const follow_out = Object.create(analyzer);
+    follow_out.id = Gibberish.factory.getUID();
 
     let avg; // output; make available outside jsdsp block
-    const _input = g.in('input');
-    const input = isStereo ? g.add(_input[0], _input[1]) : _input;
 
     {
       "use jsdsp";
@@ -31,51 +20,75 @@ module.exports = function (Gibberish) {
       // hold running sum
       const sum = g.data(1, 1, { meta: true });
 
-      sum[0] = genish.sub(genish.add(sum[0], input), g.peek(follow.buffer, bufferPhaseOut, { mode: 'simple' }));
+      sum[0] = genish.sub(genish.add(sum[0], input), g.peek(buffer, bufferPhaseOut, { mode: 'simple' }));
 
       avg = genish.div(sum[0], props.bufferSize);
     }
 
-    if (!isStereo) {
-      Gibberish.factory(follow, avg, 'follow_out', props);
+    //if( !isStereo ) {
+    Gibberish.factory(follow_out, avg, 'follow_out', props);
 
-      follow.callback.ugenName = follow.ugenName = `follow_out_${follow.id}`;
+    follow_out.callback.ugenName = follow_out.ugenName = `follow_out_${follow_out.id}`;
 
-      // have to write custom callback for input to reuse components from output,
-      // specifically the memory from our buffer
-      let idx = follow.buffer.memory.values.idx;
-      let phase = 0;
-      let abs = Math.abs;
-      let callback = function (input, memory) {
-        'use strict';
+    return follow_out;
+  };
 
-        memory[genish.add(idx, phase)] = abs(input);
-        phase++;
-        if (phase > genish.sub(props.bufferSize, 1)) {
-          phase = 0;
-        }
+  const fin = (input, buffer, props) => {
+    const follow_in = Object.create(ugen);
+    let idx = buffer.memory.values.idx;
+    let phase = 0;
+    let abs = Math.abs;
 
-        return 0;
-      };
+    // have to write custom callback for input to reuse components from output,
+    // specifically the memory from our buffer
+    let callback = function (input, memory) {
+      'use strict';
 
-      Gibberish.factory(follow.in, input, 'follow_in', props, callback);
-
-      // lots of nonsense to make our custom function work
-      follow.in.callback.ugenName = follow.in.ugenName = `follow_in_${follow.id}`;
-      follow.in.inputNames = ['input'];
-      follow.in.inputs = [input];
-      follow.in.input = props.input;
-      follow.in.type = 'analysis';
-
-      if (Gibberish.analyzers.indexOf(follow.in) === -1) {
-        Gibberish.analyzers.push(follow.in);
+      memory[genish.add(idx, phase)] = abs(input);
+      phase++;
+      if (phase > genish.sub(props.bufferSize, 1)) {
+        phase = 0;
       }
 
-      Gibberish.dirty(Gibberish.analyzers);
-    }
+      return 0;
+    };
 
-    return follow;
+    Gibberish.factory(follow_in, input, 'follow_in', props, callback);
+
+    // lots of nonsense to make our custom function work
+    follow_in.callback.ugenName = follow_in.ugenName = `follow_in_${follow_in.id}`;
+    follow_in.inputNames = ['input'];
+    follow_in.inputs = [input];
+    follow_in.input = input;
+    follow_in.type = 'analysis';
+
+    if (Gibberish.analyzers.indexOf(follow_in) === -1) Gibberish.analyzers.push(follow_in);
+
+    Gibberish.dirty(Gibberish.analyzers);
+
+    return follow_in;
   };
+
+  const Follow = inputProps => {
+    const follow = {};
+
+    const props = Object.assign({}, inputProps, Follow.defaults);
+    const isStereo = props.input.isStereo !== undefined ? props.input.isStereo : true;
+
+    // the input to the follow ugen is buffered in this ugen
+    follow.buffer = g.data(props.bufferSize, 1);
+
+    const _input = g.in('input');
+    const input = isStereo ? g.add(_input[0], _input[1]) : _input;
+
+    follow.out = fout(input, follow.buffer, props);
+    follow.in = fin(input, follow.buffer, props);
+
+    return follow.out;
+  };
+
+  Follow.out = fout;
+  Follow.in = fin;
 
   Follow.defaults = {
     bufferSize: 8192

@@ -92,7 +92,7 @@ module.exports = function (Gibberish) {
 
       const r = input[1];
       in1a0_r = genish.mul(r, a[0]); //g.mul( x1_1.in( input[1] ), a0 )
-      x0a1_r = genish.mul(xr[1], a[1]); //g.mul( x2_1.in( x1_1.out ), a1 )
+      x0a1_r = genish.mul(xr[0], a[1]); //g.mul( x2_1.in( x1_1.out ), a1 )
       x1a2_r = genish.mul(xr[1], a[2]); //g.mul( x2_1.out,            a2 )
 
       xr[1] = xr[0];
@@ -100,9 +100,9 @@ module.exports = function (Gibberish) {
 
       const sumLeft_r = genish.add(genish.add(in1a0_r, x0a1_r), x1a2_r);
 
-      yr[1] = yr[0];
-      y0b0_r = genish.mul(yr[1], b[0]); //g.mul( y2_1.in( y1_1.out ), b1 )
+      y0b0_r = genish.mul(yr[0], b[0]); //g.mul( y2_1.in( y1_1.out ), b1 )
       y1b1_r = genish.mul(yr[1], b[1]); //g.mul( y2_1.out, b2 )
+      yr[1] = yr[0];
 
       const sumRight_r = genish.add(y0b0_r, y1b1_r);
 

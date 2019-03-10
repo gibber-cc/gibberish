@@ -16,7 +16,6 @@ module.exports = function( Gibberish ) {
           ka4 = 0.5,
           kindx = 0   
 
-    console.log( 'freq:', __freq )
     const freq = g.mul( g.max(.005, g.min( __freq, .995)),  genish.gen.samplerate / 2 )
     //const freq = g.max(.005, g.min( __freq, .995))
 
@@ -99,7 +98,7 @@ module.exports = function( Gibberish ) {
     //endif
     //
     //const kin = input 
-    let kin = input//g.memo( g.mul( g.div( 1, g.tanh( saturation ) ), g.tanh( g.mul( saturation, input ) ) ) )
+    let kin = isStereo === true ? g.add( input[0], input[1] ) : input//g.memo( g.mul( g.div( 1, g.tanh( saturation ) ), g.tanh( g.mul( saturation, input ) ) ) )
     kin = g.tanh( g.mul( saturation, kin ) )
 
     const kun = g.div( g.sub( kin, g.mul( Q, kSIGMA ) ), g.add( 1, g.mul( Q, kGAMMA ) ) )

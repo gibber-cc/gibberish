@@ -4210,6 +4210,9 @@ module.exports = function( Gibberish ) {
     Follow: require( './follow.js'  )( Gibberish )
   }
 
+  analyzers.Follow_out = analyzers.Follow.out
+  analyzers.Follow_in  = analyzers.Follow.in
+
   analyzers.export = target => {
     for( let key in analyzers ) {
       if( key !== 'export' ) {
@@ -4231,22 +4234,11 @@ const genish = g;
 
 module.exports = function (Gibberish) {
 
-  const Follow = inputProps => {
-
-    // main follow object is also the output
-    const follow = Object.create(analyzer);
-    follow.in = Object.create(ugen);
-    follow.id = Gibberish.factory.getUID();
-
-    const props = Object.assign({}, inputProps, Follow.defaults);
-    let isStereo = props.input.isStereo !== undefined ? props.input.isStereo : true;
-
-    // the input to the follow ugen is buffered in this ugen
-    follow.buffer = g.data(props.bufferSize, 1);
+  const fout = (input, buffer, props) => {
+    const follow_out = Object.create(analyzer);
+    follow_out.id = Gibberish.factory.getUID();
 
     let avg; // output; make available outside jsdsp block
-    const _input = g.in('input');
-    const input = isStereo ? g.add(_input[0], _input[1]) : _input;
 
     {
       "use jsdsp";
@@ -4256,51 +4248,75 @@ module.exports = function (Gibberish) {
       // hold running sum
       const sum = g.data(1, 1, { meta: true });
 
-      sum[0] = genish.sub(genish.add(sum[0], input), g.peek(follow.buffer, bufferPhaseOut, { mode: 'simple' }));
+      sum[0] = genish.sub(genish.add(sum[0], input), g.peek(buffer, bufferPhaseOut, { mode: 'simple' }));
 
       avg = genish.div(sum[0], props.bufferSize);
     }
 
-    if (!isStereo) {
-      Gibberish.factory(follow, avg, 'follow_out', props);
+    //if( !isStereo ) {
+    Gibberish.factory(follow_out, avg, 'follow_out', props);
 
-      follow.callback.ugenName = follow.ugenName = `follow_out_${follow.id}`;
+    follow_out.callback.ugenName = follow_out.ugenName = `follow_out_${follow_out.id}`;
 
-      // have to write custom callback for input to reuse components from output,
-      // specifically the memory from our buffer
-      let idx = follow.buffer.memory.values.idx;
-      let phase = 0;
-      let abs = Math.abs;
-      let callback = function (input, memory) {
-        'use strict';
+    return follow_out;
+  };
 
-        memory[genish.add(idx, phase)] = abs(input);
-        phase++;
-        if (phase > genish.sub(props.bufferSize, 1)) {
-          phase = 0;
-        }
+  const fin = (input, buffer, props) => {
+    const follow_in = Object.create(ugen);
+    let idx = buffer.memory.values.idx;
+    let phase = 0;
+    let abs = Math.abs;
 
-        return 0;
-      };
+    // have to write custom callback for input to reuse components from output,
+    // specifically the memory from our buffer
+    let callback = function (input, memory) {
+      'use strict';
 
-      Gibberish.factory(follow.in, input, 'follow_in', props, callback);
-
-      // lots of nonsense to make our custom function work
-      follow.in.callback.ugenName = follow.in.ugenName = `follow_in_${follow.id}`;
-      follow.in.inputNames = ['input'];
-      follow.in.inputs = [input];
-      follow.in.input = props.input;
-      follow.in.type = 'analysis';
-
-      if (Gibberish.analyzers.indexOf(follow.in) === -1) {
-        Gibberish.analyzers.push(follow.in);
+      memory[genish.add(idx, phase)] = abs(input);
+      phase++;
+      if (phase > genish.sub(props.bufferSize, 1)) {
+        phase = 0;
       }
 
-      Gibberish.dirty(Gibberish.analyzers);
-    }
+      return 0;
+    };
 
-    return follow;
+    Gibberish.factory(follow_in, input, 'follow_in', props, callback);
+
+    // lots of nonsense to make our custom function work
+    follow_in.callback.ugenName = follow_in.ugenName = `follow_in_${follow_in.id}`;
+    follow_in.inputNames = ['input'];
+    follow_in.inputs = [input];
+    follow_in.input = input;
+    follow_in.type = 'analysis';
+
+    if (Gibberish.analyzers.indexOf(follow_in) === -1) Gibberish.analyzers.push(follow_in);
+
+    Gibberish.dirty(Gibberish.analyzers);
+
+    return follow_in;
   };
+
+  const Follow = inputProps => {
+    const follow = {};
+
+    const props = Object.assign({}, inputProps, Follow.defaults);
+    const isStereo = props.input.isStereo !== undefined ? props.input.isStereo : true;
+
+    // the input to the follow ugen is buffered in this ugen
+    follow.buffer = g.data(props.bufferSize, 1);
+
+    const _input = g.in('input');
+    const input = isStereo ? g.add(_input[0], _input[1]) : _input;
+
+    follow.out = fout(input, follow.buffer, props);
+    follow.in = fin(input, follow.buffer, props);
+
+    return follow.out;
+  };
+
+  Follow.out = fout;
+  Follow.in = fin;
 
   Follow.defaults = {
     bufferSize: 8192
@@ -4831,7 +4847,7 @@ module.exports = function (Gibberish) {
 
       const r = input[1];
       in1a0_r = genish.mul(r, a[0]); //g.mul( x1_1.in( input[1] ), a0 )
-      x0a1_r = genish.mul(xr[1], a[1]); //g.mul( x2_1.in( x1_1.out ), a1 )
+      x0a1_r = genish.mul(xr[0], a[1]); //g.mul( x2_1.in( x1_1.out ), a1 )
       x1a2_r = genish.mul(xr[1], a[2]); //g.mul( x2_1.out,            a2 )
 
       xr[1] = xr[0];
@@ -4839,9 +4855,9 @@ module.exports = function (Gibberish) {
 
       const sumLeft_r = genish.add(genish.add(in1a0_r, x0a1_r), x1a2_r);
 
-      yr[1] = yr[0];
-      y0b0_r = genish.mul(yr[1], b[0]); //g.mul( y2_1.in( y1_1.out ), b1 )
+      y0b0_r = genish.mul(yr[0], b[0]); //g.mul( y2_1.in( y1_1.out ), b1 )
       y1b1_r = genish.mul(yr[1], b[1]); //g.mul( y2_1.out, b2 )
+      yr[1] = yr[0];
 
       const sumRight_r = genish.add(y0b0_r, y1b1_r);
 
@@ -4930,7 +4946,6 @@ module.exports = function( Gibberish ) {
           ka4 = 0.5,
           kindx = 0   
 
-    console.log( 'freq:', __freq )
     const freq = g.mul( g.max(.005, g.min( __freq, .995)),  genish.gen.samplerate / 2 )
     //const freq = g.max(.005, g.min( __freq, .995))
 
@@ -5013,7 +5028,7 @@ module.exports = function( Gibberish ) {
     //endif
     //
     //const kin = input 
-    let kin = input//g.memo( g.mul( g.div( 1, g.tanh( saturation ) ), g.tanh( g.mul( saturation, input ) ) ) )
+    let kin = isStereo === true ? g.add( input[0], input[1] ) : input//g.memo( g.mul( g.div( 1, g.tanh( saturation ) ), g.tanh( g.mul( saturation, input ) ) ) )
     kin = g.tanh( g.mul( saturation, kin ) )
 
     const kun = g.div( g.sub( kin, g.mul( Q, kSIGMA ) ), g.add( 1, g.mul( Q, kGAMMA ) ) )
@@ -7107,10 +7122,13 @@ module.exports = function (Gibberish) {
         const carrierOsc = Gibberish.oscillators.factory(syn.carrierWaveform, g.add(slidingFreq, modOscWithEnvAvg), syn.antialias);
         const carrierOscWithEnv = genish.mul(carrierOsc, env);
 
-        const baseCutoffFreq = genish.mul(g.in('cutoff'), frequency);
-        const cutoff = genish.mul(genish.mul(baseCutoffFreq, g.pow(2, genish.mul(g.in('filterMult'), loudness))), env);
-        //const cutoff = g.add( g.in('cutoff'), g.mul( g.in('filterMult'), env ) )
+        const baseCutoffFreq = genish.mul(g.in('cutoff'), genish.div(frequency, genish.div(g.gen.samplerate, 16)));
+        const cutoff = g.min(genish.mul(genish.mul(baseCutoffFreq, g.pow(2, genish.mul(g.in('filterMult'), loudness))), env), .995);
         const filteredOsc = Gibberish.filters.factory(carrierOscWithEnv, cutoff, g.in('Q'), g.in('saturation'), syn);
+        //const baseCutoffFreq = g.in('cutoff') * frequency
+        //const cutoff =  baseCutoffFreq * g.pow( 2, g.in('filterMult') * loudness ) * env
+        //const cutoff = g.add( g.in('cutoff'), g.mul( g.in('filterMult'), env ) )
+        //const filteredOsc = Gibberish.filters.factory( carrierOscWithEnv, cutoff, g.in('Q'), g.in('saturation'), syn )
 
         const synthWithGain = genish.mul(genish.mul(filteredOsc, g.in('gain')), loudness);
 
@@ -7161,7 +7179,6 @@ module.exports = function (Gibberish) {
     cutoff: .35,
     filterType: 0,
     filterMode: 0,
-    isLowPass: 1,
     loudness: 1
 
   };
@@ -8982,6 +8999,8 @@ module.exports = function( Gibberish ) {
           shouldRun = true
 
           if( typeof timing === 'function' ) timing = timing()
+          
+          let shouldIncreaseSpeed = density <= 1 ? false : true
 
           // XXX this supports an edge case in Gibber, where patterns like Euclid / Hex return
           // objects indicating both whether or not they should should trigger values as well
@@ -9012,6 +9031,10 @@ module.exports = function( Gibberish ) {
           }
 
           seq.phase -= seq.nextTime
+
+          if( shouldIncreaseSpeed ) {
+            timing = Math.random() > (2 - density) ? timing / 2 : timing
+          }
           seq.nextTime = timing
         }
 

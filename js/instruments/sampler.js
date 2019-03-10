@@ -64,7 +64,7 @@ module.exports = function( Gibberish ) {
       syn.__rateStorage__ = rateStorage
       rateStorage[0] = rate
 
-      // XXX we added our recorded 'rate' param and then effectively substract it,
+      // XXX we added our recorded 'rate' param and then effectively subtract it,
       // so that its presence in the graph will force genish to actually record the 
       // rate as the input. this is extremely hacky... there should be a way to record
       // value without having to include it in the graph!
