@@ -34,6 +34,7 @@ module.exports = function( Gibberish ) {
     syn.isStereo = props.isStereo !== undefined ? props.isStereo : false
 
     const start = g.in( 'start' ), end = g.in( 'end' ), 
+          bufferLength = g.in( 'bufferLength' ), 
           rate = g.in( 'rate' ), shouldLoop = g.in( 'loops' ),
           loudness = g.in( 'loudness' ),
           // rate storage is used to determine whether we're playing
@@ -59,7 +60,7 @@ module.exports = function( Gibberish ) {
       syn.__bang__ = g.bang()
       syn.__trigger = syn.__bang__.trigger
 
-      syn.__phase__ = g.counter( rate, start, end, syn.__bang__, shouldLoop, { shouldWrap:false, initialValue:9999999 })
+      syn.__phase__ = g.counter( rate, g.mul(start,bufferLength), g.mul( end, bufferLength ), syn.__bang__, shouldLoop, { shouldWrap:false, initialValue:9999999 })
       
       syn.__rateStorage__ = rateStorage
       rateStorage[0] = rate
@@ -70,7 +71,7 @@ module.exports = function( Gibberish ) {
       // value without having to include it in the graph!
       syn.graph = g.add( g.mul( 
         g.ifelse( 
-          g.and( g.gte( syn.__phase__, start ), g.lt( syn.__phase__, end ) ),
+          g.and( g.gte( syn.__phase__, g.mul(start,bufferLength) ), g.lt( syn.__phase__, g.mul(end,bufferLength) ) ),
           g.peek( 
             syn.data, 
             syn.__phase__,
@@ -106,7 +107,7 @@ module.exports = function( Gibberish ) {
       if( typeof syn.onload === 'function' ){  
         syn.onload( buffer || syn.data.buffer )
       }
-      if( syn.end === -999999999 ) syn.end = syn.data.buffer.length - 1
+      if( syn.bufferLength === -999999999 ) syn.bufferLength = syn.data.buffer.length - 1
     }
 
     //if( props.filename ) {
@@ -178,7 +179,8 @@ module.exports = function( Gibberish ) {
     panVoices:false,
     loops: 0,
     start:0,
-    end:-999999999,
+    end:1,
+    bufferLength:-999999999,
     loudness:1
   }
 
@@ -197,7 +199,7 @@ module.exports = function( Gibberish ) {
     return envCheck
   }
 
-  const PolySampler = Gibberish.PolyTemplate( Sampler, ['rate','pan','gain','start','end','loops'], envCheckFactory ) 
+  const PolySampler = Gibberish.PolyTemplate( Sampler, ['rate','pan','gain','start','end','loops','bufferLength'], envCheckFactory ) 
 
   return [ Sampler, PolySampler ]
 }
