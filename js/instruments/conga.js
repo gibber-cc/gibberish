@@ -30,6 +30,8 @@ module.exports = function( Gibberish ) {
     loudness: 1
   }
 
-  return Conga
+  const PolyConga = Gibberish.PolyTemplate( Conga, ['gain','frequency','decay','loudness' ] ) 
+  PolyConga.defaults = Conga.defaults
 
+  return [ Conga, PolyConga ]
 }
