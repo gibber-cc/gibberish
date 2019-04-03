@@ -79,9 +79,9 @@ let Flanger = inputProps => {
 
 Flanger.defaults = {
   input:0,
-  feedback:.01,
-  offset:.25,
-  frequency:.5
+  feedback:.81,
+  offset:.125,
+  frequency:1
 }
 
 return Flanger
