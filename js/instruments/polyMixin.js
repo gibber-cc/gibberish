@@ -10,7 +10,7 @@ module.exports = {
       //Object.assign( voice, this.properties )
       if( gain === undefined ) gain = this.gain
       voice.gain = gain
-      voice.note( freq )
+      voice.note( freq, this.loudness )
       this.__runVoice__( voice, this )
       this.triggerNote = freq
     }
@@ -18,25 +18,23 @@ module.exports = {
 
   // XXX this is not particularly satisfying...
   // must check for both notes and chords
-  trigger( gain ) {
+  trigger( loudness ) {
     if( this.triggerChord !== null ) {
       this.triggerChord.forEach( v => {
         let voice = this.__getVoice__()
         Object.assign( voice, this.properties )
-        voice.note( v )
-        voice.gain = gain
+        voice.note( v, loudness )
         this.__runVoice__( voice, this )
       })
     }else if( this.triggerNote !== null ) {
       let voice = this.__getVoice__()
       Object.assign( voice, this.properties )
-      voice.note( this.triggerNote )
-      voice.gain = gain
+      voice.note( this.triggerNote, loudness )
       this.__runVoice__( voice, this )
     }else{
       let voice = this.__getVoice__()
       Object.assign( voice, this.properties )
-      voice.trigger( gain )
+      voice.trigger( loudness )
       this.__runVoice__( voice, this )
     }
   },
