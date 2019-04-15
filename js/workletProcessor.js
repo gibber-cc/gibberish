@@ -113,7 +113,6 @@ class GibberishProcessor extends AudioWorkletProcessor {
       if( properties.nogibberish ) {
         ugen = properties
       }else{
-        console.log( "REP2", rep, event )
         if( rep.name[0] === 'Follow_out' || rep.name[0] === 'Follow_in' ) {
           rep.name = rep.name[0].split( '_' )
         }
@@ -148,7 +147,7 @@ class GibberishProcessor extends AudioWorkletProcessor {
       const dict = event.data
       const obj  = this.ugens.get( dict.object )
 
-      if( typeof obj[ dict.name ] !== 'function' ) return
+      if( obj === undefined || typeof obj[ dict.name ] !== 'function' ) return
       // for edge case when serialized functions are being passed to method calls
       if( dict.functions === true ) {
         obj[ dict.name ]( eval( '(' + dict.args + ')' ) ) 
