@@ -4202,7 +4202,7 @@ Object.assign( analyzer, {
 
 module.exports = analyzer
 
-},{"../ugen.js":136}],76:[function(require,module,exports){
+},{"../ugen.js":137}],76:[function(require,module,exports){
 module.exports = function( Gibberish ) {
 
   const analyzers = {
@@ -4381,7 +4381,7 @@ return Delay
 
 }
 
-},{"../ugen.js":136,"../workletProxy.js":139,"./analyzer.js":75,"genish.js":37}],78:[function(require,module,exports){
+},{"../ugen.js":137,"../workletProxy.js":140,"./analyzer.js":75,"genish.js":37}],78:[function(require,module,exports){
 const ugen = require( '../ugen.js' ),
       g = require( 'genish.js' )
 
@@ -4409,7 +4409,7 @@ module.exports = function( Gibberish ) {
 
 }
 
-},{"../ugen.js":136,"genish.js":37}],79:[function(require,module,exports){
+},{"../ugen.js":137,"genish.js":37}],79:[function(require,module,exports){
 const ugen = require( '../ugen.js' ),
       g = require( 'genish.js' )
 
@@ -4454,7 +4454,7 @@ module.exports = function( Gibberish ) {
   return ADSR
 }
 
-},{"../ugen.js":136,"genish.js":37}],80:[function(require,module,exports){
+},{"../ugen.js":137,"genish.js":37}],80:[function(require,module,exports){
 const g = require( 'genish.js' )
 
 module.exports = function( Gibberish ) {
@@ -4523,7 +4523,7 @@ module.exports = function( Gibberish ) {
 
 }
 
-},{"../ugen.js":136,"genish.js":37}],82:[function(require,module,exports){
+},{"../ugen.js":137,"genish.js":37}],82:[function(require,module,exports){
 /*
  * https://github.com/antimatter15/heapqueue.js/blob/master/heapqueue.js
  *
@@ -5050,7 +5050,7 @@ Object.assign( filter, {
 
 module.exports = filter
 
-},{"../ugen.js":136}],88:[function(require,module,exports){
+},{"../ugen.js":137}],88:[function(require,module,exports){
 let g = require( 'genish.js' ),
     filter = require( './filter.js' )
 
@@ -5153,7 +5153,7 @@ module.exports = function( Gibberish ) {
 
       switch( props.filterType ) {
         case 1:
-          filteredOsc = g.zd24( input, g.min( g.in('Q'), .9999 ), cutoff ) // g.max(.005, g.min( cutoff, 1 ) ) )
+          filteredOsc = g.zd24( input, g.min( g.in('Q'), .9999 ), cutoff, 0 ) // g.max(.005, g.min( cutoff, 1 ) ) )
           break;
         case 2:
           filteredOsc = g.diodeZDF( input, g.min( g.in('Q'), .9999 ), cutoff, g.in('saturation'), isStereo ) 
@@ -6033,7 +6033,7 @@ Object.assign( effect, {
 
 module.exports = effect
 
-},{"../ugen.js":136}],99:[function(require,module,exports){
+},{"../ugen.js":137}],99:[function(require,module,exports){
 module.exports = function( Gibberish ) {
 
   const effects = {
@@ -6899,7 +6899,7 @@ Gibberish.utilities = require( './utilities.js' )( Gibberish )
 
 module.exports = Gibberish
 
-},{"./analysis/analyzers.js":76,"./envelopes/envelopes.js":80,"./filters/filters.js":89,"./fx/effect.js":98,"./fx/effects.js":99,"./instruments/instrument.js":111,"./instruments/instruments.js":112,"./instruments/polyMixin.js":116,"./instruments/polytemplate.js":117,"./misc/binops.js":122,"./misc/bus.js":123,"./misc/bus2.js":124,"./misc/monops.js":125,"./misc/panner.js":126,"./misc/time.js":127,"./oscillators/oscillators.js":130,"./scheduling/scheduler.js":133,"./scheduling/seq2.js":134,"./scheduling/sequencer.js":135,"./ugen.js":136,"./ugenTemplate.js":137,"./utilities.js":138,"./workletProxy.js":139,"genish.js":37,"memory-helper":141}],106:[function(require,module,exports){
+},{"./analysis/analyzers.js":76,"./envelopes/envelopes.js":80,"./filters/filters.js":89,"./fx/effect.js":98,"./fx/effects.js":99,"./instruments/instrument.js":111,"./instruments/instruments.js":112,"./instruments/polyMixin.js":116,"./instruments/polytemplate.js":117,"./misc/binops.js":122,"./misc/bus.js":123,"./misc/bus2.js":124,"./misc/monops.js":125,"./misc/panner.js":126,"./misc/time.js":127,"./oscillators/oscillators.js":130,"./scheduling/scheduler.js":134,"./scheduling/seq2.js":135,"./scheduling/sequencer.js":136,"./ugen.js":137,"./ugenTemplate.js":138,"./utilities.js":139,"./workletProxy.js":140,"genish.js":37,"memory-helper":142}],106:[function(require,module,exports){
 const g = require('genish.js'),
       instrument = require('./instrument.js');
 
@@ -6918,8 +6918,8 @@ module.exports = function (Gibberish) {
           spacing = g.in('spacing'),
           // spacing between clap, in Hzs
     loudness = g.in('loudness'),
-          cutoff = g.in('cutoff'),
-          Q = g.in('Q');
+          triggerLoudness = g.in('__triggerLoudness');
+    cutoff = g.in('cutoff'), Q = g.in('Q');
 
     const props = Object.assign({}, Clap.defaults, argumentProps);
 
@@ -6936,7 +6936,7 @@ module.exports = function (Gibberish) {
           count = g.accum(1, b2, { max: Infinity, min: 0, initialValue: 0 }),
           delayedNoise = g.switch(g.gte(count, genish.mul(g.gen.samplerate, .035)), rnd, 0),
           bpf1 = g.svf(delayedNoise, 1000, .5, 2, false),
-          scaledOut = genish.mul(genish.mul(genish.add(genish.mul(bpf1, eg), genish.mul(genish.mul(rnd, rsaw), saw_env)), gain), loudness),
+          scaledOut = genish.mul(genish.mul(genish.mul(genish.add(genish.mul(bpf1, eg), genish.mul(genish.mul(rnd, rsaw), saw_env)), gain), loudness), triggerLoudness),
           out = g.svf(scaledOut, cutoff, Q, 1, false);
 
     // XXX TODO : make this work with ifelse. the problem is that poke ugens put their
@@ -6961,6 +6961,7 @@ module.exports = function (Gibberish) {
     spacing: 100,
     decay: .2,
     loudness: 1,
+    __triggerLoudness: 1,
     cutoff: 900,
     Q: .85
   };
@@ -6978,7 +6979,8 @@ module.exports = function( Gibberish ) {
           frequency = g.in( 'frequency' ),
           decay = g.in( 'decay' ),
           gain  = g.in( 'gain' ),
-          loudness = g.in( 'loudness' )
+          loudness = g.in( 'loudness' ),
+          triggerLoudness = g.in( '__triggerLoudness' )
 
     const props = Object.assign( {}, Conga.defaults, argumentProps )
 
@@ -6986,7 +6988,7 @@ module.exports = function( Gibberish ) {
           impulse = g.mul( trigger, 60 ),
           _decay =  g.sub( .101, g.div( decay, 10 ) ), // create range of .001 - .099
           bpf = g.svf( impulse, frequency, _decay, 2, false ),
-          out = g.mul( bpf, g.mul( loudness, gain ) )
+          out = g.mul( bpf, g.mul( g.mul( triggerLoudness,loudness ), gain ) )
     
     conga.isStereo = false
     conga.env = trigger
@@ -6994,13 +6996,14 @@ module.exports = function( Gibberish ) {
   }
   
   Conga.defaults = {
-    gain: .25,
+    gain: .125,
     frequency:190,
     decay: .85,
-    loudness: 1
+    loudness: 1,
+    __triggerLoudness:1
   }
 
-  const PolyConga = Gibberish.PolyTemplate( Conga, ['gain','frequency','decay','loudness' ] ) 
+  const PolyConga = Gibberish.PolyTemplate( Conga, ['gain','frequency','decay','loudness','__triggerLoudness' ] ) 
   PolyConga.defaults = Conga.defaults
 
   return [ Conga, PolyConga ]
@@ -7017,7 +7020,8 @@ module.exports = function( Gibberish ) {
     
     const decay   = g.in( 'decay' ),
           gain    = g.in( 'gain' ),
-          loudness = g.in( 'loudness' )
+          loudness = g.in( 'loudness' ),
+          triggerLoudness = g.in( '__triggerLoudness' )
 
     const props = Object.assign( {}, Cowbell.defaults, argumentProps )
 
@@ -7027,7 +7031,7 @@ module.exports = function( Gibberish ) {
           eg = g.decay( g.mul( decay, g.gen.samplerate * 2 ) ), 
           bpf = g.svf( g.add( s1,s2 ), bpfCutoff, 3, 2, false ),
           envBpf = g.mul( bpf, eg ),
-          out = g.mul( envBpf, g.mul( gain, loudness ) )
+          out = g.mul( envBpf, g.mul( gain, loudness, triggerLoudness ) )
 
     cowbell.env = eg 
 
@@ -7041,7 +7045,8 @@ module.exports = function( Gibberish ) {
   Cowbell.defaults = {
     gain: 1,
     decay:.5,
-    loudness:1
+    loudness:1,
+    __triggerLoudness:1
   }
 
   return Cowbell
@@ -7070,7 +7075,8 @@ module.exports = function (Gibberish) {
         sustain = g.in('sustain'),
         sustainLevel = g.in('sustainLevel'),
         release = g.in('release'),
-        loudness = g.in('loudness');
+        loudness = g.in('loudness'),
+        triggerLoudness = g.in('__triggerLoudness');
 
     const props = Object.assign({}, FM.defaults, inputProps);
     Object.assign(syn, props);
@@ -7084,7 +7090,8 @@ module.exports = function (Gibberish) {
 
       {
         'use jsdsp';
-        const modOscWithIndex = genish.mul(genish.mul(genish.mul(modOsc, slidingFreq), index), loudness);
+        const Loudness = genish.mul(loudness, triggerLoudness);
+        const modOscWithIndex = genish.mul(genish.mul(genish.mul(modOsc, slidingFreq), index), Loudness);
         const modOscWithEnv = genish.mul(modOscWithIndex, env);
 
         const modOscWithEnvAvg = genish.mul(.5, genish.add(modOscWithEnv, feedbackssd.out));
@@ -7095,14 +7102,14 @@ module.exports = function (Gibberish) {
         const carrierOscWithEnv = genish.mul(carrierOsc, env);
 
         const baseCutoffFreq = genish.mul(g.in('cutoff'), genish.div(frequency, genish.div(g.gen.samplerate, 16)));
-        const cutoff = g.min(genish.mul(genish.mul(baseCutoffFreq, g.pow(2, genish.mul(g.in('filterMult'), loudness))), env), .995);
+        const cutoff = g.min(genish.mul(genish.mul(baseCutoffFreq, g.pow(2, genish.mul(g.in('filterMult'), Loudness))), env), .995);
         const filteredOsc = Gibberish.filters.factory(carrierOscWithEnv, cutoff, g.in('Q'), g.in('saturation'), syn);
         //const baseCutoffFreq = g.in('cutoff') * frequency
         //const cutoff =  baseCutoffFreq * g.pow( 2, g.in('filterMult') * loudness ) * env
         //const cutoff = g.add( g.in('cutoff'), g.mul( g.in('filterMult'), env ) )
         //const filteredOsc = Gibberish.filters.factory( carrierOscWithEnv, cutoff, g.in('Q'), g.in('saturation'), syn )
 
-        const synthWithGain = genish.mul(genish.mul(filteredOsc, g.in('gain')), loudness);
+        const synthWithGain = genish.mul(genish.mul(filteredOsc, g.in('gain')), Loudness);
 
         let panner;
         if (props.panVoices === true) {
@@ -7151,11 +7158,12 @@ module.exports = function (Gibberish) {
     cutoff: .35,
     filterType: 0,
     filterMode: 0,
-    loudness: 1
+    loudness: 1,
+    __triggerLoudness: 1
 
   };
 
-  const PolyFM = Gibberish.PolyTemplate(FM, ['glide', 'frequency', 'attack', 'decay', 'pulsewidth', 'pan', 'gain', 'cmRatio', 'index', 'saturation', 'filterMult', 'Q', 'cutoff', 'antialias', 'filterType', 'carrierWaveform', 'modulatorWaveform', 'filterMode', 'feedback', 'useADSR', 'sustain', 'release', 'sustainLevel']);
+  const PolyFM = Gibberish.PolyTemplate(FM, ['glide', 'frequency', 'attack', 'decay', 'pulsewidth', 'pan', 'gain', 'cmRatio', 'index', 'saturation', 'filterMult', 'Q', 'cutoff', 'antialias', 'filterType', 'carrierWaveform', 'modulatorWaveform', 'filterMode', 'feedback', 'useADSR', 'sustain', 'release', 'sustainLevel', '__triggerLoudness', 'loudness']);
   PolyFM.defaults = FM.defaults;
 
   return [FM, PolyFM];
@@ -7172,7 +7180,8 @@ module.exports = function( Gibberish ) {
         scaledTune = g.memo( g.add( .4, tune ) ),
         decay  = g.in( 'decay' ),
         gain  = g.in( 'gain' ),
-        loudness = g.in( 'loudness' )
+        loudness = g.in( 'loudness' ),
+        triggerLoudness = g.in( '__triggerLoudness' )
 
     let props = Object.assign( {}, Hat.defaults, argumentProps )
 
@@ -7190,7 +7199,7 @@ module.exports = function( Gibberish ) {
         bpf = g.svf( sum, bpfCutoff, .5, 2, false ),
         envBpf = g.mul( bpf, eg ),
         hpf = g.filter24( envBpf, 0, hpfCutoff, 0 ),
-        out = g.mul( hpf, g.mul( gain, loudness ) )
+        out = g.mul( hpf, g.mul( gain, g.mul( loudness, triggerLoudness ) ) )
 
     hat.env = eg 
     hat.isStereo = false
@@ -7205,7 +7214,8 @@ module.exports = function( Gibberish ) {
     gain:  .5,
     tune: .6,
     decay:.1,
-    loudness:1
+    loudness:1,
+    __triggerLoudness:1
   }
 
   return Hat
@@ -7236,13 +7246,15 @@ Object.assign( instrument, {
       this.frequency = freq
     }
 
-    if( loudness !== null ) this.loudness = loudness 
+    if( loudness !== null ) {
+      this.__triggerLoudness = loudness 
+    }
 
     this.env.trigger()
   },
 
   trigger( loudness = 1 ) {
-    this.loudness = loudness
+    this.__triggerLoudness = loudness
     this.env.trigger()
   },
 
@@ -7250,7 +7262,7 @@ Object.assign( instrument, {
 
 module.exports = instrument
 
-},{"../ugen.js":136}],112:[function(require,module,exports){
+},{"../ugen.js":137}],112:[function(require,module,exports){
 module.exports = function( Gibberish ) {
 
 const instruments = {
@@ -7271,7 +7283,7 @@ instruments.Clave.defaults.decay = .5;
 [ instruments.FM, instruments.PolyFM ]           = require( './fm.js' )( Gibberish );
 [ instruments.Sampler, instruments.PolySampler ] = require( './sampler.js' )( Gibberish );
 [ instruments.Karplus, instruments.PolyKarplus ] = require( './karplusstrong.js' )( Gibberish );
-[ instruments.Conga, instruments.PolyConga ]    = require( './conga.js' )( Gibberish )
+[ instruments.Conga, instruments.PolyConga ]     = require( './conga.js' )( Gibberish )
 
 instruments.export = target => {
   for( let key in instruments ) {
@@ -7312,7 +7324,7 @@ module.exports = function( Gibberish ) {
           damped =  g.mix( decayed, feedback.out, g.in('damping') ),
           n = g.noise(),
           blendValue = g.switch( g.gt( n, g.in('blend') ), -1, 1 ), 
-          withGain = g.mul( g.mul( blendValue, damped ), g.mul( g.in('loudness'), g.in('gain') ) )
+          withGain = g.mul( g.mul( blendValue, damped ), g.mul( g.mul( g.in('loudness'), g.in('__triggerLoudness') ), g .in('gain') ) )
 
     feedback.in( damped )
 
@@ -7348,6 +7360,7 @@ module.exports = function( Gibberish ) {
     glide:1,
     panVoices:false,
     loudness:1,
+    __triggerLoudness:1,
     blend:1
   }
 
@@ -7367,7 +7380,7 @@ module.exports = function( Gibberish ) {
     return envCheck
   }
 
-  const PolyKarplus = Gibberish.PolyTemplate( Karplus, ['frequency','decay','damping','pan','gain', 'glide'], envCheckFactory ) 
+  const PolyKarplus = Gibberish.PolyTemplate( Karplus, ['frequency','decay','damping','pan','gain', 'glide','loudness', '__triggerLoudness'], envCheckFactory ) 
   PolyKarplus.defaults = Karplus.defaults
 
   return [ Karplus, PolyKarplus ]
@@ -7389,7 +7402,9 @@ module.exports = function( Gibberish ) {
           decay = g.in( 'decay' ),
           tone  = g.in( 'tone' ),
           gain  = g.in( 'gain' ),
-          loudness = g.in( 'loudness' )
+          loudness = g.in( 'loudness' ),
+          triggerLoudness = g.in( '__triggerLoudness' ),
+          Loudness = g.mul( loudness, triggerLoudness )
     
     // create initial property set
     const props = Object.assign( {}, Kick.defaults, inputProps )
@@ -7399,10 +7414,10 @@ module.exports = function( Gibberish ) {
     const trigger = g.bang(),
           impulse = g.mul( trigger, 60 ),
           scaledDecay = g.sub( 1.005, decay ), // -> range { .005, 1.005 }
-          scaledTone = g.add( 50, g.mul( tone, g.mul(4000, loudness) ) ), // -> range { 50, 4050 }
+          scaledTone = g.add( 50, g.mul( tone, g.mul(4000, Loudness ) ) ), // -> range { 50, 4050 }
           bpf = g.svf( impulse, frequency, scaledDecay, 2, false ),
           lpf = g.svf( bpf, scaledTone, .5, 0, false ),
-          graph = g.mul( lpf, g.mul(gain, loudness) )
+          graph = g.mul( lpf, g.mul( gain, Loudness ) )
     
     kick.env = trigger
     const out = Gibberish.factory( kick, graph, ['instruments','kick'], props  )
@@ -7415,7 +7430,8 @@ module.exports = function( Gibberish ) {
     frequency:85,
     tone: .25,
     decay:.9,
-    loudness:1
+    loudness:1,
+    __triggerLoudness:1
   }
 
   return Kick
@@ -7440,7 +7456,9 @@ module.exports = function (Gibberish) {
           sustain = g.in('sustain'),
           sustainLevel = g.in('sustainLevel'),
           release = g.in('release'),
-          loudness = g.in('loudness');
+          loudness = g.in('loudness'),
+          triggerLoudness = g.in('__triggerLoudness'),
+          Loudness = g.mul(loudness, triggerLoudness);
 
     const props = Object.assign({}, Mono.defaults, argumentProps);
     Object.assign(syn, props);
@@ -7472,14 +7490,14 @@ module.exports = function (Gibberish) {
       const oscSum = g.add(...oscs),
             oscWithEnv = g.mul(oscSum, env),
             baseCutoffFreq = g.mul(g.in('cutoff'), g.div(frequency, g.gen.samplerate / 16)),
-            cutoff = g.mul(g.mul(baseCutoffFreq, g.pow(2, g.mul(g.in('filterMult'), loudness))), env),
+            cutoff = g.mul(g.mul(baseCutoffFreq, g.pow(2, g.mul(g.in('filterMult'), Loudness))), env),
             filteredOsc = Gibberish.filters.factory(oscWithEnv, cutoff, g.in('Q'), g.in('saturation'), syn);
 
       if (props.panVoices) {
         const panner = g.pan(filteredOsc, filteredOsc, g.in('pan'));
-        syn.graph = [g.mul(panner.left, g.in('gain'), loudness), g.mul(panner.right, g.in('gain'), loudness)];
+        syn.graph = [g.mul(panner.left, g.in('gain'), Loudness), g.mul(panner.right, g.in('gain'), Loudness)];
       } else {
-        syn.graph = g.mul(filteredOsc, g.in('gain'), loudness);
+        syn.graph = g.mul(filteredOsc, g.in('gain'), Loudness);
       }
 
       syn.env = env;
@@ -7520,10 +7538,11 @@ module.exports = function (Gibberish) {
     saturation: .5,
     filterMult: 2,
     isLowPass: true,
-    loudness: 1
+    loudness: 1,
+    __triggerLoudness: 1
   };
 
-  let PolyMono = Gibberish.PolyTemplate(Mono, ['frequency', 'attack', 'decay', 'cutoff', 'Q', 'detune2', 'detune3', 'pulsewidth', 'pan', 'gain', 'glide', 'saturation', 'filterMult', 'antialias', 'filterType', 'waveform', 'filterMode']);
+  let PolyMono = Gibberish.PolyTemplate(Mono, ['frequency', 'attack', 'decay', 'cutoff', 'Q', 'detune2', 'detune3', 'pulsewidth', 'pan', 'gain', 'glide', 'saturation', 'filterMult', 'antialias', 'filterType', 'waveform', 'filterMode', 'loudness', '__triggerLoudness']);
   PolyMono.defaults = Mono.defaults;
 
   return [Mono, PolyMono];
@@ -7534,14 +7553,15 @@ module.exports = function (Gibberish) {
 const Gibberish = require( '../index.js' )
 
 module.exports = {
-  note( freq, gain ) {
+  note( freq ) {
     // will be sent to processor node via proxy method...
     if( Gibberish.mode !== 'worklet' ) {
       let voice = this.__getVoice__()
       //Object.assign( voice, this.properties )
-      if( gain === undefined ) gain = this.gain
-      voice.gain = gain
-      voice.note( freq, this.loudness )
+      //if( gain === undefined ) gain = this.gain
+      //voice.gain = gain
+      voice.__triggerLoudness = this.__triggerLoudness
+      voice.note( freq, this.__triggerLoudness )
       this.__runVoice__( voice, this )
       this.triggerNote = freq
     }
@@ -7609,7 +7629,10 @@ module.exports = {
 
   free() {
     for( let child of this.voices ) child.free()
-  }
+  },
+
+  triggerChord:null,
+  triggerNote:null
 }
 
 },{"../index.js":105}],117:[function(require,module,exports){
@@ -7709,7 +7732,7 @@ module.exports = function( Gibberish ) {
 
 }
 
-},{"../workletProxy.js":139,"genish.js":37}],118:[function(require,module,exports){
+},{"../workletProxy.js":140,"genish.js":37}],118:[function(require,module,exports){
 const g = require( 'genish.js' ),
       instrument = require( './instrument.js' )
 
@@ -7749,6 +7772,7 @@ module.exports = function( Gibberish ) {
           bufferLength = g.in( 'bufferLength' ), 
           rate = g.in( 'rate' ), shouldLoop = g.in( 'loops' ),
           loudness = g.in( 'loudness' ),
+          triggerLoudness = g.in( '__triggerLoudness' ),
           // rate storage is used to determine whether we're playing
           // the sample forward or in reverse, for use in the 'trigger' method.
           rateStorage = g.data([0], 1, { meta:true })
@@ -7791,7 +7815,7 @@ module.exports = function( Gibberish ) {
           ),
           0
         ), 
-        g.mul( loudness, g.in('gain') )
+        g.mul( g.mul( loudness, triggerLoudness ), g.in('gain') )
       ), rateStorage[0], g.mul( rateStorage[0], -1 ) )
     }
 
@@ -7893,7 +7917,8 @@ module.exports = function( Gibberish ) {
     start:0,
     end:1,
     bufferLength:-999999999,
-    loudness:1
+    loudness:1,
+    __triggerLoudness:1
   }
 
   const envCheckFactory = function( voice, _poly ) {
@@ -7911,49 +7936,48 @@ module.exports = function( Gibberish ) {
     return envCheck
   }
 
-  const PolySampler = Gibberish.PolyTemplate( Sampler, ['rate','pan','gain','start','end','loops','bufferLength'], envCheckFactory ) 
+  const PolySampler = Gibberish.PolyTemplate( Sampler, ['rate','pan','gain','start','end','loops','bufferLength','__triggerLoudness','loudness'], envCheckFactory ) 
 
   return [ Sampler, PolySampler ]
 }
 
 
 },{"./instrument.js":111,"genish.js":37}],119:[function(require,module,exports){
-let g = require( 'genish.js' ),
-    instrument = require( './instrument.js' )
+const g = require( 'genish.js' ),
+      instrument = require( './instrument.js' )
   
 module.exports = function( Gibberish ) {
 
-  let Snare = argumentProps => {
-    let snare = Object.create( instrument ),
-        decay = g.in( 'decay' ),
-        scaledDecay = g.mul( decay, g.gen.samplerate * 2 ),
-        snappy= g.in( 'snappy' ),
-        tune  = g.in( 'tune' ),
-        gain  = g.in( 'gain' ),
-        loudness = g.in( 'loudness' )
+  const Snare = argumentProps => {
+    const snare = Object.create( instrument ),
+          decay = g.in( 'decay' ),
+          scaledDecay = g.mul( decay, g.gen.samplerate * 2 ),
+          snappy= g.in( 'snappy' ),
+          tune  = g.in( 'tune' ),
+          gain  = g.in( 'gain' ),
+          loudness = g.in( 'loudness' ),
+          triggerLoudness = g.in('__triggerLoudness'),
+          Loudness = g.mul( loudness, triggerLoudness ),
+          eg = g.decay( scaledDecay, { initValue:0 } ), 
+          check = g.memo( g.gt( eg, .0005 ) ),
+          rnd = g.mul( g.noise(), eg ),
+          hpf = g.svf( rnd, g.add( 1000, g.mul( g.add( 1, tune), 1000 ) ), .5, 1, false ),
+          snap = g.mul( g.gtp( g.mul( hpf, snappy ), 0 ), Loudness ), // rectify
+          bpf1 = g.svf( eg, g.mul( 180, g.add( tune, 1 ) ), .05, 2, false ),
+          bpf2 = g.svf( eg, g.mul( 330, g.add( tune, 1 ) ), .05, 2, false ),
+          out  = g.memo( g.add( snap, bpf1, g.mul( bpf2, .8 ) ) ), //XXX why is memo needed?
+          scaledOut = g.mul( out, g.mul( gain, Loudness ) ),
+          ife = g.switch( check, scaledOut, 0 ),
+          props = Object.assign( {}, Snare.defaults, argumentProps )
 
-    let props = Object.assign( {}, Snare.defaults, argumentProps )
-
-    let eg = g.decay( scaledDecay, { initValue:0 } ), 
-        check = g.memo( g.gt( eg, .0005 ) ),
-        rnd = g.mul( g.noise(), eg ),
-        hpf = g.svf( rnd, g.add( 1000, g.mul( g.add( 1, tune), 1000 ) ), .5, 1, false ),
-        snap = g.mul( g.gtp( g.mul( hpf, snappy ), 0 ), loudness ), // rectify
-        bpf1 = g.svf( eg, g.mul( 180, g.add( tune, 1 ) ), .05, 2, false ),
-        bpf2 = g.svf( eg, g.mul( 330, g.add( tune, 1 ) ), .05, 2, false ),
-        out  = g.memo( g.add( snap, bpf1, g.mul( bpf2, .8 ) ) ), //XXX why is memo needed?
-        scaledOut = g.mul( out, g.mul( gain, loudness ) )
-    
-    // XXX TODO : make this work with ifelse. the problem is that poke ugens put their
+    // XXX TODO : make above switch work with ifelse. the problem is that poke ugens put their
     // code at the bottom of the callback function, instead of at the end of the
     // associated if/else block.
-    let ife = g.switch( check, scaledOut, 0 )
-    //let ife = g.ifelse( g.gt( eg, .005 ), cycle(440), 0 )
     
     snare.env = eg 
-    snare = Gibberish.factory( snare, ife, ['instruments','snare'], props  )
+    const __snare = Gibberish.factory( snare, ife, ['instruments','snare'], props  )
     
-    return snare
+    return __snare
   }
   
   Snare.defaults = {
@@ -7962,7 +7986,8 @@ module.exports = function( Gibberish ) {
     tune:0,
     snappy: 1,
     decay:.1,
-    loudness:1
+    loudness:1,
+    __triggerLoudness:1
   }
 
   return Snare
@@ -7982,6 +8007,7 @@ module.exports = function (Gibberish) {
 
     const frequency = g.in('frequency'),
           loudness = g.in('loudness'),
+          triggerLoudness = g.in('__triggerLoudness'),
           glide = g.in('glide'),
           slidingFreq = g.slide(frequency, glide, glide),
           attack = g.in('attack'),
@@ -8003,7 +8029,7 @@ module.exports = function (Gibberish) {
 
       {
         'use jsdsp';
-        let oscWithEnv = genish.mul(genish.mul(osc, env), loudness),
+        let oscWithEnv = genish.mul(genish.mul(genish.mul(osc, env), loudness), triggerLoudness),
             panner;
 
         //baseCutoffFreq = g.mul( g.in('cutoff'), g.div( frequency, g.gen.samplerate / 16 ) ),
@@ -8012,7 +8038,7 @@ module.exports = function (Gibberish) {
 
         // 16 is an unfortunate empirically derived magic number...
         const baseCutoffFreq = genish.mul(g.in('cutoff'), genish.div(frequency, genish.div(g.gen.samplerate, 16)));
-        const cutoff = g.min(genish.mul(genish.mul(baseCutoffFreq, g.pow(2, genish.mul(g.in('filterMult'), loudness))), env), .995);
+        const cutoff = g.min(genish.mul(genish.mul(baseCutoffFreq, g.pow(2, genish.mul(genish.mul(g.in('filterMult'), loudness), triggerLoudness))), env), .995);
         const filteredOsc = Gibberish.filters.factory(oscWithEnv, cutoff, g.in('Q'), g.in('saturation'), props);
 
         let synthWithGain = genish.mul(filteredOsc, g.in('gain'));
@@ -8055,18 +8081,18 @@ module.exports = function (Gibberish) {
     antialias: false,
     panVoices: false,
     loudness: 1,
+    __triggerLoudness: 1,
     glide: 1,
     saturation: 1,
     filterMult: 2,
     Q: .25,
     cutoff: .5,
-    filterType: 0,
+    filterType: 1,
     filterMode: 0,
-    isLowPass: 1,
     isStereo: false
 
     // do not include velocity, which shoudl always be per voice
-  };let PolySynth = Gibberish.PolyTemplate(Synth, ['frequency', 'attack', 'decay', 'pulsewidth', 'pan', 'gain', 'glide', 'saturation', 'filterMult', 'Q', 'cutoff', 'resonance', 'antialias', 'filterType', 'waveform', 'filterMode']);
+  };let PolySynth = Gibberish.PolyTemplate(Synth, ['frequency', 'attack', 'decay', 'pulsewidth', 'pan', 'gain', 'glide', 'saturation', 'filterMult', 'Q', 'cutoff', 'resonance', 'antialias', 'filterType', 'waveform', 'filterMode', '__triggerLoudness', 'loudness']);
   PolySynth.defaults = Synth.defaults;
 
   return [Synth, PolySynth];
@@ -8083,7 +8109,8 @@ module.exports = function( Gibberish ) {
     const decay   = g.in( 'decay' ),
           pitch   = g.in( 'frequency' ),
           gain    = g.in( 'gain' ),
-          loudness = g.in( 'loudness' )
+          loudness = g.in( 'loudness' ),
+          triggerLoudness = g.in( '__triggerLoudness' )
 
     const props = Object.assign( {}, Tom.defaults, argumentProps )
 
@@ -8094,7 +8121,7 @@ module.exports = function( Gibberish ) {
           noise = g.gtp( g.noise(), 0 ), // rectify noise
           envelopedNoise = g.mul( noise, eg ),
           lpf = g.mul( g.svf( envelopedNoise, 120, .5, 0, false ), 2.5 ),
-          out = g.mul( g.add( bpf, lpf ), g.mul( gain, loudness ) )
+          out = g.mul( g.add( bpf, lpf ), g.mul( gain, g.mul( loudness, triggerLoudness ) ) )
 
     tom.env = {
       trigger: function() {
@@ -8114,7 +8141,8 @@ module.exports = function( Gibberish ) {
     gain: 1,
     decay:.7,
     frequency:120,
-    loudness:1
+    loudness:1,
+    __triggerLoudness:1
   }
 
   return Tom
@@ -8180,7 +8208,7 @@ module.exports = function( Gibberish ) {
   return Binops
 }
 
-},{"../ugen.js":136,"../workletProxy.js":139}],123:[function(require,module,exports){
+},{"../ugen.js":137,"../workletProxy.js":140}],123:[function(require,module,exports){
 let g = require( 'genish.js' ),
     ugen = require( '../ugen.js' )(),
     __proxy= require( '../workletProxy.js' )
@@ -8263,7 +8291,7 @@ module.exports = function( Gibberish ) {
 }
 
 
-},{"../ugen.js":136,"../workletProxy.js":139,"genish.js":37}],124:[function(require,module,exports){
+},{"../ugen.js":137,"../workletProxy.js":140,"genish.js":37}],124:[function(require,module,exports){
 const g = require( 'genish.js' ),
       ugen = require( '../ugen.js' )(),
       __proxy = require( '../workletProxy.js' )
@@ -8402,7 +8430,7 @@ module.exports = function( Gibberish ) {
 
 }
 
-},{"../ugen.js":136,"../workletProxy.js":139,"genish.js":37}],125:[function(require,module,exports){
+},{"../ugen.js":137,"../workletProxy.js":140,"genish.js":37}],125:[function(require,module,exports){
 const  g    = require( 'genish.js'  ),
        ugen = require( '../ugen.js' )()
 
@@ -8464,7 +8492,7 @@ module.exports = function( Gibberish ) {
   return Monops
 }
 
-},{"../ugen.js":136,"genish.js":37}],126:[function(require,module,exports){
+},{"../ugen.js":137,"genish.js":37}],126:[function(require,module,exports){
 const g = require( 'genish.js' )
 
 const ugen = require( '../ugen.js' )()
@@ -8501,7 +8529,7 @@ return Panner
 
 }
 
-},{"../ugen.js":136,"genish.js":37}],127:[function(require,module,exports){
+},{"../ugen.js":137,"genish.js":37}],127:[function(require,module,exports){
 module.exports = function( Gibberish ) {
 
   const Time = {
@@ -8629,7 +8657,8 @@ module.exports = feedbackOsc
 },{"genish.js":37}],130:[function(require,module,exports){
 const g = require( 'genish.js' ),
       ugen = require( '../ugen.js' )(),
-      feedbackOsc = require( './fmfeedbackosc.js' )
+      feedbackOsc = require( './fmfeedbackosc.js' ),
+      polyBlep = require( './polyblep.js' )
 
 //  __makeOscillator__( type, frequency, antialias ) {
     
@@ -8754,7 +8783,8 @@ module.exports = function( Gibberish ) {
           if( antialias === false ) {
             osc = g.phasor( frequency )
           }else{
-            osc = feedbackOsc( frequency, 1 )
+            //osc = feedbackOsc( frequency, 1 )
+            osc = polyBlep( frequency, { type })
           }
           break;
         case 'sine':
@@ -8762,13 +8792,18 @@ module.exports = function( Gibberish ) {
           break;
         case 'square':
           if( antialias === true ) {
-            osc = feedbackOsc( frequency, 1, .5, { type:1 })
+            //osc = feedbackOsc( frequency, 1, .5, { type:1 })
+            osc = polyBlep( frequency, { type })
           }else{
             osc = g.wavetable( frequency, { buffer:Oscillators.Square.buffer, name:'square' } )
           }
           break;
-        case 'triangle':
-          osc = g.wavetable( frequency, { buffer:Oscillators.Triangle.buffer, name:'triangle' } )
+          case 'triangle':
+            if( antialias === true ) {
+              osc = polyBlep( frequency, { type })
+            }else{
+              osc = g.wavetable( frequency, { buffer:Oscillators.Triangle.buffer, name:'triangle' } )
+            }
           break;
       }
 
@@ -8796,7 +8831,7 @@ module.exports = function( Gibberish ) {
 
 }
 
-},{"../ugen.js":136,"./brownnoise.js":128,"./fmfeedbackosc.js":129,"./pinknoise.js":131,"./wavetable.js":132,"genish.js":37}],131:[function(require,module,exports){
+},{"../ugen.js":137,"./brownnoise.js":128,"./fmfeedbackosc.js":129,"./pinknoise.js":131,"./polyblep.js":132,"./wavetable.js":133,"genish.js":37}],131:[function(require,module,exports){
 const genish = require('genish.js'),
       ssd = genish.history,
       data = genish.data,
@@ -8822,6 +8857,55 @@ module.exports = function () {
   return out;
 };
 },{"genish.js":37}],132:[function(require,module,exports){
+const genish = require('genish.js');
+const g = genish;
+
+const polyBlep = function (frequency, argumentProps) {
+  'use jsdsp';
+
+  if (argumentProps === undefined) argumentProps = { type: 'saw'
+    // mixed use
+  };const mem = g.history(0);
+  console.log('samplerate:', g.gen.samplerate);
+  const dt = genish.div(frequency, g.gen.samplerate);
+  const type = argumentProps.type;
+
+  const t = g.accum(dt, 0, { min: 0 });
+  let osc;
+  if (type === 'tri' || type === 'sqr') {
+    osc = genish.sub(genish.mul(2, g.lt(t, .5)), 1);
+  } else {
+    osc = genish.sub(genish.mul(2, t), 1);
+  }
+  const case1 = g.lt(t, dt);
+  const case2 = g.gt(t, genish.sub(1, dt));
+  const adjustedT = g.switch(case1, genish.div(t, dt), g.switch(case2, genish.div(genish.sub(t, 1), dt), t));
+
+  const blep = g.switch(case1, genish.sub(genish.sub(genish.add(adjustedT, adjustedT), genish.mul(adjustedT, adjustedT)), 1), g.switch(case2, genish.add(genish.add(genish.add(genish.mul(adjustedT, adjustedT), adjustedT), adjustedT), 1), 0));
+
+  if (type !== 'saw') {
+    osc = genish.add(osc, blep);
+    const t_2 = g.memo(g.mod(genish.add(t, .5), 1));
+    const case1_2 = g.lt(t_2, dt);
+    const case2_2 = g.gt(t_2, genish.sub(1, dt));
+    const adjustedT_2 = g.switch(case1_2, genish.div(t_2, dt), g.switch(case2_2, genish.div(genish.sub(t_2, 1), dt), t_2));
+
+    const blep2 = g.switch(case1_2, genish.sub(genish.add(adjustedT_2, adjustedT_2), genish.mul(genish.mul(adjustedT_2, adjustedT_2), -1)), g.switch(case2_2, genish.add(genish.add(genish.add(genish.mul(adjustedT_2, adjustedT_2), adjustedT_2), adjustedT_2), 1), 0));
+    osc = genish.sub(osc, blep2);
+
+    if (type === 'tri') {
+      osc = genish.add(genish.mul(dt, osc), genish.mul(genish.sub(1, dt), mem.out));
+      mem.in(osc);
+    }
+  } else {
+    osc = genish.sub(osc, blep);
+  }
+
+  return osc;
+};
+
+module.exports = polyBlep;
+},{"genish.js":37}],133:[function(require,module,exports){
 let g = require( 'genish.js' ),
     ugen = require( '../ugen.js' )()
 
@@ -8855,7 +8939,7 @@ module.exports = function( Gibberish ) {
   return Wavetable
 }
 
-},{"../ugen.js":136,"genish.js":37}],133:[function(require,module,exports){
+},{"../ugen.js":137,"genish.js":37}],134:[function(require,module,exports){
 const Queue = require( '../external/priorityqueue.js' )
 const Big   = require( 'big.js' )
 
@@ -8907,7 +8991,7 @@ let Scheduler = {
 
 module.exports = Scheduler
 
-},{"../external/priorityqueue.js":82,"big.js":140}],134:[function(require,module,exports){
+},{"../external/priorityqueue.js":82,"big.js":141}],135:[function(require,module,exports){
 const g = require( 'genish.js' ),
       __proxy = require( '../workletProxy.js' ),
       ugen = require( '../ugen.js' )()
@@ -8957,6 +9041,7 @@ module.exports = function( Gibberish ) {
       seq.dirty = true
       seq.type = 'seq'
       seq.__addresses__ = {}
+      seq.DNR = -987654321
 
       properties.id = Gibberish.factory.getUID()
 
@@ -8996,10 +9081,13 @@ module.exports = function( Gibberish ) {
               if( typeof value === 'function' ) {
                 value = value()
               }
-              seq.target[ seq.key ]( value )
+              if( value !== seq.DNR ) {
+                seq.target[ seq.key ]( value )
+              }
             }else{
               if( typeof value === 'function' ) value = value()
-              seq.target[ seq.key ] = value
+              if( value !== seq.DNR )
+                seq.target[ seq.key ] = value
             }
           }
 
@@ -9060,13 +9148,14 @@ module.exports = function( Gibberish ) {
   }
 
   Seq2.defaults = { rate: 1, density:1, priority:0 }
+  Seq2.create.DO_NOT_OUTPUT = -987654321
 
   return Seq2.create
 
 }
 
 
-},{"../ugen.js":136,"../workletProxy.js":139,"genish.js":37}],135:[function(require,module,exports){
+},{"../ugen.js":137,"../workletProxy.js":140,"genish.js":37}],136:[function(require,module,exports){
 const __proxy = require( '../workletProxy.js' )
 
 module.exports = function( Gibberish ) {
@@ -9156,7 +9245,7 @@ return Sequencer
 
 }
 
-},{"../workletProxy.js":139}],136:[function(require,module,exports){
+},{"../workletProxy.js":140}],137:[function(require,module,exports){
 let Gibberish = null
 
 const __ugen = function( __Gibberish ) {
@@ -9303,7 +9392,7 @@ const __ugen = function( __Gibberish ) {
 
 module.exports = __ugen
 
-},{}],137:[function(require,module,exports){
+},{}],138:[function(require,module,exports){
 const __proxy = require( './workletProxy.js' )
 const effectProto = require( './fx/effect.js' )
 
@@ -9456,7 +9545,7 @@ module.exports = function( Gibberish ) {
   return factory
 }
 
-},{"./fx/effect.js":98,"./workletProxy.js":139}],138:[function(require,module,exports){
+},{"./fx/effect.js":98,"./workletProxy.js":140}],139:[function(require,module,exports){
 const genish = require( 'genish.js' )
 
 module.exports = function( Gibberish ) {
@@ -9650,7 +9739,7 @@ return utilities
 
 }
 
-},{"genish.js":37}],139:[function(require,module,exports){
+},{"genish.js":37}],140:[function(require,module,exports){
 const serialize = require('serialize-javascript')
 
 module.exports = function( Gibberish ) {
@@ -9811,7 +9900,7 @@ return __proxy
 
 }
 
-},{"serialize-javascript":142}],140:[function(require,module,exports){
+},{"serialize-javascript":143}],141:[function(require,module,exports){
 /* big.js v3.1.3 https://github.com/MikeMcl/big.js/LICENCE */
 ;(function (global) {
     'use strict';
@@ -10959,9 +11048,9 @@ return __proxy
     }
 })(this);
 
-},{}],141:[function(require,module,exports){
+},{}],142:[function(require,module,exports){
 arguments[4][74][0].apply(exports,arguments)
-},{"dup":74}],142:[function(require,module,exports){
+},{"dup":74}],143:[function(require,module,exports){
 /*
 Copyright (c) 2014, Yahoo! Inc. All rights reserved.
 Copyrights licensed under the New BSD License.
