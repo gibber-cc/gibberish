@@ -9,7 +9,8 @@ module.exports = function( Gibberish ) {
     const decay   = g.in( 'decay' ),
           pitch   = g.in( 'frequency' ),
           gain    = g.in( 'gain' ),
-          loudness = g.in( 'loudness' )
+          loudness = g.in( 'loudness' ),
+          triggerLoudness = g.in( '__triggerLoudness' )
 
     const props = Object.assign( {}, Tom.defaults, argumentProps )
 
@@ -20,7 +21,7 @@ module.exports = function( Gibberish ) {
           noise = g.gtp( g.noise(), 0 ), // rectify noise
           envelopedNoise = g.mul( noise, eg ),
           lpf = g.mul( g.svf( envelopedNoise, 120, .5, 0, false ), 2.5 ),
-          out = g.mul( g.add( bpf, lpf ), g.mul( gain, loudness ) )
+          out = g.mul( g.add( bpf, lpf ), g.mul( gain, g.mul( loudness, triggerLoudness ) ) )
 
     tom.env = {
       trigger: function() {
@@ -40,7 +41,8 @@ module.exports = function( Gibberish ) {
     gain: 1,
     decay:.7,
     frequency:120,
-    loudness:1
+    loudness:1,
+    __triggerLoudness:1
   }
 
   return Tom

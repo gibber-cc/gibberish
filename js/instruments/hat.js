@@ -9,7 +9,8 @@ module.exports = function( Gibberish ) {
         scaledTune = g.memo( g.add( .4, tune ) ),
         decay  = g.in( 'decay' ),
         gain  = g.in( 'gain' ),
-        loudness = g.in( 'loudness' )
+        loudness = g.in( 'loudness' ),
+        triggerLoudness = g.in( '__triggerLoudness' )
 
     let props = Object.assign( {}, Hat.defaults, argumentProps )
 
@@ -27,7 +28,7 @@ module.exports = function( Gibberish ) {
         bpf = g.svf( sum, bpfCutoff, .5, 2, false ),
         envBpf = g.mul( bpf, eg ),
         hpf = g.filter24( envBpf, 0, hpfCutoff, 0 ),
-        out = g.mul( hpf, g.mul( gain, loudness ) )
+        out = g.mul( hpf, g.mul( gain, g.mul( loudness, triggerLoudness ) ) )
 
     hat.env = eg 
     hat.isStereo = false
@@ -42,7 +43,8 @@ module.exports = function( Gibberish ) {
     gain:  .5,
     tune: .6,
     decay:.1,
-    loudness:1
+    loudness:1,
+    __triggerLoudness:1
   }
 
   return Hat

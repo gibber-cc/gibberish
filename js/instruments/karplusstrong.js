@@ -24,7 +24,7 @@ module.exports = function( Gibberish ) {
           damped =  g.mix( decayed, feedback.out, g.in('damping') ),
           n = g.noise(),
           blendValue = g.switch( g.gt( n, g.in('blend') ), -1, 1 ), 
-          withGain = g.mul( g.mul( blendValue, damped ), g.mul( g.in('loudness'), g.in('gain') ) )
+          withGain = g.mul( g.mul( blendValue, damped ), g.mul( g.mul( g.in('loudness'), g.in('__triggerLoudness') ), g .in('gain') ) )
 
     feedback.in( damped )
 
@@ -60,6 +60,7 @@ module.exports = function( Gibberish ) {
     glide:1,
     panVoices:false,
     loudness:1,
+    __triggerLoudness:1,
     blend:1
   }
 
@@ -79,7 +80,7 @@ module.exports = function( Gibberish ) {
     return envCheck
   }
 
-  const PolyKarplus = Gibberish.PolyTemplate( Karplus, ['frequency','decay','damping','pan','gain', 'glide'], envCheckFactory ) 
+  const PolyKarplus = Gibberish.PolyTemplate( Karplus, ['frequency','decay','damping','pan','gain', 'glide','loudness', '__triggerLoudness'], envCheckFactory ) 
   PolyKarplus.defaults = Karplus.defaults
 
   return [ Karplus, PolyKarplus ]

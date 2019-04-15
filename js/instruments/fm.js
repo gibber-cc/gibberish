@@ -19,7 +19,8 @@ module.exports = function (Gibberish) {
         sustain = g.in('sustain'),
         sustainLevel = g.in('sustainLevel'),
         release = g.in('release'),
-        loudness = g.in('loudness');
+        loudness = g.in('loudness'),
+        triggerLoudness = g.in('__triggerLoudness');
 
     const props = Object.assign({}, FM.defaults, inputProps);
     Object.assign(syn, props);
@@ -33,7 +34,8 @@ module.exports = function (Gibberish) {
 
       {
         'use jsdsp';
-        const modOscWithIndex = genish.mul(genish.mul(genish.mul(modOsc, slidingFreq), index), loudness);
+        const Loudness = genish.mul(loudness, triggerLoudness);
+        const modOscWithIndex = genish.mul(genish.mul(genish.mul(modOsc, slidingFreq), index), Loudness);
         const modOscWithEnv = genish.mul(modOscWithIndex, env);
 
         const modOscWithEnvAvg = genish.mul(.5, genish.add(modOscWithEnv, feedbackssd.out));
@@ -44,14 +46,14 @@ module.exports = function (Gibberish) {
         const carrierOscWithEnv = genish.mul(carrierOsc, env);
 
         const baseCutoffFreq = genish.mul(g.in('cutoff'), genish.div(frequency, genish.div(g.gen.samplerate, 16)));
-        const cutoff = g.min(genish.mul(genish.mul(baseCutoffFreq, g.pow(2, genish.mul(g.in('filterMult'), loudness))), env), .995);
+        const cutoff = g.min(genish.mul(genish.mul(baseCutoffFreq, g.pow(2, genish.mul(g.in('filterMult'), Loudness))), env), .995);
         const filteredOsc = Gibberish.filters.factory(carrierOscWithEnv, cutoff, g.in('Q'), g.in('saturation'), syn);
         //const baseCutoffFreq = g.in('cutoff') * frequency
         //const cutoff =  baseCutoffFreq * g.pow( 2, g.in('filterMult') * loudness ) * env
         //const cutoff = g.add( g.in('cutoff'), g.mul( g.in('filterMult'), env ) )
         //const filteredOsc = Gibberish.filters.factory( carrierOscWithEnv, cutoff, g.in('Q'), g.in('saturation'), syn )
 
-        const synthWithGain = genish.mul(genish.mul(filteredOsc, g.in('gain')), loudness);
+        const synthWithGain = genish.mul(genish.mul(filteredOsc, g.in('gain')), Loudness);
 
         let panner;
         if (props.panVoices === true) {
@@ -100,11 +102,12 @@ module.exports = function (Gibberish) {
     cutoff: .35,
     filterType: 0,
     filterMode: 0,
-    loudness: 1
+    loudness: 1,
+    __triggerLoudness: 1
 
   };
 
-  const PolyFM = Gibberish.PolyTemplate(FM, ['glide', 'frequency', 'attack', 'decay', 'pulsewidth', 'pan', 'gain', 'cmRatio', 'index', 'saturation', 'filterMult', 'Q', 'cutoff', 'antialias', 'filterType', 'carrierWaveform', 'modulatorWaveform', 'filterMode', 'feedback', 'useADSR', 'sustain', 'release', 'sustainLevel']);
+  const PolyFM = Gibberish.PolyTemplate(FM, ['glide', 'frequency', 'attack', 'decay', 'pulsewidth', 'pan', 'gain', 'cmRatio', 'index', 'saturation', 'filterMult', 'Q', 'cutoff', 'antialias', 'filterType', 'carrierWaveform', 'modulatorWaveform', 'filterMode', 'feedback', 'useADSR', 'sustain', 'release', 'sustainLevel', '__triggerLoudness', 'loudness']);
   PolyFM.defaults = FM.defaults;
 
   return [FM, PolyFM];

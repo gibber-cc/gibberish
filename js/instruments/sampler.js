@@ -37,6 +37,7 @@ module.exports = function( Gibberish ) {
           bufferLength = g.in( 'bufferLength' ), 
           rate = g.in( 'rate' ), shouldLoop = g.in( 'loops' ),
           loudness = g.in( 'loudness' ),
+          triggerLoudness = g.in( '__triggerLoudness' ),
           // rate storage is used to determine whether we're playing
           // the sample forward or in reverse, for use in the 'trigger' method.
           rateStorage = g.data([0], 1, { meta:true })
@@ -79,7 +80,7 @@ module.exports = function( Gibberish ) {
           ),
           0
         ), 
-        g.mul( loudness, g.in('gain') )
+        g.mul( g.mul( loudness, triggerLoudness ), g.in('gain') )
       ), rateStorage[0], g.mul( rateStorage[0], -1 ) )
     }
 
@@ -181,7 +182,8 @@ module.exports = function( Gibberish ) {
     start:0,
     end:1,
     bufferLength:-999999999,
-    loudness:1
+    loudness:1,
+    __triggerLoudness:1
   }
 
   const envCheckFactory = function( voice, _poly ) {
@@ -199,7 +201,7 @@ module.exports = function( Gibberish ) {
     return envCheck
   }
 
-  const PolySampler = Gibberish.PolyTemplate( Sampler, ['rate','pan','gain','start','end','loops','bufferLength'], envCheckFactory ) 
+  const PolySampler = Gibberish.PolyTemplate( Sampler, ['rate','pan','gain','start','end','loops','bufferLength','__triggerLoudness','loudness'], envCheckFactory ) 
 
   return [ Sampler, PolySampler ]
 }

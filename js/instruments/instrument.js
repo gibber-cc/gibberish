@@ -21,13 +21,15 @@ Object.assign( instrument, {
       this.frequency = freq
     }
 
-    if( loudness !== null ) this.loudness = loudness 
+    if( loudness !== null ) {
+      this.__triggerLoudness = loudness 
+    }
 
     this.env.trigger()
   },
 
   trigger( loudness = 1 ) {
-    this.loudness = loudness
+    this.__triggerLoudness = loudness
     this.env.trigger()
   },
 

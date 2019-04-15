@@ -14,6 +14,7 @@ module.exports = function( Gibberish ) {
           gain  = g.in( 'gain' ),
           spacing = g.in( 'spacing' ), // spacing between clap, in Hzs
           loudness = g.in( 'loudness' ),
+          triggerLoudness = g.in( '__triggerLoudness' )
           cutoff = g.in('cutoff'),
           Q      = g.in('Q')
 
@@ -32,7 +33,7 @@ module.exports = function( Gibberish ) {
           delayedNoise = g.switch( g.gte( count, g.gen.samplerate * .035 ), rnd, 0 ),
           bpf1 = g.svf( delayedNoise, 1000, .5, 2, false ),
 
-          scaledOut = ( bpf1 * eg + ( rnd * rsaw * saw_env ) ) * gain * loudness,
+          scaledOut = ( bpf1 * eg + ( rnd * rsaw * saw_env ) ) * gain * loudness * triggerLoudness,
           out = g.svf( scaledOut, cutoff, Q, 1, false )
     
     // XXX TODO : make this work with ifelse. the problem is that poke ugens put their
@@ -57,6 +58,7 @@ module.exports = function( Gibberish ) {
     spacing:100,
     decay:.2,
     loudness:1,
+    __triggerLoudness:1,
     cutoff:900,
     Q:.85
   }

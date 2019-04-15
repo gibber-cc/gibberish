@@ -15,7 +15,9 @@ module.exports = function (Gibberish) {
           sustain = g.in('sustain'),
           sustainLevel = g.in('sustainLevel'),
           release = g.in('release'),
-          loudness = g.in('loudness');
+          loudness = g.in('loudness'),
+          triggerLoudness = g.in('__triggerLoudness'),
+          Loudness = g.mul(loudness, triggerLoudness);
 
     const props = Object.assign({}, Mono.defaults, argumentProps);
     Object.assign(syn, props);
@@ -47,14 +49,14 @@ module.exports = function (Gibberish) {
       const oscSum = g.add(...oscs),
             oscWithEnv = g.mul(oscSum, env),
             baseCutoffFreq = g.mul(g.in('cutoff'), g.div(frequency, g.gen.samplerate / 16)),
-            cutoff = g.mul(g.mul(baseCutoffFreq, g.pow(2, g.mul(g.in('filterMult'), loudness))), env),
+            cutoff = g.mul(g.mul(baseCutoffFreq, g.pow(2, g.mul(g.in('filterMult'), Loudness))), env),
             filteredOsc = Gibberish.filters.factory(oscWithEnv, cutoff, g.in('Q'), g.in('saturation'), syn);
 
       if (props.panVoices) {
         const panner = g.pan(filteredOsc, filteredOsc, g.in('pan'));
-        syn.graph = [g.mul(panner.left, g.in('gain'), loudness), g.mul(panner.right, g.in('gain'), loudness)];
+        syn.graph = [g.mul(panner.left, g.in('gain'), Loudness), g.mul(panner.right, g.in('gain'), Loudness)];
       } else {
-        syn.graph = g.mul(filteredOsc, g.in('gain'), loudness);
+        syn.graph = g.mul(filteredOsc, g.in('gain'), Loudness);
       }
 
       syn.env = env;
@@ -95,10 +97,11 @@ module.exports = function (Gibberish) {
     saturation: .5,
     filterMult: 2,
     isLowPass: true,
-    loudness: 1
+    loudness: 1,
+    __triggerLoudness: 1
   };
 
-  let PolyMono = Gibberish.PolyTemplate(Mono, ['frequency', 'attack', 'decay', 'cutoff', 'Q', 'detune2', 'detune3', 'pulsewidth', 'pan', 'gain', 'glide', 'saturation', 'filterMult', 'antialias', 'filterType', 'waveform', 'filterMode']);
+  let PolyMono = Gibberish.PolyTemplate(Mono, ['frequency', 'attack', 'decay', 'cutoff', 'Q', 'detune2', 'detune3', 'pulsewidth', 'pan', 'gain', 'glide', 'saturation', 'filterMult', 'antialias', 'filterType', 'waveform', 'filterMode', 'loudness', '__triggerLoudness']);
   PolyMono.defaults = Mono.defaults;
 
   return [Mono, PolyMono];

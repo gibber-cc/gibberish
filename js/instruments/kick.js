@@ -12,7 +12,9 @@ module.exports = function( Gibberish ) {
           decay = g.in( 'decay' ),
           tone  = g.in( 'tone' ),
           gain  = g.in( 'gain' ),
-          loudness = g.in( 'loudness' )
+          loudness = g.in( 'loudness' ),
+          triggerLoudness = g.in( '__triggerLoudness' ),
+          Loudness = g.mul( loudness, triggerLoudness )
     
     // create initial property set
     const props = Object.assign( {}, Kick.defaults, inputProps )
@@ -22,10 +24,10 @@ module.exports = function( Gibberish ) {
     const trigger = g.bang(),
           impulse = g.mul( trigger, 60 ),
           scaledDecay = g.sub( 1.005, decay ), // -> range { .005, 1.005 }
-          scaledTone = g.add( 50, g.mul( tone, g.mul(4000, loudness) ) ), // -> range { 50, 4050 }
+          scaledTone = g.add( 50, g.mul( tone, g.mul(4000, Loudness ) ) ), // -> range { 50, 4050 }
           bpf = g.svf( impulse, frequency, scaledDecay, 2, false ),
           lpf = g.svf( bpf, scaledTone, .5, 0, false ),
-          graph = g.mul( lpf, g.mul(gain, loudness) )
+          graph = g.mul( lpf, g.mul( gain, Loudness ) )
     
     kick.env = trigger
     const out = Gibberish.factory( kick, graph, ['instruments','kick'], props  )
@@ -38,7 +40,8 @@ module.exports = function( Gibberish ) {
     frequency:85,
     tone: .25,
     decay:.9,
-    loudness:1
+    loudness:1,
+    __triggerLoudness:1
   }
 
   return Kick

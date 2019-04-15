@@ -17,7 +17,8 @@ module.exports = function( Gibberish ) {
         attack = g.in( 'attack' ), decay = g.in( 'decay' ),
         sustain = g.in( 'sustain' ), sustainLevel = g.in( 'sustainLevel' ),
         release = g.in( 'release' ),
-        loudness = g.in( 'loudness' )
+        loudness = g.in( 'loudness' ),
+        triggerLoudness = g.in( '__triggerLoudness' )
 
     const props = Object.assign( {}, FM.defaults, inputProps )
     Object.assign( syn, props )
@@ -42,7 +43,8 @@ module.exports = function( Gibberish ) {
 
       {
         'use jsdsp'
-        const modOscWithIndex = modOsc * slidingFreq * index * loudness
+        const Loudness = loudness * triggerLoudness
+        const modOscWithIndex = modOsc * slidingFreq * index * Loudness
         const modOscWithEnv   = modOscWithIndex * env
         
         const modOscWithEnvAvg =  .5 * ( modOscWithEnv + feedbackssd.out )
@@ -53,14 +55,14 @@ module.exports = function( Gibberish ) {
         const carrierOscWithEnv = carrierOsc * env
 
         const baseCutoffFreq = g.in('cutoff') * ( frequency /  ( g.gen.samplerate / 16 ) ) 
-        const cutoff = g.min( baseCutoffFreq * g.pow( 2, g.in('filterMult') * loudness ) * env, .995 ) 
+        const cutoff = g.min( baseCutoffFreq * g.pow( 2, g.in('filterMult') * Loudness ) * env, .995 ) 
         const filteredOsc = Gibberish.filters.factory( carrierOscWithEnv, cutoff, g.in('Q'), g.in('saturation'), syn )
         //const baseCutoffFreq = g.in('cutoff') * frequency
         //const cutoff =  baseCutoffFreq * g.pow( 2, g.in('filterMult') * loudness ) * env
         //const cutoff = g.add( g.in('cutoff'), g.mul( g.in('filterMult'), env ) )
         //const filteredOsc = Gibberish.filters.factory( carrierOscWithEnv, cutoff, g.in('Q'), g.in('saturation'), syn )
 
-        const synthWithGain = filteredOsc * g.in( 'gain' ) * loudness
+        const synthWithGain = filteredOsc * g.in( 'gain' ) * Loudness
         
         let panner
         if( props.panVoices === true ) { 
@@ -109,11 +111,12 @@ module.exports = function( Gibberish ) {
     cutoff:.35,
     filterType:0,
     filterMode:0,
-    loudness: 1
+    loudness: 1,
+    __triggerLoudness:1
 
   }
 
-  const PolyFM = Gibberish.PolyTemplate( FM, ['glide','frequency','attack','decay','pulsewidth','pan','gain','cmRatio','index', 'saturation', 'filterMult', 'Q', 'cutoff', 'antialias', 'filterType', 'carrierWaveform', 'modulatorWaveform','filterMode', 'feedback', 'useADSR', 'sustain', 'release', 'sustainLevel' ] ) 
+  const PolyFM = Gibberish.PolyTemplate( FM, ['glide','frequency','attack','decay','pulsewidth','pan','gain','cmRatio','index', 'saturation', 'filterMult', 'Q', 'cutoff', 'antialias', 'filterType', 'carrierWaveform', 'modulatorWaveform','filterMode', 'feedback', 'useADSR', 'sustain', 'release', 'sustainLevel', '__triggerLoudness','loudness' ] ) 
   PolyFM.defaults = FM.defaults
 
   return [ FM, PolyFM ]
