@@ -1,6 +1,7 @@
 const g = require( 'genish.js' ),
       ugen = require( '../ugen.js' )(),
-      feedbackOsc = require( './fmfeedbackosc.js' )
+      feedbackOsc = require( './fmfeedbackosc.js' ),
+      polyBlep = require( './polyblep.js' )
 
 //  __makeOscillator__( type, frequency, antialias ) {
     
@@ -125,7 +126,8 @@ module.exports = function( Gibberish ) {
           if( antialias === false ) {
             osc = g.phasor( frequency )
           }else{
-            osc = feedbackOsc( frequency, 1 )
+            //osc = feedbackOsc( frequency, 1 )
+            osc = polyBlep( frequency, { type })
           }
           break;
         case 'sine':
@@ -133,13 +135,18 @@ module.exports = function( Gibberish ) {
           break;
         case 'square':
           if( antialias === true ) {
-            osc = feedbackOsc( frequency, 1, .5, { type:1 })
+            //osc = feedbackOsc( frequency, 1, .5, { type:1 })
+            osc = polyBlep( frequency, { type })
           }else{
             osc = g.wavetable( frequency, { buffer:Oscillators.Square.buffer, name:'square' } )
           }
           break;
-        case 'triangle':
-          osc = g.wavetable( frequency, { buffer:Oscillators.Triangle.buffer, name:'triangle' } )
+          case 'triangle':
+            if( antialias === true ) {
+              osc = polyBlep( frequency, { type })
+            }else{
+              osc = g.wavetable( frequency, { buffer:Oscillators.Triangle.buffer, name:'triangle' } )
+            }
           break;
       }
 
