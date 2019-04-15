@@ -47,6 +47,7 @@ module.exports = function( Gibberish ) {
       seq.dirty = true
       seq.type = 'seq'
       seq.__addresses__ = {}
+      seq.DNR = -987654321
 
       properties.id = Gibberish.factory.getUID()
 
@@ -86,10 +87,13 @@ module.exports = function( Gibberish ) {
               if( typeof value === 'function' ) {
                 value = value()
               }
-              seq.target[ seq.key ]( value )
+              if( value !== seq.DNR ) {
+                seq.target[ seq.key ]( value )
+              }
             }else{
               if( typeof value === 'function' ) value = value()
-              seq.target[ seq.key ] = value
+              if( value !== seq.DNR )
+                seq.target[ seq.key ] = value
             }
           }
 
@@ -150,6 +154,7 @@ module.exports = function( Gibberish ) {
   }
 
   Seq2.defaults = { rate: 1, density:1, priority:0 }
+  Seq2.create.DO_NOT_OUTPUT = -987654321
 
   return Seq2.create
 
