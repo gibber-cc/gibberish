@@ -15,7 +15,7 @@ const polyBlep = function( __frequency, argumentProps ) {
   let osc
 
   // triangle waves are integrated square waves, so the below case accomodates both types
-  if( type === 'tri' || type === 'sqr' ) {
+  if( type === 'triangle' || type === 'square' ) {
     // lt NOT gt to get correct phase
     osc = (2 * g.lt(t,.5) ) - 1
   }else{
@@ -47,7 +47,7 @@ const polyBlep = function( __frequency, argumentProps ) {
  
     const blep2 = g.switch(
       case1_2,
-      adjustedT_2 + adjustedT_2 - adjustedT_2 * adjustedT_2 * - 1,
+      adjustedT_2 + adjustedT_2 - adjustedT_2 * adjustedT_2 - 1,
       g.switch(
         case2_2,
         adjustedT_2 * adjustedT_2 + adjustedT_2 + adjustedT_2 + 1,
@@ -57,7 +57,7 @@ const polyBlep = function( __frequency, argumentProps ) {
     osc = osc - blep2
     
     // leaky integrator to create triangle from square wave
-    if( type === 'tri' ) {
+    if( type === 'triangle' ) {
       osc = dt * osc + (1 - dt ) * mem.out
       mem.in( osc )
     }
