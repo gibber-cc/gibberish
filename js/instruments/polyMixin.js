@@ -46,19 +46,19 @@ module.exports = {
       voice.isConnected = true
     }
 
-    let envCheck
-    if( _poly.envCheck === undefined ) {
-      envCheck = function() {
-        if( voice.env.isComplete() ) {
-          _poly.disconnectUgen( voice )
-          voice.isConnected = false
-        }else{
-          Gibberish.blockCallbacks.push( envCheck )
-        }
-      }
-    }else{
-      envCheck = _poly.envCheck( voice, _poly )
-    }
+    //let envCheck
+    //if( _poly.envCheck === undefined ) {
+    //  envCheck = function() {
+    //    if( voice.env.isComplete() ) {
+    //      _poly.disconnectUgen( voice )
+    //      voice.isConnected = false
+    //    }else{
+    //      Gibberish.blockCallbacks.push( envCheck )
+    //    }
+    //  }
+    //}else{
+    //  envCheck = _poly.envCheck( voice, _poly )
+    //}
 
     // XXX uncomment this line to turn on dynamically connecting
     // disconnecting individual voices from graph
