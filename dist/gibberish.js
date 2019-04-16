@@ -7596,19 +7596,19 @@ module.exports = {
       voice.isConnected = true
     }
 
-    let envCheck
-    if( _poly.envCheck === undefined ) {
-      envCheck = function() {
-        if( voice.env.isComplete() ) {
-          _poly.disconnectUgen( voice )
-          voice.isConnected = false
-        }else{
-          Gibberish.blockCallbacks.push( envCheck )
-        }
-      }
-    }else{
-      envCheck = _poly.envCheck( voice, _poly )
-    }
+    //let envCheck
+    //if( _poly.envCheck === undefined ) {
+    //  envCheck = function() {
+    //    if( voice.env.isComplete() ) {
+    //      _poly.disconnectUgen( voice )
+    //      voice.isConnected = false
+    //    }else{
+    //      Gibberish.blockCallbacks.push( envCheck )
+    //    }
+    //  }
+    //}else{
+    //  envCheck = _poly.envCheck( voice, _poly )
+    //}
 
     // XXX uncomment this line to turn on dynamically connecting
     // disconnecting individual voices from graph
@@ -7643,6 +7643,20 @@ module.exports = {
 const g = require( 'genish.js' )
 const __proxy = require( '../workletProxy.js' )
 
+const replaceObj = function( obj, shouldSerializeFunctions = true ) {
+  if( typeof obj === 'object' && obj !== null && obj.id !== undefined ) {
+    if( obj.__type !== 'seq' ) { // XXX why?
+      return { id:obj.id, prop:obj.prop }
+    }else{
+      // shouldn't I be serializing most objects, not just seqs?
+      return serialize( obj )
+    }
+  }else if( typeof obj === 'function' && shouldSerializeFunctions === true ) {
+    return { isFunc:true, value:serialize( obj ) }
+  }
+  return obj
+}
+
 module.exports = function( Gibberish ) {
   const proxy = __proxy( Gibberish )
 
@@ -7669,7 +7683,6 @@ module.exports = function( Gibberish ) {
         synth, 
 
         {
-          voices: [],
           maxVoices: properties.maxVoices, 
           voiceCount: 0,
           envCheck: _envCheck,
@@ -7687,11 +7700,13 @@ module.exports = function( Gibberish ) {
       const storedId = properties.id
       if( properties.id !== undefined ) delete properties.id 
 
+      const voices = []
       for( let i = 0; i < synth.maxVoices; i++ ) {
         properties.id = synth.id +'_'+i
-        synth.voices[i] = ugen( properties )
-        synth.voices[i].callback.ugenName = synth.voices[i].ugenName
-        synth.voices[i].isConnected = false
+        voices[i] = ugen( properties )
+        voices[i].callback.ugenName = voices[i].ugenName
+        voices[i].isConnected = false
+        //synth.__voices[i] = proxy( ['instruments', ugen.name], properties, synth.voices[i] )
       }
 
       let _propertyList 
@@ -7704,8 +7719,31 @@ module.exports = function( Gibberish ) {
       properties.id = storedId
 
       TemplateFactory.setupProperties( synth, ugen, properties.isStereo ? propertyList : _propertyList )
+      
+      const p = proxy( ['instruments', 'Poly'+ugen.name], properties, synth ) 
 
-      return proxy( ['instruments', 'Poly'+ugen.name], properties, synth ) 
+      // proxy workaround nightmare... if we include the voices when we create
+      // the proxy, they wind up being strangely unaddressable. perhaps they
+      // are being overwritting in the Processor.ugens map object?
+      // manually adding each one seems to work around the problem
+      if( Gibberish.mode === 'worklet' ) {
+        p.voices = []
+        let count = 0
+        for( let v of voices ) {
+          Gibberish.worklet.port.postMessage({
+            address: 'addObjectToProperty',
+            object: synth.id,
+            name:'voices',
+            key:count,
+            value:v.id
+          })
+
+          p.voices[ count ] = v
+          count++
+        }
+      }
+
+      return p 
     }
 
     return Template
@@ -8559,26 +8597,8 @@ module.exports = function( Gibberish ) {
 }
 
 },{}],128:[function(require,module,exports){
-const genish = require('genish.js'),
-      ssd = genish.history,
-      noise = genish.noise;
 
-module.exports = function () {
-  "use jsdsp";
-
-  const last = ssd(0);
-
-  const white = genish.sub(genish.mul(noise(), 2), 1);
-
-  let out = genish.add(last.out, genish.div(genish.mul(.02, white), 1.02));
-
-  last.in(out);
-
-  out = genish.mul(out, 3.5);
-
-  return out;
-};
-},{"genish.js":37}],129:[function(require,module,exports){
+},{}],129:[function(require,module,exports){
 let g = require( 'genish.js' )
 
 let feedbackOsc = function( frequency, filter, pulsewidth=.5, argumentProps ) {
@@ -8860,19 +8880,23 @@ module.exports = function () {
 const genish = require('genish.js');
 const g = genish;
 
-const polyBlep = function (frequency, argumentProps) {
+// based on http://www.martin-finke.de/blog/articles/audio-plugins-018-polyblep-oscillator/
+const polyBlep = function (__frequency, argumentProps) {
   'use jsdsp';
 
-  if (argumentProps === undefined) argumentProps = { type: 'saw'
-    // mixed use
-  };const mem = g.history(0);
-  console.log('samplerate:', g.gen.samplerate);
-  const dt = genish.div(frequency, g.gen.samplerate);
+  if (argumentProps === undefined) argumentProps = { type: 'saw' };
+
+  const mem = g.history(0);
   const type = argumentProps.type;
+  const frequency = __frequency === undefined ? 220 : __frequency;
+  const dt = genish.div(frequency, g.gen.samplerate);
 
   const t = g.accum(dt, 0, { min: 0 });
   let osc;
-  if (type === 'tri' || type === 'sqr') {
+
+  // triangle waves are integrated square waves, so the below case accomodates both types
+  if (type === 'triangle' || type === 'square') {
+    // lt NOT gt to get correct phase
     osc = genish.sub(genish.mul(2, g.lt(t, .5)), 1);
   } else {
     osc = genish.sub(genish.mul(2, t), 1);
@@ -8881,8 +8905,12 @@ const polyBlep = function (frequency, argumentProps) {
   const case2 = g.gt(t, genish.sub(1, dt));
   const adjustedT = g.switch(case1, genish.div(t, dt), g.switch(case2, genish.div(genish.sub(t, 1), dt), t));
 
-  const blep = g.switch(case1, genish.sub(genish.sub(genish.add(adjustedT, adjustedT), genish.mul(adjustedT, adjustedT)), 1), g.switch(case2, genish.add(genish.add(genish.add(genish.mul(adjustedT, adjustedT), adjustedT), adjustedT), 1), 0));
+  // if/elseif/else with nested ternary operators
+  const blep = g.switch(case1, genish.sub(genish.sub(genish.add(adjustedT, adjustedT), genish.mul(adjustedT, adjustedT)), 1), g.switch(case2, genish.add(genish.add(genish.add(genish.mul(adjustedT, adjustedT), adjustedT), adjustedT), 1),
+  // final else case is 0
+  0));
 
+  // triangle waves are integrated square waves, so the below case accomodates both types
   if (type !== 'saw') {
     osc = genish.add(osc, blep);
     const t_2 = g.memo(g.mod(genish.add(t, .5), 1));
@@ -8890,10 +8918,11 @@ const polyBlep = function (frequency, argumentProps) {
     const case2_2 = g.gt(t_2, genish.sub(1, dt));
     const adjustedT_2 = g.switch(case1_2, genish.div(t_2, dt), g.switch(case2_2, genish.div(genish.sub(t_2, 1), dt), t_2));
 
-    const blep2 = g.switch(case1_2, genish.sub(genish.add(adjustedT_2, adjustedT_2), genish.mul(genish.mul(adjustedT_2, adjustedT_2), -1)), g.switch(case2_2, genish.add(genish.add(genish.add(genish.mul(adjustedT_2, adjustedT_2), adjustedT_2), adjustedT_2), 1), 0));
+    const blep2 = g.switch(case1_2, genish.sub(genish.sub(genish.add(adjustedT_2, adjustedT_2), genish.mul(adjustedT_2, adjustedT_2)), 1), g.switch(case2_2, genish.add(genish.add(genish.add(genish.mul(adjustedT_2, adjustedT_2), adjustedT_2), adjustedT_2), 1), 0));
     osc = genish.sub(osc, blep2);
 
-    if (type === 'tri') {
+    // leaky integrator to create triangle from square wave
+    if (type === 'triangle') {
       osc = genish.add(genish.mul(dt, osc), genish.mul(genish.sub(1, dt), mem.out));
       mem.in(osc);
     }
