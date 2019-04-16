@@ -31,7 +31,6 @@ module.exports = function( Gibberish ) {
         synth, 
 
         {
-          voices: [],
           maxVoices: properties.maxVoices, 
           voiceCount: 0,
           envCheck: _envCheck,
@@ -49,11 +48,13 @@ module.exports = function( Gibberish ) {
       const storedId = properties.id
       if( properties.id !== undefined ) delete properties.id 
 
+      const voices = []
       for( let i = 0; i < synth.maxVoices; i++ ) {
         properties.id = synth.id +'_'+i
-        synth.voices[i] = ugen( properties )
-        synth.voices[i].callback.ugenName = synth.voices[i].ugenName
-        synth.voices[i].isConnected = false
+        voices[i] = ugen( properties )
+        voices[i].callback.ugenName = voices[i].ugenName
+        voices[i].isConnected = false
+        //synth.__voices[i] = proxy( ['instruments', ugen.name], properties, synth.voices[i] )
       }
 
       let _propertyList 
@@ -66,8 +67,31 @@ module.exports = function( Gibberish ) {
       properties.id = storedId
 
       TemplateFactory.setupProperties( synth, ugen, properties.isStereo ? propertyList : _propertyList )
+      
+      const p = proxy( ['instruments', 'Poly'+ugen.name], properties, synth ) 
 
-      return proxy( ['instruments', 'Poly'+ugen.name], properties, synth ) 
+      // proxy workaround nightmare... if we include the voices when we create
+      // the proxy, they wind up being strangely unaddressable. perhaps they
+      // are being overwritting in the Processor.ugens map object?
+      // manually adding each one seems to work around the problem
+      if( Gibberish.mode === 'worklet' ) {
+        p.voices = []
+        let count = 0
+        for( let v of voices ) {
+          Gibberish.worklet.port.postMessage({
+            address: 'addObjectToProperty',
+            object: synth.id,
+            name:'voices',
+            key:count,
+            value:v.id
+          })
+
+          p.voices[ count ] = v
+          count++
+        }
+      }
+
+      return p 
     }
 
     return Template
