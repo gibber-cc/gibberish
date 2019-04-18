@@ -27,6 +27,23 @@ module.exports = function( Gibberish ) {
         Gibberish.dirty( Gibberish.analyzers )
       }
       return this
+    },
+    fire(){
+      let value  = typeof this.values  === 'function' ? this.values  : this.values[ this.__valuesPhase++  % this.values.length  ]
+      if( typeof value === 'function' && this.target === undefined ) {
+        value()
+      }else if( typeof this.target[ this.key ] === 'function' ) {
+        if( typeof value === 'function' ) {
+          value = value()
+        }
+        if( value !== this.DNR ) {
+          this.target[ this.key ]( value )
+        }
+      }else{
+        if( typeof value === 'function' ) value = value()
+        if( value !== this.DNR )
+          this.target[ this.key ] = value
+      }
     }
   })
 
@@ -54,29 +71,37 @@ module.exports = function( Gibberish ) {
       Object.assign( seq, properties ) 
       seq.__properties__ = properties
 
-      
+      // support for sequences that are triggered via other means,
+      // in Gibber this is when you provide timing to one sequence
+      // on an object and want to use that one pattern to trigger
+      // multiple sequences.
+      if( seq.timings === null ) { seq.nextTime = Infinity } 
+
       // XXX this needs to be optimized as much as humanly possible, since it's running at audio rate...
       seq.callback = function( rate, density ) {
         if( seq.phase >= seq.nextTime ) {
           let value  = typeof seq.values  === 'function' ? seq.values  : seq.values[ seq.__valuesPhase++  % seq.values.length  ],
-          timing = typeof seq.timings === 'function' ? seq.timings : seq.timings[ seq.__timingsPhase++ % seq.timings.length ],
-          shouldRun = true
-
-          if( typeof timing === 'function' ) timing = timing()
+              shouldRun = true
+          
+          let timing = null
+          if( seq.timings !== null && seq.timings !== undefined ) { 
+            timing = typeof seq.timings === 'function' ? seq.timings : seq.timings[ seq.__timingsPhase++ % seq.timings.length ]
+            if( typeof timing === 'function' ) timing = timing()
+          }
           
           let shouldIncreaseSpeed = density <= 1 ? false : true
 
           // XXX this supports an edge case in Gibber, where patterns like Euclid / Hex return
           // objects indicating both whether or not they should should trigger values as well
           // as the next time they should run. perhaps this could be made more generalizable?
-          if( typeof timing === 'object' ) {
+          if( timing !== null && typeof timing === 'object' ) {
             if( timing.shouldExecute === 1 ) {
               shouldRun = true
             }else{
               shouldRun = false
             }
             timing = timing.time 
-          }else{
+          }else if( timing !== null ) {
             if( Math.random() >= density ) shouldRun = false
           }
 
@@ -96,6 +121,8 @@ module.exports = function( Gibberish ) {
                 seq.target[ seq.key ] = value
             }
           }
+
+          if( timing === null ) return
 
           seq.phase -= seq.nextTime
 
