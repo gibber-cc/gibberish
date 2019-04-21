@@ -14,7 +14,7 @@ module.exports = function( Gibberish ) {
       id: values.id || Gibberish.utilities.getUID(), 
       ugenName: name + '_',
       graph: graph,
-      inputNames: new Set( Gibberish.genish.gen.parameters ),
+      inputNames: ugen.inputNames || new Set( Gibberish.genish.gen.parameters ),
       isStereo: Array.isArray( graph ),
       dirty: true,
       __properties__:values,
@@ -29,7 +29,7 @@ module.exports = function( Gibberish ) {
       if( param === 'memory' ) continue
 
       let value = values[ param ],
-          isNumber = !isNaN( value ),
+          isNumber = typeof value === 'object' || isNaN( value ) ? false : true,
           idx
 
       if( isNumber ) { 

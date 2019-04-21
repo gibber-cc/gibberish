@@ -285,7 +285,7 @@ let Gibberish = {
       let keys,err
 
       //try {
-      keys = ugen.isop === true || ugen.type === 'bus' || ugen.type === 'analysis' ? Object.keys( ugen.inputs ) : [...ugen.inputNames ] 
+      keys = ugen.isop === true || ugen.type === 'bus'  ? Object.keys( ugen.inputs ) : [...ugen.inputNames ] 
 
       //}catch( e ){
 
@@ -299,7 +299,7 @@ let Gibberish = {
         let key = keys[ i ]
         // binop.inputs is actual values, not just property names
         let input 
-        if( ugen.isop || ugen.type ==='bus' || ugen.type === 'analysis' ) {
+        if( ugen.isop || ugen.type ==='bus' ) {
           input = ugen.inputs[ key ]
         }else{
           //if( key === 'memory' ) continue;
@@ -365,7 +365,7 @@ let Gibberish = {
           if( i < keys.length - 1 ) {
             if( ugen.isop === true ) {
               if( ugen.op === '*' || ugen.op === '/' ) {
-                if( input != 1 ) {
+                if( input !== 1 ) {
                   line += ' ' + ugen.op + ' '
                 }else{
                   line = line.slice( 0, -1 * (''+input).length )
@@ -381,7 +381,7 @@ let Gibberish = {
       }
       
       //if( ugen.type === 'bus' ) line += ', ' 
-      if( ugen.type === 'analysis' || (ugen.type === 'bus' && keys.length > 0) ) line += ', '
+      if( (ugen.type === 'bus' && keys.length > 0) ) line += ', '
       if( !ugen.isop && ugen.type !== 'seq' ) line += 'mem'
       line += ugen.isop ? '' : ' )'
 

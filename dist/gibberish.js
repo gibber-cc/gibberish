@@ -4204,9 +4204,12 @@ module.exports = analyzer
 
 },{"../ugen.js":137}],76:[function(require,module,exports){
 module.exports = function( Gibberish ) {
+  const { In, Out, SSD } = require( './singlesampledelay.js'  )( Gibberish )
 
   const analyzers = {
-    SSD:    require( './singlesampledelay.js'  )( Gibberish ),
+    SSD,
+    SSD_In: In,
+    SSD_Out: Out   
     //Follow: require( './follow.js'  )( Gibberish )
   }
 
@@ -4234,14 +4237,134 @@ const g = require( 'genish.js' ),
 
 module.exports = function( Gibberish ) {
  
-const Delay = inputProps => {
+const SSD = inputProps => {
+  const ssd = Object.create( analyzer )
+  ssd.__in  = Object.create( ugen )
+  ssd.__out = Object.create( ugen )
+
+  ssd.id = Gibberish.factory.getUID()
+
+  const props = Object.assign({}, SSD.defaults, inputProps )
+  const isStereo = props.isStereo 
+  const input    = g.in( 'input' )
+  const historyL = g.history()
+  historyL.value = 1
+
+  ssd.out = Out( historyL, props )
+  ssd.in  =  In( historyL, props )
+
+  ssd.value = historyL.value
+  ssd.listen = ssd.in.listen
+
+  return ssd 
+}
+
+const Out = (history,props) => {
+  if( Gibberish.mode === 'processor' ) {
+    const id = history.id
+    history = Gibberish.ugens.get( history.id )
+    if( history === undefined ) {
+      history = g.history( 0 )
+      Gibberish.ugens.set( id, history )
+    }
+    if( props === undefined ) props = { id }
+  }else{
+  }
+  return Gibberish.factory( Object.create( ugen ), history.out, ['analysis','SSD_Out'], props, null )
+}
+
+const In = history => {
+  const input = g.in( 'input' )
+  
+  const Gibbs = Gibberish
+  if( Gibberish.mode === 'processor' ) {
+    history = Gibberish.ugens.get( history.id - 1 )
+  }
+  const idx = Gibberish.mode === 'processor' ? history.graph.memory.value.idx : history.memory.value.idx
+  const memory = Gibberish.genish.gen.memory.heap
+
+
+  let ssdin = Object.create( ugen )
+  ssdin.listen = function( input ) {
+    ssdin.input = input
+    Gibberish.dirty( Gibberish.analyzers ) 
+    //if( Gibberish.mode === 'worklet' ) {
+    //  Gibberish.worklet.port.postMessage({
+    //    address:'method',
+    //    object: ssdin.id,
+    //    name:'listen',
+    //    args:[ input ]
+    //  })
+    //}else{
+    //  ssdin.input = input
+    //  Gibberish.analyzers.push( ssdin )
+    //  //Gibberish.dirty( Gibberish.analyzers )
+    //}
+  }
+
+  //ssdin.inputNames = [ 'input','memory' ]
+
+  //ssdin.inputs = [ 0 ]
+  ssdin = Gibberish.factory( ssdin, input, ['analysis','SSD_In'], { 'input':0 } )
+
+  const callback = function( input, memory ) {
+    memory[ idx ] = input
+    return 0     
+  }
+  if( Gibberish.mode === 'processor' ) {
+    ssdin.callback = callback
+
+    // when each ugen callback is passed to the master callback function
+    // it needs to have a ugenName property; we'll just copy this over
+    ssdin.callback.ugenName = ssdin.ugenName
+  }
+  //callback.ugenName = ssd.__in.ugenName = 'ssd_in_' + ssd.__in.id
+  //ssd.__in.input = props.input
+  ssdin.type = 'analysis'
+  Gibberish.analyzers.push( ssdin )
+
+  //ssd.__in.listen = function( ugen ) {
+  //  console.log( 'listening:', ugen, Gibberish.mode )
+  //  if( ugen !== undefined ) {
+  //    ssd.__in.input = ugen
+  //    ssd.__in.inputs = [ ugen ]
+  //  }
+
+  //  if( Gibberish.analyzers.indexOf( ssd.__in ) === -1 ) {
+  //    if( Gibberish.mode === 'worklet' ) {
+  //      //Gibberish.analyzers.push( { id:ssd.id, prop:'in' })
+  //      Gibberish.worklet.port.postMessage({
+  //       address:'eval',
+  //       code:`const u = Gibberish.ugens.get( ${ssd.__in.id } ); console.log( ${ssd.__in.id }, u, Gibberish.ugens ); Gibberish.analyzers.push(u  ); Gibberish.dirty( Gibberish.analyzers );`  
+  //      })
+  //    }else{
+  //      //Gibberish.analyzers.push( ssd.__in )
+  //    }
+  //  }
+
+  //  Gibberish.dirty( Gibberish.analyzers )
+  //  //console.log( 'in:', ssd.__in )
+  //}
+
+  //ssd.listen = ssd.__in.listen
+  //ssd.__in.type = 'analysis'
+  return ssdin
+}
+
+SSD.defaults = {
+  input:0,
+  isStereo:false
+}
+
+return { In, Out, SSD }
+/*const SSDelay = inputProps => {
   let ssd = Object.create( analyzer )
   ssd.__in  = Object.create( ugen )
   ssd.__out = Object.create( ugen )
 
   ssd.id = Gibberish.factory.getUID()
 
-  let props = Object.assign({}, Delay.defaults, inputProps )
+  let props = Object.assign({}, SSDelay.defaults, inputProps )
   let isStereo = props.isStereo 
   
   let input = g.in( 'input' )
@@ -4252,14 +4375,16 @@ const Delay = inputProps => {
     // right channel
     let historyR = g.history()
 
-    Gibberish.factory( 
-      ssd.__out,
-      [ historyL.out, historyR.out ], 
-      'ssd_out', 
-      props,
-      null,
-      false
-    )
+    ssd.__out =  proxy( ['analysis','SSD'], props, ssd.__out )
+
+    //Gibberish.factory( 
+    //  ssd.__out,
+    //  [ historyL.out, historyR.out ], 
+    //  'ssd_out', 
+    //  props,
+    //  null,
+    //  false
+    //)
 
     ssd.__out.callback.ugenName = ssd.__out.ugenName = 'ssd_out' + ssd.id
 
@@ -4295,7 +4420,8 @@ const Delay = inputProps => {
       Gibberish.dirty( Gibberish.analyzers )
     }
   }else{
-    Gibberish.factory( ssd.__out, historyL.out, 'ssd_out', props, null, false )
+
+    ssd.__out = Gibberish.factory( ssd.__out, historyL.out, 'ssd_out', props, null, true )
 
     ssd.__out.callback.ugenName = ssd.__out.ugenName = 'ssd_out' + ssd.id
 
@@ -4307,16 +4433,18 @@ const Delay = inputProps => {
       return 0     
     }
     
-    Gibberish.factory( ssd.__in, input, 'ssd_in', {}, callback, false )
+    //ssd.__in =  proxy( ['analysis','SSD'], props, ssd.__in )
+    ssd.__in = Gibberish.factory( ssd.__in, input, 'ssd_in', {}, callback, true )
 
-    callback.ugenName = ssd.__in.ugenName = 'ssd_in_' + ssd.id
+    console.log( 'id:', ssd.__in.id )
+    callback.ugenName = ssd.__in.ugenName = 'ssd_in_' + ssd.__in.id
     ssd.__in.inputNames = [ 'input' ]
     ssd.__in.inputs = [ props.input ]
     ssd.__in.input = props.input
     ssd.type = 'analysis'
 
     ssd.__in.listen = function( ugen ) {
-      //console.log( 'listening:', ugen, Gibberish.mode )
+      console.log( 'listening:', ugen, Gibberish.mode )
       if( ugen !== undefined ) {
         ssd.__in.input = ugen
         ssd.__in.inputs = [ ugen ]
@@ -4324,9 +4452,13 @@ const Delay = inputProps => {
 
       if( Gibberish.analyzers.indexOf( ssd.__in ) === -1 ) {
         if( Gibberish.mode === 'worklet' ) {
-          Gibberish.analyzers.push( { id:ssd.id, prop:'in' })
+          //Gibberish.analyzers.push( { id:ssd.id, prop:'in' })
+          Gibberish.worklet.port.postMessage({
+           address:'eval',
+           code:`const u = Gibberish.ugens.get( ${ssd.__in.id } ); console.log( ${ssd.__in.id }, u, Gibberish.ugens ); Gibberish.analyzers.push(u  ); Gibberish.dirty( Gibberish.analyzers );`  
+          })
         }else{
-          Gibberish.analyzers.push( ssd.__in )
+          //Gibberish.analyzers.push( ssd.__in )
         }
       }
 
@@ -4341,20 +4473,23 @@ const Delay = inputProps => {
 
  
   ssd.__out.inputs = []
+  //ssd.__out.type = 'bus' 
 
-  const out =  proxy( ['analysis','SSD'], props, ssd )
+  //const out =  proxy( ['analysis','SSD'], props, ssd )
   
-  Object.defineProperties( out, {
-    'out': {
-      set(v) {},
-      get() {
-        if( Gibberish.mode === 'worklet' ) {
-          return { id:out.id, prop:'out' }
-        }else{
-          return out.__out
-        }
-      }
-    },
+  //out.listen = ssd.__in.listen
+  
+  //Object.defineProperties( out, {
+  //  'out': {
+  //    set(v) {},
+  //    get() {
+        //if( Gibberish.mode === 'worklet' ) {
+          //return { id:out.id, prop:'out', type:'bus', inputs:[] }
+        //}else{
+          //return out.__out
+        //}
+      //}
+//}},
     //'in': {
     //  set(v) {},
     //  get() {
@@ -4367,17 +4502,18 @@ const Delay = inputProps => {
     //  }
     //},
 
-  })
+  //})
 
-  return out
-}
+  return ssd
+  }
+  */
 
-Delay.defaults = {
-  input:0,
-  isStereo:false
-}
+//SSDelay.defaults = {
+//  input:0,
+//  isStereo:false
+//}
 
-return Delay
+//return SSDelay
 
 }
 
@@ -6775,7 +6911,7 @@ let Gibberish = {
       let keys,err
 
       //try {
-      keys = ugen.isop === true || ugen.type === 'bus' || ugen.type === 'analysis' ? Object.keys( ugen.inputs ) : [...ugen.inputNames ] 
+      keys = ugen.isop === true || ugen.type === 'bus'  ? Object.keys( ugen.inputs ) : [...ugen.inputNames ] 
 
       //}catch( e ){
 
@@ -6789,7 +6925,7 @@ let Gibberish = {
         let key = keys[ i ]
         // binop.inputs is actual values, not just property names
         let input 
-        if( ugen.isop || ugen.type ==='bus' || ugen.type === 'analysis' ) {
+        if( ugen.isop || ugen.type ==='bus' ) {
           input = ugen.inputs[ key ]
         }else{
           //if( key === 'memory' ) continue;
@@ -6855,7 +6991,7 @@ let Gibberish = {
           if( i < keys.length - 1 ) {
             if( ugen.isop === true ) {
               if( ugen.op === '*' || ugen.op === '/' ) {
-                if( input != 1 ) {
+                if( input !== 1 ) {
                   line += ' ' + ugen.op + ' '
                 }else{
                   line = line.slice( 0, -1 * (''+input).length )
@@ -6871,7 +7007,7 @@ let Gibberish = {
       }
       
       //if( ugen.type === 'bus' ) line += ', ' 
-      if( ugen.type === 'analysis' || (ugen.type === 'bus' && keys.length > 0) ) line += ', '
+      if( (ugen.type === 'bus' && keys.length > 0) ) line += ', '
       if( !ugen.isop && ugen.type !== 'seq' ) line += 'mem'
       line += ugen.isop ? '' : ' )'
 
@@ -7642,20 +7778,6 @@ module.exports = {
 
 const g = require( 'genish.js' )
 const __proxy = require( '../workletProxy.js' )
-
-const replaceObj = function( obj, shouldSerializeFunctions = true ) {
-  if( typeof obj === 'object' && obj !== null && obj.id !== undefined ) {
-    if( obj.__type !== 'seq' ) { // XXX why?
-      return { id:obj.id, prop:obj.prop }
-    }else{
-      // shouldn't I be serializing most objects, not just seqs?
-      return serialize( obj )
-    }
-  }else if( typeof obj === 'function' && shouldSerializeFunctions === true ) {
-    return { isFunc:true, value:serialize( obj ) }
-  }
-  return obj
-}
 
 module.exports = function( Gibberish ) {
   const proxy = __proxy( Gibberish )
@@ -8597,8 +8719,26 @@ module.exports = function( Gibberish ) {
 }
 
 },{}],128:[function(require,module,exports){
+const genish = require('genish.js'),
+      ssd = genish.history,
+      noise = genish.noise;
 
-},{}],129:[function(require,module,exports){
+module.exports = function () {
+  "use jsdsp";
+
+  const last = ssd(0);
+
+  const white = genish.sub(genish.mul(noise(), 2), 1);
+
+  let out = genish.add(last.out, genish.div(genish.mul(.02, white), 1.02));
+
+  last.in(out);
+
+  out = genish.mul(out, 3.5);
+
+  return out;
+};
+},{"genish.js":37}],129:[function(require,module,exports){
 let g = require( 'genish.js' )
 
 let feedbackOsc = function( frequency, filter, pulsewidth=.5, argumentProps ) {
@@ -9050,6 +9190,23 @@ module.exports = function( Gibberish ) {
         Gibberish.dirty( Gibberish.analyzers )
       }
       return this
+    },
+    fire(){
+      let value  = typeof this.values  === 'function' ? this.values  : this.values[ this.__valuesPhase++  % this.values.length  ]
+      if( typeof value === 'function' && this.target === undefined ) {
+        value()
+      }else if( typeof this.target[ this.key ] === 'function' ) {
+        if( typeof value === 'function' ) {
+          value = value()
+        }
+        if( value !== this.DNR ) {
+          this.target[ this.key ]( value )
+        }
+      }else{
+        if( typeof value === 'function' ) value = value()
+        if( value !== this.DNR )
+          this.target[ this.key ] = value
+      }
     }
   })
 
@@ -9077,29 +9234,37 @@ module.exports = function( Gibberish ) {
       Object.assign( seq, properties ) 
       seq.__properties__ = properties
 
-      
+      // support for sequences that are triggered via other means,
+      // in Gibber this is when you provide timing to one sequence
+      // on an object and want to use that one pattern to trigger
+      // multiple sequences.
+      if( seq.timings === null ) { seq.nextTime = Infinity } 
+
       // XXX this needs to be optimized as much as humanly possible, since it's running at audio rate...
       seq.callback = function( rate, density ) {
         if( seq.phase >= seq.nextTime ) {
           let value  = typeof seq.values  === 'function' ? seq.values  : seq.values[ seq.__valuesPhase++  % seq.values.length  ],
-          timing = typeof seq.timings === 'function' ? seq.timings : seq.timings[ seq.__timingsPhase++ % seq.timings.length ],
-          shouldRun = true
-
-          if( typeof timing === 'function' ) timing = timing()
+              shouldRun = true
+          
+          let timing = null
+          if( seq.timings !== null && seq.timings !== undefined ) { 
+            timing = typeof seq.timings === 'function' ? seq.timings : seq.timings[ seq.__timingsPhase++ % seq.timings.length ]
+            if( typeof timing === 'function' ) timing = timing()
+          }
           
           let shouldIncreaseSpeed = density <= 1 ? false : true
 
           // XXX this supports an edge case in Gibber, where patterns like Euclid / Hex return
           // objects indicating both whether or not they should should trigger values as well
           // as the next time they should run. perhaps this could be made more generalizable?
-          if( typeof timing === 'object' ) {
+          if( timing !== null && typeof timing === 'object' ) {
             if( timing.shouldExecute === 1 ) {
               shouldRun = true
             }else{
               shouldRun = false
             }
             timing = timing.time 
-          }else{
+          }else if( timing !== null ) {
             if( Math.random() >= density ) shouldRun = false
           }
 
@@ -9119,6 +9284,8 @@ module.exports = function( Gibberish ) {
                 seq.target[ seq.key ] = value
             }
           }
+
+          if( timing === null ) return
 
           seq.phase -= seq.nextTime
 
@@ -9438,7 +9605,7 @@ module.exports = function( Gibberish ) {
       id: values.id || Gibberish.utilities.getUID(), 
       ugenName: name + '_',
       graph: graph,
-      inputNames: new Set( Gibberish.genish.gen.parameters ),
+      inputNames: ugen.inputNames || new Set( Gibberish.genish.gen.parameters ),
       isStereo: Array.isArray( graph ),
       dirty: true,
       __properties__:values,
@@ -9453,7 +9620,7 @@ module.exports = function( Gibberish ) {
       if( param === 'memory' ) continue
 
       let value = values[ param ],
-          isNumber = !isNaN( value ),
+          isNumber = typeof value === 'object' || isNaN( value ) ? false : true,
           idx
 
       if( isNumber ) { 
