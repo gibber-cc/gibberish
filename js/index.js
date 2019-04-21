@@ -262,6 +262,19 @@ let Gibberish = {
 
     return obj
   },
+  isStereo( ugen ) {
+    let isStereo = false
+
+    if( ugen === undefined || ugen === null ) return false
+
+    if( ugen.isStereo === true ) return true
+
+    if( ugen.isop === true ) {
+      return Gibberish.isStereo( ugen.inputs[0] ) || Gibberish.isStereo( ugen.inputs[1] )
+    }
+    
+    return isStereo
+  },
   processUgen( ugen, block ) {
     if( block === undefined ) block = []
 
