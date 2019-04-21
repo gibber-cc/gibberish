@@ -262,7 +262,62 @@ let Gibberish = {
 
     return obj
   },
-  isStereo( ugen ) {
+  processUgen( ugen, block ) {
+    if( block === undefined ) block = []
+
+    let dirtyIdx = Gibberish.dirtyUgens.indexOf( ugen )
+
+    let memo = Gibberish.memoed[ ugen.ugenName ]
+
+    if( memo !== undefined ) {
+      return memo
+    } else if (ugen === true || ugen === false) {
+      throw "Why is ugen a boolean? [true] or [false]";
+    } else if( ugen.block === undefined || dirtyIndex !== -1 ) {
+      let line = `\tconst v_${ugen.id} = ` 
+      
+      if( !ugen.isop ) line += `${ugen.ugenName}( `
+
+      // must get array so we can keep track of length for comma insertion
+      let keys,err
+      keys = ugen.isop === true || ugen.type === 'bus'  ? Object.keys( ugen.inputs ) : [...ugen.inputNames ] 
+
+      for( let i = 0; i < keys.length; i++ ) {
+        let key = keys[ i ]
+        // binop.inputs is actual values, not just property names
+        let input 
+        if( ugen.isop || ugen.type ==='bus' ) {
+          input = ugen.inputs[ key ]
+        }else{
+          input = ugen[ key ] 
+        }
+
+        //if( Gibberish.mode === 'processor' ) console.log( 'processor input:', key, input )
+        if( input !== undefined ) { 
+          input = Gibberish.__getBypassedInput( input )
+
+          line = Gibberish.__addInput( line, input, block, key, ugen )
+          line = Gibberish.__addSeparator( line, input, ugen, i < keys.length - 1 )
+        }
+      }
+      
+      line = Gibberish.__addLineEnding( line, ugen, keys )
+
+      block.push( line )
+      
+      Gibberish.memoed[ ugen.ugenName ] = `v_${ugen.id}`
+
+      if( dirtyIdx !== -1 ) {
+        Gibberish.dirtyUgens.splice( dirtyIdx, 1 )
+      }
+
+    }else if( ugen.block ) {
+      return ugen.block
+    }
+
+    return block
+  }, 
+  __isStereo( ugen ) {
     let isStereo = false
 
     if( ugen === undefined || ugen === null ) return false
@@ -275,145 +330,91 @@ let Gibberish = {
     
     return isStereo
   },
-  processUgen( ugen, block ) {
-    if( block === undefined ) block = []
+  __getBypassedInput( input ) {
+    if( input.bypass === true ) {
+      // loop through inputs of chain until one is found
+      // that is not being bypassed
 
-    let dirtyIdx = Gibberish.dirtyUgens.indexOf( ugen )
+      let found = false
 
-    //console.log( 'ugenName:', ugen.ugenName )
-    let memo = Gibberish.memoed[ ugen.ugenName ]
-
-    if( memo !== undefined ) {
-      return memo
-    } else if (ugen === true || ugen === false) {
-      throw "Why is ugen a boolean? [true] or [false]";
-    } else if( ugen.block === undefined || dirtyIndex !== -1 ) {
-
-  
-      let line = `\tconst v_${ugen.id} = ` 
-      
-      if( !ugen.isop ) line += `${ugen.ugenName}( `
-
-      // must get array so we can keep track of length for comma insertion
-      let keys,err
-
-      //try {
-      keys = ugen.isop === true || ugen.type === 'bus'  ? Object.keys( ugen.inputs ) : [...ugen.inputNames ] 
-
-      //}catch( e ){
-
-      //  console.log( e )
-      //  err = true
-      //}
-      
-      //if( err === true ) return
-
-      for( let i = 0; i < keys.length; i++ ) {
-        let key = keys[ i ]
-        // binop.inputs is actual values, not just property names
-        let input 
-        if( ugen.isop || ugen.type ==='bus' ) {
-          input = ugen.inputs[ key ]
+      while( input.input !== 'undefined' && found === false ) {
+        if( typeof input.input.bypass !== 'undefined' ) {
+          input = input.input
+          if( input.bypass === false ) found = true
         }else{
-          //if( key === 'memory' ) continue;
-  
-          //console.log( 'ugen:', ugen, 'key:', key )
-          input = ugen[ key ] 
-        }
-
-        //if( Gibberish.mode === 'processor' ) console.log( 'processor input:', key, input )
-        if( input !== undefined ) { 
-          if( input.bypass === true ) {
-            // loop through inputs of chain until one is found
-            // that is not being bypassed
-
-            let found = false
-
-            while( input.input !== 'undefined' && found === false ) {
-              if( typeof input.input.bypass !== 'undefined' ) {
-                input = input.input
-                if( input.bypass === false ) found = true
-              }else{
-                input = input.input
-                found = true
-              }
-            }
-          }
-
-          if( typeof input === 'number' ) {
-            if( isNaN(key) ) {
-              line += `mem[${ugen.__addresses__[ key ]}]`//input
-            }else{
-              line += input
-            }
-          } else if( typeof input === 'boolean' ) {
-            line += '' + input
-          }else{
-            //console.log( 'key:', key, 'input:', ugen.inputs, ugen.inputs[ key ] ) 
-            // XXX not sure why this has to be here, but somehow non-processed objects
-            // that only contain id numbers are being passed here...
-
-            if( Gibberish.mode === 'processor' ) {
-              if( input.ugenName === undefined && input.id !== undefined ) {
-                input = Gibberish.processor.ugens.get( input.id )
-              }
-            }
-
-            Gibberish.processUgen( input, block )
-
-            //if( input.callback === undefined ) continue
-
-            if( !input.isop ) {
-              // check is needed so that graphs with ssds that refer to themselves
-              // don't add the ssd in more than once
-              if( Gibberish.callbackUgens.indexOf( input.callback ) === -1 ) {
-                Gibberish.callbackUgens.push( input.callback )
-              }
-            }
-
-            line += `v_${input.id}`
-            input.__varname = `v_${input.id}`
-          }
-
-          if( i < keys.length - 1 ) {
-            if( ugen.isop === true ) {
-              if( ugen.op === '*' || ugen.op === '/' ) {
-                if( input !== 1 ) {
-                  line += ' ' + ugen.op + ' '
-                }else{
-                  line = line.slice( 0, -1 * (''+input).length )
-                }
-              }else{
-                line += ' ' + ugen.op + ' '
-              }
-            }else{
-              line += ', '
-            }
-          }
+          input = input.input
+          found = true
         }
       }
-      
-      //if( ugen.type === 'bus' ) line += ', ' 
-      if( (ugen.type === 'bus' && keys.length > 0) ) line += ', '
-      if( !ugen.isop && ugen.type !== 'seq' ) line += 'mem'
-      line += ugen.isop ? '' : ' )'
-
-      block.push( line )
-      
-      //console.log( 'memo:', ugen.ugenName )
-      Gibberish.memoed[ ugen.ugenName ] = `v_${ugen.id}`
-
-      if( dirtyIdx !== -1 ) {
-        Gibberish.dirtyUgens.splice( dirtyIdx, 1 )
-      }
-
-    }else if( ugen.block ) {
-      return ugen.block
     }
 
-    return block
+    return input
   },
-    
+  __addInput( line, input, block, key, ugen ) {
+    if( typeof input === 'number' ) {
+      if( isNaN(key) ) {
+        line += `mem[${ugen.__addresses__[ key ]}]`//input
+      }else{
+        line += input
+      }
+    } else if( typeof input === 'boolean' ) {
+      line += '' + input
+    }else{
+      //console.log( 'key:', key, 'input:', ugen.inputs, ugen.inputs[ key ] ) 
+      // XXX not sure why this has to be here, but somehow non-processed objects
+      // that only contain id numbers are being passed here...
+
+      if( Gibberish.mode === 'processor' ) {
+        if( input.ugenName === undefined && input.id !== undefined ) {
+          input = Gibberish.processor.ugens.get( input.id )
+        }
+      }
+
+      Gibberish.processUgen( input, block )
+
+      //if( input.callback === undefined ) continue
+
+      if( !input.isop ) {
+        // check is needed so that graphs with ssds that refer to themselves
+        // don't add the ssd in more than once
+        if( Gibberish.callbackUgens.indexOf( input.callback ) === -1 ) {
+          Gibberish.callbackUgens.push( input.callback )
+        }
+      }
+
+      line += `v_${input.id}`
+      input.__varname = `v_${input.id}`
+    }
+
+    return line
+  },
+  __addSeparator( line, input, ugen, isNotEndOfLine ) {
+    if( isNotEndOfLine === true ) {
+      if( ugen.isop === true ) {
+        if( ugen.op === '*' || ugen.op === '/' ) {
+          if( input !== 1 ) {
+            line += ' ' + ugen.op + ' '
+          }else{
+            line = line.slice( 0, -1 * (''+input).length )
+          }
+        }else{
+          line += ' ' + ugen.op + ' '
+        }
+      }else{
+        line += ', '
+      }
+    }
+
+    return line
+  },
+  __addLineEnding( line, ugen, keys ) {
+    if( (ugen.type === 'bus' && keys.length > 0) ) line += ', '
+    if( !ugen.isop && ugen.type !== 'seq' ) line += 'mem'
+    line += ugen.isop ? '' : ' )'
+
+    return line
+  },
+
 }
 
 Gibberish.prototypes.Ugen = require( './ugen.js' )( Gibberish )
