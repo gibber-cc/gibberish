@@ -11,7 +11,7 @@ module.exports = function( Gibberish ) {
       if( rate > 0 ) {
         this.__trigger()
       }else{
-        this.__phase__.value = this.data.buffer.length - 1 
+        this.__phase__.value = this.end * (this.data.buffer.length - 1)
       }
     },
     trigger( volume ) {
@@ -21,7 +21,7 @@ module.exports = function( Gibberish ) {
       if( Gibberish.memory.heap[ this.__rateStorage__.memory.values.idx ] > 0 ) {
         this.__trigger()
       }else{
-        this.__phase__.value = this.data.buffer.length - 1 
+        this.__phase__.value = this.end * (this.data.buffer.length - 1)
       }
     },
   })
