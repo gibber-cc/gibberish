@@ -69,8 +69,8 @@ const In = histories => {
     if( input.isStereo === undefined && input.isop === true ) {
       isStereo = input.inputs[0].isStereo === true || input.inputs[1].isStereo === true 
     }
-    if( isStereo === true ) {
-      console.log( 'making stereo callback' )
+    if( isStereo === true && Gibberish.mode === 'processor' ) {
+      const idx = historyL.graph.memory.value.idx     
       ssdin.callback = function( input, memory ) {
         memory[ idx ] = input[ 0 ]
         memory[ idx + 1 ] = input[ 1 ]
@@ -80,8 +80,6 @@ const In = histories => {
       // when each ugen callback is passed to the master callback function
       // it needs to have a ugenName property; we'll just copy this over
       ssdin.callback.ugenName = ssdin.ugenName
-    }else{
-      console.log( 'keeping mono callbacks' )
     }
   }
 
@@ -89,7 +87,7 @@ const In = histories => {
 
   // overwrite the callback function in the processor thread...
   if( Gibberish.mode === 'processor' ) {
-    const idx = Gibberish.mode === 'processor' ? historyL.graph.memory.value.idx : historyL.memory.value.idx
+    const idx = historyL.graph.memory.value.idx
     
     ssdin.callback = function( input, memory ) {
       memory[ idx ] = input

@@ -262,6 +262,7 @@ let Gibberish = {
 
     return obj
   },
+
   processUgen( ugen, block ) {
     if( block === undefined ) block = []
 
@@ -271,36 +272,21 @@ let Gibberish = {
 
     if( memo !== undefined ) {
       return memo
-    } else if (ugen === true || ugen === false) {
+    } else if( ugen === true || ugen === false ) {
       throw "Why is ugen a boolean? [true] or [false]";
     } else if( ugen.block === undefined || dirtyIndex !== -1 ) {
       let line = `\tconst v_${ugen.id} = ` 
-      
       if( !ugen.isop ) line += `${ugen.ugenName}( `
 
       // must get array so we can keep track of length for comma insertion
-      let keys,err
-      keys = ugen.isop === true || ugen.type === 'bus'  ? Object.keys( ugen.inputs ) : [...ugen.inputNames ] 
+      const keys = ugen.isop === true || ugen.type === 'bus'  
+        ? Object.keys( ugen.inputs ) 
+        : [...ugen.inputNames ] 
 
-      for( let i = 0; i < keys.length; i++ ) {
-        let key = keys[ i ]
-        // binop.inputs is actual values, not just property names
-        let input 
-        if( ugen.isop || ugen.type ==='bus' ) {
-          input = ugen.inputs[ key ]
-        }else{
-          input = ugen[ key ] 
-        }
+      line = ugen.isop === true 
+        ? Gibberish.__processBinop( ugen, line, block, keys ) 
+        : Gibberish.__processNonBinop( ugen, line, block, keys )
 
-        //if( Gibberish.mode === 'processor' ) console.log( 'processor input:', key, input )
-        if( input !== undefined ) { 
-          input = Gibberish.__getBypassedInput( input )
-
-          line = Gibberish.__addInput( line, input, block, key, ugen )
-          line = Gibberish.__addSeparator( line, input, ugen, i < keys.length - 1 )
-        }
-      }
-      
       line = Gibberish.__addLineEnding( line, ugen, keys )
 
       block.push( line )
@@ -317,6 +303,56 @@ let Gibberish = {
 
     return block
   }, 
+
+  __processBinop( ugen, line, block, keys ) {
+    //__getInputString( line, input, block, key, ugen ) {
+    const isLeftStereo = Gibberish.__isStereo( ugen.inputs[0] ), 
+          isRightStereo = Gibberish.__isStereo( ugen.inputs[1] ),
+          left = Gibberish.__getInputString( line, ugen.inputs[0], block, '0', keys ),
+          right= Gibberish.__getInputString( line, ugen.inputs[1], block, '1', keys ),
+          op = ugen.op
+        
+    let graph, out
+
+    if( isLeftStereo === true && isRightStereo === false ) {
+      line += `[ ${left}[0] ${op} ${right}, ${left}[1] ${op} ${right} ]`
+      //graph = [ g.add( args[0].graph[0], args[1] ), g.add( args[0].graph[1], args[1] )]
+    }else if( isLeftStereo === false && isRightStereo === true ) {
+      //graph = [ g.add( args[0], args[1].graph[0] ), g.add( args[0], args[1].graph[1] )]
+      line += `[ ${left} ${op} ${right}[0], ${left} ${op} ${right}[1] ]`
+    }else if( isLeftStereo === true && isRightStereo === true ) {
+      //graph = [ g.add( args[0].graph[0], args[1].graph[0] ), g.add( args[0].graph[1], args[1].graph[1] )]
+      line += `[ ${left}[0] ${op} ${right}[0], ${left}[1] ${op} ${right}[1] ]`
+    }else{
+      // XXX important, must re-assign when calling processNonBinop
+      line = Gibberish.__processNonBinop( ugen, line, block, keys )
+    }
+    
+    return line
+  },
+
+  __processNonBinop( ugen, line, block, keys ) {
+    for( let i = 0; i < keys.length; i++ ) {
+      let key = keys[ i ]
+      // binop.inputs is actual values, not just property names
+      let input 
+      if( ugen.isop || ugen.type ==='bus' ) {
+        input = ugen.inputs[ key ]
+      }else{
+        input = ugen[ key ] 
+      }
+
+      if( input !== undefined ) { 
+        input = Gibberish.__getBypassedInput( input )
+        line += Gibberish.__getInputString( line, input, block, key, ugen )
+        line  = Gibberish.__addSeparator( line, input, ugen, i < keys.length - 1 )
+      }
+    }
+
+    return line
+  },
+
+  // determine if a ugen is stereo
   __isStereo( ugen ) {
     let isStereo = false
 
@@ -325,11 +361,13 @@ let Gibberish = {
     if( ugen.isStereo === true ) return true
 
     if( ugen.isop === true ) {
-      return Gibberish.isStereo( ugen.inputs[0] ) || Gibberish.isStereo( ugen.inputs[1] )
+      return Gibberish.__isStereo( ugen.inputs[0] ) || Gibberish.__isStereo( ugen.inputs[1] )
     }
     
     return isStereo
   },
+
+  // if an effect is bypassed, get next one in chain (or output destination)
   __getBypassedInput( input ) {
     if( input.bypass === true ) {
       // loop through inputs of chain until one is found
@@ -350,15 +388,19 @@ let Gibberish = {
 
     return input
   },
-  __addInput( line, input, block, key, ugen ) {
+
+  // get a string representing a ugen for insertion into callback.
+  // if a ugen contains other ugens, trigger codegen for those ugens as well.
+  __getInputString( line, input, block, key, ugen ) {
+    let value = ''
     if( typeof input === 'number' ) {
       if( isNaN(key) ) {
-        line += `mem[${ugen.__addresses__[ key ]}]`//input
+        value += `mem[${ugen.__addresses__[ key ]}]`//input
       }else{
-        line += input
+        value += input
       }
     } else if( typeof input === 'boolean' ) {
-      line += '' + input
+      value += '' + input
     }else{
       //console.log( 'key:', key, 'input:', ugen.inputs, ugen.inputs[ key ] ) 
       // XXX not sure why this has to be here, but somehow non-processed objects
@@ -372,8 +414,6 @@ let Gibberish = {
 
       Gibberish.processUgen( input, block )
 
-      //if( input.callback === undefined ) continue
-
       if( !input.isop ) {
         // check is needed so that graphs with ssds that refer to themselves
         // don't add the ssd in more than once
@@ -382,12 +422,14 @@ let Gibberish = {
         }
       }
 
-      line += `v_${input.id}`
-      input.__varname = `v_${input.id}`
+      value += `v_${input.id}`
+      input.__varname = value
     }
 
-    return line
+    return value
   },
+
+  // add separators for function calls and handle binops (mono only)
   __addSeparator( line, input, ugen, isNotEndOfLine ) {
     if( isNotEndOfLine === true ) {
       if( ugen.isop === true ) {
@@ -407,6 +449,8 @@ let Gibberish = {
 
     return line
   },
+
+  // add memory to end of function calls and close parenthesis 
   __addLineEnding( line, ugen, keys ) {
     if( (ugen.type === 'bus' && keys.length > 0) ) line += ', '
     if( !ugen.isop && ugen.type !== 'seq' ) line += 'mem'

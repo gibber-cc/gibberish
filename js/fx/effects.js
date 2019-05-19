@@ -11,6 +11,7 @@ module.exports = function( Gibberish ) {
     RingMod     : require( './ringMod.js'   )( Gibberish ),
     Tremolo     : require( './tremolo.js'   )( Gibberish ),
     Chorus      : require( './chorus.js'    )( Gibberish ),
+    Wavefolder  : require( './wavefolder.js')( Gibberish ),
     Shuffler    : require( './bufferShuffler.js'  )( Gibberish ),
     //Gate        : require( './gate.js'      )( Gibberish ),
   }

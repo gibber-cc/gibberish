@@ -5,31 +5,38 @@ const ugenproto = require( '../ugen.js' )(),
 module.exports = function( Gibberish ) {
   const proxy = __proxy( Gibberish )
 
-  const getGraph = function( name='add', op='+', args ) {
-    const isLeftStereo = Gibberish.isStereo( args[0] ), 
-          isRightStereo = Gibberish.isStereo( args[1] ),
-          func = g[ name ],
-          ugen = Object.create( ugenproto )
-
-    let graph, out
-
-    if( isLeftStereo === true && isRightStereo === false ) {
-      graph = `[ ${args[0].__varname} + ${args[1]} ), g.add( args[0].graph[1], args[1] )]`
-      //graph = [ g.add( args[0].graph[0], args[1] ), g.add( args[0].graph[1], args[1] )]
-    }else if( isLeftStereo === false && isRightStereo === true ) {
-      graph = [ g.add( args[0], args[1].graph[0] ), g.add( args[0], args[1].graph[1] )]
-    }else if( isLeftStereo === true && isRightStereo === true ) {
-      graph = [ g.add( args[0].graph[0], args[1].graph[0] ), g.add( args[0].graph[1], args[1].graph[1] )]
-    }else{
-      const id = Gibberish.factory.getUID()
-      Object.assign( ugen, { isop:true, op, inputs:args, ugenName:name + id, id } )
-      out = proxy( ['binops','Add'], { isop:true, inputs:args }, ugen )
+  const createProperties = function( p, id ) {
+    for( let i = 0; i < 2; i++ ) {
+      Object.defineProperty( p, i, {
+        get() { return p.inputs[ i ] },
+        set(v) {
+          p.inputs[ i ] = v
+          if( Gibberish.mode === 'worklet' ) {
+            if( typeof v === 'number' ) {
+              Gibberish.worklet.port.postMessage({ 
+                address:'addToProperty', 
+                object:id,
+                name:'inputs',
+                key:i,
+                value:v
+              })
+            }else{
+              Gibberish.worklet.port.postMessage({ 
+                address:'addObjectToProperty', 
+                object:id,
+                name:'inputs',
+                key:i,
+                value:v.id
+              })
+            }
+            Gibberish.worklet.port.postMessage({
+              address:'dirty',
+              id
+            })
+          }
+        }
+      })
     }
-
-    if( out === undefined ) {
-      out = Gibberish.factory( ugen, graph, ['binops',name[0].toUpperCase()+name.slice(1)], {} )
-    }
-    return out
   }
 
   const Binops = {
@@ -44,15 +51,20 @@ module.exports = function( Gibberish ) {
     Add( ...args ) {
       const id = Gibberish.factory.getUID()
       const ugen = Object.create( ugenproto )
-      Object.assign( ugen, { isop:true, op:'+', inputs:args, ugenName:'add' + id, id } )
+      const isStereo = Gibberish.__isStereo( args[0] ) || Gibberish.__isStereo( args[1] )
+      Object.assign( ugen, { isop:true, op:'+', inputs:args, ugenName:'add' + id, id, isStereo } )
       
-      return proxy( ['binops','Add'], { isop:true, inputs:args }, ugen )
+      const p = proxy( ['binops','Add'], { isop:true, inputs:args }, ugen )
+      createProperties( p, id )
+
+      return p
     },
 
     Sub( ...args ) {
       const id = Gibberish.factory.getUID()
       const ugen = Object.create( ugenproto )
-      Object.assign( ugen, { isop:true, op:'-', inputs:args, ugenName:'sub' + id, id } )
+      const isStereo = Gibberish.__isStereo( args[0] ) || Gibberish.__isStereo( args[1] )
+      Object.assign( ugen, { isop:true, op:'-', inputs:args, ugenName:'sub' + id, id, isStereo } )
 
       return proxy( ['binops','Sub'], { isop:true, inputs:args }, ugen )
     },
@@ -60,26 +72,41 @@ module.exports = function( Gibberish ) {
     Mul( ...args ) {
       const id = Gibberish.factory.getUID()
       const ugen = Object.create( ugenproto )
-      Object.assign( ugen, { isop:true, op:'*', inputs:args, ugenName:'mul' + id, id } )
+      const isStereo = Gibberish.__isStereo( args[0] ) || Gibberish.__isStereo( args[1] )
+      Object.assign( ugen, { isop:true, op:'*', inputs:args, ugenName:'mul' + id, id, isStereo } )
 
-      return proxy( ['binops','Mul'], { isop:true, inputs:args }, ugen )
+      const p = proxy( ['binops','Mul'], { isop:true, inputs:args }, ugen )
+      createProperties( p, id )
+      return p
     },
 
     Div( ...args ) {
       const id = Gibberish.factory.getUID()
       const ugen = Object.create( ugenproto )
-      Object.assign( ugen, { isop:true, op:'/', inputs:args, ugenName:'div' + id, id } )
+      const isStereo = Gibberish.__isStereo( args[0] ) || Gibberish.__isStereo( args[1] )
+      Object.assign( ugen, { isop:true, op:'/', inputs:args, ugenName:'div' + id, id, isStereo} )
     
-      return proxy( ['binops','Div'], { isop:true, inputs:args }, ugen )
+      const p = proxy( ['binops','Div'], { isop:true, inputs:args }, ugen )
+      createProperties( p, id )
+
+      return p
     },
 
     Mod( ...args ) {
       const id = Gibberish.factory.getUID()
       const ugen = Object.create( ugenproto )
-      Object.assign( ugen, { isop:true, op:'%', inputs:args, ugenName:'mod' + id, id } )
+      const isStereo = Gibberish.__isStereo( args[0] ) || Gibberish.__isStereo( args[1] )
+      Object.assign( ugen, { isop:true, op:'%', inputs:args, ugenName:'mod' + id, id, isStereo} )
 
-      return proxy( ['binops','Mod'], { isop:true, inputs:args }, ugen )
+      const p = proxy( ['binops','Mod'], { isop:true, inputs:args }, ugen )
+      createProperties( p, id )
+
+      return p
     },   
+  }
+
+  for( let key in Binops ) {
+    Binops[ key ].defaults = { 0:0, 1:0 }
   }
 
   return Binops

@@ -141,12 +141,15 @@ module.exports = function( Gibberish ) {
             osc = g.wavetable( frequency, { buffer:Oscillators.Square.buffer, name:'square' } )
           }
           break;
-          case 'triangle':
-            if( antialias === true ) {
-              osc = polyBlep( frequency, { type })
-            }else{
-              osc = g.wavetable( frequency, { buffer:Oscillators.Triangle.buffer, name:'triangle' } )
-            }
+        case 'triangle':
+          if( antialias === true ) {
+            osc = polyBlep( frequency, { type })
+          }else{
+            osc = g.wavetable( frequency, { buffer:Oscillators.Triangle.buffer, name:'triangle' } )
+          }
+          break;
+        case 'noise':
+          osc = g.noise()
           break;
       }
 
