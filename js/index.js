@@ -94,12 +94,13 @@ let Gibberish = {
     this.binops       = require( './misc/binops.js' )( this )
     this.monops       = require( './misc/monops.js' )( this )
     this.Bus          = require( './misc/bus.js' )( this )
-    this.Bus2         = require( './misc/bus2.js' )( this );
+    this.Bus2         = require( './misc/bus2.js' )( this )
     this.instruments  = require( './instruments/instruments.js' )( this )
     this.fx           = require( './fx/effects.js' )( this )
-    this.Sequencer    = require( './scheduling/sequencer.js' )( this );
-    this.Sequencer2   = require( './scheduling/seq2.js' )( this );
-    this.envelopes    = require( './envelopes/envelopes.js' )( this );
+    this.Sequencer    = require( './scheduling/sequencer.js' )( this )
+    this.Sequencer2   = require( './scheduling/seq2.js' )( this )
+    this.Tidal        = require( './scheduling/tidal.js' )( this )
+    this.envelopes    = require( './envelopes/envelopes.js' )( this )
     this.analysis     = require( './analysis/analyzers.js' )( this )
     this.time         = require( './misc/time.js' )( this )
     this.Proxy        = require( './workletProxy.js' )( this )
@@ -123,6 +124,7 @@ let Gibberish = {
     target.Bus = this.Bus
     target.Bus2 = this.Bus2
     target.Scheduler = this.scheduler
+    target.Tidal = this.Tidal
     this.time.export( target )
     this.utilities.export( target )
   },

@@ -44,9 +44,9 @@ module.exports = function (Gibberish) {
     let callback = function (input, memory) {
       'use strict';
 
-      memory[genish.add(idx, phase)] = abs(input);
+      memory[idx + phase] = abs(input);
       phase++;
-      if (phase > genish.sub(props.bufferSize, 1)) {
+      if (phase > props.bufferSize - 1) {
         phase = 0;
       }
 

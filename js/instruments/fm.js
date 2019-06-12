@@ -56,7 +56,7 @@ module.exports = function (Gibberish) {
         const synthWithGain = genish.mul(genish.mul(filteredOsc, g.in('gain')), Loudness);
 
         let panner;
-        if (props.panVoices === true) {
+        if (genish.eq(props.panVoices, true)) {
           panner = g.pan(synthWithGain, synthWithGain, g.in('pan'));
           syn.graph = [panner.left, panner.right];
         } else {

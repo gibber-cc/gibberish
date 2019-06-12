@@ -63,7 +63,7 @@ module.exports = function (Gibberish) {
 
     /****** left / mono output ********/
 
-    let l = isStereo === true ? input[0] : input;
+    let l = genish.eq(isStereo, true) ? input[0] : input;
     in1a0 = genish.mul(l, a[0]);
     x0a1 = genish.mul(x[0], a[1]);
     x1a2 = genish.mul(x[1], a[2]);
