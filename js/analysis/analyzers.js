@@ -4,14 +4,12 @@ module.exports = function( Gibberish ) {
   const analyzers = {
     SSD,
     SSD_In: In,
-    SSD_Out: Out   
-    //Follow: require( './follow.js'  )( Gibberish )
+    SSD_Out: Out, 
+    Follow: require( './follow.js'  )( Gibberish )
   }
-
-  /*analyzers.Follow_out = analyzers.Follow.out
+  analyzers.Follow_out = analyzers.Follow.out
   analyzers.Follow_in  = analyzers.Follow.in
-  */
-
+  
   analyzers.export = target => {
     for( let key in analyzers ) {
       if( key !== 'export' ) {
@@ -20,6 +18,6 @@ module.exports = function( Gibberish ) {
     }
   }
 
-return analyzers
+  return analyzers
 
 }

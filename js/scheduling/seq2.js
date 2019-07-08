@@ -26,6 +26,9 @@ module.exports = function( Gibberish ) {
         Gibberish.analyzers.splice( idx, 1 )
         Gibberish.dirty( Gibberish.analyzers )
       }
+      this.phase = 0
+      this.nextTime = 0
+
       return this
     },
     fire(){
@@ -51,6 +54,7 @@ module.exports = function( Gibberish ) {
   // that the sequencers are added to the callback function.
   const Seq2 = { 
     create( inputProps ) {
+      console.log( 'input props:', inputProps )
       const seq = Object.create( __proto__ ),
             properties = Object.assign({}, Seq2.defaults, inputProps )
 
@@ -79,7 +83,7 @@ module.exports = function( Gibberish ) {
 
       // XXX this needs to be optimized as much as humanly possible, since it's running at audio rate...
       seq.callback = function( rate, density ) {
-        if( seq.phase >= seq.nextTime ) {
+        while( seq.phase >= seq.nextTime ) {
           let value  = typeof seq.values  === 'function' ? seq.values  : seq.values[ seq.__valuesPhase++  % seq.values.length  ],
               shouldRun = true
           
@@ -106,7 +110,12 @@ module.exports = function( Gibberish ) {
           }
 
           if( shouldRun ) {
-            if( typeof value === 'function' && seq.target === undefined ) {
+            if( seq.mainthreadonly !== undefined ) {
+              if( typeof value === 'function' ) {
+                value = value()
+              }
+              Gibberish.processor.messages.push( seq.mainthreadonly, seq.key, value )
+            }else if( typeof value === 'function' && seq.target === undefined ) {
               value()
             }else if( typeof seq.target[ seq.key ] === 'function' ) {
               if( typeof value === 'function' ) {
@@ -180,7 +189,7 @@ module.exports = function( Gibberish ) {
     }
   }
 
-  Seq2.defaults = { rate: 1, density:1, priority:0 }
+  Seq2.defaults = { rate: 1, density:1, priority:0, phase:0 }
   Seq2.create.DO_NOT_OUTPUT = -987654321
 
   return Seq2.create

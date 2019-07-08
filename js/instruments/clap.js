@@ -16,8 +16,9 @@ module.exports = function (Gibberish) {
           spacing = g.in('spacing'),
           // spacing between clap, in Hzs
     loudness = g.in('loudness'),
-          triggerLoudness = g.in('__triggerLoudness');
-    cutoff = g.in('cutoff'), Q = g.in('Q');
+          triggerLoudness = g.in('__triggerLoudness'),
+          cutoff = g.in('cutoff'),
+          Q = g.in('Q');
 
     const props = Object.assign({}, Clap.defaults, argumentProps);
 

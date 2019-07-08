@@ -59,7 +59,6 @@ const makeAndSendObject = function( __name, values, obj ) {
   Gibberish.worklet.ugens.set( obj.id, obj )
 
   Gibberish.worklet.port.postMessage( obj.__meta__ )
-
 }
 
 const doNotProxy = [ 'connected', 'input', 'callback', 'inputNames' ]
@@ -67,7 +66,6 @@ const doNotProxy = [ 'connected', 'input', 'callback', 'inputNames' ]
 const __proxy = function( __name, values, obj ) {
 
   if( Gibberish.mode === 'worklet' && Gibberish.preventProxy === false ) {
-
     makeAndSendObject( __name, values, obj )
 
     // proxy for all method calls to send to worklet

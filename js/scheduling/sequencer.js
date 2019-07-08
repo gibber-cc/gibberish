@@ -35,7 +35,12 @@ const Sequencer = props => {
       timing *= seq.rate
 
       if( shouldRun ) {
-        if( typeof value === 'function' && seq.target === undefined ) {
+        if( seq.mainthreadonly !== undefined ) {
+          if( typeof value === 'function' ) {
+            value = value()
+          }
+          Gibberish.processor.messages.push( seq.mainthreadonly, seq.key, value )
+        }else if( typeof value === 'function' && seq.target === undefined ) {
           value()
         }else if( typeof seq.target[ seq.key ] === 'function' ) {
           if( typeof value === 'function' ) value = value()

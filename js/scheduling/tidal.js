@@ -5,8 +5,6 @@ module.exports = function( Gibberish ) {
 
 const proxy = __proxy( Gibberish )
 
-const cps = 1
-
 const Sequencer = props => {
   let __seq
   const seq = {
@@ -14,49 +12,93 @@ const Sequencer = props => {
 
     __phase:  0,
     __type:'seq',
-    __pattern: Pattern( props.pattern ),
+    __pattern: Pattern( props.pattern, { addLocations:true, addUID:true, enclose:true }),
     __events: null,
 
     tick( priority ) {
       // running for first time, perform a query
-      if( seq.__events === null ) {
+      if( seq.__events === null || seq.__events.length === 0 ) {
         seq.__events = seq.__pattern.query( seq.__phase++, 1 )
+      }
+
+      // used when scheduling events that are very far apart
+      if( seq.__events.length <= 0 ) {
+        if( Gibberish.mode === 'processor' ) {
+          if( seq.__isRunning === true  ) {
+            Gibberish.scheduler.add( Gibberish.ctx.sampleRate / Sequencer.clock.cps, seq.tick, seq.priority )
+          }
+
+        }
+
+        return
       }
 
       const startTime = seq.__events[ 0 ].arc.start
 
-      while( seq.__events.length > 0 && startTime.valueOf() === seq.__events[0].arc.start.valueOf() ) {
-        let event  = seq.__events.shift(),
-            value  = event.value,
-            shouldRun = true
+      if( seq.key !== 'chord' ) {
+        while( seq.__events.length > 0 && startTime.valueOf() === seq.__events[0].arc.start.valueOf() ) {
+          let event  = seq.__events.shift(),
+              value  = event.value,
+              uid    = event.uid
 
-        //if( event.arc.start.valueOf() < nextTime || nextTime === null ) {
-        //  nextTime  = event.arc.start.valueOf()
-        //  nextEvent = event
-        //} 
+          // for bjorklund etc.
+          if( typeof value === 'object' ) value = value.value
 
-        if( seq.filters !== null ) value = seq.filters.reduce( (currentValue, filter) => filter( currentValue ), value )  
-     
-        if( shouldRun ) {
-         if( typeof seq.target[ seq.key ] === 'function' ) {
+          if( seq.filters !== null ) value = seq.filters.reduce( (currentValue, filter) => filter( currentValue, seq, uid ), value )  
+          if( seq.mainthreadonly !== undefined ) {
+            if( typeof value === 'function' ) {
+              value = value()
+            }
+            Gibberish.processor.messages.push( seq.mainthreadonly, seq.key, value )
+          }else if( typeof seq.target[ seq.key ] === 'function' ) {
             seq.target[ seq.key ]( value )
           }else{
             seq.target[ seq.key ] = value
           }
         }
+      }else{
+        let value = seq.__events.filter( evt => startTime.valueOf() === evt.arc.start.valueOf() ).map( evt => evt.value )
+        let uid = seq.__events[0].uid
+
+        const events = seq.__events.splice( 0, value.length )
+
+
+        if( seq.filters !== null ) {
+          if( value.length === 1 ) {
+            value = seq.filters.reduce( (currentValue, filter) => filter( currentValue, seq, uid ), value )  
+          }else{
+            value.forEach( (v,i) => seq.filters.reduce( (currentValue, filter) => filter( currentValue, seq, events[ i ].uid ), v ) )
+          }
+        }
+
+        if( typeof seq.target[ seq.key ] === 'function' ) {
+          seq.target[ seq.key ]( value )
+        }else{
+          seq.target[ seq.key ] = value
+        }
       }
+
       if( Gibberish.mode === 'processor' ) {
         let timing
         if( seq.__events.length <= 0 ) {
-          seq.__events = seq.__pattern.query( seq.__phase++, 1 )
-          timing = seq.__events[0].arc.start.add( 1 ).sub( startTime ).valueOf() 
+          let time = 0
+          while( seq.__events.length <= 0 ) {
+            seq.__events = seq.__pattern.query( seq.__phase++, 1 )
+            time++
+          }
+          //seq.__events.forEach( evt => {
+          //  evt.arc.start = evt.arc.start.add( 1 ).sub( startTime ) 
+          //  evt.arc.end   = evt.arc.end.add( 1 ).sub( startTime )
+          //})
+
+          timing = time - startTime.valueOf() 
         }else{
           timing = seq.__events[0].arc.start.sub( startTime ).valueOf() 
         }
         
-        timing *= Gibberish.ctx.sampleRate / cps
+        timing *= Gibberish.ctx.sampleRate / Sequencer.clock.cps
 
-        if( seq.__isRunning === true && !isNaN( timing ) ) {
+        if( seq.__isRunning === true && !isNaN( timing ) && timing > 0 ) {
           // XXX this supports an edge case in Gibber, where patterns like Euclid / Hex return
           // objects indicating both whether or not they should should trigger values as well
           // as the next time they should run. perhaps this could be made more generalizable?
@@ -77,6 +119,11 @@ const Sequencer = props => {
       }
 
 
+    },
+
+    rotate( amt ) {
+      seq.__phase += amt
+      return __seq 
     },
 
     start( delay = 0 ) {
@@ -107,6 +154,38 @@ Sequencer.defaults = { priority:100000, pattern:'', rate:1, filters:null }
 
 Sequencer.make = function( values, timings, target, key, priority ) {
   return Sequencer({ values, timings, target, key, priority })
+}
+
+let __uid = 0
+Sequencer.getUID = ()=> {
+  return __uid++
+}
+
+Sequencer.clock = { cps: 1 }
+
+if( Gibberish.mode === 'worklet' ) {
+  Sequencer.id = Gibberish.utilities.getUID()
+  
+  Gibberish.worklet.port.postMessage({
+    address:'eval',
+    code:`Gibberish.Tidal.clock.id = ${Sequencer.id}; Gibberish.ugens.set( ${Sequencer.id}, Gibberish.Tidal.clock )`
+  })
+  
+  let cps = 1
+  Object.defineProperty( Sequencer, 'cps', {
+    get() { return cps },
+    set(v){ 
+      cps = v
+      if( Gibberish.mode === 'worklet' ) {
+        Gibberish.worklet.port.postMessage({
+          address:'set',
+          object:Sequencer.id,
+          name:'cps',
+          value:cps 
+        }) 
+      }
+    }
+  })
 }
 
 return Sequencer

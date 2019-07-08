@@ -100,7 +100,6 @@ class GibberishProcessor extends AudioWorkletProcessor {
     }
 
     if( event.data.address === 'add' ) {
-
       const rep = event.data
       let constructor = Gibberish
 
@@ -113,10 +112,8 @@ class GibberishProcessor extends AudioWorkletProcessor {
       if( properties.nogibberish ) {
         ugen = properties
       }else{
-        if( rep.name[0] === 'Follow_out' || rep.name[0] === 'Follow_in' ) {
-          rep.name = rep.name[0].split( '_' )
-        }
         for( let i = 0; i < rep.name.length; i++ ) { constructor = constructor[ rep.name[ i ] ] }
+
         properties.id = rep.id
         
         ugen = properties.isop === true || properties.isPattern === true ? constructor( ...properties.inputs ) :  constructor( properties )

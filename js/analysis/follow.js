@@ -4,94 +4,177 @@ const g = require('genish.js'),
 
 const genish = g;
 
+/*
+ * XXX need to also enable following of non-abs values.
+ * ,,, or do we? what are valid negative property values in this
+ * version of Gibberish?
+ *
+ * Needs to have a mult modifier
+ */
 module.exports = function (Gibberish) {
 
-  const fout = (input, buffer, props) => {
-    const follow_out = Object.create(analyzer);
-    follow_out.id = Gibberish.factory.getUID();
+  const Follow = function (__props) {
+    const props = Object.assign({}, Follow.defaults, __props);
 
-    let avg; // output; make available outside jsdsp block
+    let isStereo = typeof props.input.isStereo !== 'undefined' ? props.input.isStereo : false;
 
-    {
-      "use jsdsp";
-      // phase to write to follow buffer
-      const bufferPhaseOut = g.accum(1, 0, { max: props.bufferSize, min: 0 });
+    let out = props;
 
-      // hold running sum
-      const sum = g.data(1, 1, { meta: true });
+    /* if we are in the main thread,
+     * only send a command to make a Follow instance
+     * to the processor thread and include the id #
+     * of the input ugen.
+     */
 
-      sum[0] = genish.sub(genish.add(sum[0], input), g.peek(buffer, bufferPhaseOut, { mode: 'simple' }));
+    if (Gibberish.mode === 'worklet') {
+      // send obj to be made in processor thread
+      props.input = { id: props.input.id };
+      props.isStereo = isStereo;
 
-      avg = genish.div(sum[0], props.bufferSize);
-    }
+      // creates clashes in processor thread unless
+      // we skip a number here... nice
+      Gibberish.utilities.getUID();
 
-    //if( !isStereo ) {
-    Gibberish.factory(follow_out, avg, 'follow_out', props);
+      props.overrideid = Gibberish.utilities.getUID();
 
-    follow_out.callback.ugenName = follow_out.ugenName = `follow_out_${follow_out.id}`;
+      // XXX seems like this id gets overridden somewhere
+      // hence .overrideid
+      props.id = props.overrideid;
 
-    return follow_out;
-  };
+      Gibberish.worklet.port.postMessage({
+        address: 'add',
 
-  const fin = (input, buffer, props) => {
-    const follow_in = Object.create(ugen);
-    let idx = buffer.memory.values.idx;
-    let phase = 0;
-    let abs = Math.abs;
+        properties: JSON.stringify(props),
 
-    // have to write custom callback for input to reuse components from output,
-    // specifically the memory from our buffer
-    let callback = function (input, memory) {
-      'use strict';
+        name: ['analysis', 'Follow']
+      });
 
-      memory[idx + phase] = abs(input);
-      phase++;
-      if (phase > props.bufferSize - 1) {
-        phase = 0;
+      let mult = props.multiplier;
+
+      Object.defineProperty(out, 'multiplier', {
+        get() {
+          return mult;
+        },
+        set(v) {
+          mult = v;
+          Gibberish.worklet.port.postMessage({
+            address: 'set',
+            object: props.overrideid,
+            name: 'multiplier',
+            value: mult
+          });
+        }
+      });
+    } else {
+      isStereo = props.isStereo;
+
+      const buffer = g.data(props.bufferSize, 1);
+      const input = g.in('input');
+      const multiplier = g.in('multiplier');
+
+      const follow_out = Object.create(analyzer);
+      follow_out.id = __props.overrideid;
+
+      let avg; // output; make available outside jsdsp block
+
+      if (isStereo === true) {
+        {
+          "use jsdsp";
+          // phase to write to follow buffer
+          const bufferPhaseOut = g.accum(1, 0, { max: props.bufferSize, min: 0 });
+
+          // hold running sum
+          const sum = g.data(1, 1, { meta: true });
+
+          sum[0] = genish.sub(genish.add(sum[0], g.abs(genish.add(input[0], input[1]))), g.peek(buffer, bufferPhaseOut, { mode: 'simple' }));
+
+          avg = genish.mul(genish.div(sum[0], props.bufferSize), multiplier);
+        }
+      } else {
+        {
+          "use jsdsp";
+          // phase to write to follow buffer
+          const bufferPhaseOut = g.accum(1, 0, { max: props.bufferSize, min: 0 });
+
+          // hold running sum
+          const sum = g.data(1, 1, { meta: true });
+
+          sum[0] = genish.sub(genish.add(sum[0], g.abs(input)), g.peek(buffer, bufferPhaseOut, { mode: 'simple' }));
+
+          avg = genish.mul(genish.div(sum[0], props.bufferSize), multiplier);
+        }
       }
 
-      return 0;
-    };
+      out = Gibberish.factory(follow_out, avg, ['analysis', 'follow_out'], props);
 
-    Gibberish.factory(follow_in, input, 'follow_in', props, callback);
+      Gibberish.ugens.set(__props.overrideid, out);
 
-    // lots of nonsense to make our custom function work
-    follow_in.callback.ugenName = follow_in.ugenName = `follow_in_${follow_in.id}`;
-    follow_in.inputNames = ['input'];
-    follow_in.inputs = [input];
-    follow_in.input = input;
-    follow_in.type = 'analysis';
+      out.id = __props.overrideid;
 
-    if (Gibberish.analyzers.indexOf(follow_in) === -1) Gibberish.analyzers.push(follow_in);
+      // begin input tracker
+      const follow_in = Object.create(ugen);
 
-    Gibberish.dirty(Gibberish.analyzers);
+      const idx = buffer.memory.values.idx;
 
-    return follow_in;
+      let phase = 0;
+      const abs = Math.abs;
+
+      // have to write custom callback for input to reuse components from output,
+      // specifically the memory from our buffer
+      let callback = null;
+      if (isStereo === true) {
+        callback = function (input, memory) {
+          memory[idx + phase] = abs(input[0] + input[1]);
+
+          phase++;
+
+          if (phase > props.bufferSize - 1) {
+            phase = 0;
+          }
+
+          return 0;
+        };
+      } else {
+        callback = function (input, memory) {
+          memory[idx + phase] = abs(input);
+
+          phase++;
+
+          if (phase > props.bufferSize - 1) {
+            phase = 0;
+          }
+
+          return 0;
+        };
+      }
+
+      const record = {
+        callback,
+        input: props.input,
+        isStereo,
+        dirty: true,
+        inputNames: ['input', 'memory'],
+        inputs: [props.input],
+        type: 'analysis',
+        id: Gibberish.utilities.getUID(),
+
+        __properties__: { input: props.input }
+
+        // nonsense to make our custom function work
+      };record.callback.ugenName = record.ugenName = `follow_in_${follow_out.id}`;
+
+      if (Gibberish.analyzers.indexOf(record) === -1) Gibberish.analyzers.push(record);
+
+      Gibberish.dirty(Gibberish.analyzers);
+    }
+
+    return out;
   };
-
-  const Follow = inputProps => {
-    const follow = {};
-
-    const props = Object.assign({}, inputProps, Follow.defaults);
-    const isStereo = props.input.isStereo !== undefined ? props.input.isStereo : true;
-
-    // the input to the follow ugen is buffered in this ugen
-    follow.buffer = g.data(props.bufferSize, 1);
-
-    const _input = g.in('input');
-    const input = isStereo ? g.add(_input[0], _input[1]) : _input;
-
-    follow.out = fout(input, follow.buffer, props);
-    follow.in = fin(input, follow.buffer, props);
-
-    return follow.out;
-  };
-
-  Follow.out = fout;
-  Follow.in = fin;
 
   Follow.defaults = {
-    bufferSize: 8192
+    input: 0,
+    bufferSize: 1024,
+    multiplier: 1
   };
 
   return Follow;

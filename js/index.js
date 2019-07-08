@@ -30,6 +30,7 @@ let Gibberish = {
     ugen: null,//require('./ugen.js'),
     instrument: require( './instruments/instrument.js' ),
     effect: require( './fx/effect.js' ),
+    analyzer: require( './analysis/analyzer.js' )
   },
 
   mixins: {
@@ -55,6 +56,8 @@ let Gibberish = {
     this.hasWorklet = window.AudioWorklet !== undefined && typeof window.AudioWorklet === 'function'
 
     const startup = this.hasWorklet ? this.utilities.createWorklet : this.utilities.createScriptProcessor
+
+    this.scheduler.init( this )
     
     this.analyzers.dirty = false
 

@@ -14,7 +14,7 @@ module.exports = function( Gibberish ) {
           gain  = g.in( 'gain' ),
           spacing = g.in( 'spacing' ), // spacing between clap, in Hzs
           loudness = g.in( 'loudness' ),
-          triggerLoudness = g.in( '__triggerLoudness' )
+          triggerLoudness = g.in( '__triggerLoudness' ),
           cutoff = g.in('cutoff'),
           Q      = g.in('Q')
 
