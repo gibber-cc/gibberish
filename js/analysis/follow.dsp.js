@@ -6,7 +6,8 @@ const genish = g
 
 /*
  * XXX need to also enable following of non-abs values.
- * Needs to have a mult modifier
+ * ,,, or do we? what are valid negative property values in this
+ * version of Gibberish?
  */ 
 module.exports = function( Gibberish ) {
 
@@ -46,11 +47,27 @@ module.exports = function( Gibberish ) {
         name:['analysis','Follow']
       })
 
+      let mult = props.multiplier
+
+      Object.defineProperty( out, 'multiplier', {
+        get() { return mult },
+        set(v){
+          mult = v
+          Gibberish.worklet.port.postMessage({ 
+            address:'set', 
+            object:props.overrideid,
+            name:'multiplier',
+            value:mult
+          })
+        }
+      })
+
     }else{
       isStereo = props.isStereo
 
       const buffer = g.data( props.bufferSize, 1 )
       const input  = g.in( 'input' )
+      const multiplier = g.in( 'multiplier' )
       
       const follow_out = Object.create( analyzer )
       follow_out.id = __props.overrideid
@@ -68,7 +85,7 @@ module.exports = function( Gibberish ) {
 
           sum[0] = sum[0] + g.abs( input[0] + input[1] ) - g.peek( buffer, bufferPhaseOut, { mode:'simple' })
 
-          avg = sum[0] / props.bufferSize
+          avg = (sum[0] / props.bufferSize) * multiplier
         }
       }else{
         {
@@ -81,7 +98,7 @@ module.exports = function( Gibberish ) {
 
           sum[0] = sum[0] + g.abs( input ) - g.peek( buffer, bufferPhaseOut, { mode:'simple' })
 
-          avg = sum[0] / props.bufferSize
+          avg = (sum[0] / props.bufferSize) * multiplier
         }
       }
 
@@ -95,7 +112,8 @@ module.exports = function( Gibberish ) {
       Gibberish.ugens.set( __props.overrideid, out )
 
       out.id = __props.overrideid
-      //follow_out.callback.ugenName = follow_out.ugenName = `follow_out_${follow_out.id}`
+
+      // begin input tracker
       const follow_in = Object.create( ugen )
 
       const idx = buffer.memory.values.idx 
@@ -132,8 +150,6 @@ module.exports = function( Gibberish ) {
         }
       }
 
-      //Gibberish.factory( follow_in, input, ['analysis', 'follow_in'], { input:props.input }, callback )
-      
       const record = {
         callback,
         input:props.input,
@@ -161,7 +177,8 @@ module.exports = function( Gibberish ) {
  
   Follow.defaults = {
     input:0,
-    bufferSize:8192
+    bufferSize:1024,
+    multiplier:1
   }
 
   return Follow
