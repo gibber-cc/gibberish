@@ -7,12 +7,13 @@ const genish = g
 /*
  * XXX need to also enable following of non-abs values.
  * Needs to have a mult modifier
- * Needs to support stereo
  */ 
 module.exports = function( Gibberish ) {
 
   const Follow = function( __props ){
     const props = Object.assign( {}, Follow.defaults, __props )
+
+    let isStereo = typeof props.input.isStereo !== 'undefined' ? props.input.isStereo : false
 
     let out = props 
 
@@ -25,6 +26,7 @@ module.exports = function( Gibberish ) {
     if( Gibberish.mode === 'worklet' ) {
       // send obj to be made in processor thread
       props.input = { id: props.input.id }
+      props.isStereo = isStereo
 
       // creates clashes in processor thread unless
       // we skip a number here... nice
@@ -45,6 +47,8 @@ module.exports = function( Gibberish ) {
       })
 
     }else{
+      isStereo = props.isStereo
+
       const buffer = g.data( props.bufferSize, 1 )
       const input  = g.in( 'input' )
       
@@ -53,17 +57,32 @@ module.exports = function( Gibberish ) {
 
       let avg // output; make available outside jsdsp block
 
-      {
-        "use jsdsp"
-        // phase to write to follow buffer
-        const bufferPhaseOut = g.accum( 1,0,{ max:props.bufferSize, min:0 })
+      if( isStereo === true ) {
+        {
+          "use jsdsp"
+          // phase to write to follow buffer
+          const bufferPhaseOut = g.accum( 1,0,{ max:props.bufferSize, min:0 })
 
-        // hold running sum
-        const sum = g.data( 1, 1, { meta:true })
+          // hold running sum
+          const sum = g.data( 1, 1, { meta:true })
 
-        sum[0] = sum[0] + g.abs( input ) - g.peek( buffer, bufferPhaseOut, { mode:'simple' })
+          sum[0] = sum[0] + g.abs( input[0] + input[1] ) - g.peek( buffer, bufferPhaseOut, { mode:'simple' })
 
-        avg = sum[0] / props.bufferSize
+          avg = sum[0] / props.bufferSize
+        }
+      }else{
+        {
+          "use jsdsp"
+          // phase to write to follow buffer
+          const bufferPhaseOut = g.accum( 1,0,{ max:props.bufferSize, min:0 })
+
+          // hold running sum
+          const sum = g.data( 1, 1, { meta:true })
+
+          sum[0] = sum[0] + g.abs( input ) - g.peek( buffer, bufferPhaseOut, { mode:'simple' })
+
+          avg = sum[0] / props.bufferSize
+        }
       }
 
       out = Gibberish.factory( 
@@ -86,16 +105,31 @@ module.exports = function( Gibberish ) {
 
       // have to write custom callback for input to reuse components from output,
       // specifically the memory from our buffer
-      const callback = function( input, memory ) {
-        memory[ idx + phase ] = abs( input )
-        
-        phase++
+      let callback = null
+      if( isStereo === true ) {
+        callback = function( input, memory ) {
+          memory[ idx + phase ] = abs( input[0] + input[1] )
+          
+          phase++
 
-        if( phase > props.bufferSize - 1 ) {
-          phase = 0
-        } 
+          if( phase > props.bufferSize - 1 ) {
+            phase = 0
+          } 
 
-        return 0     
+          return 0     
+        }
+      }else{
+        callback = function( input, memory ) {
+          memory[ idx + phase ] = abs( input )
+          
+          phase++
+
+          if( phase > props.bufferSize - 1 ) {
+            phase = 0
+          } 
+
+          return 0     
+        }
       }
 
       //Gibberish.factory( follow_in, input, ['analysis', 'follow_in'], { input:props.input }, callback )
@@ -103,7 +137,7 @@ module.exports = function( Gibberish ) {
       const record = {
         callback,
         input:props.input,
-        isStereo:false,
+        isStereo,
         dirty:true,
         inputNames:[ 'input', 'memory' ],
         inputs:[ props.input ],
