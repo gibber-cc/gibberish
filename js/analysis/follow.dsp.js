@@ -4,33 +4,52 @@ const g = require( 'genish.js' ),
 
 const genish = g
 
+/*
+ * XXX need to also enable following of non-abs values.
+ * Needs to have a mult modifier
+ * Needs to support stereo
+ */ 
 module.exports = function( Gibberish ) {
 
   const Follow = function( __props ){
     const props = Object.assign( {}, Follow.defaults, __props )
 
     let out = props 
+
+    /* if we are in the main thread,
+     * only send a command to make a Follow instance
+     * to the processor thread and include the id #
+     * of the input ugen.
+     */
+
     if( Gibberish.mode === 'worklet' ) {
       // send obj to be made in processor thread
       props.input = { id: props.input.id }
 
+      // creates clashes in processor thread unless
+      // we skip a number here... nice
+      Gibberish.utilities.getUID()
+
       props.overrideid = Gibberish.utilities.getUID()
 
+      // XXX seems like this id gets overridden somewhere
+      // hence .overrideid
       props.id = props.overrideid
 
       Gibberish.worklet.port.postMessage({
         address:'add',
 
-        properties:JSON.stringify(props),
+        properties:JSON.stringify( props ),
 
         name:['analysis','Follow']
       })
+
     }else{
       const buffer = g.data( props.bufferSize, 1 )
       const input  = g.in( 'input' )
       
       const follow_out = Object.create( analyzer )
-      follow_out.id = __props.overrideid//Gibberish.factory.getUID()
+      follow_out.id = __props.overrideid
 
       let avg // output; make available outside jsdsp block
 
@@ -42,7 +61,7 @@ module.exports = function( Gibberish ) {
         // hold running sum
         const sum = g.data( 1, 1, { meta:true })
 
-        sum[0] = sum[0] + input - g.peek( buffer, bufferPhaseOut, { mode:'simple' })
+        sum[0] = sum[0] + g.abs( input ) - g.peek( buffer, bufferPhaseOut, { mode:'simple' })
 
         avg = sum[0] / props.bufferSize
       }
@@ -69,10 +88,11 @@ module.exports = function( Gibberish ) {
       // specifically the memory from our buffer
       const callback = function( input, memory ) {
         memory[ idx + phase ] = abs( input )
+        
         phase++
+
         if( phase > props.bufferSize - 1 ) {
           phase = 0
-          console.log( memory[ idx ] )
         } 
 
         return 0     
