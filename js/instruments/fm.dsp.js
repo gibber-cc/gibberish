@@ -68,8 +68,10 @@ module.exports = function( Gibberish ) {
         if( props.panVoices === true ) { 
           panner = g.pan( synthWithGain, synthWithGain, g.in( 'pan' ) ) 
           syn.graph = [panner.left, panner.right ]
+          syn.isStereo = true
         }else{
           syn.graph = synthWithGain
+          syn.isStereo = false
         }
       }
 

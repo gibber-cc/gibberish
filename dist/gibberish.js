@@ -4294,8 +4294,6 @@ const genish = g;
  * XXX need to also enable following of non-abs values.
  * ,,, or do we? what are valid negative property values in this
  * version of Gibberish?
- *
- * Needs to have a mult modifier
  */
 module.exports = function (Gibberish) {
 
@@ -4312,6 +4310,7 @@ module.exports = function (Gibberish) {
      * of the input ugen.
      */
 
+    console.log('isStereo:', Gibberish.mode, isStereo, props.input);
     if (Gibberish.mode === 'worklet') {
       // send obj to be made in processor thread
       props.input = { id: props.input.id };
@@ -4335,6 +4334,8 @@ module.exports = function (Gibberish) {
         name: ['analysis', 'Follow']
       });
 
+      Gibberish.worklet.ugens.set(props.overrideid, out);
+
       let mult = props.multiplier;
 
       Object.defineProperty(out, 'multiplier', {
@@ -4352,17 +4353,41 @@ module.exports = function (Gibberish) {
         }
       });
     } else {
-      isStereo = props.isStereo;
+      //isStereo = props.isStereo
 
       const buffer = g.data(props.bufferSize, 1);
       const input = g.in('input');
       const multiplier = g.in('multiplier');
 
       const follow_out = Object.create(analyzer);
-      follow_out.id = __props.overrideid;
+      follow_out.id = props.id = __props.overrideid;
 
-      let avg; // output; make available outside jsdsp block
+      let avg = g.data(1, 1, { meta: true }); // output; make available outside jsdsp block
+      const idx = avg.memory.values.idx;
 
+      const callback = function (memory) {
+        return avg[0];
+      };
+
+      const out = {
+        callback,
+        input: props.input,
+        isStereo,
+        dirty: true,
+        inputNames: ['input', 'memory'],
+        inputs: [props.input],
+        id: Gibberish.utilities.getUID(),
+
+        __properties__: { input: props.input }
+
+        // nonsense to make our custom function work
+      };out.callback.ugenName = out.ugenName = `follow_out_${follow_out.id}`;
+      out.id = __props.overrideid;
+
+      // begin input tracker
+      const follow_in = Object.create(ugen);
+
+      console.log('graph is stereo:', isStereo);
       if (isStereo === true) {
         {
           "use jsdsp";
@@ -4372,7 +4397,11 @@ module.exports = function (Gibberish) {
           // hold running sum
           const sum = g.data(1, 1, { meta: true });
 
-          sum[0] = genish.sub(genish.add(sum[0], g.abs(genish.add(input[0], input[1]))), g.peek(buffer, bufferPhaseOut, { mode: 'simple' }));
+          const mono = g.abs(genish.add(input[0], input[1]));
+
+          sum[0] = genish.sub(genish.add(sum[0], mono), g.peek(buffer, bufferPhaseOut, { mode: 'simple' }));
+
+          g.poke(buffer, g.abs(mono), bufferPhaseOut);
 
           avg = genish.mul(genish.div(sum[0], props.bufferSize), multiplier);
         }
@@ -4387,71 +4416,26 @@ module.exports = function (Gibberish) {
 
           sum[0] = genish.sub(genish.add(sum[0], g.abs(input)), g.peek(buffer, bufferPhaseOut, { mode: 'simple' }));
 
+          g.poke(buffer, g.abs(input), bufferPhaseOut);
+
           avg = genish.mul(genish.div(sum[0], props.bufferSize), multiplier);
         }
       }
+      Gibberish.utilities.getUID();
 
-      out = Gibberish.factory(follow_out, avg, ['analysis', 'follow_out'], props);
+      props.isStereo = false;
+      const record = Gibberish.factory(follow_in, avg, ['analysis', 'follow_in'], props);
 
-      Gibberish.ugens.set(__props.overrideid, out);
-
-      out.id = __props.overrideid;
-
-      // begin input tracker
-      const follow_in = Object.create(ugen);
-
-      const idx = buffer.memory.values.idx;
-
-      let phase = 0;
-      const abs = Math.abs;
-
-      // have to write custom callback for input to reuse components from output,
-      // specifically the memory from our buffer
-      let callback = null;
-      if (isStereo === true) {
-        callback = function (input, memory) {
-          memory[idx + phase] = abs(input[0] + input[1]);
-
-          phase++;
-
-          if (phase > props.bufferSize - 1) {
-            phase = 0;
-          }
-
-          return 0;
-        };
-      } else {
-        callback = function (input, memory) {
-          memory[idx + phase] = abs(input);
-
-          phase++;
-
-          if (phase > props.bufferSize - 1) {
-            phase = 0;
-          }
-
-          return 0;
-        };
-      }
-
-      const record = {
-        callback,
-        input: props.input,
-        isStereo,
-        dirty: true,
-        inputNames: ['input', 'memory'],
-        inputs: [props.input],
-        type: 'analysis',
-        id: Gibberish.utilities.getUID(),
-
-        __properties__: { input: props.input }
-
-        // nonsense to make our custom function work
-      };record.callback.ugenName = record.ugenName = `follow_in_${follow_out.id}`;
+      // nonsense to make our custom function work
+      record.callback.ugenName = record.ugenName = `follow_in_${follow_out.id}`;
 
       if (Gibberish.analyzers.indexOf(record) === -1) Gibberish.analyzers.push(record);
 
       Gibberish.dirty(Gibberish.analyzers);
+
+      Gibberish.ugens.set(__props.overrideid, record);
+
+      out.record = record;
     }
 
     return out;
@@ -7109,6 +7093,10 @@ let Gibberish = {
     } else if( ugen === true || ugen === false ) {
       throw "Why is ugen a boolean? [true] or [false]";
     } else if( ugen.block === undefined || dirtyIndex !== -1 ) {
+      // weird edge case with analysis (follow) ugen
+      if( ugen.id === undefined ) {
+        ugen.id = ugen.__properties__.overrideid
+      }
       let line = `\tconst v_${ugen.id} = ` 
       if( !ugen.isop ) line += `${ugen.ugenName}( `
 
@@ -8484,8 +8472,10 @@ module.exports = function (Gibberish) {
         if (genish.eq(syn.panVoices, true)) {
           panner = g.pan(synthWithGain, synthWithGain, g.in('pan'));
           syn.graph = [panner.left, panner.right];
+          syn.isStereo = true;
         } else {
           syn.graph = synthWithGain;
+          syn.isStereo = false;
         }
 
         syn.env = env;
@@ -8526,8 +8516,7 @@ module.exports = function (Gibberish) {
     Q: .25,
     cutoff: .5,
     filterType: 1,
-    filterMode: 0,
-    isStereo: false
+    filterMode: 0
 
     // do not include velocity, which shoudl always be per voice
   };let PolySynth = Gibberish.PolyTemplate(Synth, ['frequency', 'attack', 'decay', 'pulsewidth', 'pan', 'gain', 'glide', 'saturation', 'filterMult', 'Q', 'cutoff', 'resonance', 'antialias', 'filterType', 'waveform', 'filterMode', '__triggerLoudness', 'loudness']);
@@ -10188,6 +10177,9 @@ module.exports = function( Gibberish ) {
     ugen.callback.ugenName = ugen.ugenName // XXX hacky
     ugen.callback.id = ugen.id
 
+    //console.log( 'ugen name/id:', ugen.ugenName, ugen.id )
+    //console.log( 'callback name/id:', ugen.callback.ugenName, ugen.callback.id )
+
     for( let param of ugen.inputNames ) {
       if( param === 'memory' ) continue
 
@@ -10455,7 +10447,8 @@ const utilities = {
         const value = messages[ i + 2 ]
         const obj = Gibberish.worklet.ugens.get( id )
 
-        //if( propName !== 'output' ) console.log( propName, value, id )
+        if( value === NaN ) debugger
+        //[>if( propName !== 'output' )<] console.log( propName, value, id )
 
         if( obj !== undefined && propName.indexOf('.') === -1 && propName !== 'id' ) { 
           if( obj[ propName ] !== undefined ) {

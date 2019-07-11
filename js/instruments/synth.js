@@ -49,8 +49,10 @@ module.exports = function (Gibberish) {
         if (genish.eq(syn.panVoices, true)) {
           panner = g.pan(synthWithGain, synthWithGain, g.in('pan'));
           syn.graph = [panner.left, panner.right];
+          syn.isStereo = true;
         } else {
           syn.graph = synthWithGain;
+          syn.isStereo = false;
         }
 
         syn.env = env;
@@ -91,8 +93,7 @@ module.exports = function (Gibberish) {
     Q: .25,
     cutoff: .5,
     filterType: 1,
-    filterMode: 0,
-    isStereo: false
+    filterMode: 0
 
     // do not include velocity, which shoudl always be per voice
   };let PolySynth = Gibberish.PolyTemplate(Synth, ['frequency', 'attack', 'decay', 'pulsewidth', 'pan', 'gain', 'glide', 'saturation', 'filterMult', 'Q', 'cutoff', 'resonance', 'antialias', 'filterType', 'waveform', 'filterMode', '__triggerLoudness', 'loudness']);

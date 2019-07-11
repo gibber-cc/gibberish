@@ -280,6 +280,10 @@ let Gibberish = {
     } else if( ugen === true || ugen === false ) {
       throw "Why is ugen a boolean? [true] or [false]";
     } else if( ugen.block === undefined || dirtyIndex !== -1 ) {
+      // weird edge case with analysis (follow) ugen
+      if( ugen.id === undefined ) {
+        ugen.id = ugen.__properties__.overrideid
+      }
       let line = `\tconst v_${ugen.id} = ` 
       if( !ugen.isop ) line += `${ugen.ugenName}( `
 

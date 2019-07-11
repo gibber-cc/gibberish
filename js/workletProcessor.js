@@ -282,7 +282,6 @@ class GibberishProcessor extends AudioWorkletProcessor {
         }
       }     
       if( this.messages.length > 0 ) {
- 
         this.port.postMessage({ 
           address:'state', 
           messages:this.messages 

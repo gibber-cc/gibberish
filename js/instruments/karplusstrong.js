@@ -44,8 +44,10 @@ module.exports = function( Gibberish ) {
     if( properties.panVoices ) {  
       const panner = g.pan( withGain, withGain, g.in( 'pan' ) )
       syn = Gibberish.factory( syn, [panner.left, panner.right], ['instruments','karplus'], props  )
+      syn.isStereo = true
     }else{
       syn = Gibberish.factory( syn, withGain, ['instruments','karplus'], props )
+      syn.isStereo = false 
     }
 
     return syn

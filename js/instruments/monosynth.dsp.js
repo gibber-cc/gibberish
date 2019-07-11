@@ -61,8 +61,10 @@ module.exports = function( Gibberish ) {
       if( props.panVoices ) {  
         const panner = g.pan( filteredOsc,filteredOsc, g.in( 'pan' ) )
         syn.graph = [ g.mul( panner.left, g.in('gain'), Loudness ), g.mul( panner.right, g.in('gain'), Loudness ) ]
+        syn.isStereo = true
       }else{
         syn.graph = g.mul( filteredOsc, g.in('gain'), Loudness )
+        syn.isStereo = false
       }
 
       syn.env = env

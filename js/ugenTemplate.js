@@ -25,6 +25,9 @@ module.exports = function( Gibberish ) {
     ugen.callback.ugenName = ugen.ugenName // XXX hacky
     ugen.callback.id = ugen.id
 
+    //console.log( 'ugen name/id:', ugen.ugenName, ugen.id )
+    //console.log( 'callback name/id:', ugen.callback.ugenName, ugen.callback.id )
+
     for( let param of ugen.inputNames ) {
       if( param === 'memory' ) continue
 

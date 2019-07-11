@@ -139,7 +139,7 @@ const utilities = {
         const value = messages[ i + 2 ]
         const obj = Gibberish.worklet.ugens.get( id )
 
-        //if( propName !== 'output' ) console.log( propName, value, id )
+        //[>if( propName !== 'output' )<] console.log( propName, value, id )
 
         if( obj !== undefined && propName.indexOf('.') === -1 && propName !== 'id' ) { 
           if( obj[ propName ] !== undefined ) {
