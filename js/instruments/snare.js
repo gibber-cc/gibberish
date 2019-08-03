@@ -37,7 +37,6 @@ module.exports = function( Gibberish ) {
   
   Snare.defaults = {
     gain: .5,
-    frequency:1000,
     tune:0,
     snappy: 1,
     decay:.1,

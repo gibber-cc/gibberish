@@ -3,6 +3,7 @@ const g = require( 'genish.js' ),
 
 const genish = g
 
+// taken from csound: http://manual.freeshell.org/csound5/distort1.html
 /*
 
          exp(asig * (shape1 + pregain)) - exp(asig * (shape2 - pregain))

@@ -54,7 +54,6 @@ module.exports = function( Gibberish ) {
   // that the sequencers are added to the callback function.
   const Seq2 = { 
     create( inputProps ) {
-      console.log( 'input props:', inputProps )
       const seq = Object.create( __proto__ ),
             properties = Object.assign({}, Seq2.defaults, inputProps )
 

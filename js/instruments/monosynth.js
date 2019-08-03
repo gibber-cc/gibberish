@@ -55,8 +55,10 @@ module.exports = function (Gibberish) {
       if (props.panVoices) {
         const panner = g.pan(filteredOsc, filteredOsc, g.in('pan'));
         syn.graph = [g.mul(panner.left, g.in('gain'), Loudness), g.mul(panner.right, g.in('gain'), Loudness)];
+        syn.isStereo = true;
       } else {
         syn.graph = g.mul(filteredOsc, g.in('gain'), Loudness);
+        syn.isStereo = false;
       }
 
       syn.env = env;
@@ -86,9 +88,8 @@ module.exports = function (Gibberish) {
     pan: .5,
     detune2: .005,
     detune3: -.005,
-    cutoff: 1,
-    resonance: .25,
-    Q: .5,
+    cutoff: .5,
+    Q: .25,
     panVoices: false,
     glide: 1,
     antialias: false,

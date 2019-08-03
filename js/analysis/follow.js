@@ -24,7 +24,7 @@ module.exports = function (Gibberish) {
      * of the input ugen.
      */
 
-    console.log('isStereo:', Gibberish.mode, isStereo, props.input);
+    //console.log( 'isStereo:', Gibberish.mode, isStereo, props.input )
     if (Gibberish.mode === 'worklet') {
       // send obj to be made in processor thread
       props.input = { id: props.input.id };
@@ -66,12 +66,29 @@ module.exports = function (Gibberish) {
           });
         }
       });
+
+      let offset = props.offset;
+      Object.defineProperty(out, 'offset', {
+        get() {
+          return offset;
+        },
+        set(v) {
+          offset = v;
+          Gibberish.worklet.port.postMessage({
+            address: 'set',
+            object: props.overrideid,
+            name: 'offset',
+            value: offset
+          });
+        }
+      });
     } else {
       //isStereo = props.isStereo
 
       const buffer = g.data(props.bufferSize, 1);
       const input = g.in('input');
       const multiplier = g.in('multiplier');
+      const offset = g.in('offset');
 
       const follow_out = Object.create(analyzer);
       follow_out.id = props.id = __props.overrideid;
@@ -101,7 +118,6 @@ module.exports = function (Gibberish) {
       // begin input tracker
       const follow_in = Object.create(ugen);
 
-      console.log('graph is stereo:', isStereo);
       if (isStereo === true) {
         {
           "use jsdsp";
@@ -117,7 +133,7 @@ module.exports = function (Gibberish) {
 
           g.poke(buffer, g.abs(mono), bufferPhaseOut);
 
-          avg = genish.mul(genish.div(sum[0], props.bufferSize), multiplier);
+          avg = genish.add(genish.mul(genish.div(sum[0], props.bufferSize), multiplier), offset);
         }
       } else {
         {
@@ -132,7 +148,7 @@ module.exports = function (Gibberish) {
 
           g.poke(buffer, g.abs(input), bufferPhaseOut);
 
-          avg = genish.mul(genish.div(sum[0], props.bufferSize), multiplier);
+          avg = genish.add(genish.mul(genish.div(sum[0], props.bufferSize), multiplier), offset);
         }
       }
       Gibberish.utilities.getUID();
@@ -158,7 +174,8 @@ module.exports = function (Gibberish) {
   Follow.defaults = {
     input: 0,
     bufferSize: 1024,
-    multiplier: 1
+    multiplier: 1,
+    offset: 0
   };
 
   return Follow;

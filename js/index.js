@@ -270,6 +270,8 @@ let Gibberish = {
 
   processUgen( ugen, block ) {
     if( block === undefined ) block = []
+    if( ugen === undefined ) return block
+
 
     let dirtyIdx = Gibberish.dirtyUgens.indexOf( ugen )
 
@@ -416,8 +418,14 @@ let Gibberish = {
       // that only contain id numbers are being passed here...
 
       if( Gibberish.mode === 'processor' ) {
-        if( input.ugenName === undefined && input.id !== undefined ) {
-          input = Gibberish.processor.ugens.get( input.id )
+        if( input.ugenName === undefined && input.id !== undefined  ) {
+          if( ugen === undefined  ) {
+            input = Gibberish.processor.ugens.get( input.id )
+          }else{
+            if( ugen.type !== 'seq' ) {
+              input = Gibberish.processor.ugens.get( input.id )
+            }
+          }
         }
       }
 
