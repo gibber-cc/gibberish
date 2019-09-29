@@ -177,7 +177,7 @@ let Gibberish = {
   // by defult, analysis ugens are assigned a priority of 0 in the
   // analysis prototype.
   analysisCompare( a,b ) {
-    return b.priority - a.priority
+    return (isNaN(b.priority) ? 0 : b.priority) - (isNaN(a.priority) ? 0: a.priority )
   },
 
   generateCallback() {
@@ -194,31 +194,33 @@ let Gibberish = {
     lastLine = callbackBody[ callbackBody.length - 1]
     callbackBody.unshift( "\t'use strict'" )
 
-    this.analyzers.sort( this.analysisCompare )
-    this.analyzers.forEach( v=> {
-      const analysisBlock = Gibberish.processUgen( v )
-      //if( Gibberish.mode === 'processor' ) {
-      //  console.log( 'analysis:', analysisBlock, v  )
-      //}
-      let analysisLine
+    this.analyzers
+      .sort( this.analysisCompare )
+      .forEach( v=> {
+        const analysisBlock = Gibberish.processUgen( v )
+        //if( Gibberish.mode === 'processor' ) {
+        //  console.log( 'analysis:', analysisBlock, v  )
+        //}
+        let analysisLine
 
-      if( typeof analysisBlock === 'object' ) {
-        analysisLine = analysisBlock.pop()
+        if( typeof analysisBlock === 'object' ) {
+          analysisLine = analysisBlock.pop()
 
-        analysisBlock.forEach( v => {
-          callbackBody.splice( callbackBody.length - 1, 0, v )
-        })
-      }else{
-        analysisLine = analysisBlock
-      }
+          analysisBlock.forEach( v => {
+            callbackBody.splice( callbackBody.length - 1, 0, v )
+          })
+        }else{
+          analysisLine = analysisBlock
+        }
 
-      callbackBody.push( analysisLine )
-    })
+        callbackBody.push( analysisLine )
+      })
 
     this.analyzers.forEach( v => {
       if( this.callbackUgens.indexOf( v.callback ) === -1 )
         this.callbackUgens.push( v.callback )
     })
+
     this.callbackNames = this.callbackUgens.map( v => v.ugenName )
 
     callbackBody.push( '\n\treturn ' + lastLine.split( '=' )[0].split( ' ' )[1] )
