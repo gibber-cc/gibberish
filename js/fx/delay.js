@@ -4,7 +4,7 @@ let g = require( 'genish.js' ),
 module.exports = function( Gibberish ) {
  
 let Delay = inputProps => {
-  let props = Object.assign( { delayLength: 44100 }, effect.defaults, Delay.defaults, inputProps ),
+  let props = Object.assign( { delayLength: 88200 }, effect.defaults, Delay.defaults, inputProps ),
       delay = Object.create( effect )
 
   let out
