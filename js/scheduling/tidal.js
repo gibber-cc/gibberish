@@ -62,7 +62,6 @@ const Sequencer = props => {
 
         const events = seq.__events.splice( 0, value.length )
 
-
         if( seq.filters !== null ) {
           if( value.length === 1 ) {
             value = seq.filters.reduce( (currentValue, filter) => filter( currentValue, seq, uid ), value )  
