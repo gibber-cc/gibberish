@@ -15,7 +15,7 @@ module.exports = function( Gibberish ) {
       AllPass     : require( './allpass.js' )
     },
 
-    factory( input, cutoff, resonance, saturation = null, _props, isStereo = false ) {
+    factory( input, cutoff, saturation, _props, isStereo = false ) {
       let filteredOsc 
 
       //if( props.filterType === 1 ) {
@@ -33,7 +33,7 @@ module.exports = function( Gibberish ) {
           filteredOsc = g.zd24( input, g.min( g.in('Q'), .9999 ), cutoff, 0 ) // g.max(.005, g.min( cutoff, 1 ) ) )
           break;
         case 2:
-          filteredOsc = g.diodeZDF( input, g.min( g.in('Q'), .9999 ), cutoff, g.in('saturation'), isStereo ) 
+          filteredOsc = g.diodeZDF( input, g.min( g.in('Q'), .9999 ), cutoff, saturation, isStereo ) 
           break;
         case 3:
           filteredOsc = g.svf( input, cutoff, g.sub( 1, g.in('Q')), props.filterMode, isStereo ) 
