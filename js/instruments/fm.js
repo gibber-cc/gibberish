@@ -20,7 +20,8 @@ module.exports = function (Gibberish) {
         sustainLevel = g.in('sustainLevel'),
         release = g.in('release'),
         loudness = g.in('loudness'),
-        triggerLoudness = g.in('__triggerLoudness');
+        triggerLoudness = g.in('__triggerLoudness'),
+        saturation = g.in('saturation');
 
     const props = Object.assign({}, FM.defaults, inputProps);
     Object.assign(syn, props);
@@ -43,16 +44,13 @@ module.exports = function (Gibberish) {
         feedbackssd.in(modOscWithEnvAvg);
 
         const carrierOsc = Gibberish.oscillators.factory(syn.carrierWaveform, g.add(slidingFreq, modOscWithEnvAvg), syn.antialias);
-        const carrierOscWithEnv = genish.mul(carrierOsc, env);
+
+        // XXX horrible hack below to "use" saturation even when not using a diode filter 
+        const carrierOscWithEnv = genish.mul(carrierOsc, env); // props.filterType === 2 ? carrierOsc * env : g.mul(carrierOsc, g.mul(env,saturation) )
 
         const baseCutoffFreq = genish.mul(g.in('cutoff'), genish.div(frequency, genish.div(g.gen.samplerate, 16)));
         const cutoff = g.min(genish.mul(genish.mul(baseCutoffFreq, g.pow(2, genish.mul(g.in('filterMult'), Loudness))), env), .995);
-        const filteredOsc = Gibberish.filters.factory(carrierOscWithEnv, cutoff, g.in('Q'), g.in('saturation'), syn);
-        //const baseCutoffFreq = g.in('cutoff') * frequency
-        //const cutoff =  baseCutoffFreq * g.pow( 2, g.in('filterMult') * loudness ) * env
-        //const cutoff = g.add( g.in('cutoff'), g.mul( g.in('filterMult'), env ) )
-        //const filteredOsc = Gibberish.filters.factory( carrierOscWithEnv, cutoff, g.in('Q'), g.in('saturation'), syn )
-
+        const filteredOsc = Gibberish.filters.factory(carrierOscWithEnv, cutoff, saturation, syn);
         const synthWithGain = genish.mul(genish.mul(filteredOsc, g.in('gain')), Loudness);
 
         let panner;

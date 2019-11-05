@@ -115,7 +115,7 @@ module.exports = function( Gibberish ) {
       switch( type ) {
         case 'pwm':
           let pulsewidth = g.in('pulsewidth')
-          if( antialias === true ) {
+          if( antialias == true ) {
             osc = feedbackOsc( frequency, 1, pulsewidth, { type:1 })
           }else{
             let phase = g.phasor( frequency, 0, { min:0 } )
@@ -123,7 +123,7 @@ module.exports = function( Gibberish ) {
           }
           break;
         case 'saw':
-          if( antialias === false ) {
+          if( antialias == false ) {
             osc = g.phasor( frequency )
           }else{
             //osc = feedbackOsc( frequency, 1 )
@@ -134,7 +134,7 @@ module.exports = function( Gibberish ) {
           osc = g.cycle( frequency )
           break;
         case 'square':
-          if( antialias === true ) {
+          if( antialias == true ) {
             //osc = feedbackOsc( frequency, 1, .5, { type:1 })
             osc = polyBlep( frequency, { type })
           }else{
@@ -142,7 +142,7 @@ module.exports = function( Gibberish ) {
           }
           break;
         case 'triangle':
-          if( antialias === true ) {
+          if( antialias == true ) {
             osc = polyBlep( frequency, { type })
           }else{
             osc = g.wavetable( frequency, { buffer:Oscillators.Triangle.buffer, name:'triangle' } )

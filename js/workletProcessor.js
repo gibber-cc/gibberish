@@ -185,7 +185,7 @@ class GibberishProcessor extends AudioWorkletProcessor {
       console.log( Gibberish.callback.toString() )
     }else if( event.data.address === 'addConstructor' ) {
       const wrapper = eval( '(' + event.data.constructorString + ')' )
-      Gibberish[ event.data.name ] = wrapper( Gibberish )
+      Gibberish[ event.data.name ] = wrapper( Gibberish, Gibberish.genish )
     }else if( event.data.address === 'addMethod' ) {
       const target = this.ugens.get( event.data.id )
 

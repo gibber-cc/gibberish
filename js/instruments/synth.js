@@ -33,6 +33,7 @@ module.exports = function (Gibberish) {
       {
         'use jsdsp';
         let oscWithEnv = genish.mul(genish.mul(genish.mul(osc, env), loudness), triggerLoudness),
+            saturation = g.in('saturation'),
             panner;
 
         //baseCutoffFreq = g.mul( g.in('cutoff'), g.div( frequency, g.gen.samplerate / 16 ) ),
@@ -42,9 +43,10 @@ module.exports = function (Gibberish) {
         // 16 is an unfortunate empirically derived magic number...
         const baseCutoffFreq = genish.mul(g.in('cutoff'), genish.div(frequency, genish.div(g.gen.samplerate, 16)));
         const cutoff = g.min(genish.mul(genish.mul(baseCutoffFreq, g.pow(2, genish.mul(genish.mul(g.in('filterMult'), loudness), triggerLoudness))), env), .995);
-        const filteredOsc = Gibberish.filters.factory(oscWithEnv, cutoff, g.in('Q'), g.in('saturation'), props);
+        const filteredOsc = Gibberish.filters.factory(oscWithEnv, cutoff, saturation, props);
 
         let synthWithGain = genish.mul(filteredOsc, g.in('gain'));
+        if (props.filterType !== 2) synthWithGain = genish.mul(synthWithGain, saturation);
 
         if (syn.panVoices === true) {
           panner = g.pan(synthWithGain, synthWithGain, g.in('pan'));
@@ -64,7 +66,7 @@ module.exports = function (Gibberish) {
     syn.__requiresRecompilation = ['waveform', 'antialias', 'filterType', 'filterMode', 'useADSR', 'shape'];
     syn.__createGraph();
 
-    const out = Gibberish.factory(syn, syn.graph, ['instruments', 'synth'], props);
+    const out = Gibberish.factory(syn, syn.graph, ['instruments', 'synth'], props, null, true, ['saturation']);
 
     return out;
   };

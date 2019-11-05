@@ -226,6 +226,7 @@ let Gibberish = {
     callbackBody.push( '\n\treturn ' + lastLine.split( '=' )[0].split( ' ' )[1] )
 
     if( this.debug === true ) console.log( 'callback:\n', callbackBody.join('\n') )
+    
     this.callbackNames.push( 'mem' )
     this.callbackUgens.push( this.memory.heap )
     this.callback = Function( ...this.callbackNames, callbackBody.join( '\n' ) )//.bind( null, ...this.callbackUgens )
@@ -480,7 +481,7 @@ let Gibberish = {
 
 }
 
-Gibberish.prototypes.Ugen = require( './ugen.js' )( Gibberish )
+Gibberish.prototypes.Ugen = Gibberish.prototypes.ugen = require( './ugen.js' )( Gibberish )
 Gibberish.utilities = require( './utilities.js' )( Gibberish )
 
 

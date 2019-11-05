@@ -17,7 +17,8 @@ module.exports = function (Gibberish) {
           release = g.in('release'),
           loudness = g.in('loudness'),
           triggerLoudness = g.in('__triggerLoudness'),
-          Loudness = g.mul(loudness, triggerLoudness);
+          Loudness = g.mul(loudness, triggerLoudness),
+          saturation = g.in('saturation');
 
     const props = Object.assign({}, Mono.defaults, argumentProps);
     Object.assign(syn, props);
@@ -47,10 +48,12 @@ module.exports = function (Gibberish) {
       //const baseCutoffFreq = g.in('cutoff') * (frequency /  (g.gen.samplerate / 16 ))
       //const cutoff = baseCutoffFreq * g.pow( 2, g.in('filterMult') * loudness ) * env 
       const oscSum = g.add(...oscs),
-            oscWithEnv = g.mul(oscSum, env),
+
+      // XXX horrible hack below to "use" saturation even when not using a diode filter 
+      oscWithEnv = props.filterType === 2 ? g.mul(oscSum, env) : g.mul(oscSum, g.mul(env, saturation)),
             baseCutoffFreq = g.mul(g.in('cutoff'), g.div(frequency, g.gen.samplerate / 16)),
             cutoff = g.mul(g.mul(baseCutoffFreq, g.pow(2, g.mul(g.in('filterMult'), Loudness))), env),
-            filteredOsc = Gibberish.filters.factory(oscWithEnv, cutoff, g.in('Q'), g.in('saturation'), syn);
+            filteredOsc = Gibberish.filters.factory(oscWithEnv, cutoff, g.in('saturation'), syn);
 
       if (props.panVoices) {
         const panner = g.pan(filteredOsc, filteredOsc, g.in('pan'));

@@ -20,7 +20,7 @@ module.exports = function( Gibberish ) {
       __properties__:values,
       __addresses__:{}
     })
-    
+
     ugen.ugenName += ugen.id
     ugen.callback.ugenName = ugen.ugenName // XXX hacky
     ugen.callback.id = ugen.id
