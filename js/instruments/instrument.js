@@ -9,14 +9,15 @@ Object.assign( instrument, {
     // if binop is should be used...
     if( isNaN( this.frequency ) ) { 
       // and if we are assigning binop for the first time...
-      if( this.frequency.isop !== true ) {
-        let obj = Gibberish.processor.ugens.get( this.frequency.id )
+
+      let obj = Gibberish.processor.ugens.get( this.frequency.id )
+      if( obj.isop !== true ) {
         obj.inputs[0] = freq
-        this.frequency = obj
       }else{
-        this.frequency.inputs[0] = freq
+        obj.inputs[1] = freq
         Gibberish.dirty( this )
       }
+      this.frequency = obj
     }else{
       this.frequency = freq
     }
