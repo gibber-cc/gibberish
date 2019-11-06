@@ -38,6 +38,7 @@ let Gibberish = {
   },
 
   workletPath: './gibberish_worklet.js',
+
   init( memAmount, ctx, mode=null, sac=null ) {
 
     let numBytes = isNaN( memAmount ) ? 20 * 60 * 44100 : memAmount
@@ -70,8 +71,16 @@ let Gibberish = {
         }).then( ()=> {
           Gibberish.preventProxy = true
           Gibberish.load()
-          Gibberish.output = this.Bus2()
           Gibberish.preventProxy = false
+          Gibberish.output = this.Bus2()
+
+          // Gibberish.output needs to be assign so that ugens can
+          // connect to it by default. There's no other way to assign it
+          // outside of evaling code at this point.
+          Gibberish.worklet.port.postMessage({ 
+            address:'eval', 
+            code:`Gibberish.output = this.ugens.get(${Gibberish.output.id});` 
+          })
 
           resolve()
         })
@@ -82,8 +91,6 @@ let Gibberish = {
 
     }else if( this.mode === 'processor' ) {
       Gibberish.load()
-      Gibberish.output = this.Bus2()
-      Gibberish.callback = Gibberish.generateCallback()
     }
   },
 
