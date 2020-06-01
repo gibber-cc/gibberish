@@ -15,7 +15,7 @@ bass = Synth({
   attack:44, 
   decay: 5512,
   Q:.8, // CAREFUL!!!
-  filterType:3,
+  filterType:2,
   saturation:2,
   filterMult:3.25,
   antialias:true,
