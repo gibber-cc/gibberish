@@ -155,7 +155,12 @@ class GibberishProcessor extends AudioWorkletProcessor {
       // XXX this is the exact same as the 'set' key... ugh.
       const dict = event.data
       const obj  = this.ugens.get( dict.object )
-      obj[ dict.name ] = dict.value
+      let value = dict.value
+      if( typeof dict.value === 'object' && dict.value.id !== undefined ) {
+        value = this.ugens.get( dict.value.id )
+      }
+      obj[ dict.name ] = value
+
     }else if( event.data.address === 'print' ) {
       const dict = event.data
       const obj  = this.ugens.get( dict.object ) 
@@ -167,8 +172,11 @@ class GibberishProcessor extends AudioWorkletProcessor {
     }else if( event.data.address === 'set' ) {
       const dict = event.data
       const obj = this.ugens.get( dict.object )
-      //console.log( 'setting:', dict.name, dict.value, obj )
-      obj[ dict.name ] = dict.value
+      let value = dict.value
+      if( typeof dict.value === 'object' && dict.value.id !== undefined ) {
+        value = this.ugens.get( dict.value.id )
+      }
+      obj[ dict.name ] = value
     }else if( event.data.address === 'copy' ) {
       const target = this.ugens.get( event.data.id )
 
@@ -250,25 +258,26 @@ class GibberishProcessor extends AudioWorkletProcessor {
 
         if( gibberish.graphIsDirty ) {
           const oldCallback = callback
-          const oldUgens = ugens
+          const oldUgens = ugens.slice(0)
+          const oldNames = gibberish.callbackNames.slice(0)
 
-          //try{
-            this.callback = callback = gibberish.generateCallback()
+          let cb
+          try{
+            cb = gibberish.generateCallback()
+          } catch(e) {
+            console.log( 'callback error:', e )
+
+            cb = oldCallback
+            gibberish.callbackUgens = oldUgens
+            gibberish.callbackNames = oldNames
+            gibberish.dirtyUgens.length = 0
+            gibberish.graphIsDirty = false
+          } finally {
             ugens = gibberish.callbackUgens
-            // XXX should we try/catch the callback here?
-            //const out = callback.apply( null, ugens )
-            //output[0][ i ] = out[0]
-            //output[1][ i ] = out[1] 
-          //}catch(e) {
-
-          //  console.log( 'callback error:', e, callback.toString() )
-          //  this.callback = callback = oldCallback
-          //  ugens = gibberish.callbackUgens = oldUgens
-          //  gibberish.callbackNames = ugens.map( v => v.ugenName )
-          //}
+            this.callback = callback = cb
+          } 
         }
         const out = callback.apply( null, ugens )
-        //const out = callback()
 
         output[0][ i ] = out[0]
         output[1][ i ] = out[1] 
