@@ -1,5 +1,4 @@
 const Queue = require( '../external/priorityqueue.js' )
-const Big   = require( 'big.js' )
 
 let Gibberish = null
 
