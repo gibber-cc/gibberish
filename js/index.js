@@ -95,7 +95,7 @@ let Gibberish = {
   },
 
   load() {
-    this.factory = require( './ugenTemplate.js' )( this )
+    this.factory      = require( './ugenTemplate.js' )( this )
     
     this.Panner       = require( './misc/panner.js' )( this )
     this.PolyTemplate = require( './instruments/polytemplate.js' )( this )
@@ -139,8 +139,14 @@ let Gibberish = {
     this.utilities.export( target )
   },
 
-  print() {
-    console.log( this.callback.toString() )
+  printcb() { 
+    Gibberish.worklet.port.postMessage({ address:'callback' }) 
+  },
+  printobj( obj ) {
+    Gibberish.worklet.port.postMessage({ address:'print', object:obj.id }) 
+  },
+  send( msg ){
+    Gibberish.worklet.port.postMessage( msg )
   },
 
   dirty( ugen ) {
@@ -296,6 +302,7 @@ let Gibberish = {
       if( ugen.id === undefined ) {
         ugen.id = ugen.__properties__.overrideid
       }
+
       let line = `\tconst v_${ugen.id} = ` 
       if( !ugen.isop ) line += `${ugen.ugenName}( `
 
@@ -427,30 +434,32 @@ let Gibberish = {
       // XXX not sure why this has to be here, but somehow non-processed objects
       // that only contain id numbers are being passed here...
 
-      if( Gibberish.mode === 'processor' ) {
-        if( input.ugenName === undefined && input.id !== undefined  ) {
-          if( ugen === undefined  ) {
-            input = Gibberish.processor.ugens.get( input.id )
-          }else{
-            if( ugen.type !== 'seq' ) {
+      if( input !== undefined ) {
+        if( Gibberish.mode === 'processor' ) {
+          if( input.ugenName === undefined && input.id !== undefined  ) {
+            if( ugen === undefined  ) {
               input = Gibberish.processor.ugens.get( input.id )
+            }else{
+              if( ugen.type !== 'seq' ) {
+                input = Gibberish.processor.ugens.get( input.id )
+              }
             }
           }
         }
-      }
 
-      Gibberish.processUgen( input, block )
+        Gibberish.processUgen( input, block )
 
-      if( !input.isop ) {
-        // check is needed so that graphs with ssds that refer to themselves
-        // don't add the ssd in more than once
-        if( Gibberish.callbackUgens.indexOf( input.callback ) === -1 ) {
-          Gibberish.callbackUgens.push( input.callback )
+        if( !input.isop ) {
+          // check is needed so that graphs with ssds that refer to themselves
+          // don't add the ssd in more than once
+          if( Gibberish.callbackUgens.indexOf( input.callback ) === -1 ) {
+            Gibberish.callbackUgens.push( input.callback )
+          }
         }
-      }
 
-      value += `v_${input.id}`
-      input.__varname = value
+        value += `v_${input.id}`
+        input.__varname = value
+      }
     }
 
     return value
