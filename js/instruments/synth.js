@@ -27,18 +27,17 @@ module.exports = function (Gibberish) {
 
       const env = Gibberish.envelopes.factory(props.useADSR, props.shape, attack, decay, sustain, sustainLevel, release, props.triggerRelease);
 
+      // syn.env = env
       // below doesn't work as it attempts to assign to release property triggering codegen...
-      // syn.release = ()=> { syn.env.release() }
+      syn.advance = () => {
+        env.release();
+      };
 
       {
         'use jsdsp';
         let oscWithEnv = genish.mul(genish.mul(genish.mul(osc, env), loudness), triggerLoudness),
             saturation = g.in('saturation'),
             panner;
-
-        //baseCutoffFreq = g.mul( g.in('cutoff'), g.div( frequency, g.gen.samplerate / 16 ) ),
-        //cutoff = g.mul( g.mul( baseCutoffFreq, g.pow( 2, g.mul( g.in('filterMult'), loudness ) )), env ),
-        //filteredOsc = Gibberish.filters.factory( oscWithEnv, cutoff, g.in('Q'), g.in('saturation'), syn )
 
         // 16 is an unfortunate empirically derived magic number...
         const baseCutoffFreq = genish.mul(g.in('cutoff'), genish.div(frequency, genish.div(g.gen.samplerate, 16)));
@@ -61,12 +60,16 @@ module.exports = function (Gibberish) {
         syn.osc = osc;
         syn.filter = filteredOsc;
       }
+
+      return env;
     };
 
     syn.__requiresRecompilation = ['waveform', 'antialias', 'filterType', 'filterMode', 'useADSR', 'shape'];
-    syn.__createGraph();
+    const env = syn.__createGraph();
 
     const out = Gibberish.factory(syn, syn.graph, ['instruments', 'synth'], props, null, true, ['saturation']);
+
+    out.env.advance = out.advance;
 
     return out;
   };

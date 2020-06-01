@@ -29,6 +29,10 @@ module.exports = function (Gibberish) {
     syn.__createGraph = function () {
       const env = Gibberish.envelopes.factory(props.useADSR, props.shape, attack, decay, sustain, sustainLevel, release, props.triggerRelease);
 
+      syn.advance = () => {
+        env.release();
+      };
+
       const feedbackssd = g.history(0);
 
       const modOsc = Gibberish.oscillators.factory(syn.modulatorWaveform, g.add(g.mul(slidingFreq, cmRatio), g.mul(feedbackssd.out, feedback, index)), syn.antialias);
@@ -46,7 +50,7 @@ module.exports = function (Gibberish) {
         const carrierOsc = Gibberish.oscillators.factory(syn.carrierWaveform, g.add(slidingFreq, modOscWithEnvAvg), syn.antialias);
 
         // XXX horrible hack below to "use" saturation even when not using a diode filter 
-        const carrierOscWithEnv = genish.mul(carrierOsc, env); // props.filterType === 2 ? carrierOsc * env : g.mul(carrierOsc, g.mul(env,saturation) )
+        const carrierOscWithEnv = props.filterType === 2 ? genish.mul(carrierOsc, env) : g.mul(carrierOsc, g.mul(env, saturation));
 
         const baseCutoffFreq = genish.mul(g.in('cutoff'), genish.div(frequency, genish.div(g.gen.samplerate, 16)));
         const cutoff = g.min(genish.mul(genish.mul(baseCutoffFreq, g.pow(2, genish.mul(g.in('filterMult'), Loudness))), env), .995);
@@ -65,13 +69,16 @@ module.exports = function (Gibberish) {
       }
 
       syn.env = env;
+
+      return env;
     };
 
     syn.__requiresRecompilation = ['carrierWaveform', 'modulatorWaveform', 'antialias', 'filterType', 'filterMode'];
-    syn.__createGraph();
+    const env = syn.__createGraph();
 
     const out = Gibberish.factory(syn, syn.graph, ['instruments', 'FM'], props);
 
+    out.env.advance = out.advance;
     return out;
   };
 

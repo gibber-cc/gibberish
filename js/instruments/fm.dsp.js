@@ -34,6 +34,8 @@ module.exports = function( Gibberish ) {
         props.triggerRelease
       )
 
+      syn.advance = ()=> { env.release() }
+
       const feedbackssd = g.history( 0 )
 
       const modOsc = Gibberish.oscillators.factory( 
@@ -74,13 +76,16 @@ module.exports = function( Gibberish ) {
       }
 
       syn.env = env
+
+      return env
     }
     
     syn.__requiresRecompilation = [ 'carrierWaveform', 'modulatorWaveform', 'antialias', 'filterType', 'filterMode' ]
-    syn.__createGraph()
+    const env = syn.__createGraph()
 
     const out = Gibberish.factory( syn, syn.graph , ['instruments','FM'], props )
 
+    out.env.advance = out.advance 
     return out
   }
 

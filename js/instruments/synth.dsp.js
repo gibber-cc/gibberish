@@ -32,8 +32,10 @@ module.exports = function( Gibberish ) {
         props.triggerRelease
       )
 
+
+      // syn.env = env
       // below doesn't work as it attempts to assign to release property triggering codegen...
-      // syn.release = ()=> { syn.env.release() }
+      syn.advance = ()=> { env.release() }
 
       {
         'use jsdsp'
@@ -41,10 +43,6 @@ module.exports = function( Gibberish ) {
             saturation = g.in('saturation'),
             panner
 
-        //baseCutoffFreq = g.mul( g.in('cutoff'), g.div( frequency, g.gen.samplerate / 16 ) ),
-        //cutoff = g.mul( g.mul( baseCutoffFreq, g.pow( 2, g.mul( g.in('filterMult'), loudness ) )), env ),
-        //filteredOsc = Gibberish.filters.factory( oscWithEnv, cutoff, g.in('Q'), g.in('saturation'), syn )
- 
         // 16 is an unfortunate empirically derived magic number...
         const baseCutoffFreq = g.in('cutoff') * ( frequency /  ( g.gen.samplerate / 16 ) ) 
         const cutoff = g.min( baseCutoffFreq * g.pow( 2, g.in('filterMult') * loudness * triggerLoudness ) * env, .995 ) 
@@ -67,12 +65,16 @@ module.exports = function( Gibberish ) {
         syn.filter = filteredOsc
       }
 
+      return env
+
     }
     
     syn.__requiresRecompilation = [ 'waveform', 'antialias', 'filterType','filterMode', 'useADSR', 'shape' ]
-    syn.__createGraph()
+    const env = syn.__createGraph()
 
     const out = Gibberish.factory( syn, syn.graph, ['instruments', 'synth'], props, null, true, ['saturation']  )
+
+    out.env.advance = out.advance 
 
     return out
   }

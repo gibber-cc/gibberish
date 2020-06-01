@@ -90,4 +90,4 @@ b = FM({ useADSR:true, decay:44100, sustainLevel:.3, triggerRelease:true }).conn
 b.note(55)
 
 // later on...
-b.env.release()
+b.env.advance()

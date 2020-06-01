@@ -23,6 +23,7 @@ module.exports = function( Gibberish ) {
         env = g.ad( attack, decay, { shape }) 
       }else {
         env = g.adsr( attack, decay, sustain, sustainLevel, release, { shape, triggerRelease })
+        env.advance = env.release
       }
 
       return env
