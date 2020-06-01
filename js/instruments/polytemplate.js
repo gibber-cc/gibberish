@@ -9,17 +9,6 @@ module.exports = function( Gibberish ) {
   const proxy = __proxy( Gibberish )
 
   const TemplateFactory = ( ugen, propertyList, _envCheck ) => {
-    /* 
-     * polysynths are basically busses that connect child synth voices.
-     * We create separate prototypes for mono vs stereo instances.
-     */
-
-    const monoProto   = Object.create( Gibberish.Bus() ),
-          stereoProto = Object.create( Gibberish.Bus2() )
-
-    // since there are two prototypes we can't assign directly to one of them...
-    Object.assign( monoProto,   Gibberish.mixins.polyinstrument )
-    Object.assign( stereoProto, Gibberish.mixins.polyinstrument )
 
     const Template = props => {
       const properties = Object.assign( {}, { isStereo:true, maxVoices:4 }, props )
