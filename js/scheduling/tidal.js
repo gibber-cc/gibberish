@@ -95,7 +95,7 @@ const Sequencer = props => {
           timing = seq.__events[0].arc.start.sub( startTime ).valueOf() 
         }
         
-        timing *= Gibberish.ctx.sampleRate / Sequencer.clock.cps
+        timing *= Math.ceil( Gibberish.ctx.sampleRate / Sequencer.clock.cps ) + 1 
 
         if( seq.__isRunning === true && !isNaN( timing ) && timing > 0 ) {
           // XXX this supports an edge case in Gibber, where patterns like Euclid / Hex return
@@ -162,9 +162,9 @@ Sequencer.getUID = ()=> {
 
 Sequencer.clock = { cps: 1 }
 
+Sequencer.id = Gibberish.utilities.getUID()
+
 if( Gibberish.mode === 'worklet' ) {
-  Sequencer.id = Gibberish.utilities.getUID()
-  
   Gibberish.worklet.port.postMessage({
     address:'eval',
     code:`Gibberish.Tidal.clock.id = ${Sequencer.id}; Gibberish.ugens.set( ${Sequencer.id}, Gibberish.Tidal.clock )`
