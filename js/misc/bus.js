@@ -25,8 +25,16 @@ module.exports = function( Gibberish ) {
     create( _props ) {
       const props = Object.assign({}, Bus.defaults, { inputs:[0] }, _props )
 
+      // MUST PREVENT PROXY
+      // Othherwise these binops are created in the worklet and sent
+      // across the thread to be instantiated, and then instantiated again
+      // when the bus is created in the processor thread, messing up the various
+      // uids involved. By preventing proxying the binops are only created
+      // a single time when the bus is sent across the thread.
+      Gibberish.preventProxy = true
       const sum = Gibberish.binops.Add( ...props.inputs )
       const mul = Gibberish.binops.Mul( sum, props.gain )
+      Gibberish.preventProxy = false
 
       const graph = Gibberish.Panner({ input:mul, pan: props.pan })
 
