@@ -9,7 +9,7 @@ module.exports = function () {
 
   const white = genish.sub(genish.mul(noise(), 2), 1);
 
-  let out = genish.add(last.out, genish.div(genish.mul(.02, white), 1.02));
+  let out = genish.div(genish.add(last.out, genish.mul(.02, white)), 1.02);
 
   last.in(out);
 
