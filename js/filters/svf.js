@@ -2,9 +2,14 @@ const g = require( 'genish.js' ),
       filter = require( './filter.js' )
 
 module.exports = function( Gibberish ) {
-  Gibberish.genish.svf = ( input, cutoff, Q, mode, isStereo ) => {
+  Gibberish.genish.svf = ( input, cutoff, Q, mode, isStereo=false, shouldConvertFreqQ=false ) => {
     let d1 = g.data([0,0], 1, { meta:true }), d2 = g.data([0,0], 1, { meta:true }),
         peekProps = { mode:'simple', interp:'none' }
+
+    if( shouldConvertFreqQ === true ) {
+      //Q = g.min( g.add(.01 , __Q), 1 ) 
+      cutoff = g.mul( g.max( .005, g.min( cutoff,.995 ) ), g.div( g.gen.samplerate, 4 ) )
+    }
 
     let f1 = g.memo( g.mul( 2 * Math.PI, g.div( cutoff, g.gen.samplerate ) ) )
     let oneOverQ = g.memo( g.div( 1, Q ) )
@@ -48,7 +53,8 @@ module.exports = function( Gibberish ) {
     // XXX NEEDS REFACTORING
     const __out = Gibberish.factory( 
       svf,
-      Gibberish.genish.svf( g.in('input'), g.mul( g.in('cutoff'), g.gen.samplerate / 5 ), g.sub( 1, g.in('Q') ), g.in('mode'), isStereo ), 
+      //Gibberish.genish.svf( g.in('input'), g.mul( g.in('cutoff'), g.gen.samplerate / 5 ), g.sub( 1, g.in('Q') ), g.in('mode'), isStereo ), 
+      Gibberish.genish.svf( g.in('input'), g.mul( g.in('cutoff'), g.gen.samplerate / 5 ), g.sub( 1, g.in('Q') ), g.in('mode'), isStereo, true ), 
       ['filters','Filter12SVF'], 
       props
     )
@@ -60,7 +66,7 @@ module.exports = function( Gibberish ) {
   SVF.defaults = {
     input:0,
     Q: .65,
-    cutoff:440,
+    cutoff:.25,
     mode:0
   }
 
