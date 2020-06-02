@@ -50,7 +50,7 @@ module.exports = function (Gibberish) {
       const oscSum = g.add(...oscs),
 
       // XXX horrible hack below to "use" saturation even when not using a diode filter 
-      oscWithEnv = props.filterType === 2 ? g.mul(oscSum, env) : g.mul(oscSum, g.mul(env, saturation)),
+      oscWithEnv = props.filterType === 2 ? g.mul(oscSum, env) : g.sub(g.add(g.mul(oscSum, env), saturation), saturation),
             baseCutoffFreq = g.mul(g.in('cutoff'), g.div(frequency, g.gen.samplerate / 16)),
             cutoff = g.mul(g.mul(baseCutoffFreq, g.pow(2, g.mul(g.in('filterMult'), Loudness))), env),
             filteredOsc = Gibberish.filters.factory(oscWithEnv, cutoff, g.in('saturation'), syn);
