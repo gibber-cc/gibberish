@@ -44,13 +44,6 @@ snare = Snare().connect()
 Sequencer.make( [1], [44100], kick, 'trigger' ).start()
 Sequencer.make( [.5], [44100], snare, 'trigger' ).start( 22050 )
 
-// Scheduling by Sequencer objects is done using a global priority queue
-// that is checked once per-sample. This queue is managed by the 
-// Gibberish.scheduler object. You can manually add a function to
-// this priority queue to be executed:
-
-Gibberish.scheduler.add( 44100, ()=> alert('44100 samples have passed.' ) )
-
 // The Sequencer2 object in gibberish is almost identical to Sequencer, except
 // that it affords audio-rate modulation of timing. This makes it more expensive,
 // but much more powerful for many tasks. The modulation is exposed via the
