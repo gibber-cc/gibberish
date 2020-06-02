@@ -14,6 +14,7 @@ instruments.Clave.defaults.frequency = 2500
 instruments.Clave.defaults.decay = .5;
 
 [ instruments.Synth, instruments.PolySynth ]     = require( './synth.js' )( Gibberish );
+[ instruments.Complex, instruments.PolyComplex]  = require( './complex.js' )( Gibberish );
 [ instruments.Monosynth, instruments.PolyMono ]  = require( './monosynth.js' )( Gibberish );
 [ instruments.FM, instruments.PolyFM ]           = require( './fm.js' )( Gibberish );
 [ instruments.Sampler, instruments.PolySampler ] = require( './sampler.js' )( Gibberish );
