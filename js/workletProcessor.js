@@ -275,6 +275,7 @@ class GibberishProcessor extends AudioWorkletProcessor {
           } finally {
             ugens = gibberish.callbackUgens
             this.callback = callback = cb
+            this.port.postMessage({ address:'callback', code:cb.toString() }) 
           } 
         }
         const out = callback.apply( null, ugens )
