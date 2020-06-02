@@ -28,8 +28,16 @@ const workletFnc = () => {
 
 gulp.task( 'workletblob', ['js'], workletFnc ) 
 
-// browserify
-//
+const gibberFunc = ()=> {
+  const gibberishText = fs.readFileSync( './dist/gibberish.js', 'utf-8' )
+  const gibberishWorklet= fs.readFileSync( './dist/gibberish_worklet.js', 'utf-8' )
+
+  fs.writeFileSync( '/Users/charlie/Documents/code/gibber.audio.lib/dist/gibberish.js', gibberishText )
+  fs.writeFileSync( '/Users/charlie/Documents/code/gibber.audio.lib/dist/gibberish_worklet.js', gibberishWorklet )
+}
+
+gulp.task( 'gibber', ['workletblob'], gibberFunc )
+
 const jsFunc = () => {
   browserify({ debug:false, standalone:'Gibberish' })
     .require( './js/index.js', { entry: true } )
@@ -52,8 +60,8 @@ const jsFunc = () => {
     //    onLast:true
     //  }) 
     //)
-
 }
+
 gulp.task( 'js', ['jsdsp' ], jsFunc )
 
 gulp.task( 'jsdsp', ()=> {
@@ -85,8 +93,6 @@ gulp.task( 'watch', function() {
 
     //jsFunc()
     //workletFnc()
-
-       
   })
 })
 
