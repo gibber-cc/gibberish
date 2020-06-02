@@ -49,7 +49,10 @@ module.exports = function( Gibberish ) {
         const filteredOsc = Gibberish.filters.factory( oscWithEnv, cutoff, saturation, props )
 
         let synthWithGain = filteredOsc * g.in( 'gain' )
-        if(  props.filterType !== 2 ) synthWithGain = synthWithGain * saturation
+        
+        // XXX This line has to be here for correct code generation to work when
+        // saturation is not being used... obviously this should cancel out. 
+        if( syn.filterType !== 2 ) synthWithGain = synthWithGain + saturation - saturation
     
         if( syn.panVoices === true ) { 
           panner = g.pan( synthWithGain, synthWithGain, g.in( 'pan' ) ) 
