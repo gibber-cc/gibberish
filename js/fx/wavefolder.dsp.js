@@ -77,7 +77,8 @@ const wavestage = in1 => {
 
 module.exports = function( Gibberish ) {
 
-  let Wavefolder = inputProps => {
+  const Wavefolder = inputProps => {
+
     let props = Object.assign( {}, effect.defaults, Wavefolder.defaults, inputProps ),
         wavefolder = Object.create( effect ),
         out
@@ -132,6 +133,7 @@ module.exports = function( Gibberish ) {
       [ 'fx','wavefolder' ], 
       props 
     )
+
     return out 
   }
 
@@ -141,6 +143,6 @@ module.exports = function( Gibberish ) {
     postgain:1
   }
 
-  return Wavefolder
+  return [ Wavefolder, wavestage ]
 
 }
