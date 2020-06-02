@@ -18,14 +18,6 @@ module.exports = function( Gibberish ) {
     factory( input, cutoff, saturation, _props, isStereo = false ) {
       let filteredOsc 
 
-      //if( props.filterType === 1 ) {
-      //  if( typeof props.cutoff !== 'object' && props.cutoff > 1 ) {
-      //    props.cutoff = .25
-      //  }
-      //  if( typeof props.cutoff !== 'object' && props.filterMult > .5 ) {
-      //    props.filterMult = .1
-      //  }
-      //}
       let props = Object.assign({}, filters.defaults, _props )
 
       switch( props.filterType ) {
@@ -36,7 +28,7 @@ module.exports = function( Gibberish ) {
           filteredOsc = g.diodeZDF( input, g.min( g.in('Q'), .9999 ), cutoff, saturation, isStereo ) 
           break;
         case 3:
-          filteredOsc = g.svf( input, cutoff, g.sub( 1, g.in('Q')), props.filterMode, isStereo ) 
+          filteredOsc = g.svf( input, cutoff, g.sub( 1, g.in('Q')), props.filterMode, isStereo, true ) 
           break; 
         case 4:
           filteredOsc = g.biquad( input, cutoff,  g.in('Q'), props.filterMode, isStereo ) 
