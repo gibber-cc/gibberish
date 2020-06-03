@@ -1,6 +1,6 @@
 const g = require( 'genish.js' ),
       instrument = require( './instrument.js' ),
-      __wavefold   = require( '../fx/wavefolder.js' )
+      __wavefold   = require( '../fx/wavefolder.dsp.js' )
 
 const genish = g
 
