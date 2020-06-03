@@ -60,14 +60,9 @@ You need to have node.js and gulp installed. Then:
 
 1. Run `npm install` in the top level directory
 2. Run `gulp` in the top level directory
+3. Run `gulp minify` if you'd like to create minified and gzipped versions of the library.
 
-If you don't have gulp installed:
-
-1. Run `npm install` in the top level directory
-2. Run `npm install gulp-cli` in the top level directory
-3. Run `./node_modules/.bin/gulp` in the top level directory, or simply `gulp` if you have gulp installed globally.
-
-This will create both a minimized and an un-minimized version of the library.
+The library will then be found in the `dist` folder.
 
 ## Ugens
 Gibberish includes a long list of oscillators, fx, and synthesis algorithms.
