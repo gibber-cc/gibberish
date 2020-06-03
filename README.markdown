@@ -1,6 +1,6 @@
 # Gibberish
 
-[Gibberish][gibberish] is designed to be a fast audio API for the browser. It takes the low-level building blocks provided by [genish.js](http://charlie-roberts.com/genish.js) and uses them to create higher-level synthesizers, effects, and sequencers. Gibberish proceses each sample of each synthesis block one sample at a time, enabling a variety of effects not typically possible in JavaScript synthesis systems, most importantly single-sample feedback loops and audio-rate modulation of scheduling. 
+[Gibberish][gibberish] is designed to be a fast audio API for the browser. It takes the low-level building blocks provided by [genish.js](http://charlie-roberts.com/genish) and uses them to create higher-level synthesizers, effects, and sequencers. Gibberish proceses each sample of each synthesis block one sample at a time, enabling a variety of effects not typically possible in JavaScript synthesis systems, most importantly single-sample feedback loops and audio-rate modulation of scheduling. 
 
 Note that this branch is for version 3 of the library. See [the master branch](https://github.com/gibber-cc/gibberish/tree/master) for the pre-June 2017 version that is currently used in Gibber. There is also a tagged release of the older version (2.0.0).
 
