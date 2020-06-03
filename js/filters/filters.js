@@ -4,9 +4,9 @@ module.exports = function( Gibberish ) {
 
   const filters = {
     Filter24Classic : require( './filter24.js'  )( Gibberish ),
-    Filter24Moog    : require( './ladder.js' )( Gibberish ),
+    Filter24Moog    : require( './ladder.dsp.js' )( Gibberish ),
     Filter24TB303   : require( './diodeFilterZDF.js' )( Gibberish ),
-    Filter12Biquad  : require( './biquad.js'    )( Gibberish ),
+    Filter12Biquad  : require( './biquad.dsp.js'    )( Gibberish ),
     Filter12SVF     : require( './svf.js'       )( Gibberish ),
     
     // not for use by end-users

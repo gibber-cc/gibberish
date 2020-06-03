@@ -5,7 +5,7 @@ module.exports = function( Gibberish ) {
     SSD,
     SSD_In: In,
     SSD_Out: Out, 
-    Follow: require( './follow.js'  )( Gibberish )
+    Follow: require( './follow.dsp.js'  )( Gibberish )
   }
   analyzers.Follow_out = analyzers.Follow.out
   analyzers.Follow_in  = analyzers.Follow.in

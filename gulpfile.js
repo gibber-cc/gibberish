@@ -1,5 +1,6 @@
 const gulp = require('gulp'),
       babel      = require('gulp-babel'),
+      babelify   = require('babelify'),
       browserify = require('browserify'),
       source     = require('vinyl-source-stream'),
       rename     = require('gulp-rename'),
@@ -29,27 +30,16 @@ const workletFnc = () => {
 
   fs.writeFileSync( './dist/gibberish_worklet.js', workletBlob )
 }
-gulp.task( 'workletblob', ['js'], workletFnc ) 
 
 const jsFunc = () => {
   return browserify({ debug:false, standalone:'Gibberish' })
     .require( './js/index.js', { entry: true } )
-    //.transform( babelify, { presets:['es2015'] }) 
+    .transform( babelify, { plugins:[jsdsp] }) 
     .bundle()
     .pipe( source('gibberish.js') )
     .pipe( gulp.dest('./dist') )
-    //.pipe( 
-    //  notify({ 
-    //    message:'Build has been completed',
-    //    onLast:true
-    //  }) 
-    //)
-}
 
-gulp.task( 'clean', ()=> {
-  return gulp.src( './dist/*.js*', { read:false  })
-    .pipe( clean() )
-})
+}
 
 const minifyLib = ()=> {
   return gulp.src( './dist/gibberish.js' )
@@ -71,33 +61,23 @@ const minifyWorklet = ()=> {
     .pipe( gulp.dest('./dist') )
 }
 
+gulp.task( 'workletblob', ['js'], workletFnc ) 
+gulp.task( 'clean', ()=> {
+  return gulp.src( './dist/*.js*', { read:false  })
+    .pipe( clean() )
+})
 gulp.task( 'minifyLib', [], minifyLib )
 gulp.task( 'minifyWorklet', [], minifyWorklet )
 gulp.task( 'minify', ['minifyLib', 'minifyWorklet'] )
-gulp.task( 'js', ['jsdsp' ], jsFunc )
-
-gulp.task( 'jsdsp', ()=> {
-  return gulp.src( './js/**/*.dsp.js', { base:'./' })
-      .pipe( babel({ plugins:jsdsp }) )
-      .pipe( rename( path => {
-        path.basename = path.basename.split('.')[0]
-      } ))
-      .pipe( gulp.dest('.') )
-})
-
-// file watcher
-// XXX BROKEN
+gulp.task( 'js', jsFunc )
 gulp.task( 'watch', function() {
   return gulp.watch( './js/**/*.js', ['workletblob'] )
-
-  //gulp.watch( './js/**/*.dsp.js', e => { 
-  //  gulp.src( e.path )
-  //    .pipe( babel({ plugins:jsdsp }) )
-  //    .pipe( rename( path => {
-  //      path.basename = path.basename.split('.')[0]
-  //    } ))
-  //    .pipe( gulp.dest('.') )
-  //})
+    .pipe( 
+      notify({ 
+        message:'Gibberish build completed.',
+        onLast:true
+      }) 
+    )
 })
 
 gulp.task( 'default', ['workletblob'] )

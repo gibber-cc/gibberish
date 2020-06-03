@@ -1,7 +1,7 @@
 const g = require( 'genish.js' ),
       ugen = require( '../ugen.js' )(),
       feedbackOsc = require( './fmfeedbackosc.js' ),
-      polyBlep = require( './polyblep.js' )
+      polyBlep = require( './polyblep.dsp.js' )
 
 //  __makeOscillator__( type, frequency, antialias ) {
     
@@ -16,8 +16,8 @@ module.exports = function( Gibberish ) {
     },
 
     genish: {
-      Brown: require( './brownnoise.js' ),
-      Pink:  require( './pinknoise.js'  )
+      Brown: require( './brownnoise.dsp.js' ),
+      Pink:  require( './pinknoise.dsp.js'  )
     },
 
     Wavetable: require( './wavetable.js' )( Gibberish ),

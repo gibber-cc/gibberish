@@ -7,16 +7,16 @@ const instruments = {
   Snare       : require( './snare.js' )( Gibberish ),
   Cowbell     : require( './cowbell.js' )( Gibberish ),
   Tom         : require( './tom.js' )( Gibberish ),
-  Clap        : require( './clap.js' )( Gibberish )
+  Clap        : require( './clap.dsp.js' )( Gibberish )
 }
 
 instruments.Clave.defaults.frequency = 2500
 instruments.Clave.defaults.decay = .5;
 
-[ instruments.Synth, instruments.PolySynth ]     = require( './synth.js' )( Gibberish );
-[ instruments.Complex, instruments.PolyComplex]  = require( './complex.js' )( Gibberish );
-[ instruments.Monosynth, instruments.PolyMono ]  = require( './monosynth.js' )( Gibberish );
-[ instruments.FM, instruments.PolyFM ]           = require( './fm.js' )( Gibberish );
+[ instruments.Synth, instruments.PolySynth ]     = require( './synth.dsp.js' )( Gibberish );
+[ instruments.Complex, instruments.PolyComplex]  = require( './complex.dsp.js' )( Gibberish );
+[ instruments.Monosynth, instruments.PolyMono ]  = require( './monosynth.dsp.js' )( Gibberish );
+[ instruments.FM, instruments.PolyFM ]           = require( './fm.dsp.js' )( Gibberish );
 [ instruments.Sampler, instruments.PolySampler ] = require( './sampler.js' )( Gibberish );
 [ instruments.Karplus, instruments.PolyKarplus ] = require( './karplusstrong.js' )( Gibberish );
 [ instruments.Conga, instruments.PolyConga ]     = require( './conga.js' )( Gibberish )

@@ -40,7 +40,6 @@ let Gibberish = {
   workletPath: './gibberish_worklet.js',
 
   init( memAmount, ctx, mode=null, sac=null ) {
-
     let numBytes = isNaN( memAmount ) ? 20 * 60 * 44100 : memAmount
 
     // regardless of whether or not gibberish is using worklets,
