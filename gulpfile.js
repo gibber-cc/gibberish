@@ -1,40 +1,68 @@
 var gulp = require('gulp'),
-    //notify     = require('gulp-notify'),
     babel      = require('gulp-babel'),
     browserify = require('browserify'),
     buffer     = require('gulp-buffer'),
     source     = require('vinyl-source-stream'),
-    babelify   = require('babelify'),
     mocha      = require('gulp-mocha'),
     jsdsp      = require('jsdsp'),
-    rename     = require('gulp-rename')
+    rename     = require('gulp-rename'),
+    workletStr = require( './js/workletString.js' ),
+    fs         = require( 'fs' ),
+    guglify    = require( 'gulp-uglify-es' ).default,
+    uglify     = require( 'uglify-es' ),
+    buffer     = require( 'vinyl-buffer' ),
+    gzip       = require( 'gulp-gzip' )
 
-// browserify
-gulp.task( 'js', ['jsdsp'], function() {
-  browserify({ debug:true, standalone:'Gibberish' })
+let workletBlob = workletStr.prefix
+
+const workletFnc = () => {
+  const gibberishText = fs.readFileSync( './dist/gibberish.js', 'utf-8' )
+  const processorText = fs.readFileSync( './js/workletProcessor.js', 'utf-8' )
+
+  workletBlob += gibberishText 
+  workletBlob += processorText
+  workletBlob += workletStr.postfix
+
+  fs.writeFileSync( './dist/gibberish_worklet.js', workletBlob )
+}
+
+gulp.task( 'workletblob', ['js'], workletFnc ) 
+
+const gibberFunc = ()=> {
+  const gibberishText = fs.readFileSync( './dist/gibberish.js', 'utf-8' )
+  const gibberishWorklet= fs.readFileSync( './dist/gibberish_worklet.js', 'utf-8' )
+
+  fs.writeFileSync( '/Users/charlie/Documents/code/gibber.audio.lib/dist/gibberish.js', gibberishText )
+  fs.writeFileSync( '/Users/charlie/Documents/code/gibber.audio.lib/dist/gibberish_worklet.js', gibberishWorklet )
+}
+
+gulp.task( 'gibber', ['workletblob'], gibberFunc )
+
+const jsFunc = () => {
+  browserify({ debug:false, standalone:'Gibberish' })
     .require( './js/index.js', { entry: true } )
     //.transform( babelify, { presets:['es2015'] }) 
     .bundle()
     .pipe( source('gibberish.js') )
     .pipe( gulp.dest('./dist') )
-    //.pipe( uglify() )
-    //.pipe( gulp.dest('./dist') )
+    /*
+    .pipe( buffer() )
+    .pipe( guglify() )
+    .pipe( rename('gibberish.min.js') )
+    .pipe( gulp.dest('./dist') )
+    .pipe( gzip() )
+    .pipe( rename('gibberish.min.js.gz') )
+    .pipe( gulp.dest('./dist') )
+    */
     //.pipe( 
     //  notify({ 
     //    message:'Build has been completed',
     //    onLast:true
     //  }) 
     //)
-})
+}
 
-// convert .jsdsp into .js files
-//gulp.task( 'jsdsp', ()=> {
-//  gulp.src( './js/**/*.jsdsp', { base:'./' })
-//      .pipe( babel({ plugins:jsdsp }) )
-//      .pipe( rename( path => path.ext = '.js' ) )
-//      .pipe( gulp.dest('.') )
-//})
-
+gulp.task( 'js', ['jsdsp' ], jsFunc )
 
 gulp.task( 'jsdsp', ()=> {
   gulp.src( './js/**/*.dsp.js', { base:'./' })
@@ -53,19 +81,19 @@ gulp.task( 'test', ['js'], ()=> {
 
 // file watcher
 gulp.task( 'watch', function() {
-  gulp.watch( './js/**/*.js', ['js'] )
+  gulp.watch( './js/**/*.js', ['workletblob'] )
 
-  gulp.watch( './js/**/*.jsdsp', e => { 
-    let pathArr = e.path.split('/')
-    pathArr.pop()
-    pathArr = pathArr.join('/')
-
+  gulp.watch( './js/**/*.dsp.js', e => { 
     gulp.src( e.path )
       .pipe( babel({ plugins:jsdsp }) )
-      .pipe( rename( path => path.ext = '.js' ) )
-      .pipe( gulp.dest(pathArr) )
-       
+      .pipe( rename( path => {
+        path.basename = path.basename.split('.')[0]
+      } ))
+      .pipe( gulp.dest('.') )
+
+    //jsFunc()
+    //workletFnc()
   })
 })
 
-gulp.task( 'default', ['js','test'] )
+gulp.task( 'default', ['workletblob'] )

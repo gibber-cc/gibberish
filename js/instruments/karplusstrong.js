@@ -3,33 +3,32 @@ const g = require( 'genish.js' ),
 
 module.exports = function( Gibberish ) {
 
-  const KPS = inputProps => {
+  const Karplus = inputProps => {
 
-    const props = Object.assign( {}, KPS.defaults, inputProps )
-    const syn = Object.create( instrument ),
-          trigger = g.bang(),
-          phase = g.accum( 1, trigger, { max:Infinity } ),
+    const props = Object.assign( {}, Karplus.defaults, inputProps )
+    let syn = Object.create( instrument )
+    
+    let sampleRate = Gibberish.ctx.sampleRate 
+
+    const trigger = g.bang(),
+          // high initialValue stops triggering on initialization
+          phase = g.accum( 1, trigger, { shouldWrapMax:false, initialValue:1000000 } ),
           env = g.gtp( g.sub( 1, g.div( phase, 200 ) ), 0 ),
           impulse = g.mul( g.noise(), env ),
           feedback = g.history(),
           frequency = g.in('frequency'),
           glide = g.in( 'glide' ),
           slidingFrequency = g.slide( frequency, glide, glide ),
-          delay = g.delay( g.add( impulse, feedback.out ), g.div( Gibberish.ctx.sampleRate, slidingFrequency ), { size:2048 }),
+          delay = g.delay( g.add( impulse, feedback.out ), g.div( sampleRate, slidingFrequency )),
           decayed = g.mul( delay, g.t60( g.mul( g.in('decay'), slidingFrequency ) ) ),
           damped =  g.mix( decayed, feedback.out, g.in('damping') ),
-          withGain = g.mul( damped, g.in('gain') )
+          n = g.noise(),
+          blendValue = g.switch( g.gt( n, g.in('blend') ), -1, 1 ), 
+          withGain = g.mul( g.mul( blendValue, damped ), g.mul( g.mul( g.in('loudness'), g.in('__triggerLoudness') ), g .in('gain') ) )
 
     feedback.in( damped )
 
-    const properties = Object.assign( {}, KPS.defaults, props )
-
-    if( properties.panVoices ) {  
-      const panner = g.pan( withGain, withGain, g.in( 'pan' ) )
-      Gibberish.factory( syn, [panner.left, panner.right], 'karplus', props  )
-    }else{
-      Gibberish.factory( syn, withGain, 'karplus', props )
-    }
+    const properties = Object.assign( {}, Karplus.defaults, props )
 
     Object.assign( syn, {
       properties : props,
@@ -41,23 +40,36 @@ module.exports = function( Gibberish ) {
         return Gibberish.memory.heap[ phase.memory.value.idx ]
       },
     })
+
+    if( properties.panVoices ) {  
+      const panner = g.pan( withGain, withGain, g.in( 'pan' ) )
+      syn = Gibberish.factory( syn, [panner.left, panner.right], ['instruments','karplus'], props  )
+      syn.isStereo = true
+    }else{
+      syn = Gibberish.factory( syn, withGain, ['instruments','karplus'], props )
+      syn.isStereo = false 
+    }
+
     return syn
   }
   
-  KPS.defaults = {
+  Karplus.defaults = {
     decay: .97,
     damping:.2,
-    gain: 1,
+    gain: .15,
     frequency:220,
     pan: .5,
     glide:1,
-    panVoices:false
+    panVoices:false,
+    loudness:1,
+    __triggerLoudness:1,
+    blend:1
   }
 
   let envCheckFactory = ( syn,synth ) => {
     let envCheck = ()=> {
       let phase = syn.getPhase(),
-          endTime = synth.decay * Gibberish.ctx.sampleRate
+          endTime = synth.decay * sampleRate
 
       if( phase > endTime ) {
         synth.disconnectUgen( syn )
@@ -70,8 +82,9 @@ module.exports = function( Gibberish ) {
     return envCheck
   }
 
-  let PolyKPS = Gibberish.PolyTemplate( KPS, ['frequency','decay','damping','pan','gain', 'glide'], envCheckFactory ) 
+  const PolyKarplus = Gibberish.PolyTemplate( Karplus, ['frequency','decay','damping','pan','gain', 'glide','loudness', '__triggerLoudness'], envCheckFactory ) 
+  PolyKarplus.defaults = Karplus.defaults
 
-  return [ KPS, PolyKPS ]
+  return [ Karplus, PolyKarplus ]
 
 }

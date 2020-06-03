@@ -1,12 +1,13 @@
 let g = require( 'genish.js' ),
-    ugen = require( '../ugen.js' )
+    ugen = require( '../ugen.js' )(),
+    __proxy= require( '../workletProxy.js' )
 
 module.exports = function( Gibberish ) {
-  
+  const proxy = __proxy( Gibberish )
   const Bus = Object.create( ugen )
 
   Object.assign( Bus, {
-    __gain : {
+    gain: {
       set( v ) {
         this.mul.inputs[ 1 ] = v
         Gibberish.dirty( this )
@@ -22,10 +23,18 @@ module.exports = function( Gibberish ) {
     },
 
     create( _props ) {
-      const props = Object.assign({}, Bus.defaults, _props )
+      const props = Object.assign({}, Bus.defaults, { inputs:[0] }, _props )
 
+      // MUST PREVENT PROXY
+      // Othherwise these binops are created in the worklet and sent
+      // across the thread to be instantiated, and then instantiated again
+      // when the bus is created in the processor thread, messing up the various
+      // uids involved. By preventing proxying the binops are only created
+      // a single time when the bus is sent across the thread.
+      Gibberish.preventProxy = true
       const sum = Gibberish.binops.Add( ...props.inputs )
       const mul = Gibberish.binops.Mul( sum, props.gain )
+      Gibberish.preventProxy = false
 
       const graph = Gibberish.Panner({ input:mul, pan: props.pan })
 
@@ -33,9 +42,29 @@ module.exports = function( Gibberish ) {
       graph.mul = mul
       graph.disconnectUgen = Bus.disconnectUgen
 
-      Object.defineProperty( graph, 'gain', Bus.__gain )
+      graph.__properties__ = props
 
-      return graph
+      const out = props.__useProxy__ === true ? proxy( ['Bus'], props, graph ) : graph
+
+      Object.defineProperty( out, 'gain', Bus.gain )
+
+      if( false && Gibberish.preventProxy === false && Gibberish.mode === 'worklet' ) {
+        const meta = {
+          address:'add',
+          name:['Bus'],
+          props, 
+          id:graph.id
+        }
+        Gibberish.worklet.port.postMessage( meta )
+        Gibberish.worklet.port.postMessage({ 
+          address:'method', 
+          object:graph.id,
+          name:'connect',
+          args:[]
+        })
+      }
+
+      return out 
     },
 
     disconnectUgen( ugen ) {
@@ -47,10 +76,14 @@ module.exports = function( Gibberish ) {
       }
     },
 
-    defaults: { gain:1, inputs:[0], pan:.5 }
+    // can't include inputs here as it will be sucked up by Gibber,
+    // instead pass during Object.assign() after defaults.
+    defaults: { gain:1, pan:.5, __useProxy__:true }
   })
 
-  return Bus.create.bind( Bus )
+  const constructor = Bus.create.bind( Bus )
+  constructor.defaults = Bus.defaults
 
+  return constructor
 }
 

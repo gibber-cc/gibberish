@@ -6,7 +6,7 @@ bass = Synth({
   gain:.25, 
   attack:44, 
   decay: 5512,
-  filterType:3,
+  filterType:2,
   antialias:true
 })
 .connect( Gibberish.output )

@@ -1,6 +1,6 @@
 const g = require( 'genish.js' )
 
-const ugen = require( '../ugen.js' )
+const ugen = require( '../ugen.js' )()
 
 module.exports = function( Gibberish ) {
  
@@ -15,13 +15,12 @@ let Panner = inputProps => {
 
   let graph 
   if( isStereo ) {
-    console.log( input[0], input[1] )
     graph = g.pan( input[0], input[1], pan )  
   }else{
     graph = g.pan( input, input, pan )
   }
 
-  Gibberish.factory( panner, [ graph.left, graph.right], 'panner', props )
+  Gibberish.factory( panner, [ graph.left, graph.right], ['panner'], props )
   
   return panner
 }

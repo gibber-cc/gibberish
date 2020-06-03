@@ -1,6 +1,7 @@
 const g = require( 'genish.js' ),
-      ugen = require( '../ugen.js' ),
-      feedbackOsc = require( './fmfeedbackosc.js' )
+      ugen = require( '../ugen.js' )(),
+      feedbackOsc = require( './fmfeedbackosc.js' ),
+      polyBlep = require( './polyblep.js' )
 
 //  __makeOscillator__( type, frequency, antialias ) {
     
@@ -27,9 +28,9 @@ module.exports = function( Gibberish ) {
       const osc   = Oscillators.factory( 'square', g.in( 'frequency' ), props.antialias )
       const graph = g.mul( osc, g.in('gain' ) )
 
-      Gibberish.factory( sqr, graph, 'sqr', props )
+      const out = Gibberish.factory( sqr, graph, ['oscillators','square'], props )
 
-      return sqr
+      return out
     },
 
     Triangle( inputProps ) {
@@ -38,9 +39,9 @@ module.exports = function( Gibberish ) {
       const osc   = Oscillators.factory( 'triangle', g.in( 'frequency' ), props.antialias )
       const graph = g.mul( osc, g.in('gain' ) )
 
-      Gibberish.factory( tri, graph, 'tri', props )
+      const out =Gibberish.factory( tri, graph, ['oscillators','triangle'], props )
 
-      return tri
+      return out
     },
 
     PWM( inputProps ) {
@@ -49,9 +50,9 @@ module.exports = function( Gibberish ) {
       const osc   = Oscillators.factory( 'pwm', g.in( 'frequency' ), props.antialias )
       const graph = g.mul( osc, g.in('gain' ) )
 
-      Gibberish.factory( pwm, graph, 'pwm', props )
+      const out = Gibberish.factory( pwm, graph, ['oscillators','PWM'], props )
 
-      return pwm
+      return out
     },
 
     Sine( inputProps ) {
@@ -59,9 +60,9 @@ module.exports = function( Gibberish ) {
       const props = Object.assign({}, Oscillators.defaults, inputProps )
       const graph = g.mul( g.cycle( g.in('frequency') ), g.in('gain') )
 
-      Gibberish.factory( sine, graph, 'sine', props )
+      const out = Gibberish.factory( sine, graph, ['oscillators','sine'], props )
       
-      return sine
+      return out
     },
 
     Noise( inputProps ) {
@@ -81,9 +82,9 @@ module.exports = function( Gibberish ) {
           break;
       }
 
-      Gibberish.factory( noise, graph, 'noise', props )
+      const out = Gibberish.factory( noise, graph, ['oscillators','noise'], props )
 
-      return noise
+      return out
     },
 
     Saw( inputProps ) {
@@ -92,9 +93,9 @@ module.exports = function( Gibberish ) {
       const osc   = Oscillators.factory( 'saw', g.in( 'frequency' ), props.antialias )
       const graph = g.mul( osc, g.in('gain' ) )
 
-      Gibberish.factory( saw, graph, 'saw', props )
+      const out = Gibberish.factory( saw, graph, ['oscillators','saw'], props )
 
-      return saw
+      return out
     },
 
     ReverseSaw( inputProps ) {
@@ -103,9 +104,9 @@ module.exports = function( Gibberish ) {
       const osc   = g.sub( 1, Oscillators.factory( 'saw', g.in( 'frequency' ), props.antialias ) )
       const graph = g.mul( osc, g.in( 'gain' ) )
 
-      Gibberish.factory( saw, graph, 'rsaw', props )
+      const out = Gibberish.factory( saw, graph, ['oscillators','ReverseSaw'], props )
       
-      return saw
+      return out
     },
 
     factory( type, frequency, antialias=false ) {
@@ -114,7 +115,7 @@ module.exports = function( Gibberish ) {
       switch( type ) {
         case 'pwm':
           let pulsewidth = g.in('pulsewidth')
-          if( antialias === true ) {
+          if( antialias == true ) {
             osc = feedbackOsc( frequency, 1, pulsewidth, { type:1 })
           }else{
             let phase = g.phasor( frequency, 0, { min:0 } )
@@ -122,10 +123,10 @@ module.exports = function( Gibberish ) {
           }
           break;
         case 'saw':
-          if( antialias === false ) {
+          if( antialias == false ) {
             osc = g.phasor( frequency )
           }else{
-            osc = feedbackOsc( frequency, 1 )
+            osc = polyBlep( frequency, { type })
           }
           break;
         case 'sine':
@@ -133,13 +134,21 @@ module.exports = function( Gibberish ) {
           break;
         case 'square':
           if( antialias === true ) {
-            osc = feedbackOsc( frequency, 1, .5, { type:1 })
+            //osc = feedbackOsc( frequency, 1, .5, { type:1 })
+            osc = polyBlep( frequency, { type })
           }else{
             osc = g.wavetable( frequency, { buffer:Oscillators.Square.buffer, name:'square' } )
           }
           break;
         case 'triangle':
-          osc = g.wavetable( frequency, { buffer:Oscillators.Triangle.buffer, name:'triangle' } )
+          if( antialias == true ) {
+            osc = polyBlep( frequency, { type })
+          }else{
+            osc = g.wavetable( frequency, { buffer:Oscillators.Triangle.buffer, name:'triangle' } )
+          }
+          break;
+        case 'noise':
+          osc = g.noise()
           break;
       }
 

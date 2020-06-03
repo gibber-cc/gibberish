@@ -38,27 +38,3 @@ ssd2.listen( Mul( delay1, .985 ) )
 
 // play a note! try playing more notes!
 syn.note(220)
-
-
-// OK, here's a bit weirder example 
-
-Gibberish.clear() // clear the previous graph
-
-ssd3 = SSD()
- 
-sin = Sine({ 
-  frequency:Add( 
-    440, 
-    Sine({ 
-      frequency:Abs( ssd3.out ), 
-      gain:Mul(
-        Ramp({ from:10, to:440, shouldLoop:true, length:44100 * 8 }),
-        ssd3.out
-      ) 
-    }) 
-  ) 
-}); 
- 
-ssd3.listen( sin ); 
- 
-sin.connect()

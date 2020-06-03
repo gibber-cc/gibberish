@@ -5,70 +5,83 @@ module.exports = function( Gibberish ) {
  
 let Flanger = inputProps => {
   let props   = Object.assign( { delayLength:44100 }, Flanger.defaults, proto.defaults, inputProps ),
-      flanger = Object.create( proto )
+      flanger = Object.create( proto ),
+      out
 
-  let isStereo = props.input.isStereo !== undefined ? props.input.isStereo : true 
-  
-  let input = g.in( 'input' ),
-      delayLength = props.delayLength,
-      feedbackCoeff = g.in( 'feedback' ),
-      modAmount = g.in( 'offset' ),
-      frequency = g.in( 'frequency' ),
-      delayBufferL = g.data( delayLength ),
-      delayBufferR
+  flanger.__createGraph = function() {
+    let isStereo = false
+    if( out === undefined ) {
+      isStereo = typeof props.input.isStereo !== 'undefined' ? props.input.isStereo : false 
+    }else{
+      isStereo = out.input.isStereo
+      out.isStereo = isStereo
+    }
 
-  let writeIdx = g.accum( 1,0, { min:0, max:delayLength, interp:'none', mode:'samples' })
-  
-  let offset = g.mul( modAmount, 500 )
+    const input = g.in( 'input' ),
+          inputGain = g.in( 'inputGain' ),
+          delayLength = props.delayLength,
+          feedbackCoeff = g.in( 'feedback' ),
+          modAmount = g.in( 'offset' ),
+          frequency = g.in( 'frequency' ),
+          delayBufferL = g.data( delayLength )
 
-  let mod = props.mod === undefined ? g.cycle( frequency ) : props.mod
-  
-  let readIdx = g.wrap( 
-    g.add( 
-      g.sub( writeIdx, offset ), 
-      mod//g.mul( mod, g.sub( offset, 1 ) ) 
-    ), 
-	  0, 
-    delayLength
-  )
-
-  let leftInput = isStereo ? input[0] : input
-
-  let delayedOutL = g.peek( delayBufferL, readIdx, { interp:'linear', mode:'samples' })
-  
-  g.poke( delayBufferL, g.add( leftInput, g.mul( delayedOutL, feedbackCoeff ) ), writeIdx )
-
-  let left = g.add( leftInput, delayedOutL ),
-      right
-
-  if( isStereo === true ) {
-    rightInput = input[1]
-    delayBufferR = g.data( delayLength )
+    const writeIdx = g.accum( 1,0, { min:0, max:delayLength, interp:'none', mode:'samples' })
     
-    let delayedOutR = g.peek( delayBufferR, readIdx, { interp:'linear', mode:'samples' })
+    const offset = g.mul( modAmount, 500 )
 
-    g.poke( delayBufferR, g.add( rightInput, g.mul( delayedOutR, feedbackCoeff ) ), writeIdx )
-    right = g.add( rightInput, delayedOutR )
-
-    Gibberish.factory( 
-      flanger,
-      [ left, right ], 
-      'flanger', 
-      props 
+    const mod = props.mod === undefined ? g.cycle( frequency ) : props.mod
+    
+    const readIdx = g.wrap( 
+      g.add( 
+        g.sub( writeIdx, offset ), 
+        mod//g.mul( mod, g.sub( offset, 1 ) ) 
+      ), 
+      0, 
+      delayLength
     )
 
-  }else{
-    Gibberish.factory( flanger, left, 'flanger', props )
+    const leftInput = isStereo ? input[0] : input
+
+    const delayedOutL = g.peek( delayBufferL, readIdx, { interp:'linear', mode:'samples' })
+    
+    g.poke( delayBufferL, g.add( leftInput, g.mul( delayedOutL, feedbackCoeff ) ), writeIdx )
+
+    const left = g.add( leftInput, delayedOutL )
+
+    if( isStereo === true ) {
+      const rightInput = input[1]
+      const delayBufferR = g.data( delayLength )
+      
+      let delayedOutR = g.peek( delayBufferR, readIdx, { interp:'linear', mode:'samples' })
+
+      g.poke( delayBufferR, g.add( rightInput, g.mul( delayedOutR, feedbackCoeff ) ), writeIdx )
+      const right = g.add( rightInput, delayedOutR )
+
+      flanger.graph = [ left, right ]
+
+    }else{
+      flanger.graph = left
+    }
   }
-  
-  return flanger
+
+  flanger.__createGraph()
+  flanger.__requiresRecompilation = [ 'input' ]
+
+  out = Gibberish.factory( 
+    flanger,
+    flanger.graph, 
+    ['fx','flanger'], 
+    props 
+  ) 
+
+  return out 
 }
 
 Flanger.defaults = {
   input:0,
-  feedback:.01,
-  offset:.25,
-  frequency:.5
+  feedback:.81,
+  offset:.125,
+  frequency:1
 }
 
 return Flanger

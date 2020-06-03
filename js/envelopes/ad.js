@@ -12,11 +12,11 @@ module.exports = function( Gibberish ) {
 
     const graph = g.ad( attack, decay, { shape:props.shape, alpha:props.alpha })
 
-    Gibberish.factory( ad, graph, 'ad', props )
-
     ad.trigger = graph.trigger
+    
+    const __out = Gibberish.factory( ad, graph, ['envelopes','AD'], props )
 
-    return ad
+    return __out
   }
 
   AD.defaults = { attack:44100, decay:44100, shape:'exponential', alpha:5 } 

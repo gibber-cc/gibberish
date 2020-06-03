@@ -23,11 +23,6 @@ Sequencer.make( [.5], [44100], kick, 'trigger' ).start()
 // make room bigger...
 verb.roomSize = .975
 
-// we can bypass our effects. If you look to the right you'll
-// see that after setting the bypass property to true our
-// reverb is completely removed from the audio callback.
-verb.bypass = true
-
 // We can also, of course, connect a synth both to an effect
 // as well as the main gibberish output
 
@@ -50,7 +45,7 @@ chorus = Chorus().connect()
 syn2 = PolySynth({ maxVoices:3, gain:.1 })
   .connect( chorus )
   .connect()
-
+ 
 syn2.chord( [220,330,440] )
 
 // note that only one synth can be connected at a time in this
@@ -91,6 +86,7 @@ delay = Delay({ input:bus, feedback:.5 }).connect()
 kick = Kick({ frequency:120 }).connect( delay.input )
 snare = Snare().connect( delay.input )
 
+bus.gain = 1
 kick.trigger( 1 ); 
 snare.trigger( .5 )
 
@@ -101,8 +97,8 @@ Gibberish.clear()
 // create busses and connect delay fx to them
 busL = Bus({ pan:0 }).connect()
 busR = Bus({ pan:1 }).connect()
-delayL = Delay({ feedback:.5,  time:11025 }).connect( busL )
-delayR = Delay({ feedback:.65, time:11025 * .66666 }).connect( busR )
+delayL = Delay({ feedback:.75,  time:11025 }).connect( busL )
+delayR = Delay({ feedback:.85, time:11025 * .66666 }).connect( busR )
 
 // connect a kick drum to our delays
 kick = Kick({ frequency:120 }).connect( delayL ).connect( delayR )
@@ -110,7 +106,7 @@ kick = Kick({ frequency:120 }).connect( delayL ).connect( delayR )
 // play a kick
 kick.trigger( 1 )
 
-// One last tricky part. For efficiency reasons, the Bus() object only
+// For efficiency reasons, the Bus() object only
 // mono arguments, although you can then pan the resulting output of the
 // bus. To accept stereo inputs, use Bus2().
 
@@ -118,16 +114,15 @@ Gibberish.clear()
 
 syn = PolySynth({ 
   maxVoices:3, 
-  gain:.1,
+  gain:.25,
   panVoices:true,
   attack: 88200, decay:88200,
-  pan: Abs( Sine({ frequency:1 }) )
+  pan: Add( .5, Sine({ frequency:4, gain:.5 }) )
 })
+  
+verb = Freeverb({ input:Bus2(), decay:.95 }).connect()
  
-verb = Plate({ input:Bus2(), decay:.95, predelay:20 }).connect()
-
 syn.connect( verb.input )
 syn.chord( [110,220,330] )
-
 // There are lots of other effects to experiment with, check the
 // gibberish reference! (link at top of this page)

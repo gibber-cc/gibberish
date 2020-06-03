@@ -5,36 +5,50 @@ module.exports = function( Gibberish ) {
  
 let RingMod = inputProps => {
   let props   = Object.assign( {}, RingMod.defaults, effect.defaults, inputProps ),
-      ringMod = Object.create( effect )
+      ringMod = Object.create( effect ),
+      out
 
-  let isStereo = props.input.isStereo !== undefined ? props.input.isStereo : true 
-  
-  let input = g.in( 'input' ),
-      frequency = g.in( 'frequency' ),
-      gain = g.in( 'gain' ),
-      mix = g.in( 'mix' )
-  
-  let leftInput = isStereo ? input[0] : input,
-      sine = g.mul( g.cycle( frequency ), gain )
- 
-  let left = g.add( g.mul( leftInput, g.sub( 1, mix )), g.mul( g.mul( leftInput, sine ), mix ) ), 
-      right
+  ringMod.__createGraph = function() {
+    let isStereo = false
+    if( out === undefined ) {
+      isStereo = typeof props.input.isStereo !== 'undefined' ? props.input.isStereo : false 
+    }else{
+      isStereo = out.input.isStereo
+      out.isStereo = isStereo
+    }    
 
-  if( isStereo === true ) {
-    let rightInput = input[1]
-    right = g.add( g.mul( rightInput, g.sub( 1, mix )), g.mul( g.mul( rightInput, sine ), mix ) ) 
+    const input = g.in( 'input' ),
+          inputGain = g.in( 'inputGain' ),
+          frequency = g.in( 'frequency' ),
+          gain = g.in( 'gain' ),
+          mix = g.in( 'mix' )
     
-    Gibberish.factory( 
-      ringMod,
-      [ left, right ], 
-      'ringMod', 
-      props 
-    )
-  }else{
-    Gibberish.factory( ringMod, left, 'ringMod', props )
+    const leftInput = isStereo ? g.mul( input[0], inputGain ) : g.mul( input, inputGain ),
+          sine = g.mul( g.cycle( frequency ), gain )
+   
+    const left = g.add( g.mul( leftInput, g.sub( 1, mix )), g.mul( g.mul( leftInput, sine ), mix ) ) 
+        
+    if( isStereo === true ) {
+      const rightInput = g.mul( input[1], inputGain ),
+            right = g.add( g.mul( rightInput, g.sub( 1, mix )), g.mul( g.mul( rightInput, sine ), mix ) ) 
+      
+      ringMod.graph = [ left, right ]
+    }else{
+      ringMod.graph = left
+    }
   }
+
+  ringMod.__createGraph() 
+  ringMod.__requiresRecompilation = [ 'input' ]
+
+  out = Gibberish.factory( 
+    ringMod,
+    ringMod.graph, 
+    [ 'fx','ringMod'], 
+    props 
+  )
   
-  return ringMod
+  return out 
 }
 
 RingMod.defaults = {

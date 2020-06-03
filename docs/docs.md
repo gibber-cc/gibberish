@@ -198,6 +198,80 @@ conga.note( 440 )
 ### conga.gain ###
 *float* default: .25 This value controls the loudness of each note.
 
+Complex
+----
+*Prototype: [Gibberish.prototypes.instrument](#prototypes-instrument)*
+
+The `Complex` instrument provides an oscillator feeding a multi-stage wavefolder, accompanied by a filter and envelope. It gets its name from Bucla 259 Complex Waveform Generator, which was a classic sound of West Coast synthesis. In Buchla's oscillators, timbre is acheived through non-linear waveshaping / folding; this is different from subtractive synthesis, where you start with oscillators rich in harmonics and then remove harmonics using filtering. Another hallmark of West Coast synthesis is the LPG (low-pass gate) where exponential envelopes are tied directly to both filtering and amplitude. This is actually how the filters and envelopes work in all og Gibber's instruments, so you can think of the Complex instrument as being one (very) approximate recreation of the West Coast sound. 
+
+The non-linear distortion in the wavefolding for this instrument is determined by a `pregain` property which boosts the oscillator level before folding. The `postgain` property can then be used to scale back the output of the folding before the signal is filtered. 
+
+```javascript
+// run all at once
+
+complex = Gibberish.instruments.Complex({
+  pregain:50, decay:44100, attack:44 
+}).connect()
+
+Gibberish.Sequencer({ 
+  target:complex,
+  key:'pregain',
+  values:[ 5,10,25,50 ],
+  timings:[44100]
+}).start()
+
+
+Gibberish.Sequencer({ 
+  target:complex,
+  key:'note',
+  values:[ 2200 ],
+  timings:[ 44100 ]
+}).start()
+```
+
+#### Properties ####
+### complex.pregain###
+*float* default: 4. This controls the amount of gain applied to the instrument's oscillator before it is fed into the wavefolder. This is the primary driver of the oscillator's final timbre.
+### complex.postgain###
+*float* default: 1. This determines the amount of gain applied to the signal after folding and before filtering.
+### complex.antialias ###
+*boolean* default: false. If this property is true, both the carrier and modulator will use higher quality (and more computationally expensive) anti-aliasing oscillators.
+### complex.panVoices ###
+*boolean* default: false. If true, the synth will expose a pan property for stereo panning; otherwise, the synth is mono.
+### complex.pan ###
+*float* range: 0-1, default: .5. If the `panVoices` property of the synth is `true`, this property will determine the position of the synth in the stereo spectrum. `0` = left, `.5` = center, `1` = right. 
+### complex.attack ###
+*int* default: 44. The length of the attack portion of the synth's envelope measured in samples. The envelope modulates amplitude, the index property, and the filter cutoff frequency (if the filter is enabled. 
+### complex.decay ###
+*int* default: 22050. The length of the decay portion of the synth's envelope measured in samples. The envelope modulates amplitude, the index property, and the filter cutoff frequency (if the filter is enabled.
+### complex.sustain ###
+*int* default: 44100. The length of the sustain portion of the synth's envelope measured in samples. The envelope modulates amplitude, the index property, and the filter cutoff frequency (if the filter is enabled. Note that the sustain will last until the synth's `synth.env.release()` method is triggered if the synth's `triggerRelease` property is set to `true`.
+###complex.sustainLevel###
+*float* default: .6. The gain stage of the sustain portion of the synth's envelope. The envelope modulates amplitude, the index property, and the filter cutoff frequency (if the filter is enabled. Sustain and release are only used if the `useADSR` property of the synth is set to be true.
+### complex.release ###
+*int* default: 22050. The length of the decay portion of the synth's envelope measured in samples. The envelope modulates amplitude, the index property, and the filter cutoff frequency (if the filter is enabled.
+### complex.useADSR ###
+*bool* default: false. Determines whether a synth uses a two stage (AD) or four-stage (ADSR) envelope.
+### complex.triggerRelease ###
+*bool* default: false. Assuming a synth's `useADSR` property is also set to `true`, a value of `true` on this property will continue the sustain stage of an ADSR indefinitely until the synth's envelope receives a release  message (i.e `synth.env.release()`)
+### complex.gain ###
+*float* default: 1. A scalar applied to the output of the synth. It is modulated by the synth's envelope.
+### complex.carrierWaveform ###
+*string* default: 'sine'. Controls the waveform of the carrier oscillator. Choose between 'sine','saw','square', and 'pwm'.
+### complex.filterType ###
+*int* default: 0. Select a filter type. `0` - no filter.  `1` - Zero-delay (aka virtual analog) 4-pole Moog-style ladder filter. `2` - Zero-delay (aka virtual analog) resonant diode filter, modeled after the TB-303. `3` - State variable filter with multiple modes. `4` - Biquad filter with multiple modes. `5` - 'classic' Gibberish 4-pole resonant filter.
+### complex.filterMode ###
+*int* default: 0. Select a filter mode. `0` - low pass. `1` - high pass, available for filter types 3, 4, and 5. `2` -
+bandpass, available for filter types 3 and 4. `3` - notch, available efor filter type 4.
+### complex.cutoff ###
+*float* default: .5. Controls the cutoff frequncy of the filter, if enabled. Values are clamped to ranges between 0–1..
+### complex.filterMult ###
+*float* default: 2. Controls modulation applied to the cutoff frequency by the synth's envelope. For example, given a `cutoff` property of `.5` and a `filterMult` of `2`, the final cutoff frequency will vary between .5 and 1 as the envelope increases and decreases in value. Use low `cutoff` values and high `filterMult` values to create filter sweeps for each note that is played. 
+### complex.Q ###
+*float* default: .25 Controls the filter 'quality' (aka resonance), if the filter for the synth is enabled. Values are clamped between 0–1 to avoid blowing up the various filters.
+### complex.saturation ###
+*float* default: 1. For filter type 2 (modeled TB-303), this value controls a non-linear waveshaping (distortion) applied to the signal before entering the filter stage. A value of 1 means no saturation is added, higher values yield increasing distortion.
+
 Cowbell
 ----
 *Prototype: [Gibberish.prototypes.instrument](#prototypes-instrument)*
@@ -287,20 +361,18 @@ Gibberish.Sequencer({
 ### fm.modulatorWaveform ###
 *string* default: 'sine'. Controls the waveform of the modulating oscillator. Choose between 'sine','saw','square', and 'pwm'.
 ### fm.filterType ###
-*int* default: 0. Select a filter type. `0` - no filter. `1` - 'classic' Gibberish 4-pole resonant filter. `2` - Zero-delay (aka virtual analog) 4-pole Moog-style ladder filter. `2` - Zero-delay (aka virtual analog) resonant diode filter, modeled after the TB-303.
+*int* default: 0. Select a filter type. `0` - no filter.  `1` - Zero-delay (aka virtual analog) 4-pole Moog-style ladder filter. `2` - Zero-delay (aka virtual analog) resonant diode filter, modeled after the TB-303. `3` - State variable filter with multiple modes. `4` - Biquad filter with multiple modes. `5` - 'classic' Gibberish 4-pole resonant filter.
 ### fm.filterMode ###
-*int* default: 0. Select a filter mode. `0` - low pass. `1` - high pass, available for filter types 1, 4, and 5. `2` -
-bandpass, available for filter types 4 and 5. `3` - notch, available efor filter type 4.
+*int* default: 0. Select a filter mode. `0` - low pass. `1` - high pass, available for filter types 3, 4, and 5. `2` -
+bandpass, available for filter types 3 and 4. `3` - notch, available efor filter type 4.
 ### fm.cutoff ###
-*float* default: 440. Controls the cutoff frequncy of the filter, if enabled. IMPORTANT NOTE: If filter type 1 is chosen, the cutoff frequency should be provided as a value between 0 to 1... this will be connected in the future.
+*float* default: .5. Controls the cutoff frequncy of the filter, if enabled. Values are clamped to ranges between 0–1..
 ### fm.filterMult ###
-*float* default: 440. Controls modulation applied to the cutoff frequency by the synth's envelope. For example, given a `cutoff` property of `440` and a `filterMult` of `440`, the final cutoff frequency will vary between 440 and 880 Hz as the envelope increases and decreases in value. Use low `cutoff` values and high `filterMult` values to create filter sweeps for each note that is played. 
+*float* default: 2. Controls modulation applied to the cutoff frequency by the synth's envelope. For example, given a `cutoff` property of `.5` and a `filterMult` of `2`, the final cutoff frequency will vary between .5 and 1 as the envelope increases and decreases in value. Use low `cutoff` values and high `filterMult` values to create filter sweeps for each note that is played. 
 ### fm.Q ###
-*float* default: 8. Controls the filter 'quality' (aka resonance), if the filter for the synth is enabled. IMPORTANT NOTE: Be careful with this setting as all filters are potentially self-oscillating and can explode. For filter type 2, stay lower than 10 to be safe, and even lower than that using high cutoff frequencies. For filter type 3, stay lower than 20 to be safe, and again, adjust this value depending on cutoff / filterMult property values.
-### fm.resonance ###
-*float* default: 3.5. This property only affects the resonance for filter type 1. Values above 4 are typically self-oscillating, depending on the cutoff frequency.
+*float* default: .25 Controls the filter 'quality' (aka resonance), if the filter for the synth is enabled. Values are clamped between 0–1 to avoid blowing up the various filters.
 ### fm.saturation ###
-*float* default: 1. For filter type 3 (modeled TB-303), this value controls a non-linear waveshaping (distortion) applied to the signal before entering the filter stage. A value of 1 means no saturation is added, higher values yield increasing distortion.
+*float* default: 1. For filter type 2 (modeled TB-303), this value controls a non-linear waveshaping (distortion) applied to the signal before entering the filter stage. A value of 1 means no saturation is added, higher values yield increasing distortion.
 
 PolyFM
 ---
@@ -458,21 +530,19 @@ Gibberish.Sequencer({
 *boolean* default: false. If true, the synth will expose a pan property for stereo panning; otherwise, the synth is mono.
 ###monosynth.pan###
 *float* range: 0-1, default: .5. If the `panVoices` property of the synth is `true`, this property will determine the position of the synth in the stereo spectrum. `0` = left, `.5` = center, `1` = right. 
-###monosynth.filterType###
-*int* default: 1. Select a filter type. `0` - no filter. `1` - 'classic' Gibberish 4-pole resonant filter. `2` - Zero-delay (aka virtual analog) 4-pole Moog-style ladder filter. `2` - Zero-delay (aka virtual analog) resonant diode filter, modeled after the TB-303.
-###monosynth.filterMode###
-*int* default: 0. Select a filter mode. `0` - low pass. `1` - high pass, available for filter types 1, 4, and 5. `2` -
-bandpass, available for filter types 4 and 5. `3` - notch, available efor filter type 4.
-###monosynth.cutoff###
-*float* default: 440. Controls the cutoff frequncy of the filter, if enabled. IMPORTANT NOTE: If filter type 1 is chosen, the cutoff frequency should be provided as a value between 0 to 1... this will be connected in the future.
-###monosynth.filterMult###
-*float* default: 440. Controls modulation applied to the cutoff frequency by the synth's envelope. For example, given a `cutoff` property of `440` and a `filterMult` of `440`, the final cutoff frequency will vary between 440 and 880 Hz as the envelope increases and decreases in value. Use low `cutoff` values and high `filterMult` values to create filter sweeps for each note that is played. 
-###monosynth.Q###
-*float* default: 8. Controls the filter 'quality' (aka resonance), if the filter for the synth is enabled. IMPORTANT NOTE: Be careful with this setting as all filters are potentially self-oscillating and can explode. For filter type 2, stay lower than 10 to be safe, and even lower than that using high cutoff frequencies. For filter type 3, stay lower than 20 to be safe, and again, adjust this value depending on cutoff / filterMult property values.
-###monosynth.resonance###
-*float* default: 3.5. This property only affects the resonance for filter type 1. Values above 4 are typically self-oscillating, depending on the cutoff frequency.
-###monosynth.saturation###
-*float* default: 1. For filter type 3 (modeled TB-303), this value controls a non-linear waveshaping (distortion) applied to the signal before entering the filter stage. A value of 1 means no saturation is added, higher values yield increasing distortion.
+### monosynth.filterType ###
+*int* default: 0. Select a filter type. `0` - no filter.  `1` - Zero-delay (aka virtual analog) 4-pole Moog-style ladder filter. `2` - Zero-delay (aka virtual analog) resonant diode filter, modeled after the TB-303. `3` - State variable filter with multiple modes. `4` - Biquad filter with multiple modes. `5` - 'classic' Gibberish 4-pole resonant filter.
+### monosynth.filterMode ###
+*int* default: 0. Select a filter mode. `0` - low pass. `1` - high pass, available for filter types 3, 4, and 5. `2` -
+bandpass, available for filter types 3 and 4. `3` - notch, available efor filter type 4.
+### monosynth.cutoff ###
+*float* default: .5. Controls the cutoff frequncy of the filter, if enabled. Values are clamped to ranges between 0–1..
+### monosynth.filterMult ###
+*float* default: 2. Controls modulation applied to the cutoff frequency by the synth's envelope. For example, given a `cutoff` property of `.5` and a `filterMult` of `2`, the final cutoff frequency will vary between .5 and 1 as the envelope increases and decreases in value. Use low `cutoff` values and high `filterMult` values to create filter sweeps for each note that is played. 
+### monosynth.Q ###
+*float* default: .25 Controls the filter 'quality' (aka resonance), if the filter for the synth is enabled. Values are clamped between 0–1 to avoid blowing up the various filters.
+### monosynth.saturation ###
+*float* default: 1. For filter type 2 (modeled TB-303), this value controls a non-linear waveshaping (distortion) applied to the signal before entering the filter stage. A value of 1 means no saturation is added, higher values yield increasing distortion.
 
 PolyMono
 ---
@@ -591,21 +661,19 @@ Gibberish.Sequencer({
 *boolean* default: false. If true, the synth will expose a pan property for stereo panning; otherwise, the synth is mono.
 ###synth.pan###
 *float* range: 0-1, default: .5. If the `panVoices` property of the synth is `true`, this property will determine the position of the synth in the stereo spectrum. `0` = left, `.5` = center, `1` = right. 
-###synth.filterType###
-*int* default: 1. Select a filter type. `0` - no filter. `1` - 'classic' Gibberish 4-pole resonant filter. `2` - Zero-delay (aka virtual analog) 4-pole Moog-style ladder filter. `2` - Zero-delay (aka virtual analog) resonant diode filter, modeled after the TB-303.
-###synth.filterMode###
-*int* default: 0. Select a filter mode. `0` - low pass. `1` - high pass, available for filter types 1, 4, and 5. `2` -
-bandpass, available for filter types 4 and 5. `3` - notch, available efor filter type 4.
-###synth.cutoff###
-*float* default: 440. Controls the cutoff frequncy of the filter, if enabled. IMPORTANT NOTE: If filter type 1 is chosen, the cutoff frequency should be provided as a value between 0 to 1... this will be connected in the future.
-###synth.filterMult###
-*float* default: 440. Controls modulation applied to the cutoff frequency by the synth's envelope. For example, given a `cutoff` property of `440` and a `filterMult` of `440`, the final cutoff frequency will vary between 440 and 880 Hz as the envelope increases and decreases in value. Use low `cutoff` values and high `filterMult` values to create filter sweeps for each note that is played. 
-###synth.Q###
-*float* default: 8. Controls the filter 'quality' (aka resonance), if the filter for the synth is enabled. IMPORTANT NOTE: Be careful with this setting as all filters are potentially self-oscillating and can explode. For filter type 2, stay lower than 10 to be safe, and even lower than that using high cutoff frequencies. For filter type 3, stay lower than 20 to be safe, and again, adjust this value depending on cutoff / filterMult property values.
-###synth.resonance###
-*float* default: 3.5. This property only affects the resonance for filter type 1. Values above 4 are typically self-oscillating, depending on the cutoff frequency.
-###synth.saturation###
-*float* default: 1. For filter type 3 (modeled TB-303), this value controls a non-linear waveshaping (distortion) applied to the signal before entering the filter stage. A value of 1 means no saturation is added, higher values yield increasing distortion.
+### synth.filterType ###
+*int* default: 0. Select a filter type. `0` - no filter.  `1` - Zero-delay (aka virtual analog) 4-pole Moog-style ladder filter. `2` - Zero-delay (aka virtual analog) resonant diode filter, modeled after the TB-303. `3` - State variable filter with multiple modes. `4` - Biquad filter with multiple modes. `5` - 'classic' Gibberish 4-pole resonant filter.
+### synth.filterMode ###
+*int* default: 0. Select a filter mode. `0` - low pass. `1` - high pass, available for filter types 3, 4, and 5. `2` -
+bandpass, available for filter types 3 and 4. `3` - notch, available efor filter type 4.
+### synth.cutoff ###
+*float* default: .5. Controls the cutoff frequncy of the filter, if enabled. Values are clamped to ranges between 0–1..
+### synth.filterMult ###
+*float* default: 2. Controls modulation applied to the cutoff frequency by the synth's envelope. For example, given a `cutoff` property of `.5` and a `filterMult` of `2`, the final cutoff frequency will vary between .5 and 1 as the envelope increases and decreases in value. Use low `cutoff` values and high `filterMult` values to create filter sweeps for each note that is played. 
+### synth.Q ###
+*float* default: .25 Controls the filter 'quality' (aka resonance), if the filter for the synth is enabled. Values are clamped between 0–1 to avoid blowing up the various filters.
+### synth.saturation ###
+*float* default: 1. For filter type 2 (modeled TB-303), this value controls a non-linear waveshaping (distortion) applied to the signal before entering the filter stage. A value of 1 means no saturation is added, higher values yield increasing distortion.
 
 PolySynth
 ---
@@ -1053,9 +1121,9 @@ syn = Gibberish.instruments.Synth({ attack:44, decay:44100 * 4 })
 
 filter = Gibberish.filters.Filter12Biquad({ 
   input:syn,
-  mode:'LP',
-  cutoff: Add( 550, Sine({ frequency:2, gain:330 }) ),
-  Q: 20, 
+  mode:0,
+  cutoff: Add( .5, Sine({ frequency:2, gain:.5 }) ),
+  Q: .5, 
 }).connect()
 
 syn.note( 220 )
@@ -1065,11 +1133,11 @@ syn.note( 220 )
 ###filter12Biquad.input###
 *ugen* The unit generator that feeds the effect. Assign a `Bus` or `Bus2` instance to this property if you want multiple unit generators to connect to this effect.
 ###filter12Biquad.cutoff###
-*float* range: 0-nyquist, default:550. The cutoff frequency of the filter. 
+*float* range: 0-1, default:.05. The cutoff frequency of the filter. 
 ###filter12Biquad.Q###
-*float* range: .5-23, default: .75. Controls the resonance, or 'quality' of the filter. 
+*float* range: 0–1, default: .15. Controls the resonance, or 'quality' of the filter. 
 ###filter12Biquad.mode###
-*string* default: 'LP'. This property can only be set on initialization. Valid options are 'LP','HP', and 'BP'.
+*int* default: 0. 0 = lowpass, 1 = highpass, 2 = bandpass, 3 = notch.
 
 Filter12SVF
 ----
@@ -1083,8 +1151,8 @@ syn = Gibberish.instruments.Synth({ attack:44, decay:44100 * 4 })
 filter = Gibberish.filters.Filter12SVF({ 
   input:syn,
   mode:1, 
-  cutoff: Add( 550, Sine({ frequency:2, gain:330 }) ),
-  Q: 10, 
+  cutoff: Add( .5, Sine({ frequency:2, gain:.25 }) ),
+  Q: .5, 
 }).connect()
 
 syn.note( 220 )
@@ -1093,18 +1161,18 @@ syn.note( 220 )
 ####Properties####
 ###filter12SVF.input###
 *ugen* The unit generator that feeds the effect. Assign a `Bus` or `Bus2` instance to this property if you want multiple unit generators to connect to this effect.
-###filter12SVF.cutoff###
-*float* range: 0-nyquist, default:550. The cutoff frequency of the filter. 
+###filter12SVG.cutoff###
+*float* range: 0-1, default:.05. The cutoff frequency of the filter. 
 ###filter12SVF.Q###
-*float* range: .5-23, default: .75. Controls the resonance, or 'quality' of the filter. This filter tends to be stable with Q values between .5 and 20.
+*float* range: 0–1, default: .15. Controls the resonance, or 'quality' of the filter. 
 ###filter12SVF.mode###
-*int* default: 0. 0 = lowpass, 1 = hipass, 2 = bandpass, 3 = notch. This property can only be set on initialization.
+*int* default: 0. 0 = lowpass, 1 = hipass, 2 = bandpass.
 
 Filter24Classic
 ----
 *Prototype: [Gibberish.prototypes.filter](#prototypes-filter)*
 
-The `Filter24Classic` is a four-pole, 24dB-per-octave resonant filter that can operate in either low pass or high pass mode. It is the original filter used in Gibberish. TODO: switch filter to use frequencies in Hz for cutoff.
+The `Filter24Classic` is a four-pole, 24dB-per-octave resonant filter that can operate in either low pass or high pass mode. It is the original filter used in Gibberish.
  
 ```javascript
 syn = Gibberish.instruments.Synth({ attack:44, decay:44100 * 4 })
@@ -1112,7 +1180,7 @@ syn = Gibberish.instruments.Synth({ attack:44, decay:44100 * 4 })
 filter = Gibberish.filters.Filter24Classic({ 
   input:syn,
   cutoff: Add( .2, Sine({ frequency:2, gain:.15 }) ),
-  Q: 3.5, 
+  Q: .25, 
 }).connect()
 
 syn.note( 220 )
@@ -1122,9 +1190,11 @@ syn.note( 220 )
 ###filter24Classic.input###
 *ugen* The unit generator that feeds the effect. Assign a `Bus` or `Bus2` instance to this property if you want multiple unit generators to connect to this effect.
 ###filter24Classic.cutoff###
-*float* range: 0-1, default:.25. The cutoff frequency of the filter. 
-###filter24Classic.resonance###
-*float* range: 0-4.5, default: 3. Controls the resonance, or 'quality' of the filter. With values above 4.5 this filter is highly unstable.
+*float* range: 0-1, default:.05. The cutoff frequency of the filter. 
+###filter24Classic.Q###
+*float* range: 0–1, default: .15. Controls the resonance, or 'quality' of the filter. 
+###filter24Classic.mode###
+*int* default: 0. 0 = lowpass, 1 = hipass, 2 = bandpass.
 
 Filter24Moog
 ----
@@ -1137,8 +1207,8 @@ syn = Gibberish.instruments.Synth({ attack:44, decay:44100 * 4 })
 
 filter = Gibberish.filters.Filter24Moog({ 
   input:syn,
-  cutoff: Gibberish.binops.Add( 440, Gibberish.oscillators.Sine({ frequency:2, gain:330 }) ),
-  Q: 18.5, 
+  cutoff: Gibberish.binops.Add( .25, Gibberish.oscillators.Sine({ frequency:2, gain:.35 }) ),
+  Q: .8, 
 }).connect()
 
 syn.note( 220 )
@@ -1148,9 +1218,9 @@ syn.note( 220 )
 ###filter24Moog.input###
 *ugen* The unit generator that feeds the effect. Assign a `Bus` or `Bus2` instance to this property if you want multiple unit generators to connect to this effect.
 ###filter24Moog.cutoff###
-*float* range: 0-nyquist, default:440. The cutoff frequency of the filter. 
+*float* range: 0-1, default:.05. The cutoff frequency of the filter. 
 ###filter24Moog.Q###
-*float* range: 0-23, default: 5. Controls the resonance, or 'quality' of the filter. With values above 20 this filter is highly unstable.
+*float* range: 0–1, default: .15. Controls the resonance, or 'quality' of the filter. 
 
 Filter24TB303
 ----
@@ -1163,8 +1233,8 @@ syn = Gibberish.instruments.Synth({ attack:44, decay:44100 * 4 })
 
 filter = Gibberish.filters.Filter24TB303({ 
   input:syn,
-  cutoff: Gibberish.binops.Add( 440, Gibberish.oscillators.Sine({ frequency:2, gain:330 }) ),
-  Q: 9.5, 
+  cutoff: Gibberish.binops.Add( .25, Gibberish.oscillators.Sine({ frequency:2, gain:.2 }) ),
+  Q: .9, 
 }).connect()
 
 syn.note( 220 )
@@ -1174,9 +1244,9 @@ syn.note( 220 )
 ###filter24TB303.input###
 *ugen* The unit generator that feeds the effect. Assign a `Bus` or `Bus2` instance to this property if you want multiple unit generators to connect to this effect.
 ###filter24TB303.cutoff###
-*float* range: 0-nyquist, default:440. The cutoff frequency of the filter.
+*float* range: 0-1, default:.05. The cutoff frequency of the filter. 
 ###filter24TB303.Q###
-*float* range: 0-12, default: 5. Controls the resonance, or 'quality' of the filter. With values above 9 this filter is highly unstable.
+*float* range: 0–1, default: .15. Controls the resonance, or 'quality' of the filter.
 ###filter24TB303.saturation###
 *float* range: 1-?, default: 1. Values higher than one add non-linear waveshaping to the signal before it is filtered, creating distortion.
 

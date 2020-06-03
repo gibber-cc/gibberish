@@ -2,15 +2,28 @@ const g = require( 'genish.js' ),
       instrument = require( './instrument.js' )
 
 module.exports = function( Gibberish ) {
-  let proto = Object.create( instrument )
+  const proto = Object.create( instrument )
+  const memo = {}
 
   Object.assign( proto, {
     note( rate ) {
       this.rate = rate
       if( rate > 0 ) {
-        this.trigger()
+        this.__trigger()
       }else{
-        this.__phase__.value = this.data.buffer.length - 1 
+        this.__phase__.value = this.end * (this.data.buffer.length - 1)
+      }
+    },
+    trigger( volume ) {
+      if( volume !== undefined ) this.gain = volume
+
+      if( Gibberish.mode === 'processor' ) {
+        // if we're playing the sample forwards...
+        if( Gibberish.memory.heap[ this.__rateStorage__.memory.values.idx ] > 0 ) {
+          this.__trigger()
+        }else{
+          this.__phase__.value = this.end * (this.data.buffer.length - 1)
+        }
       }
     },
   })
@@ -23,58 +36,153 @@ module.exports = function( Gibberish ) {
     syn.isStereo = props.isStereo !== undefined ? props.isStereo : false
 
     const start = g.in( 'start' ), end = g.in( 'end' ), 
-          rate = g.in( 'rate' ), shouldLoop = g.in( 'loops' )
-
-    /* 
-     * create dummy ugen until data for sampler is loaded...
-     * this will be overridden by a call to Gibberish.factory on load 
-     */
-
-    syn.callback = function() { return 0 }
-    syn.id = Gibberish.factory.getUID()
-    syn.ugenName = syn.callback.ugenName = 'sampler_' + syn.id
-    syn.inputNames = []
-
-    /* end dummy ugen */
-
-    syn.__bang__ = g.bang()
-    syn.trigger = syn.__bang__.trigger
+          bufferLength = g.in( 'bufferLength' ), 
+          rate = g.in( 'rate' ), shouldLoop = g.in( 'loops' ),
+          loudness = g.in( 'loudness' ),
+          triggerLoudness = g.in( '__triggerLoudness' ),
+          // rate storage is used to determine whether we're playing
+          // the sample forward or in reverse, for use in the 'trigger' method.
+          rateStorage = g.data([0], 1, { meta:true })
 
     Object.assign( syn, props )
 
-    if( props.filename ) {
-      syn.data = g.data( props.filename )
+    if( Gibberish.mode === 'worklet' ) {
+      syn.__meta__ = {
+        address:'add',
+        name: ['instruments', 'Sampler'],
+        properties: JSON.stringify(props), 
+        id: syn.id
+      }
 
-      syn.data.onload = () => {
-        syn.__phase__ = g.counter( rate, start, end, syn.__bang__, shouldLoop, { shouldWrap:false })
+      Gibberish.worklet.ugens.set( syn.id, syn )
 
-        Gibberish.factory( 
-          syn,
-          g.mul( 
-          g.ifelse( 
-            g.and( g.gte( syn.__phase__, start ), g.lt( syn.__phase__, end ) ),
-            g.peek( 
-              syn.data, 
-              syn.__phase__,
-              { mode:'samples' }
-            ),
-            0
-          ), g.in('gain') ),
-          'sampler', 
-          props 
-        ) 
+      Gibberish.worklet.port.postMessage( syn.__meta__ )
+    }
 
-        if( syn.end === -999999999 ) syn.end = syn.data.buffer.length - 1
+    syn.__createGraph = function() {
+      syn.__bang__ = g.bang()
+      syn.__trigger = syn.__bang__.trigger
 
-        if( syn.onload !== null ) { syn.onload() }
+      syn.__phase__ = g.counter( rate, g.mul(start,bufferLength), g.mul( end, bufferLength ), syn.__bang__, shouldLoop, { shouldWrap:false, initialValue:9999999 })
+      
+      syn.__rateStorage__ = rateStorage
+      rateStorage[0] = rate
 
-        Gibberish.dirty( syn )
+      // XXX we added our recorded 'rate' param and then effectively subtract it,
+      // so that its presence in the graph will force genish to actually record the 
+      // rate as the input. this is extremely hacky... there should be a way to record
+      // value without having to include it in the graph!
+      syn.graph = g.add( g.mul( 
+        g.ifelse( 
+          g.and( g.gte( syn.__phase__, g.mul(start,bufferLength) ), g.lt( syn.__phase__, g.mul(end,bufferLength) ) ),
+          g.peek( 
+            syn.data, 
+            syn.__phase__,
+            { mode:'samples' }
+          ),
+          0
+        ), 
+        g.mul( g.mul( loudness, triggerLoudness ), g.in('gain') )
+      ), rateStorage[0], g.mul( rateStorage[0], -1 ) )
+      
+      if( syn.panVoices === true ) { 
+        const panner = g.pan( syn.graph, syn.graph, g.in( 'pan' ) ) 
+        syn.graph = [ panner.left, panner.right ]
       }
     }
 
-    return syn
+    const onload = (buffer,filename) => {
+      if( buffer === undefined ) return
+      if( Gibberish.mode === 'worklet' ) {
+        //const memIdx = memo[ filename ].idx !== undefined ? memo[ filename ].idx : Gibberish.memory.alloc( syn.data.memory.values.length, true )
+
+        const memIdx = Gibberish.memory.alloc( buffer.length, true )
+        //memo[ filename ].idx = memIdx
+
+        Gibberish.worklet.port.postMessage({
+          address:'copy',
+          id:     syn.id,
+          idx:    memIdx,
+          buffer
+        })
+
+      }else if ( Gibberish.mode === 'processor' ) {
+        syn.data.buffer = buffer
+        syn.data.memory.values.length = syn.data.dim = buffer.length
+        syn.__redoGraph() 
+      }
+
+      if( typeof syn.onload === 'function' ){  
+        syn.onload( buffer || syn.data.buffer )
+      }
+      if( syn.bufferLength === -999999999 && syn.data.buffer !== undefined ) syn.bufferLength = syn.data.buffer.length - 1
+    }
+
+    //if( props.filename ) {
+    syn.loadFile = function( filename ) {
+      //if( memo[ filename ] === undefined ) {
+        if( Gibberish.mode !== 'processor' ) {
+          syn.data = g.data( filename, 1, { onload })
+
+
+          // check to see if a promise is returned; a valid
+          // data object is only return if the file has been
+          // previously loaded and the corresponding buffer has
+          // been cached.
+          if( syn.data instanceof Promise ) {
+            syn.data.then( d => {
+              syn.data = d
+              memo[ filename ] = syn.data
+              onload( d.buffer, filename )
+            })
+          }else{
+            // using a cached data buffer, no need
+            // for asynchronous loading.
+            memo[ filename ] = syn.data
+            onload( syn.data.buffer, filename )
+          }     
+        }else{
+          syn.data = g.data( new Float32Array(), 1, { onload, filename })
+          //memo[ filename ] = syn.data
+        }
+      //}else{
+      //  syn.data = memo[ filename ]
+      //  console.log( 'memo data:', syn.data )
+      //  onload( syn.data.buffer, filename )
+      //}
+    }
+
+    syn.loadBuffer = function( buffer ) {
+      if( Gibberish.mode === 'processor' ) {
+        syn.data.buffer = buffer
+        syn.data.memory.values.length = syn.data.dim = buffer.length
+        syn.__redoGraph() 
+      }
+    }
+
+    if( props.filename !== undefined ) {
+      syn.loadFile( props.filename )
+    }else{
+      syn.data = g.data( new Float32Array() )
+    }
+
+    if( syn.data !== undefined ) {
+      syn.data.onload = onload
+
+      syn.__createGraph()
+    }
+    
+
+
+    const out = Gibberish.factory( 
+      syn,
+      syn.graph,
+      ['instruments','sampler'], 
+      props 
+    ) 
+
+    return out
   }
-  
 
   Sampler.defaults = {
     gain: 1,
@@ -83,7 +191,10 @@ module.exports = function( Gibberish ) {
     panVoices:false,
     loops: 0,
     start:0,
-    end:-999999999,
+    end:1,
+    bufferLength:-999999999,
+    loudness:1,
+    __triggerLoudness:1
   }
 
   const envCheckFactory = function( voice, _poly ) {
@@ -101,7 +212,8 @@ module.exports = function( Gibberish ) {
     return envCheck
   }
 
-  const PolySampler = Gibberish.PolyTemplate( Sampler, ['rate','pan','gain','start','end','loops'], envCheckFactory ) 
+  const PolySampler = Gibberish.PolyTemplate( Sampler, ['rate','pan','gain','start','end','loops','bufferLength','__triggerLoudness','loudness'], envCheckFactory ) 
 
   return [ Sampler, PolySampler ]
 }
+

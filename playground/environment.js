@@ -17,24 +17,24 @@ window.onload = function() {
   cmconsole = CodeMirror( document.querySelector('#main'), {
     mode:'javascript',
     value:
-`// genish playground, v0.0.1
-// https://github.com/charlieroberts/genish.js`,
+`// gibberish playground, v0.0.2
+// https://github.com/gibber-cc/gibberish.js`,
     readOnly:'nocursor',
   })     
 
   cmconsole.setSize( null, '100%' )
 
-  Gibberish.init()
-  Gibberish.export( window )
+  Gibberish.workletPath = '../dist/gibberish_worklet.js' 
+  Gibberish.init().then( ()=> {
+    Gibberish.export( window )
+  })
 
   environment.editor = cm
   environment.console = cmconsole
   window.Environment = environment
 
-  environment.displayCallbackUpdates = function() {
-    Gibberish.oncallback = function( cb ) {
-      environment.console.setValue( cb.toString() )
-    }
+  Gibberish.oncallback = function( cb ) {
+    environment.console.setValue( fixCallback( cb.toString() ) )
   }
 
   let select = document.querySelector( 'select' ),
@@ -50,7 +50,7 @@ window.onload = function() {
       'making_ugens.js',
       'phasing.js',
       'ssd.js',
-      'solina.js',
+      //'solina.js',
       'three03.js',
       'fm.js'
     ]
@@ -130,7 +130,6 @@ CodeMirror.keyMap.playground =  {
     }
     
     Gibberish.generateCallback()
-    cmconsole.setValue( fixCallback( Gibberish.callback.toString() ) )
   },
   'Alt-Enter'( cm ) {
     try {
@@ -146,7 +145,6 @@ CodeMirror.keyMap.playground =  {
     }
     
     Gibberish.generateCallback()
-    cmconsole.setValue( fixCallback( Gibberish.callback.toString() ) )
   },
   'Ctrl-.'( cm ) {
     Gibberish.clear()
@@ -155,7 +153,6 @@ CodeMirror.keyMap.playground =  {
       dat.GUI.__all__.length = 0
     }
     Gibberish.generateCallback()
-    cmconsole.setValue( fixCallback( Gibberish.callback.toString() ) )
   },
 }
 

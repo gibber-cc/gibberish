@@ -40,11 +40,11 @@ synth.connect( Gibberish.out )
 synth.note( 220 )
 
 // change the attack time (measured in samples)
-synth.attack = 44
+synth.attack = 44100
 synth.note( 220 )
 
 // this can be shortened to:
-synthB = Synth({ attack:44 }).connect()
+synthB = Synth({ attack:44100 }).connect()
 synthB.note( 330 )
 
 // clear all DSP
@@ -57,10 +57,10 @@ kick = Kick().connect()
 seq = Sequencer({ target:kick, key:'note', values:[120], timings:[22050] }).start()
 
 // add another frequency to the sequence
-seq.values.push( 240 )
+seq.values = [120,240]
 
 // faster!
-seq.timings[0] /= 2
+seq.timings = [11025]
 
 // clear
 Gibberish.clear()
@@ -86,4 +86,8 @@ seq.start()
 // modulate our synth's cutoff frequency, which is in the range
 // of 0..1
 synth.cutoff = Add( .75, Sine({ frequency:.1, gain:.375 }) )
-synth.Q = .7
+
+// be careful when adjusting the Q... setting it to too high
+// a value can cause the synth's filter to blow up (and possibly
+// your eardrums as well).
+synth.Q = .75

@@ -9,7 +9,7 @@ module.exports = function() {
 
   const white = ( noise() * 2 ) - 1
 
-  let out = last.out + (.02 * white) / 1.02
+  let out = (last.out + (.02 * white)) / 1.02
 
   last.in( out )
 

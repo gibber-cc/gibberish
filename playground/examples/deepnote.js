@@ -14,7 +14,8 @@ course of a minute.
 
 This is just a quick sample; there are many tutorials and other demos in the
 menu at the top of the page, as well as a full API reference. Gibberish is
-made using genish.js (http://charlie-roberts.com/genish). */
+made using genish.js (http://charlie-roberts.com/genish). The code that
+Gibberish compiles and runs will be displayed to the right. */
 
 
 // select all code and hit Ctrl+Enter to run.

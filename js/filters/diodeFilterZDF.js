@@ -1,8 +1,9 @@
 const g = require( 'genish.js' ),
       filter = require( './filter.js' )
 
+const genish = g
 module.exports = function( Gibberish ) {
-  Gibberish.genish.diodeZDF = ( input, _Q, freq, saturation, isStereo=false ) => {
+  Gibberish.genish.diodeZDF = ( input, __Q, __freq, saturation, isStereo=false ) => {
     const iT = 1 / g.gen.samplerate,
           kz1 = g.history(0),
           kz2 = g.history(0),
@@ -15,7 +16,11 @@ module.exports = function( Gibberish ) {
           ka4 = 0.5,
           kindx = 0   
 
-    const Q = g.memo( g.add( .5, g.mul( _Q, 11 ) ) )
+    const freq = g.mul( g.max(.005, g.min( __freq, .995)),  genish.gen.samplerate / 2 )
+    //const freq = g.max(.005, g.min( __freq, .995))
+
+    // XXX this is where the magic number hapens for Q...
+    const Q = g.memo( g.add( .5, g.mul( __Q, g.add( 5, g.sub( 5, g.mul( g.div( freq, 20000  ), 5 ) ) ) ) ) )
     // kwd = 2 * $M_PI * acf[kindx]
     const kwd = g.memo( g.mul( Math.PI * 2, freq ) )
 
@@ -93,7 +98,7 @@ module.exports = function( Gibberish ) {
     //endif
     //
     //const kin = input 
-    let kin = input//g.memo( g.mul( g.div( 1, g.tanh( saturation ) ), g.tanh( g.mul( saturation, input ) ) ) )
+    let kin = isStereo === true ? g.add( input[0], input[1] ) : input//g.memo( g.mul( g.div( 1, g.tanh( saturation ) ), g.tanh( g.mul( saturation, input ) ) ) )
     kin = g.tanh( g.mul( saturation, kin ) )
 
     const kun = g.div( g.sub( kin, g.mul( Q, kSIGMA ) ), g.add( 1, g.mul( Q, kGAMMA ) ) )
@@ -169,9 +174,9 @@ module.exports = function( Gibberish ) {
     }else{
      // returnValue = klp
     }
-    returnValue = klp
+    //returnValue = klp
     
-    return returnValue// klp//returnValue
+    return klp
  }
 
   const DiodeZDF = inputProps => {
@@ -179,21 +184,23 @@ module.exports = function( Gibberish ) {
     const props    = Object.assign( {}, DiodeZDF.defaults, filter.defaults, inputProps )
     const isStereo = props.input.isStereo 
 
-    Gibberish.factory(
+    Object.assign( zdf, props )
+
+    const __out = Gibberish.factory(
       zdf, 
       Gibberish.genish.diodeZDF( g.in('input'), g.in('Q'), g.in('cutoff'), g.in('saturation'), isStereo ), 
-      'diodeZDF',
+      ['filters','Filter24TB303'],
       props
     )
 
-    return zdf
+    return __out 
   }
 
   DiodeZDF.defaults = {
     input:0,
-    Q: 5,
+    Q: .65,
     saturation: 1,
-    cutoff: 440,
+    cutoff:.5 
   }
 
   return DiodeZDF

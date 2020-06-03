@@ -1,5 +1,5 @@
 const  g    = require( 'genish.js'  ),
-       ugen = require( '../ugen.js' )
+       ugen = require( '../ugen.js' )()
 
 module.exports = function( Gibberish ) {
 
@@ -16,16 +16,16 @@ module.exports = function( Gibberish ) {
       const abs = Object.create( ugen )
       const graph = g.abs( g.in('input') )
       
-      Gibberish.factory( abs, graph, 'abs', Object.assign({}, Monops.defaults, { input }) )
+      const __out = Gibberish.factory( abs, graph, ['monops','abs'], Object.assign({}, Monops.defaults, { inputs:[input], isop:true }) )
 
-      return abs
+      return __out
     },
 
     Pow( input, exponent ) {
       const pow = Object.create( ugen )
       const graph = g.pow( g.in('input'), g.in('exponent') )
       
-      Gibberish.factory( pow, graph, 'pow', Object.assign({}, Monops.defaults, { input, exponent }) )
+      Gibberish.factory( pow, graph, ['monops','pow'], Object.assign({}, Monops.defaults, { inputs:[input], exponent, isop:true }) )
 
       return pow
     },
@@ -33,9 +33,9 @@ module.exports = function( Gibberish ) {
       const clamp = Object.create( ugen )
       const graph = g.clamp( g.in('input'), g.in('min'), g.in('max') )
       
-      Gibberish.factory( clamp, graph, 'clamp', Object.assign({}, Monops.defaults, { input, min, max }) )
+      const __out = Gibberish.factory( clamp, graph, ['monops','clamp'], Object.assign({}, Monops.defaults, { inputs:[input], isop:true, min, max }) )
 
-      return clamp
+      return __out
     },
 
     Merge( input ) {
@@ -44,7 +44,7 @@ module.exports = function( Gibberish ) {
         return _input[0] + _input[1]
       }
 
-      Gibberish.factory( merger, g.in( 'input' ), 'merge', { input }, cb )
+      Gibberish.factory( merger, g.in( 'input' ), ['monops','merge'], { inputs:[input], isop:true }, cb )
       merger.type = 'analysis'
       merger.inputNames = [ 'input' ]
       merger.inputs = [ input ]

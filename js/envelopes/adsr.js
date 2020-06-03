@@ -13,17 +13,19 @@ module.exports = function( Gibberish ) {
 
     const props = Object.assign( {}, ADSR.defaults, argumentProps )
 
+    Object.assign( adsr, props )
+
     const graph = g.adsr( 
       attack, decay, sustain, sustainLevel, release, 
       { triggerRelease: props.triggerRelease, shape:props.shape, alpha:props.alpha } 
     )
 
-    Gibberish.factory( adsr, graph, 'adsr', props )
-
     adsr.trigger = graph.trigger
     adsr.advance = graph.release
 
-    return adsr
+    const __out = Gibberish.factory( adsr, graph, ['envelopes','ADSR'], props )
+
+    return __out 
   }
 
   ADSR.defaults = { 

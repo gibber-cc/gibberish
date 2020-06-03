@@ -1,57 +1,91 @@
-const Queue = require( '../external/priorityqueue.js' )
-const Big   = require( 'big.js' )
+const __proxy = require( '../workletProxy.js' )
 
 module.exports = function( Gibberish ) {
 
-let Sequencer = props => {
-  let seq = {
+const proxy = __proxy( Gibberish )
+
+const Sequencer = props => {
+  let __seq
+  const seq = {
     __isRunning:false,
-    key: props.key, 
-    target:  props.target,
-    values:  props.values,
-    timings: props.timings,
+
     __valuesPhase:  0,
     __timingsPhase: 0,
-    priority: props.priority === undefined ? 0 : props.priority,
+    __type:'seq',
 
-    tick() {
-      let value  = seq.values[  seq.__valuesPhase++  % seq.values.length  ],
-          timing = seq.timings[ seq.__timingsPhase++ % seq.timings.length ]
+    tick( priority ) {
+      let value  = typeof seq.values  === 'function' ? seq.values  : seq.values[  seq.__valuesPhase++  % seq.values.length  ],
+          timing = typeof seq.timings === 'function' ? seq.timings : seq.timings[ seq.__timingsPhase++ % seq.timings.length ],
+          shouldRun = true
 
       if( typeof timing === 'function' ) timing = timing()
 
-      if( typeof value === 'function' && seq.target === undefined ) {
-        value()
-      }else if( typeof seq.target[ seq.key ] === 'function' ) {
-        if( typeof value === 'function' ) value = value()
-        seq.target[ seq.key ]( value )
-      }else{
-        if( typeof value === 'function' ) value = value()
-        seq.target[ seq.key ] = value
+      // XXX this supports an edge case in Gibber, where patterns like Euclid / Hex return
+      // objects indicating both whether or not they should should trigger values as well
+      // as the next time they should run. perhaps this could be made more generalizable?
+      if( typeof timing === 'object' ) {
+        if( timing.shouldExecute === 1 ) {
+          shouldRun = true
+        }else{
+          shouldRun = false
+        }
+        timing = timing.time 
+      }
+
+      timing *= seq.rate
+
+      if( shouldRun ) {
+        if( seq.mainthreadonly !== undefined ) {
+          if( typeof value === 'function' ) {
+            value = value()
+          }
+          Gibberish.processor.messages.push( seq.mainthreadonly, seq.key, value )
+        }else if( typeof value === 'function' && seq.target === undefined ) {
+          value()
+        }else if( typeof seq.target[ seq.key ] === 'function' ) {
+          if( typeof value === 'function' ) value = value()
+          seq.target[ seq.key ]( value )
+        }else{
+          if( typeof value === 'function' ) value = value()
+          seq.target[ seq.key ] = value
+        }
       }
       
-      if( seq.__isRunning === true ) {
-        Gibberish.scheduler.add( timing, seq.tick, seq.priority )
+      if( Gibberish.mode === 'processor' ) {
+        if( seq.__isRunning === true && !isNaN( timing ) ) {
+          Gibberish.scheduler.add( timing, seq.tick, seq.priority )
+        }
       }
     },
 
     start( delay = 0 ) {
       seq.__isRunning = true
       Gibberish.scheduler.add( delay, seq.tick, seq.priority )
-      return seq
+      return __seq
     },
 
     stop() {
       seq.__isRunning = false
-      return seq
+      return __seq
     }
   }
 
-  return seq 
+  props.id = Gibberish.factory.getUID()
+
+  // need a separate reference to the properties for worklet meta-programming
+  const properties = Object.assign( {}, Sequencer.defaults, props )
+  Object.assign( seq, properties ) 
+  seq.__properties__ = properties
+
+  __seq =  proxy( ['Sequencer'], properties, seq )
+
+  return __seq
 }
 
-Sequencer.make = function( values, timings, target, key ) {
-  return Sequencer({ values, timings, target, key })
+Sequencer.defaults = { priority:100000, values:[], timings:[], rate:1 }
+
+Sequencer.make = function( values, timings, target, key, priority ) {
+  return Sequencer({ values, timings, target, key, priority })
 }
 
 return Sequencer

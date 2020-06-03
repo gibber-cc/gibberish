@@ -1,105 +1,36 @@
-/*let g = require( 'genish.js' ),
-    ugen = require( '../ugen.js' )
-
-module.exports = function( Gibberish ) {
-  
-  const Bus2 = Object.create( ugen )
-
-  Object.assign( Bus2, {
-    __gain : {
-      set( v ) {
-        this.mul.inputs[ 1 ] = v
-        Gibberish.dirty( this )
-
-      },
-      get() {
-        return this.mul[ 1 ]
-      }
-    },
-
-    __addInput( input ) {
-      if( input.isStereo || Array.isArray( input ) ) {
-        console.log('stereo', input )
-        this.sumL.inputs.push( input[0] )
-        this.sumR.inputs.push( input[0] )        
-      }else{
-        console.log( 'mono', input )
-        this.sumL.inputs.push( input )
-        this.sumR.inputs.push( input )
-      }
-
-      Gibberish.dirty( this )
-    },
-
-    create( _props ) {
-      const props = Object.assign({}, Bus2.defaults, _props )
-
-      const inputsL = [], inputsR = []
-
-      props.inputs.forEach( i => {
-        if( i.isStereo || Array.isArray( i ) ) {
-          inputsL.push( i[0] ) 
-          inputsR.push( i[1] )
-        }else{ 
-          inputsL.push( i ) 
-          inputsR.push( i )
-        }  
-      })
-
-      const sumL = Gibberish.binops.Add( ...inputsL )
-      const mulL = Gibberish.binops.Mul( sumL, props.gain )
-      const sumR = Gibberish.binops.Add( ...inputsR )
-      const mulR = Gibberish.binops.Mul( sumR, props.gain )
-
-      const graph = Gibberish.Panner({ input:mulL, pan: props.pan })
-
-      Object.assign( graph, { sumL, mulL, sumR, mulR, __addInput:Bus2.__addInput, disconnectUgen:Bus2.disconnectUgen  })
-
-      graph.isStereo = true
-      graph.inputs = props.inputs
-      //graph.type = 'bus'
-
-      Object.defineProperty( graph, 'gain', Bus2.__gain )
-
-      return graph
-    },
-
-    disconnectUgen( ugen ) {
-      let removeIdx = this.sum.inputs.indexOf( ugen )
-
-      if( removeIdx !== -1 ) {
-        this.sum.inputs.splice( removeIdx, 1 )
-        Gibberish.dirty( this )
-      }
-    },
-
-    defaults: { gain:1, inputs:[0], pan:.5 }
-  })
-
-  return Bus2.create.bind( Bus2 )
-
-}
-*/
-
-
 const g = require( 'genish.js' ),
-      ugen = require( '../ugen.js' )
+      ugen = require( '../ugen.js' )(),
+      __proxy = require( '../workletProxy.js' )
+
 
 module.exports = function( Gibberish ) {
   const Bus2 = Object.create( ugen )
+  const proxy = __proxy( Gibberish )
 
   let bufferL, bufferR
   
   Object.assign( Bus2, { 
-    create( props ) {
+    create( __props ) {
+
       if( bufferL === undefined ) {
-        bufferL = Gibberish.genish.gen.globals.panL.memory.values.idx
-        bufferR = Gibberish.genish.gen.globals.panR.memory.values.idx
+        const p = g.pan()
+        
+        // copy memory... otherwise the wavetables don't have memory indices.
+        bufferL = Gibberish.memory.alloc(1024)
+        Gibberish.memory.heap.set( Gibberish.genish.gen.globals.panL.buffer, bufferL )
+
+        bufferR = Gibberish.memory.alloc(1024)
+        Gibberish.memory.heap.set( Gibberish.genish.gen.globals.panR.buffer, bufferR )
       }
 
-      var output = new Float32Array( 2 )
+      // XXX must be same type as what is returned by genish for type checks to work correctly
+      const output = new Float64Array( 2 ) 
 
-      var bus = Object.create( Bus2 )
+      const bus = Object.create( Bus2 )
+
+      let init = false
+
+      const props = Object.assign({}, Bus2.defaults, __props )
 
       Object.assign( 
         bus,
@@ -107,35 +38,47 @@ module.exports = function( Gibberish ) {
         {
           callback() {
             output[ 0 ] = output[ 1 ] = 0
-            var lastIdx = arguments.length - 1
-            var memory  = arguments[ lastIdx ]
+            const lastIdx = arguments.length - 1
+            const memory  = arguments[ lastIdx ]
+            let pan  = arguments[ lastIdx - 1 ]
+            const gain = arguments[ lastIdx - 2 ]
 
-            for( var i = 0; i < lastIdx; i++ ) {
-              var input = arguments[ i ],
-                  isArray = input instanceof Float32Array
+            for( let i = 0; i < lastIdx - 2; i+= 3 ) {
+              const input = arguments[ i ],
+                    level = arguments[ i + 1 ],
+                    isStereo = arguments[ i + 2 ]
 
-              output[ 0 ] += isArray ? input[ 0 ] : input
-              output[ 1 ] += isArray ? input[ 1 ] : input
+              output[ 0 ] += isStereo === true ? input[ 0 ] * level : input * level
+
+              output[ 1 ] += isStereo === true ? input[ 1 ] * level : input * level
             }
 
-            var panRawIndex  = .5 * 1023,
-                panBaseIndex = panRawIndex | 0,
-                panNextIndex = (panBaseIndex + 1) & 1023,
-                interpAmount = panRawIndex - panBaseIndex,
-                panL = memory[ bufferL + panBaseIndex ] 
-                  + ( interpAmount * ( memory[ bufferL + panNextIndex ] - memory[ bufferL + panBaseIndex ] ) ),
-                panR = memory[ bufferR + panBaseIndex ] 
-                  + ( interpAmount * ( memory[ bufferR + panNextIndex ] - memory[ bufferR + panBaseIndex ] ) )
+            if( pan < 0 ) {
+              pan = 0
+            }else if( pan > 1 ){
+              pan = 1
+            }
+
+            const panRawIndex  = pan * 1023,
+                  panBaseIndex = panRawIndex | 0,
+                  panNextIndex = (panBaseIndex + 1) & 1023,
+                  interpAmount = panRawIndex - panBaseIndex,
+                  panL = memory[ bufferL + panBaseIndex ] 
+                    + ( interpAmount * ( memory[ bufferL + panNextIndex ] - memory[ bufferL + panBaseIndex ] ) ),
+                  panR = memory[ bufferR + panBaseIndex ] 
+                    + ( interpAmount * ( memory[ bufferR + panNextIndex ] - memory[ bufferR + panBaseIndex ] ) )
             
-            output[0] *= bus.gain * panL
-            output[1] *= bus.gain * panR
+            output[0] *= gain * panL
+            output[1] *= gain * panR
 
             return output
           },
           id : Gibberish.factory.getUID(),
-          dirty : true,
+          dirty : false,
           type : 'bus',
-          inputs:[]
+          inputs:[ 1, .5 ],
+          isStereo: true,
+          __properties__:props
         },
 
         Bus2.defaults,
@@ -145,22 +88,50 @@ module.exports = function( Gibberish ) {
 
       bus.ugenName = bus.callback.ugenName = 'bus2_' + bus.id
 
-      return bus
+      const out = bus.__useProxy__ === true ? proxy( ['Bus2'], props, bus ) : bus
+
+
+      // we have to include custom properties for these as the argument list for
+      // the compiled output function is variable
+      // so codegen can't know the correct argument order for the function
+      let pan = .5
+      Object.defineProperty( out, 'pan', {
+        get() { return pan },
+        set(v){ 
+          pan = v
+          out.inputs[ out.inputs.length - 1 ] = pan
+          Gibberish.dirty( out )
+        }
+      })
+
+      let gain = 1
+      Object.defineProperty( out, 'gain', {
+        get() { return gain },
+        set(v){ 
+          gain = v
+          out.inputs[ out.inputs.length - 2 ] = gain
+          Gibberish.dirty( out )
+        }
+      })
+
+      return out
     },
     
     disconnectUgen( ugen ) {
       let removeIdx = this.inputs.indexOf( ugen )
 
       if( removeIdx !== -1 ) {
-        this.inputs.splice( removeIdx, 1 )
+        this.inputs.splice( removeIdx, 3 )
         Gibberish.dirty( this )
       }
     },
 
-    defaults: { gain:1, pan:.5 }
+    defaults: { gain:1, pan:.5, __useProxy__:true }
   })
 
-  return Bus2.create.bind( Bus2 )
+  const constructor = Bus2.create.bind( Bus2 )
+  constructor.defaults = Bus2.defaults
+
+  return constructor
 
 }
-
