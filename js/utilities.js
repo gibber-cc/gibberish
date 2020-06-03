@@ -1,10 +1,39 @@
 const genish = require( 'genish.js' ),
-      AWPF = require( './external/audioworklet-polyfill.js' )
+      AWPF = require( './external/audioworklet-polyfill.js' ),
+      __Make = require( './make.js' )
 
 module.exports = function( Gibberish ) {
 
 let uid = 0
 const utilities = {
+  Make: function( props ){
+    const name = props.name || 'Ugen' + (Math.floor( Math.random()*10000 ) )
+    const type = props.type || 'Ugen'
+    const properties = props.properties || {}
+    const block = `
+    const ugen = Object.create( Gibberish.prototypes[ '${type}' ] )
+    const graphfnc = ${props.constructor.toString()}
+
+    const proxy = Gibberish.factory( ugen, graphfnc(), '${name}', ${JSON.stringify(properties)} )
+    if( typeof props === 'object' ) Object.assign( proxy, props )
+
+    return proxy`
+
+    Gibberish[ name ] = new Function( 'props', block )
+
+    Gibberish.worklet.port.postMessage({
+      name,
+      address:'addConstructor',
+      constructorString:`function( Gibberish ) {
+      const fnc = ${Gibberish[ name ].toString()}
+
+      return fnc
+    }`
+    })
+
+    return Gibberish[ name ]
+  },
+
   createContext( ctx, cb, resolve, bufferSize=2048 ) {
     let AC = typeof AudioContext === 'undefined' ? webkitAudioContext : AudioContext
 
@@ -156,6 +185,7 @@ const utilities = {
   export( obj ) {
     obj.wrap = this.wrap
     obj.future = this.future
+    obj.Make = this.Make
   },
 
   getUID() { return uid++ }

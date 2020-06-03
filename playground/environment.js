@@ -47,7 +47,7 @@ window.onload = function() {
       'enveloping.js',
       'fx_and_busses.js',
       'sequencing.js',
-      //'making_ugens.js',
+      'making_ugens.js',
       'phasing.js',
       'ssd.js',
       //'solina.js',

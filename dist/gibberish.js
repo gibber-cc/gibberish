@@ -2069,7 +2069,7 @@ gen.__proto__ = new EE()
 
 module.exports = gen
 
-},{"events":151,"memory-helper":78}],33:[function(require,module,exports){
+},{"events":152,"memory-helper":78}],33:[function(require,module,exports){
 'use strict'
 
 let gen  = require('./gen.js')
@@ -4602,7 +4602,7 @@ Object.assign( analyzer, {
 
 module.exports = analyzer
 
-},{"../ugen.js":146}],80:[function(require,module,exports){
+},{"../ugen.js":147}],80:[function(require,module,exports){
 module.exports = function( Gibberish ) {
   const { In, Out, SSD } = require( './singlesampledelay.js'  )( Gibberish )
 
@@ -4810,7 +4810,7 @@ module.exports = function (Gibberish) {
 
   return Follow;
 };
-},{"../ugen.js":146,"./analyzer.js":79,"genish.js":39}],82:[function(require,module,exports){
+},{"../ugen.js":147,"./analyzer.js":79,"genish.js":39}],82:[function(require,module,exports){
 const g = require( 'genish.js' ),
       analyzer = require( './analyzer.js' ),
       proxy    = require( '../workletProxy.js' ),
@@ -4927,7 +4927,7 @@ return { In, Out, SSD }
 
 }
 
-},{"../ugen.js":146,"../workletProxy.js":149,"./analyzer.js":79,"genish.js":39}],83:[function(require,module,exports){
+},{"../ugen.js":147,"../workletProxy.js":150,"./analyzer.js":79,"genish.js":39}],83:[function(require,module,exports){
 const ugen = require( '../ugen.js' ),
       g = require( 'genish.js' )
 
@@ -4955,7 +4955,7 @@ module.exports = function( Gibberish ) {
 
 }
 
-},{"../ugen.js":146,"genish.js":39}],84:[function(require,module,exports){
+},{"../ugen.js":147,"genish.js":39}],84:[function(require,module,exports){
 const ugen = require( '../ugen.js' ),
       g = require( 'genish.js' )
 
@@ -5000,7 +5000,7 @@ module.exports = function( Gibberish ) {
   return ADSR
 }
 
-},{"../ugen.js":146,"genish.js":39}],85:[function(require,module,exports){
+},{"../ugen.js":147,"genish.js":39}],85:[function(require,module,exports){
 const g = require( 'genish.js' )
 
 module.exports = function( Gibberish ) {
@@ -5070,7 +5070,7 @@ module.exports = function( Gibberish ) {
 
 }
 
-},{"../ugen.js":146,"genish.js":39}],87:[function(require,module,exports){
+},{"../ugen.js":147,"genish.js":39}],87:[function(require,module,exports){
 
 /**
  * Copyright 2018 Google LLC
@@ -5783,7 +5783,7 @@ Object.assign( filter, {
 
 module.exports = filter
 
-},{"../ugen.js":146}],95:[function(require,module,exports){
+},{"../ugen.js":147}],95:[function(require,module,exports){
 let g = require( 'genish.js' ),
     filter = require( './filter.js' )
 
@@ -6572,7 +6572,7 @@ Object.assign( effect, {
 
 module.exports = effect
 
-},{"../ugen.js":146}],105:[function(require,module,exports){
+},{"../ugen.js":147}],105:[function(require,module,exports){
 module.exports = function( Gibberish ) {
 
   const effects = {
@@ -7672,7 +7672,7 @@ Gibberish.utilities = require( './utilities.js' )( Gibberish )
 
 module.exports = Gibberish
 
-},{"./analysis/analyzer.js":79,"./analysis/analyzers.js":80,"./envelopes/envelopes.js":85,"./filters/filters.js":96,"./fx/effect.js":104,"./fx/effects.js":105,"./instruments/instrument.js":119,"./instruments/instruments.js":120,"./instruments/polyMixin.js":124,"./instruments/polytemplate.js":125,"./misc/binops.js":130,"./misc/bus.js":131,"./misc/bus2.js":132,"./misc/monops.js":133,"./misc/panner.js":134,"./misc/time.js":135,"./oscillators/oscillators.js":138,"./scheduling/scheduler.js":142,"./scheduling/seq2.js":143,"./scheduling/sequencer.js":144,"./scheduling/tidal.js":145,"./ugen.js":146,"./ugenTemplate.js":147,"./utilities.js":148,"./workletProxy.js":149,"genish.js":39,"memory-helper":152}],113:[function(require,module,exports){
+},{"./analysis/analyzer.js":79,"./analysis/analyzers.js":80,"./envelopes/envelopes.js":85,"./filters/filters.js":96,"./fx/effect.js":104,"./fx/effects.js":105,"./instruments/instrument.js":119,"./instruments/instruments.js":120,"./instruments/polyMixin.js":124,"./instruments/polytemplate.js":125,"./misc/binops.js":131,"./misc/bus.js":132,"./misc/bus2.js":133,"./misc/monops.js":134,"./misc/panner.js":135,"./misc/time.js":136,"./oscillators/oscillators.js":139,"./scheduling/scheduler.js":143,"./scheduling/seq2.js":144,"./scheduling/sequencer.js":145,"./scheduling/tidal.js":146,"./ugen.js":147,"./ugenTemplate.js":148,"./utilities.js":149,"./workletProxy.js":150,"genish.js":39,"memory-helper":153}],113:[function(require,module,exports){
 const g = require('genish.js'),
       instrument = require('./instrument.js');
 
@@ -8156,7 +8156,7 @@ Object.assign( instrument, {
 
 module.exports = instrument
 
-},{"../ugen.js":146}],120:[function(require,module,exports){
+},{"../ugen.js":147}],120:[function(require,module,exports){
 module.exports = function( Gibberish ) {
 
 const instruments = {
@@ -8448,7 +8448,7 @@ module.exports = function (Gibberish) {
 
   return [Mono, PolyMono];
 };
-},{"../oscillators/fmfeedbackosc.js":137,"./instrument.js":119,"genish.js":39}],124:[function(require,module,exports){
+},{"../oscillators/fmfeedbackosc.js":138,"./instrument.js":119,"genish.js":39}],124:[function(require,module,exports){
 // XXX TOO MANY GLOBAL GIBBERISH VALUES
 
 const Gibberish = require( '../index.js' )
@@ -8646,7 +8646,7 @@ module.exports = function( Gibberish ) {
 
 }
 
-},{"../workletProxy.js":149,"genish.js":39}],126:[function(require,module,exports){
+},{"../workletProxy.js":150,"genish.js":39}],126:[function(require,module,exports){
 const g = require( 'genish.js' ),
       instrument = require( './instrument.js' )
 
@@ -9082,6 +9082,58 @@ module.exports = function( Gibberish ) {
 }
 
 },{"./instrument.js":119,"genish.js":39}],130:[function(require,module,exports){
+module.exports = function( Gibberish ) {
+
+  const fnc = function( props ){
+    const name = props.name || 'Ugen' + (Math.floor( Math.random()*10000 ) )
+    const type = props.type || 'Ugen'
+    const properties = props.properties || {}
+    const block = `
+    const ugen = Object.create( Gibberish.prototypes[ '${type}' ] )
+    const graphfnc = ${props.constructor.toString()}
+
+    const proxy = Gibberish.factory( ugen, graphfnc(), '${name}', ${JSON.stringify(properties)} )
+    if( typeof props === 'object' ) Object.assign( proxy, props )
+
+    return proxy`
+
+    Gibberish[ name ] = new Function( 'props', block )
+
+    Gibberish.worklet.port.postMessage({
+      name,
+      address:'addConstructor',
+      constructorString:`function( Gibberish ) {
+      const fnc = ${Gibberish[ name ].toString()}
+
+      return fnc
+    }`
+    })
+
+    return Gibberish[ name ]
+  }
+
+  return fnc
+}
+
+/* example use:
+def = {
+  name:'Mysine',
+  type:'Ugen',
+  properties:{ frequency:220 },
+  constructor: function() {
+    const gen = Gibberish.genish
+    const graph = gen.cycle( gen.in('frequency') )
+    return graph
+  }
+}
+ 
+Mysine = Make( def )
+sine = Mysine({ frequency:330 }).connect())
+sine2= Mysine({ frequency:440 }).connect())
+
+*/
+
+},{}],131:[function(require,module,exports){
 const ugenproto = require( '../ugen.js' )(),
      __proxy     = require( '../workletProxy.js' ),
      g = require( 'genish.js' )
@@ -9196,7 +9248,7 @@ module.exports = function( Gibberish ) {
   return Binops
 }
 
-},{"../ugen.js":146,"../workletProxy.js":149,"genish.js":39}],131:[function(require,module,exports){
+},{"../ugen.js":147,"../workletProxy.js":150,"genish.js":39}],132:[function(require,module,exports){
 let g = require( 'genish.js' ),
     ugen = require( '../ugen.js' )(),
     __proxy= require( '../workletProxy.js' )
@@ -9287,7 +9339,7 @@ module.exports = function( Gibberish ) {
 }
 
 
-},{"../ugen.js":146,"../workletProxy.js":149,"genish.js":39}],132:[function(require,module,exports){
+},{"../ugen.js":147,"../workletProxy.js":150,"genish.js":39}],133:[function(require,module,exports){
 const g = require( 'genish.js' ),
       ugen = require( '../ugen.js' )(),
       __proxy = require( '../workletProxy.js' )
@@ -9426,7 +9478,7 @@ module.exports = function( Gibberish ) {
 
 }
 
-},{"../ugen.js":146,"../workletProxy.js":149,"genish.js":39}],133:[function(require,module,exports){
+},{"../ugen.js":147,"../workletProxy.js":150,"genish.js":39}],134:[function(require,module,exports){
 const  g    = require( 'genish.js'  ),
        ugen = require( '../ugen.js' )()
 
@@ -9488,7 +9540,7 @@ module.exports = function( Gibberish ) {
   return Monops
 }
 
-},{"../ugen.js":146,"genish.js":39}],134:[function(require,module,exports){
+},{"../ugen.js":147,"genish.js":39}],135:[function(require,module,exports){
 const g = require( 'genish.js' )
 
 const ugen = require( '../ugen.js' )()
@@ -9525,7 +9577,7 @@ return Panner
 
 }
 
-},{"../ugen.js":146,"genish.js":39}],135:[function(require,module,exports){
+},{"../ugen.js":147,"genish.js":39}],136:[function(require,module,exports){
 module.exports = function( Gibberish ) {
 
   const Time = {
@@ -9554,7 +9606,7 @@ module.exports = function( Gibberish ) {
   return Time
 }
 
-},{}],136:[function(require,module,exports){
+},{}],137:[function(require,module,exports){
 const genish = require('genish.js'),
       ssd = genish.history,
       noise = genish.noise;
@@ -9574,7 +9626,7 @@ module.exports = function () {
 
   return out;
 };
-},{"genish.js":39}],137:[function(require,module,exports){
+},{"genish.js":39}],138:[function(require,module,exports){
 let g = require( 'genish.js' )
 
 let feedbackOsc = function( frequency, filter, pulsewidth=.5, argumentProps ) {
@@ -9650,7 +9702,7 @@ let feedbackOsc = function( frequency, filter, pulsewidth=.5, argumentProps ) {
 
 module.exports = feedbackOsc
 
-},{"genish.js":39}],138:[function(require,module,exports){
+},{"genish.js":39}],139:[function(require,module,exports){
 const g = require( 'genish.js' ),
       ugen = require( '../ugen.js' )(),
       feedbackOsc = require( './fmfeedbackosc.js' ),
@@ -9829,7 +9881,7 @@ module.exports = function( Gibberish ) {
 
 }
 
-},{"../ugen.js":146,"./brownnoise.js":136,"./fmfeedbackosc.js":137,"./pinknoise.js":139,"./polyblep.js":140,"./wavetable.js":141,"genish.js":39}],139:[function(require,module,exports){
+},{"../ugen.js":147,"./brownnoise.js":137,"./fmfeedbackosc.js":138,"./pinknoise.js":140,"./polyblep.js":141,"./wavetable.js":142,"genish.js":39}],140:[function(require,module,exports){
 const genish = require('genish.js'),
       ssd = genish.history,
       data = genish.data,
@@ -9854,7 +9906,7 @@ module.exports = function () {
 
   return out;
 };
-},{"genish.js":39}],140:[function(require,module,exports){
+},{"genish.js":39}],141:[function(require,module,exports){
 const genish = require('genish.js');
 const g = genish;
 
@@ -9912,7 +9964,7 @@ const polyBlep = function (__frequency, argumentProps) {
 };
 
 module.exports = polyBlep;
-},{"genish.js":39}],141:[function(require,module,exports){
+},{"genish.js":39}],142:[function(require,module,exports){
 let g = require( 'genish.js' ),
     ugen = require( '../ugen.js' )()
 
@@ -9946,7 +9998,7 @@ module.exports = function( Gibberish ) {
   return Wavetable
 }
 
-},{"../ugen.js":146,"genish.js":39}],142:[function(require,module,exports){
+},{"../ugen.js":147,"genish.js":39}],143:[function(require,module,exports){
 const Queue = require( '../external/priorityqueue.js' )
 
 let Gibberish = null
@@ -10022,7 +10074,7 @@ Object.defineProperty( Scheduler, 'shouldSync', {
 
 module.exports = Scheduler
 
-},{"../external/priorityqueue.js":88}],143:[function(require,module,exports){
+},{"../external/priorityqueue.js":88}],144:[function(require,module,exports){
 const g = require( 'genish.js' ),
       __proxy = require( '../workletProxy.js' ),
       ugen = require( '../ugen.js' )()
@@ -10221,7 +10273,7 @@ module.exports = function( Gibberish ) {
 }
 
 
-},{"../ugen.js":146,"../workletProxy.js":149,"genish.js":39}],144:[function(require,module,exports){
+},{"../ugen.js":147,"../workletProxy.js":150,"genish.js":39}],145:[function(require,module,exports){
 const __proxy = require( '../workletProxy.js' )
 
 module.exports = function( Gibberish ) {
@@ -10316,7 +10368,7 @@ return Sequencer
 
 }
 
-},{"../workletProxy.js":149}],145:[function(require,module,exports){
+},{"../workletProxy.js":150}],146:[function(require,module,exports){
 const __proxy = require( '../workletProxy.js' )
 const Pattern = require( 'tidal.pegjs' )
 
@@ -10510,7 +10562,7 @@ return Sequencer
 
 }
 
-},{"../workletProxy.js":149,"tidal.pegjs":169}],146:[function(require,module,exports){
+},{"../workletProxy.js":150,"tidal.pegjs":170}],147:[function(require,module,exports){
 let Gibberish = null
 
 const __ugen = function( __Gibberish ) {
@@ -10657,7 +10709,7 @@ const __ugen = function( __Gibberish ) {
 
 module.exports = __ugen
 
-},{}],147:[function(require,module,exports){
+},{}],148:[function(require,module,exports){
 const __proxy = require( './workletProxy.js' )
 const effectProto = require( './fx/effect.js' )
 
@@ -10813,14 +10865,45 @@ module.exports = function( Gibberish ) {
   return factory
 }
 
-},{"./fx/effect.js":104,"./workletProxy.js":149}],148:[function(require,module,exports){
+},{"./fx/effect.js":104,"./workletProxy.js":150}],149:[function(require,module,exports){
 const genish = require( 'genish.js' ),
-      AWPF = require( './external/audioworklet-polyfill.js' )
+      AWPF = require( './external/audioworklet-polyfill.js' ),
+      __Make = require( './make.js' )
 
 module.exports = function( Gibberish ) {
 
 let uid = 0
 const utilities = {
+  //Make: __Make( Gibberish ),
+  //
+  Make: function( props ){
+    const name = props.name || 'Ugen' + (Math.floor( Math.random()*10000 ) )
+    const type = props.type || 'Ugen'
+    const properties = props.properties || {}
+    const block = `
+    const ugen = Object.create( Gibberish.prototypes[ '${type}' ] )
+    const graphfnc = ${props.constructor.toString()}
+
+    const proxy = Gibberish.factory( ugen, graphfnc(), '${name}', ${JSON.stringify(properties)} )
+    if( typeof props === 'object' ) Object.assign( proxy, props )
+
+    return proxy`
+
+    Gibberish[ name ] = new Function( 'props', block )
+
+    Gibberish.worklet.port.postMessage({
+      name,
+      address:'addConstructor',
+      constructorString:`function( Gibberish ) {
+      const fnc = ${Gibberish[ name ].toString()}
+
+      return fnc
+    }`
+    })
+
+    return Gibberish[ name ]
+  },
+
   createContext( ctx, cb, resolve, bufferSize=2048 ) {
     let AC = typeof AudioContext === 'undefined' ? webkitAudioContext : AudioContext
 
@@ -10972,6 +11055,7 @@ const utilities = {
   export( obj ) {
     obj.wrap = this.wrap
     obj.future = this.future
+    obj.Make = this.Make
   },
 
   getUID() { return uid++ }
@@ -10981,7 +11065,7 @@ return utilities
 
 }
 
-},{"./external/audioworklet-polyfill.js":87,"genish.js":39}],149:[function(require,module,exports){
+},{"./external/audioworklet-polyfill.js":87,"./make.js":130,"genish.js":39}],150:[function(require,module,exports){
 const serialize = require('serialize-javascript')
 
 module.exports = function( Gibberish ) {
@@ -11140,9 +11224,9 @@ return __proxy
 
 }
 
-},{"serialize-javascript":154}],150:[function(require,module,exports){
+},{"serialize-javascript":155}],151:[function(require,module,exports){
 
-},{}],151:[function(require,module,exports){
+},{}],152:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -11667,9 +11751,9 @@ function functionBindPolyfill(context) {
   };
 }
 
-},{}],152:[function(require,module,exports){
+},{}],153:[function(require,module,exports){
 arguments[4][78][0].apply(exports,arguments)
-},{"dup":78}],153:[function(require,module,exports){
+},{"dup":78}],154:[function(require,module,exports){
 // shim for using process in browser
 var process = module.exports = {};
 
@@ -11855,7 +11939,7 @@ process.chdir = function (dir) {
 };
 process.umask = function() { return 0; };
 
-},{}],154:[function(require,module,exports){
+},{}],155:[function(require,module,exports){
 /*
 Copyright (c) 2014, Yahoo! Inc. All rights reserved.
 Copyrights licensed under the New BSD License.
@@ -12030,7 +12114,7 @@ module.exports = function serialize(obj, options) {
     });
 }
 
-},{}],155:[function(require,module,exports){
+},{}],156:[function(require,module,exports){
 if (typeof Object.create === 'function') {
   // implementation from standard node.js 'util' module
   module.exports = function inherits(ctor, superCtor) {
@@ -12055,14 +12139,14 @@ if (typeof Object.create === 'function') {
   }
 }
 
-},{}],156:[function(require,module,exports){
+},{}],157:[function(require,module,exports){
 module.exports = function isBuffer(arg) {
   return arg && typeof arg === 'object'
     && typeof arg.copy === 'function'
     && typeof arg.fill === 'function'
     && typeof arg.readUInt8 === 'function';
 }
-},{}],157:[function(require,module,exports){
+},{}],158:[function(require,module,exports){
 (function (process,global){
 // Copyright Joyent, Inc. and other Node contributors.
 //
@@ -12652,7 +12736,7 @@ function hasOwnProperty(obj, prop) {
 }
 
 }).call(this,require('_process'),typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./support/isBuffer":156,"_process":153,"inherits":155}],158:[function(require,module,exports){
+},{"./support/isBuffer":157,"_process":154,"inherits":156}],159:[function(require,module,exports){
 /*
  * Generated by PEG.js 0.10.0.
  *
@@ -15031,7 +15115,7 @@ module.exports = {
   parse:       peg$parse
 };
 
-},{}],159:[function(require,module,exports){
+},{}],160:[function(require,module,exports){
 function bjorklund(slots, pulses){
   var pattern = [],
       count = [],
@@ -15072,7 +15156,7 @@ module.exports = function(m, k){
   else return bjorklund(k, m);
 };
 
-},{}],160:[function(require,module,exports){
+},{}],161:[function(require,module,exports){
 /**
  * @license Fraction.js v4.0.12 09/09/2015
  * http://www.xarg.org/2014/03/rational-numbers-in-javascript/
@@ -15908,7 +15992,7 @@ module.exports = function(m, k){
 
 })(this);
 
-},{}],161:[function(require,module,exports){
+},{}],162:[function(require,module,exports){
 // A library of seedable RNGs implemented in Javascript.
 //
 // Usage:
@@ -15970,7 +16054,7 @@ sr.tychei = tychei;
 
 module.exports = sr;
 
-},{"./lib/alea":162,"./lib/tychei":163,"./lib/xor128":164,"./lib/xor4096":165,"./lib/xorshift7":166,"./lib/xorwow":167,"./seedrandom":168}],162:[function(require,module,exports){
+},{"./lib/alea":163,"./lib/tychei":164,"./lib/xor128":165,"./lib/xor4096":166,"./lib/xorshift7":167,"./lib/xorwow":168,"./seedrandom":169}],163:[function(require,module,exports){
 // A port of an algorithm by Johannes Baagøe <baagoe@baagoe.com>, 2010
 // http://baagoe.com/en/RandomMusings/javascript/
 // https://github.com/nquinlan/better-random-numbers-for-javascript-mirror
@@ -16086,7 +16170,7 @@ if (module && module.exports) {
 
 
 
-},{}],163:[function(require,module,exports){
+},{}],164:[function(require,module,exports){
 // A Javascript implementaion of the "Tyche-i" prng algorithm by
 // Samuel Neves and Filipe Araujo.
 // See https://eden.dei.uc.pt/~sneves/pubs/2011-snfa2.pdf
@@ -16191,7 +16275,7 @@ if (module && module.exports) {
 
 
 
-},{}],164:[function(require,module,exports){
+},{}],165:[function(require,module,exports){
 // A Javascript implementaion of the "xor128" prng algorithm by
 // George Marsaglia.  See http://www.jstatsoft.org/v08/i14/paper
 
@@ -16274,7 +16358,7 @@ if (module && module.exports) {
 
 
 
-},{}],165:[function(require,module,exports){
+},{}],166:[function(require,module,exports){
 // A Javascript implementaion of Richard Brent's Xorgens xor4096 algorithm.
 //
 // This fast non-cryptographic random number generator is designed for
@@ -16422,7 +16506,7 @@ if (module && module.exports) {
   (typeof define) == 'function' && define   // present with an AMD loader
 );
 
-},{}],166:[function(require,module,exports){
+},{}],167:[function(require,module,exports){
 // A Javascript implementaion of the "xorshift7" algorithm by
 // François Panneton and Pierre L'ecuyer:
 // "On the Xorgshift Random Number Generators"
@@ -16521,7 +16605,7 @@ if (module && module.exports) {
 );
 
 
-},{}],167:[function(require,module,exports){
+},{}],168:[function(require,module,exports){
 // A Javascript implementaion of the "xorwow" prng algorithm by
 // George Marsaglia.  See http://www.jstatsoft.org/v08/i14/paper
 
@@ -16609,7 +16693,7 @@ if (module && module.exports) {
 
 
 
-},{}],168:[function(require,module,exports){
+},{}],169:[function(require,module,exports){
 /*
 Copyright 2019 David Bau.
 
@@ -16864,7 +16948,7 @@ if ((typeof module) == 'object' && module.exports) {
   Math    // math: package containing random, pow, and seedrandom
 );
 
-},{"crypto":150}],169:[function(require,module,exports){
+},{"crypto":151}],170:[function(require,module,exports){
 const parse = require('../dist/tidal.js').parse
 const query = require('./queryArc.js' ).queryArc
 const Fraction = require( 'fraction.js' )
@@ -16924,7 +17008,7 @@ const Pattern = ( patternString, opts ) => {
 
 module.exports = Pattern
 
-},{"../dist/tidal.js":158,"./queryArc.js":170,"fraction.js":160}],170:[function(require,module,exports){
+},{"../dist/tidal.js":159,"./queryArc.js":171,"fraction.js":161}],171:[function(require,module,exports){
 const Fraction = require( 'fraction.js' )
 const util     = require( 'util' )
 const bjork    = require( 'bjork' ) 
@@ -17512,5 +17596,5 @@ const handlers = {
 
 module.exports.queryArc = queryArc
 
-},{"bjork":159,"fraction.js":160,"seedrandom":161,"util":157}]},{},[112])(112)
+},{"bjork":160,"fraction.js":161,"seedrandom":162,"util":158}]},{},[112])(112)
 });
