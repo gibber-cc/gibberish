@@ -1,6 +1,5 @@
 const genish = require( 'genish.js' ),
-      AWPF = require( './external/audioworklet-polyfill.js' ),
-      __Make = require( './make.js' )
+      AWPF = require( './external/audioworklet-polyfill.js' )
 
 module.exports = function( Gibberish ) {
 
