@@ -94,7 +94,7 @@ let Gibberish = {
   },
 
   load() {
-    this.factory      = require( './ugenTemplate.js' )( this )
+    this.factory      = require( './factory.js' )( this )
     
     this.Panner       = require( './misc/panner.js' )( this )
     this.PolyTemplate = require( './instruments/polytemplate.js' )( this )
