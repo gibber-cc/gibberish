@@ -50,7 +50,7 @@ let Gibberish = {
 
     this.memory = MemoryHelper.create( numBytes, Float64Array )
 
-    this.mode = 'worklet' //window.AudioWorklet !== undefined ? 'worklet' : 'scriptprocessor'
+    this.mode = 'worklet'
     if( mode !== null ) this.mode = mode
 
     this.hasWorklet = true //window.AudioWorklet !== undefined && typeof window.AudioWorklet === 'function'

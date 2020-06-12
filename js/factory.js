@@ -5,7 +5,8 @@ module.exports = function( Gibberish ) {
   const proxy = __proxy( Gibberish )
   
   const factory = function( ugen, graph, __name, values, cb=null, shouldProxy = true ) {
-    ugen.callback = cb === null ? Gibberish.genish.gen.createCallback( graph, Gibberish.memory, false, true ) : cb
+    if( Gibberish.mode === 'processor' )
+      ugen.callback = cb === null ? Gibberish.genish.gen.createCallback( graph, Gibberish.memory, false, true ) : cb
 
     let name = Array.isArray( __name ) ? __name[ __name.length - 1 ] : __name
 
@@ -22,8 +23,10 @@ module.exports = function( Gibberish ) {
     })
 
     ugen.ugenName += ugen.id
-    ugen.callback.ugenName = ugen.ugenName // XXX hacky
-    ugen.callback.id = ugen.id
+    if( Gibberish.mode === 'processor' ) {
+      ugen.callback.ugenName = ugen.ugenName // XXX hacky
+      ugen.callback.id = ugen.id
+    }
 
     //console.log( 'ugen name/id:', ugen.ugenName, ugen.id )
     //console.log( 'callback name/id:', ugen.callback.ugenName, ugen.callback.id )

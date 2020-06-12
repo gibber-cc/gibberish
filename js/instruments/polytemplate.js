@@ -41,7 +41,9 @@ module.exports = function( Gibberish ) {
       for( let i = 0; i < synth.maxVoices; i++ ) {
         properties.id = synth.id +'_'+i
         voices[i] = ugen( properties )
-        voices[i].callback.ugenName = voices[i].ugenName
+        if( Gibberish.mode === 'processor' )
+          voices[i].callback.ugenName = voices[i].ugenName
+
         voices[i].isConnected = false
         //synth.__voices[i] = proxy( ['instruments', ugen.name], properties, synth.voices[i] )
       }
