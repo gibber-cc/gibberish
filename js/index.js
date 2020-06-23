@@ -39,7 +39,7 @@ let Gibberish = {
 
   workletPath: './gibberish_worklet.js',
 
-  init( memAmount, ctx, mode=null, sac=null ) {
+  init( memAmount, ctx, mode='worklet' ) {
     let numBytes = isNaN( memAmount ) ? 20 * 60 * 44100 : memAmount
 
     // regardless of whether or not gibberish is using worklets,
@@ -50,12 +50,9 @@ let Gibberish = {
 
     this.memory = MemoryHelper.create( numBytes, Float64Array )
 
-    this.mode = 'worklet'
-    if( mode !== null ) this.mode = mode
+    this.mode = mode
 
-    this.hasWorklet = true //window.AudioWorklet !== undefined && typeof window.AudioWorklet === 'function'
-
-    const startup = this.hasWorklet ? this.utilities.createWorklet : this.utilities.createScriptProcessor
+    const startup = this.utilities.createWorklet
 
     this.scheduler.init( this )
     
@@ -66,7 +63,7 @@ let Gibberish = {
       const p = new Promise( (resolve, reject ) => {
 
         const pp = new Promise( (__resolve, __reject ) => {
-          this.utilities.createContext( ctx, startup.bind( this.utilities ), __resolve, sac )
+          this.utilities.createContext( ctx, startup.bind( this.utilities ), __resolve )
         }).then( ()=> {
           Gibberish.preventProxy = true
           Gibberish.load()
@@ -176,9 +173,13 @@ let Gibberish = {
         args:[]
       })
     }
-      // clear memory... XXX should this be a MemoryHelper function?
+    // clear memory... XXX should this be a MemoryHelper function?
     //this.memory.heap.fill(0)
     //this.memory.list = {}
+
+    Gibberish.genish.gen.removeAllListeners('memory init')
+    Gibberish.genish.gen.histories.clear()
+
     //Gibberish.output = this.Bus2()
     
   },
@@ -195,6 +196,7 @@ let Gibberish = {
   generateCallback() {
     if( this.mode === 'worklet' ) {
       Gibberish.callback = function() { return 0 }
+      Gibberish.callback.out = []
       return Gibberish.callback
     }
     let uid = 0,
@@ -498,6 +500,5 @@ let Gibberish = {
 
 Gibberish.prototypes.Ugen = Gibberish.prototypes.ugen = require( './ugen.js' )( Gibberish )
 Gibberish.utilities = require( './utilities.js' )( Gibberish )
-
 
 module.exports = Gibberish
