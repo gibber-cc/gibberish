@@ -12,11 +12,27 @@ const Sequencer = props => {
     __valuesPhase:  0,
     __timingsPhase: 0,
     __type:'seq',
+    __onlyRunsOnce: false,
+    __repeatCount: null,
 
     tick( priority ) {
       let value  = typeof seq.values  === 'function' ? seq.values  : seq.values[  seq.__valuesPhase++  % seq.values.length  ],
           timing = typeof seq.timings === 'function' ? seq.timings : seq.timings[ seq.__timingsPhase++ % seq.timings.length ],
           shouldRun = true
+      
+      if( seq.__onlyRunsOnce === true ) {
+        if( seq.__valuesPhase === seq.values.length ) {
+          seq.stop()
+        }
+      }else if( seq.__repeatCount !== null ) {
+        if( seq.__valuesPhase % seq.values.length === 0 ) {
+          seq.__repeatCount--
+          if( seq.__repeatCount === 0 ) {
+            seq.stop()
+            seq.__repeatCount = null
+          }
+        }
+      }
 
       if( typeof timing === 'function' ) timing = timing()
 
@@ -64,8 +80,22 @@ const Sequencer = props => {
       return __seq
     },
 
-    stop() {
-      seq.__isRunning = false
+    stop( delay = null ) {
+      if( delay === null ) {
+        seq.__isRunning = false
+      }else{
+        Gibberish.scheduler.add( delay, seq.stop )
+      }
+      return __seq
+    },
+
+    once() {
+      seq.__onlyRunsOnce = true
+      return __seq
+    },
+
+    repeat( repeatCount = 2 ) {
+      seq.__repeatCount = repeatCount
       return __seq
     }
   }
