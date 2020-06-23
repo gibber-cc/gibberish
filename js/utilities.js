@@ -40,7 +40,7 @@ const utilities = {
 
     const start = () => {
       if( typeof AC !== 'undefined' ) {
-        this.ctx = Gibberish.ctx = new AC({ latencyHint:.025 })
+        this.ctx = Gibberish.ctx = ctx === undefined ? new AC({ latencyHint:.025 }) : ctx
 
         genish.gen.samplerate = this.ctx.sampleRate
         genish.utilities.ctx = this.ctx
@@ -136,7 +136,7 @@ const utilities = {
         const obj = Gibberish.worklet.ugens.get( id )
 
         if( Gibberish.worklet.debug === true ) {
-          //if( propName !== 'output' ) console.log( propName, value, id )
+          if( propName !== 'output' ) console.log( propName, value, id )
           console.log( propName, value, id )
         }
 
