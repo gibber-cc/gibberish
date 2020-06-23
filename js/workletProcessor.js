@@ -156,7 +156,7 @@ class GibberishProcessor extends AudioWorkletProcessor {
       const dict = event.data
       const obj  = this.ugens.get( dict.object )
       let value = dict.value
-      if( typeof dict.value === 'object' && dict.value.id !== undefined ) {
+      if( typeof dict.value === 'object' && dict.value !== null && dict.value.id !== undefined ) {
         value = this.ugens.get( dict.value.id )
       }
       obj[ dict.name ] = value
@@ -173,7 +173,7 @@ class GibberishProcessor extends AudioWorkletProcessor {
       const dict = event.data
       const obj = this.ugens.get( dict.object )
       let value = dict.value
-      if( typeof dict.value === 'object' && dict.value.id !== undefined ) {
+      if( typeof dict.value === 'object' && dict.value !== null && dict.value.id !== undefined ) {
         value = this.ugens.get( dict.value.id )
       }
       obj[ dict.name ] = value
