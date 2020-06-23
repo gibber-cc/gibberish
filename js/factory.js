@@ -7,6 +7,8 @@ module.exports = function( Gibberish ) {
   const factory = function( ugen, graph, __name, values, cb=null, shouldProxy = true ) {
     if( Gibberish.mode === 'processor' )
       ugen.callback = cb === null ? Gibberish.genish.gen.createCallback( graph, Gibberish.memory, false, true ) : cb
+    else
+      ugen.callback = { out:[] }
 
     let name = Array.isArray( __name ) ? __name[ __name.length - 1 ] : __name
 
@@ -65,7 +67,7 @@ module.exports = function( Gibberish ) {
           //if( param === 'input' ) console.log( 'INPUT:', v, isNumber )
           if( value !== v ) {
             if( setter !== undefined ) setter( v )
-            if( !isNaN( v ) ) {
+            if( typeof v === 'number' ) {
               Gibberish.memory.heap[ idx ] = value = v
               if( isNumber === false ) Gibberish.dirty( ugen )
               isNumber = true
@@ -114,7 +116,7 @@ module.exports = function( Gibberish ) {
           },
           set( v ) {
             if( value !== v ) {
-              if( !isNaN( v ) ) {
+              if( typeof v === 'number' ) {
                 let idx = ugen.__addresses__[ prop ]
                 if( idx === undefined ){
                   idx = Gibberish.memory.alloc( 1 )
