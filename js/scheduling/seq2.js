@@ -20,14 +20,25 @@ module.exports = function( Gibberish ) {
       }
       return this
     },
-    stop() {
+    stop( delay=0 ) {
       const idx = Gibberish.analyzers.indexOf( this )
-      if( idx > -1 ) {
-        Gibberish.analyzers.splice( idx, 1 )
-        Gibberish.dirty( Gibberish.analyzers )
+      if( delay === 0 ) {
+        if( idx > -1 ) {
+          Gibberish.analyzers.splice( idx, 1 )
+          Gibberish.dirty( Gibberish.analyzers )
+        }
+        this.phase = 0
+        this.nextTime = 0
+      }else{
+        Gibberish.scheduler.add( delay, ()=> {
+          if( idx > -1 ) {
+            Gibberish.analyzers.splice( idx, 1 )
+            Gibberish.dirty( Gibberish.analyzers )
+          }
+          this.phase = 0
+          this.nextTime = 0
+        })
       }
-      this.phase = 0
-      this.nextTime = 0
 
       return this
     },
