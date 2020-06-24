@@ -10,25 +10,29 @@ const AllPassChain = ( in1, in2, in3, magic_coeff ) => {
 /* in2 = indiffusion1 */
 /* in3 = indiffusion2 */
 
-  const sub1 = in1 - 0
-  const d1 = g.delay( sub1, 142 * 1.481805046873425 )
-  sub1.inputs[1] = d1 * in2
-  const ap1_out = (sub1 * in2) + d1
+  const sub1 = g.history(0)//in1 - 0
+  const d1 = g.delay( sub1.out, 142 * 1.481805046873425 )
+  //sub1.inputs[1] = d1 * in2
+  sub1.in( in1 - (d1 * in2 ) )
+  const ap1_out = (sub1.out * in2) + d1
   
-  const sub2 = ap1_out - 0
-  const d2 = g.delay( sub2, 107 * 1.481805046873425 )
-  sub2.inputs[1] = d2 * in2
-  const ap2_out = (sub2 * in2) + d2
+  const sub2 = g.history(0) //ap1_out - 0
+  const d2 = g.delay( sub2.out, 107 * 1.481805046873425 )
+  //sub2.inputs[1] = d2 * in2
+  sub2.in( ap1_out - ( d2 * in2 ) )
+  const ap2_out = (sub2.out * in2) + d2
   
-  const sub3 = ap2_out - 0
-  const d3 = g.delay( sub3, 379 * 1.481805046873425 )
-  sub3.inputs[1] = d3 * in3
-  const ap3_out = (sub3 * in3) + d3
+  const sub3 = g.history(0) //ap2_out - 0
+  const d3 = g.delay( sub3.out, 379 * 1.481805046873425 )
+  //sub3.inputs[1] = d3 * in3
+  sub3.in( ap2_out - (d3 * in3) )
+  const ap3_out = (sub3.out * in3) + d3
   
-  const sub4 = ap3_out - 0
-  const d4 = g.delay( sub4, 277 * 1.481805046873425 )
-  sub4.inputs[1] = d4 * in3
-  const ap4_out = (sub4 * in3) + d4
+  const sub4 = g.history(0)//ap3_out - 0
+  const d4 = g.delay( sub4.out, 277 * 1.481805046873425 )
+  //sub4.inputs[1] = d4 * in3
+  sub4.in( ap3_out - (d4 * in3) )
+  const ap4_out = (sub4.out * in3) + d4
   
   return ap4_out
 }
@@ -48,9 +52,10 @@ const Tank  = function( in1, in2, in3, in4, in5, magic_coeff ) {
     
     /* LEFT CHANNEL */
     const leftStart = in1 + 0
-    const delayInput = leftStart + 0
-    const delay1 = g.delay( delayInput, [g.cycle(.1) * 16 + 672 * 1.481805046873425], { size:leftDelaySize })
-    delayInput.inputs[1] = delay1 * in2
+    const delayInput = g.history(0)//leftStart + 0
+    const delay1 = g.delay( delayInput.out, [g.cycle(.1) * 16 + 672 * 1.481805046873425], { size:leftDelaySize })
+    //delayInput.inputs[1] = delay1 * in2
+    delayInput.in( leftStart + (delay1 * in2) )
     const delayOut = delay1 - delayInput * in2
     
     const delay2 = g.delay( 

@@ -2,7 +2,7 @@ module.exports = function( Gibberish ) {
 
   const effects = {
     Freeverb    : require( './freeverb.js'  )( Gibberish ),
-    //Plate       : require( './dattorro.js'  )( Gibberish ),
+    //Plate       : require( './dattorro.dsp.js' )( Gibberish ),
     Flanger     : require( './flanger.js'   )( Gibberish ),
     Vibrato     : require( './vibrato.js'   )( Gibberish ),
     Delay       : require( './delay.js'     )( Gibberish ),

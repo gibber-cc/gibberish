@@ -72,12 +72,12 @@ gulp.task( 'minify', ['minifyLib', 'minifyWorklet'] )
 gulp.task( 'js', jsFunc )
 gulp.task( 'watch', function() {
   return gulp.watch( './js/**/*.js', ['workletblob'] )
-    .pipe( 
+    /*.pipe( 
       notify({ 
         message:'Gibberish build completed.',
         onLast:true
       }) 
-    )
+    )*/
 })
 
 gulp.task( 'default', ['workletblob'] )
