@@ -99,6 +99,13 @@ const utilities = {
   },
 
   workletHandlers: {
+    __sequencer( event ) {
+      const message = event.data
+      const id = message.id
+      const eventName = message.name
+      const obj = Gibberish.worklet.ugens.get( id )
+      obj.publish( eventName )
+    },
     callback( event ) {
       if( typeof Gibberish.oncallback === 'function' ) {
         Gibberish.oncallback( event.data.code )
@@ -167,6 +174,35 @@ const utilities = {
       }
       Gibberish.preventProxy = false
       Gibberish.proxyEnabled = true
+    }
+  },
+
+  createPubSub( obj ) {
+    const events = {}
+    obj.on = function( key, fcn ) {
+      if( typeof events[ key ] === 'undefined' ) {
+        events[ key ] = []
+      }
+      events[ key ].push( fcn )
+      return obj
+    }
+
+    obj.off = function( key, fcn ) {
+      if( typeof events[ key ] !== 'undefined' ) {
+        const arr = events[ key ]
+
+        arr.splice( arr.indexOf( fcn ), 1 )
+      }
+      return obj
+    }
+
+    obj.publish = function( key, data ) {
+      if( typeof events[ key ] !== 'undefined' ) {
+        const arr = events[ key ]
+
+        arr.forEach( v => v( data ) )
+      }
+      return obj
     }
   },
 

@@ -195,6 +195,10 @@ module.exports = function( Gibberish ) {
         }
       })
 
+      if( Gibberish.mode === 'worklet' ) {
+        Gibberish.utilities.createPubSub( seq )
+      }
+
       return proxy( ['Sequencer2'], properties, seq ) 
     }
   }

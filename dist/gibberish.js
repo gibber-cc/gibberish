@@ -10410,6 +10410,10 @@ module.exports = function (Gibberish) {
         }
       });
 
+      if (Gibberish.mode === 'worklet') {
+        Gibberish.utilities.createPubSub(seq);
+      }
+
       return proxy(['Sequencer2'], properties, seq);
     }
   };
@@ -10499,13 +10503,30 @@ module.exports = function (Gibberish) {
 
       start(delay = 0) {
         seq.__isRunning = true;
-        Gibberish.scheduler.add(delay, seq.tick, seq.priority);
+        if (Gibberish.mode === 'processor') {
+          Gibberish.scheduler.add(delay, priority => {
+            seq.tick(priority);
+            Gibberish.processor.port.postMessage({
+              address: '__sequencer',
+              id: seq.id,
+              name: 'start'
+            });
+          }, seq.priority);
+        }
         return __seq;
       },
 
       stop(delay = null) {
         if (delay === null) {
           seq.__isRunning = false;
+
+          if (Gibberish.mode === 'processor') {
+            Gibberish.processor.port.postMessage({
+              address: '__sequencer',
+              id: seq.id,
+              name: 'stop'
+            });
+          }
         } else {
           Gibberish.scheduler.add(delay, seq.stop);
         }
@@ -10525,6 +10546,9 @@ module.exports = function (Gibberish) {
 
     props.id = Gibberish.factory.getUID();
 
+    if (Gibberish.mode === 'worklet') {
+      Gibberish.utilities.createPubSub(seq);
+    }
     // need a separate reference to the properties for worklet meta-programming
     const properties = Object.assign({}, Sequencer.defaults, props);
     Object.assign(seq, properties);
@@ -10983,6 +11007,13 @@ module.exports = function (Gibberish) {
     },
 
     workletHandlers: {
+      __sequencer(event) {
+        const message = event.data;
+        const id = message.id;
+        const eventName = message.name;
+        const obj = Gibberish.worklet.ugens.get(id);
+        obj.publish(eventName);
+      },
       callback(event) {
         if (typeof Gibberish.oncallback === 'function') {
           Gibberish.oncallback(event.data.code);
@@ -11052,6 +11083,35 @@ module.exports = function (Gibberish) {
         Gibberish.preventProxy = false;
         Gibberish.proxyEnabled = true;
       }
+    },
+
+    createPubSub(obj) {
+      const events = {};
+      obj.on = function (key, fcn) {
+        if (typeof events[key] === 'undefined') {
+          events[key] = [];
+        }
+        events[key].push(fcn);
+        return obj;
+      };
+
+      obj.off = function (key, fcn) {
+        if (typeof events[key] !== 'undefined') {
+          const arr = events[key];
+
+          arr.splice(arr.indexOf(fcn), 1);
+        }
+        return obj;
+      };
+
+      obj.publish = function (key, data) {
+        if (typeof events[key] !== 'undefined') {
+          const arr = events[key];
+
+          arr.forEach(v => v(data));
+        }
+        return obj;
+      };
     },
 
     wrap(func, ...args) {
@@ -11145,7 +11205,7 @@ module.exports = function (Gibberish) {
     Gibberish.worklet.port.postMessage(obj.__meta__);
   };
 
-  const doNotProxy = ['connected', 'input', 'callback', 'inputNames'];
+  const doNotProxy = ['connected', 'input', 'callback', 'inputNames', 'on', 'off', 'publish'];
 
   const __proxy = function (__name, values, obj) {
 
@@ -11155,7 +11215,7 @@ module.exports = function (Gibberish) {
       // proxy for all method calls to send to worklet
       const proxy = new Proxy(obj, {
         get(target, prop, receiver) {
-          if (typeof target[prop] === 'function' && prop.indexOf('__') === -1) {
+          if (typeof target[prop] === 'function' && prop.indexOf('__') === -1 && doNotProxy.indexOf(prop) === -1) {
             const proxy = new Proxy(target[prop], {
               apply(__target, thisArg, args) {
 

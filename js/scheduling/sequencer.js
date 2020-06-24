@@ -76,13 +76,35 @@ const Sequencer = props => {
 
     start( delay = 0 ) {
       seq.__isRunning = true
-      Gibberish.scheduler.add( delay, seq.tick, seq.priority )
+      if( Gibberish.mode === 'processor' ) {
+        Gibberish.scheduler.add( 
+          delay, 
+          priority => {
+            seq.tick( priority )
+            Gibberish.processor.port.postMessage({
+              address:'__sequencer',
+              id: seq.id,
+              name:'start'
+            })
+          }, 
+          seq.priority 
+        )
+      }
       return __seq
     },
 
     stop( delay = null ) {
       if( delay === null ) {
         seq.__isRunning = false
+
+        if( Gibberish.mode === 'processor' ) {
+          Gibberish.processor.port.postMessage({
+            address:'__sequencer',
+            id: seq.id,
+            name:'stop'
+          })
+        }
+      
       }else{
         Gibberish.scheduler.add( delay, seq.stop )
       }
@@ -102,12 +124,17 @@ const Sequencer = props => {
 
   props.id = Gibberish.factory.getUID()
 
+  if( Gibberish.mode === 'worklet' ) {
+    Gibberish.utilities.createPubSub( seq )
+  }
   // need a separate reference to the properties for worklet meta-programming
   const properties = Object.assign( {}, Sequencer.defaults, props )
   Object.assign( seq, properties ) 
   seq.__properties__ = properties
 
   __seq =  proxy( ['Sequencer'], properties, seq )
+
+  
 
   return __seq
 }

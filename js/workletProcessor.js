@@ -1,5 +1,3 @@
-let processor = null
-
 class GibberishProcessor extends AudioWorkletProcessor {
   static get parameterDescriptors() {}
 
@@ -23,7 +21,6 @@ class GibberishProcessor extends AudioWorkletProcessor {
     Gibberish.worklet = { ugens: this.ugens }
 
     this.ugens.set( Gibberish.id, Gibberish )
-    processor = this
 
     this.messages = []
   }
