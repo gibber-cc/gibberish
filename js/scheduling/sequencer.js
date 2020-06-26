@@ -65,6 +65,17 @@ const Sequencer = props => {
           if( typeof value === 'function' ) value = value()
           seq.target[ seq.key ] = value
         }
+
+        if( seq.reportOutput === true ) {
+          Gibberish.processor.port.postMessage({
+            address:'__sequencer',
+            id: seq.id,
+            name:'output',
+            value,
+            phase: seq.__valuesPhase,
+            length: seq.values.length
+          })
+        }
       }
       
       if( Gibberish.mode === 'processor' ) {
@@ -139,10 +150,10 @@ const Sequencer = props => {
   return __seq
 }
 
-Sequencer.defaults = { priority:100000, values:[], timings:[], rate:1 }
+Sequencer.defaults = { priority:100000, values:[], timings:[], rate:1, reportOutput:false }
 
-Sequencer.make = function( values, timings, target, key, priority ) {
-  return Sequencer({ values, timings, target, key, priority })
+Sequencer.make = function( values, timings, target, key, priority, reportOutput ) {
+  return Sequencer({ values, timings, target, key, priority, reportOutput })
 }
 
 return Sequencer
