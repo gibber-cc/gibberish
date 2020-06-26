@@ -268,7 +268,7 @@ let Gibberish = {
   proxyReplace( obj ) {
     if( typeof obj === 'object' && obj !== null ) {
       if( obj.id !== undefined ) {
-        const __obj = processor.ugens.get( obj.id )
+        const __obj = Gibberish.processor.ugens.get( obj.id )
         //console.log( 'retrieved:', __obj.name )
 
         //if( obj.prop !== undefined ) console.log( 'got a ssd.out', obj )
