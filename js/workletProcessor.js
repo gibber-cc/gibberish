@@ -4,7 +4,7 @@ class GibberishProcessor extends AudioWorkletProcessor {
   constructor( options ) {
     super( options )
     
-    Gibberish = window.Gibberish
+    Gibberish = global.Gibberish
     Gibberish.ctx = { sampleRate }
     Gibberish.genish.hasWorklet = false
     Gibberish.preventProxy = true

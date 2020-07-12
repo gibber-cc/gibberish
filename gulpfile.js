@@ -10,12 +10,12 @@ const gulp = require('gulp'),
       gzip       = require( 'gulp-gzip' ),
       clean      = require( 'gulp-clean' ),
       workletStr = {
-        prefix:`const window = {}; 
+        prefix:`const global = typeof window === 'undefined' ? {} : window;
         let Gibberish = null; 
         let initialized = false;\n`,
 
-        postfix:`window.Gibberish.workletProcessor = GibberishProcessor 
-           registerProcessor( 'gibberish', window.Gibberish.workletProcessor );\n`
+        postfix:`global.Gibberish.workletProcessor = GibberishProcessor 
+           registerProcessor( 'gibberish', global.Gibberish.workletProcessor );\n`
       }
 
 let workletBlob = workletStr.prefix
