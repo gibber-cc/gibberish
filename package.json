@@ -24,7 +24,7 @@
     "genish.js": "latest",
     "memory-helper": "latest",
     "big.js": "^3.1.3",
-    "serialize-javascript": "1.9.1",
+    "serialize-javascript": "2.1.1",
     "tidal.pegjs": "latest",
     "codemirror": "^5.47.0"
   },
