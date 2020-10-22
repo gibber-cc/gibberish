@@ -80,6 +80,15 @@ gulp.task( 'watch', function() {
     )*/
 })
 
+const gibberFunc = ()=> {
+  const gibberishText = fs.readFileSync( './dist/gibberish.js', 'utf-8' )
+  const gibberishWorklet= fs.readFileSync( './dist/gibberish_worklet.js', 'utf-8' )
+
+  fs.writeFileSync( '/Users/charlie/Documents/code/gibber.audio.lib/dist/gibberish.js', gibberishText )
+  fs.writeFileSync( '/Users/charlie/Documents/code/gibber.audio.lib/dist/gibberish_worklet.js', gibberishWorklet )
+}
+
+gulp.task( 'gibber', ['workletblob'], gibberFunc )
 gulp.task( 'default', ['workletblob'] )
 
 

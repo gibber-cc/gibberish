@@ -39,7 +39,7 @@ module.exports = function( Gibberish ) {
       const osc   = Oscillators.factory( 'triangle', g.in( 'frequency' ), props.antialias )
       const graph = g.mul( osc, g.in('gain' ) )
 
-      const out =Gibberish.factory( tri, graph, ['oscillators','triangle'], props )
+      const out = Gibberish.factory( tri, graph, ['oscillators','triangle'], props )
 
       return out
     },
