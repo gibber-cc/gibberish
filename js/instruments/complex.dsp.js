@@ -19,7 +19,8 @@ module.exports = function( Gibberish ) {
           sustain = g.in( 'sustain' ), sustainLevel = g.in( 'sustainLevel' ),
           release = g.in( 'release' ),
           pregain = g.in( 'pregain' ),
-          postgain= g.in( 'postgain' )
+          postgain= g.in( 'postgain' ),
+          bias    = g.in( 'bias' )
 
     const props = Object.assign( {}, Complex.defaults, inputProps )
     Object.assign( syn, props )
@@ -46,7 +47,7 @@ module.exports = function( Gibberish ) {
         let oscWithEnv = osc * env * loudness * triggerLoudness,
             panner
 
-        let foldedOsc = wavefold( wavefold( wavefold( wavefold( oscWithEnv * (pregain * env) * .333 ) ) ) )
+        let foldedOsc = wavefold( wavefold( wavefold( wavefold( bias + oscWithEnv * (pregain * env) * .333 ) ) ) )
         foldedOsc = g.tanh( foldedOsc * .6 ) * postgain
  
         // 16 is an unfortunate empirically derived magic number...
@@ -107,11 +108,12 @@ module.exports = function( Gibberish ) {
     filterMode:0,
     isStereo:false,
     pregain:4,
-    postgain:1
+    postgain:1,
+    bias:0
   }
 
   // do not include velocity, which shoudl always be per voice
-  let PolyComplex = Gibberish.PolyTemplate( Complex, ['frequency','attack','decay','pulsewidth','pan','gain','glide', 'saturation', 'filterMult', 'Q', 'cutoff', 'resonance', 'antialias', 'filterType', 'waveform', 'filterMode', '__triggerLoudness', 'loudness', 'pregain', 'postgain'] ) 
+  let PolyComplex = Gibberish.PolyTemplate( Complex, ['frequency','attack','decay','pulsewidth','pan','gain','glide', 'saturation', 'filterMult', 'Q', 'cutoff', 'resonance', 'antialias', 'filterType', 'waveform', 'filterMode', '__triggerLoudness', 'loudness', 'pregain', 'postgain', 'bias'] ) 
   PolyComplex.defaults = Complex.defaults
 
   return [ Complex, PolyComplex ]
