@@ -18,7 +18,7 @@ class GibberishProcessor extends AudioWorkletProcessor {
     Gibberish.ugens = this.ugens = new Map()
 
     // XXX ridiculous hack to get around processor not having a worklet property
-    Gibberish.worklet = { ugens: this.ugens }
+    Gibberish.worklet = { ugens: this.ugens, port:this.port }
 
     this.ugens.set( Gibberish.id, Gibberish )
 
@@ -113,7 +113,9 @@ class GibberishProcessor extends AudioWorkletProcessor {
 
         properties.id = rep.id
         
-        ugen = properties.isop === true || properties.isPattern === true ? constructor( ...properties.inputs ) :  constructor( properties )
+        ugen = properties.isop === true || properties.isPattern === true 
+          ? constructor( ...properties.inputs ) 
+          : constructor( properties )
 
         if( properties.isPattern ) {
           for( let key in properties ) {
@@ -250,8 +252,9 @@ class GibberishProcessor extends AudioWorkletProcessor {
 
       const output = outputs[ 0 ]
       const len = outputs[0][0].length
+      let phase = 0
       for (let i = 0; i < len; ++i) {
-        scheduler.tick()
+        phase = scheduler.tick()
 
         if( gibberish.graphIsDirty ) {
           const oldCallback = callback
@@ -294,6 +297,10 @@ class GibberishProcessor extends AudioWorkletProcessor {
           messages:this.messages 
         })
       }
+      this.port.postMessage({
+        address:'phase',
+        value: phase
+      })
     }
    
     // make sure this is always returned or the callback ceases!!!

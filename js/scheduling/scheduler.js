@@ -20,6 +20,7 @@ const Scheduler = {
   clear() {
     this.queue.data.length = 0
     this.queue.length = 0
+    this.phase = 0
   },
 
   add( time, func, priority = 0 ) {
@@ -49,6 +50,8 @@ const Scheduler = {
 
       this.phase++
     }
+
+    return this.phase
   },
 
   advance( amt ) {

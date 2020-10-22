@@ -76,7 +76,8 @@ const utilities = {
 
       Gibberish.worklet.connect( Gibberish.ctx.destination )
       Gibberish.worklet.port.onmessage = event => {
-        Gibberish.utilities.workletHandlers[ event.data.address ]( event )        
+        const callback = Gibberish.utilities.workletHandlers[ event.data.address ]
+        if( typeof callback === 'function' ) callback( event )     
       }
       Gibberish.worklet.ugens = new Map()
 
@@ -99,12 +100,19 @@ const utilities = {
   },
 
   workletHandlers: {
+    phase( event ) {
+      Gibberish.phase = event.data.value
+      if( typeof Gibberish.onphaseupdate === 'function' ) {
+        Gibberish.onphaseupdate( Gibberish.phase )
+      }
+    },
     __sequencer( event ) {
       const message = event.data
       const id = message.id
       const eventName = message.name
       const obj = Gibberish.worklet.ugens.get( id )
-      obj.publish( eventName, message )
+      if( obj !== undefined && obj.publish !== undefined )
+        obj.publish( eventName, message )
     },
     callback( event ) {
       if( typeof Gibberish.oncallback === 'function' ) {
