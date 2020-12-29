@@ -171,8 +171,6 @@ module.exports = function( Gibberish ) {
 
       syn.__createGraph()
     }
-    
-
 
     const out = Gibberish.factory( 
       syn,
@@ -198,7 +196,6 @@ module.exports = function( Gibberish ) {
   }
 
   const envCheckFactory = function( voice, _poly ) {
-
     const envCheck = () => {
       const phase = Gibberish.memory.heap[ voice.__phase__.memory.value.idx ]
       if( ( voice.rate > 0 && phase > voice.end ) || ( voice.rate < 0 && phase < 0 ) ) {
