@@ -4,11 +4,6 @@ const g = require( 'genish.js' ),
 
 const genish = g
 
-/*
- * XXX need to also enable following of non-abs values.
- * ,,, or do we? what are valid negative property values in this
- * version of Gibberish?
- */ 
 module.exports = function( Gibberish ) {
 
   const Follow = function( __props ){
@@ -116,21 +111,50 @@ module.exports = function( Gibberish ) {
       const follow_in = Object.create( ugen )
 
       if( isStereo === true ) {
-        {
-          "use jsdsp"
-          // phase to write to follow buffer
-          const bufferPhaseOut = g.accum( 1,0,{ max:props.bufferSize, min:0 })
+        if( props.outputStereo === false ) {
+          { 
+            "use jsdsp"
+            // phase to write to follow buffer
+            const bufferPhaseOut = g.accum( 1,0,{ max:props.bufferSize, min:0 })
 
-          // hold running sum
-          const sum = g.data( 1, 1, { meta:true })
+            // hold running sum
+            const sum = g.data( 1, 1, { meta:true })
 
-          const mono = g.abs( input[0] + input[1] )
+            const mono = props.abs === true ? g.abs( input[0] + input[1] ) : input[0] + input[1]
 
-          sum[0] = sum[0] + mono - g.peek( buffer, bufferPhaseOut, { mode:'simple' })
+            sum[0] = sum[0] + mono - g.peek( buffer, bufferPhaseOut, { mode:'simple' })
 
-          g.poke( buffer, g.abs( mono ), bufferPhaseOut )
+            g.poke( buffer, g.abs( mono ), bufferPhaseOut )
 
-          avg = (sum[0] / props.bufferSize) * multiplier + offset
+            avg = (sum[0] / props.bufferSize) * multiplier + offset
+          }
+        }else{
+          const bufferL = buffer
+          const bufferR = g.data( props.bufferSize, 1 )
+
+          { 
+            "use jsdsp"
+            // phase to write to follow buffer
+            const bufferPhaseOut = g.accum( 1,0,{ max:props.bufferSize, min:0 })
+
+            // hold running sum
+            const sumL = g.data( 1, 1, { meta:true })
+            const sumR = g.data( 1, 1, { meta:true })
+
+            const left = props.abs === true  ? g.abs( input[0] ) : input[0]
+            const right = props.abs === true ? g.abs( input[1] ) : input[1]
+
+            sumL[0] = sumL[0] + left - g.peek( bufferL, bufferPhaseOut, { mode:'simple' })
+            sumR[0] = sumR[0] + right- g.peek( bufferR, bufferPhaseOut, { mode:'simple' })
+
+            g.poke( bufferL, g.abs( left  ), bufferPhaseOut )
+            g.poke( bufferR, g.abs( right ), bufferPhaseOut )
+
+            avg = [
+              (sumL[0] / props.bufferSize) * multiplier + offset,
+              (sumR[0] / props.bufferSize) * multiplier + offset,
+            ]
+          }
         }
       }else{
         {
@@ -141,7 +165,9 @@ module.exports = function( Gibberish ) {
           // hold running sum
           const sum = g.data( 1, 1, { meta:true })
 
-          sum[0] = sum[0] + g.abs( input ) - g.peek( buffer, bufferPhaseOut, { mode:'simple' })
+          const __input = props.abs === true ? g.abs( input ) : input
+
+          sum[0] = sum[0] + __input - g.peek( buffer, bufferPhaseOut, { mode:'simple' })
           
           g.poke( buffer, g.abs( input ), bufferPhaseOut )
 
@@ -178,6 +204,8 @@ module.exports = function( Gibberish ) {
     input:0,
     bufferSize:1024,
     multiplier:1,
+    abs: true,
+    outputStereo:false,
     offset:0
   }
 
