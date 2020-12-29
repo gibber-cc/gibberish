@@ -144,7 +144,8 @@ const utilities = {
       Gibberish.preventProxy = true
       Gibberish.proxyEnabled = false
 
-      for( let i = 0; i < messages.length; i+= 4 ) {
+      let i = 0
+      while( i < messages.length ) {
         const id = messages[ i ] 
         const propName = messages[ i + 1 ]
         const valueL = messages[ i + 2 ]
@@ -186,6 +187,7 @@ const utilities = {
         }
         // XXX double check and make sure this isn't getting sent back to processornode...
         // console.log( propName, value, obj )
+        i += propName === 'output' ? 4 : 3
       }
       Gibberish.preventProxy = false
       Gibberish.proxyEnabled = true
