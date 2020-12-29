@@ -89,8 +89,8 @@ const utilities = {
     const keys = Object.keys( dict )
     const code = `
       const fnc = ${fnc.toString()}
-      const args = [${keys.map( key => dict[ key ].id ).join(',')}]
-      const objs = args.map( v => Gibberish.processor.ugens.get(v) )
+      const args = [${keys.map( key => typeof dict[key] === 'object' ? dict[ key ].id : `'${dict[ key]}'` ).join(',')}]
+      const objs = args.map( v => typeof v === 'number' ? Gibberish.processor.ugens.get(v) : v )
       Gibberish.scheduler.add( ${time}, ()=> fnc( ...objs ), 1 )
     ` 
     Gibberish.worklet.port.postMessage({ 
@@ -144,21 +144,28 @@ const utilities = {
       Gibberish.preventProxy = true
       Gibberish.proxyEnabled = false
 
-      for( let i = 0; i < messages.length; i+= 3 ) {
+      for( let i = 0; i < messages.length; i+= 4 ) {
         const id = messages[ i ] 
         const propName = messages[ i + 1 ]
-        const value = messages[ i + 2 ]
+        const valueL = messages[ i + 2 ]
+        const valueR = messages[ i + 3 ]
+        const value = valueL
         const obj = Gibberish.worklet.ugens.get( id )
 
         if( Gibberish.worklet.debug === true ) {
           if( propName !== 'output' ) console.log( propName, value, id )
-          console.log( propName, value, id )
         }
 
+        if( typeof propName !== 'string' ) continue
+        
         if( obj !== undefined && propName.indexOf('.') === -1 && propName !== 'id' ) { 
           if( obj[ propName ] !== undefined ) {
             if( typeof obj[ propName ] !== 'function' ) {
-              obj[ propName ] = value
+              if( propName === 'output' ) {
+                obj[ propName ] = [ valueL, valueR ]
+              }else{
+                obj[ propName ] = value
+              }
             }else{
               obj[ propName ]( value )
             }
