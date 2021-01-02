@@ -26,32 +26,30 @@ module.exports = function( Gibberish ) {
       }
     },
     trigger( volume ) {
-      if( volume !== undefined ) this.gain = volume
+      if( volume !== undefined ) this.__triggerLoudness = volume
 
       if( Gibberish.mode === 'processor' ) {
-        // if we're playing the sample forwards...
-        /*if( Gibberish.memory.heap[ this.__rateStorage__.memory.values.idx ] > 0 ) {
-          this.__trigger()
-        }else{
-          this.__phase__.value = this.end * (this.data.buffer.length - 1)
-          }*/
-        this.samplers[ this.currentSample ].trigger()
+        const sampler = this.samplers[ this.currentSample ]
+        const voice = this.__getVoice__()
+
+        // set voice buffer length
+        g.gen.memory.heap.set( [sampler.dataLength], voice.bufferLength.memory.values.idx )
+
+        // set voice data index
+        g.gen.memory.heap.set( [sampler.dataIdx], voice.bufferLoc.memory.values.idx )
+
+        voice.trigger()
       }
-         //this.samplers[ '../resources/snare.wav' ].trigger()
-      //}else{
-      //  const keys = Object.keys( this.samplers )
-      //  const idx = phase++
-      //  const key = keys[ idx ]
-      //  if( phase > 1 ) phase = 0
-      //  this.samplers[ key ].trigger()
-      //}
+    },
+    __getVoice__() {
+      return this.voices[ this.voiceCount++ % this.voices.length ]
     },
   })
 
   const Sampler = inputProps => {
     const syn = Object.create( proto )
 
-    const props = Object.assign( { onload:null }, Sampler.defaults, inputProps )
+    const props = Object.assign( { onload:null, voiceCount:0 }, Sampler.defaults, inputProps )
 
     syn.isStereo = props.isStereo !== undefined ? props.isStereo : false
 
@@ -78,35 +76,65 @@ module.exports = function( Gibberish ) {
       Gibberish.worklet.port.postMessage( syn.__meta__ )
     }
 
+    // create all our vocecs
+    const voices = []
+    for( let i = 0; i < syn.maxVoices; i++ ) {
+      'use jsdsp'
+
+      const voice = {
+        bufferLength: g.data( [1], 1, { meta:true }),
+        bufferLoc:    g.data( [1], 1, { meta:true }),
+        bang: g.bang(),
+      }
+
+      voice.phase = g.counter( 
+        rate, 
+        start * voice.bufferLength[0],
+        end * voice.bufferLength[0], 
+        voice.bang, 
+        shouldLoop, 
+        { shouldWrap:false, initialValue:9999999 }
+      )
+
+      voice.trigger = voice.bang.trigger
+
+      voice.graph = g.ifelse(
+          // if phase is greater than start and less than end... 
+          g.and( 
+          g.gte( voice.phase, start * voice.bufferLength[0] ), 
+          g.lt(  voice.phase, end   * voice.bufferLength[0] ) 
+        ),
+        // ...read data
+        voice.peek = g.peekDyn( 
+          voice.bufferLoc[0], 
+          voice.bufferLength[0],
+          voice.phase,
+          { mode:'samples' }
+        ),
+        // ...else return 0
+        0
+      ) 
+      * loudness 
+      * triggerLoudness 
+
+      voices.push( voice )
+    }
+
+    // load in sample data
     const samplers = {}
     for( let filename of props.files ) {
       'use jsdsp'
 
       const sampler = samplers[ filename ] = {
-        bufferLength: g.data( [1], 1, { meta:true }),
-        bufferLoc:    g.data( [1], 1, { meta:true }),
-        bang: g.bang(),
+        dataLength: null,
+        dataIdx: null,
+        buffer: null,
         filename
       }
-
-      sampler.phase = g.counter( 
-        rate, 
-        start * sampler.bufferLength[0],
-        end * sampler.bufferLength[0], 
-        sampler.bang, 
-        shouldLoop, 
-        { shouldWrap:false, initialValue:9999999 }
-      )
-
-      sampler.trigger = sampler.bang.trigger
 
       // main thread: when sample is loaded, copy it over message port
       // processor thread: onload is called via messageport handler, and
       // passed in the new buffer to be copied.
-
-      // XXX buffer isn't copied to main memory until __redoGraph() is called.
-      // can we do this using requestMemory and gen.heap.set instead??? that
-      // should really speed tthings up...
       const onload = obj => {
         if( Gibberish.mode === 'worklet' ) {
           const memIdx = Gibberish.memory.alloc( sampler.data.buffer.length, true )
@@ -114,34 +142,33 @@ module.exports = function( Gibberish ) {
           Gibberish.worklet.port.postMessage({
             address:'copy_multi',
             id:     syn.id,
-            idx:    memIdx,
             buffer: sampler.data.buffer,
             filename
           })
 
         }else if( Gibberish.mode === 'processor' ) {
           sampler.data.buffer = obj
-          sampler.data.memory.values.length = sampler.data.dim = sampler.data.buffer.length
 
-          // sett the length of the buffer (works)
-          g.gen.memory.heap.set( [sampler.data.buffer.length], sampler.bufferLength.memory.values.idx )
+          // set data memory spec before issuing memory request
+          sampler.dataLength = sampler.data.memory.values.length = sampler.data.dim = sampler.data.buffer.length
+
+          // set the length of the buffer (works)
+          //g.gen.memory.heap.set( [sampler.data.buffer.length], sampler.bufferLength.memory.values.idx )
 
           // request memory to copy the bufer over
           g.gen.requestMemory( sampler.data.memory, false )
           g.gen.memory.heap.set( sampler.data.buffer, sampler.data.memory.values.idx )
 
           // set location of buffer (does not work)
-          g.gen.memory.heap.set( [sampler.data.memory.values.idx], sampler.bufferLoc.memory.values.idx )
-          console.log( sampler.filename, obj.length, sampler.data.memory.values.idx )
+          sampler.dataIdx = sampler.data.memory.values.idx
+          //g.gen.memory.heap.set( [sampler.data.memory.values.idx], sampler.bufferLoc.memory.values.idx )
+
           syn.currentSample = sampler.filename
         }
 
         //if( typeof syn.onload === 'function' ){  
         //  syn.onload( buffer || syn.data.buffer )
         //}
-        if( sampler.bufferLength[0] === -999999999 && sampler.data.buffer !== undefined ) {
-          sampler.bufferLength[0] = syn.data.buffer.length - 1
-        }
       }
 
       // passing a filename to data will cause it to be loaded in the main thread
@@ -170,36 +197,13 @@ module.exports = function( Gibberish ) {
         sampler.data = g.data( new Float32Array(), 1, { onload, filename })
         sampler.data.onload = onload
       } 
-
-      {
-        'use jsdsp'
-        sampler.graph = g.ifelse(
-          // if phase is greater than start and less than end... 
-          g.and( 
-            g.gte( sampler.phase, start * sampler.bufferLength[0] ), 
-            g.lt(  sampler.phase, end   * sampler.bufferLength[0] ) 
-          ),
-          // ...read data
-          sampler.peek = g.peekDyn( 
-            sampler.bufferLoc[0], 
-            sampler.bufferLength[0],
-            sampler.phase,
-            { mode:'samples' }
-          ),
-          // ...else return 0
-          0
-        ) 
-        * loudness 
-        * triggerLoudness 
-        * g.in('gain')
-      }
     }
 
     syn.__createGraph = function() {
       'use jsdsp'
       
-      const graphs = props.files.map( name => samplers[ name ].graph )
-      syn.graph = g.add( ...graphs )
+      const graphs = voices.map( voice => voice.graph )
+      syn.graph = g.add( ...graphs ) * g.in( 'gain' )
 
       if( syn.panVoices === true ) { 
         const panner = g.pan( syn.graph, syn.graph, g.in( 'pan' ) ) 
@@ -225,6 +229,12 @@ module.exports = function( Gibberish ) {
       props 
     ) 
 
+    Gibberish.preventProxy = true
+    Gibberish.proxyEnabled = false
+    out.voices = voices
+    Gibberish.proxyEnabled = true
+    Gibberish.preventProxy = false
+
     return out
   }
 
@@ -238,6 +248,7 @@ module.exports = function( Gibberish ) {
     end:1,
     bufferLength:-999999999,
     loudness:1,
+    maxVoices:5, 
     __triggerLoudness:1
   }
 
