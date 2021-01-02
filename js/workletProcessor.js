@@ -3,11 +3,15 @@ class GibberishProcessor extends AudioWorkletProcessor {
 
   constructor( options ) {
     super( options )
-    
+
     Gibberish = global.Gibberish
     Gibberish.ctx = { sampleRate }
     Gibberish.genish.hasWorklet = false
     Gibberish.preventProxy = true
+    
+    // TODO: need to figure out how to read memory amount
+    // perhaps attach initialization to a message instead?
+    // then we could easily re-init...
     Gibberish.init( undefined, undefined, 'processor' )
     Gibberish.preventProxy = false
     Gibberish.debug = false 
@@ -188,6 +192,18 @@ class GibberishProcessor extends AudioWorkletProcessor {
       }else{
         target.data.onload( event.data.buffer )
       }
+    }else if( event.data.address === 'copy_multi' ) {
+      const target = this.ugens.get( event.data.id )
+
+      if( target === undefined ) {
+        // this should only occur when a buffer is loaded prior to a delayed instantiation. for example,
+        // if gibber starts downloading a file, on beat two and is finished by beat three, the next measure
+        // will not have occurred yet, meaning a delayed sampler instantiation will not yet have occurred.
+        // in this case, we wait until the next measure boundary.
+        this.queue.push( event )
+      }else{
+        target.samplers[ event.data.filename ].data.onload( event.data.buffer )
+      }
     }else if( event.data.address === 'callback' ) {
       console.log( Gibberish.callback.toString() )
     }else if( event.data.address === 'addConstructor' ) {
@@ -287,7 +303,9 @@ class GibberishProcessor extends AudioWorkletProcessor {
         for( let i = 1; i < ugens.length - 1; i++ ) {
           const ugen = ugens[ i ]
           if( ugen.out !== undefined ) {
-            this.messages.push( ugen.id, 'output', ugen.out[ 0 ] )
+            //console.log( ugen.ugenName, ugen.out[0], ugen.out[1] )
+            //this.messages.push( ugen.id, 'output', ugen.out.length === 1 ? ugen.out[ 0 ] : ugen.out )
+            this.messages.push( ugen.id, 'output', ugen.out[0], ugen.out[1] )
           }
         }
       }     
