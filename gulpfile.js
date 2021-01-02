@@ -192,7 +192,7 @@ const jsdsp = function({ types: t }) {
       }
 
       path.traverse( innerVisitor, state )
-      //state.usejsdsp = false;
+      state.usejsdsp = false;
       //path.skip()
     }
   }
