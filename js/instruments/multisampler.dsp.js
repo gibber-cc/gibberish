@@ -83,7 +83,8 @@ module.exports = function( Gibberish ) {
       'use jsdsp'
 
       const sampler = samplers[ filename ] = {
-        bufferLength: g.data( [15000], 1, { meta:true }),
+        bufferLength: g.data( [1], 1, { meta:true }),
+        bufferLoc:    g.data( [1], 1, { meta:true }),
         bang: g.bang(),
         filename
       }
@@ -99,6 +100,13 @@ module.exports = function( Gibberish ) {
 
       sampler.trigger = sampler.bang.trigger
 
+      // main thread: when sample is loaded, copy it over message port
+      // processor thread: onload is called via messageport handler, and
+      // passed in the new buffer to be copied.
+
+      // XXX buffer isn't copied to main memory until __redoGraph() is called.
+      // can we do this using requestMemory and gen.heap.set instead??? that
+      // should really speed tthings up...
       const onload = obj => {
         if( Gibberish.mode === 'worklet' ) {
           const memIdx = Gibberish.memory.alloc( sampler.data.buffer.length, true )
@@ -112,10 +120,19 @@ module.exports = function( Gibberish ) {
           })
 
         }else if( Gibberish.mode === 'processor' ) {
-          sampler.data.buffer = obj //buffer
+          sampler.data.buffer = obj
           sampler.data.memory.values.length = sampler.data.dim = sampler.data.buffer.length
-          sampler.bufferLength[0].data.buffer[0] = obj.length
-          syn.__redoGraph() 
+
+          // sett the length of the buffer (works)
+          g.gen.memory.heap.set( [sampler.data.buffer.length], sampler.bufferLength.memory.values.idx )
+
+          // request memory to copy the bufer over
+          g.gen.requestMemory( sampler.data.memory, false )
+          g.gen.memory.heap.set( sampler.data.buffer, sampler.data.memory.values.idx )
+
+          // set location of buffer (does not work)
+          g.gen.memory.heap.set( [sampler.data.memory.values.idx], sampler.bufferLoc.memory.values.idx )
+          console.log( sampler.filename, obj.length, sampler.data.memory.values.idx )
           syn.currentSample = sampler.filename
         }
 
@@ -127,7 +144,10 @@ module.exports = function( Gibberish ) {
         }
       }
 
-      if( Gibberish.mode !== 'processor' ) {
+      // passing a filename to data will cause it to be loaded in the main thread
+      // onload will then be called to pass the buffer over the messageport. In the
+      // processor thread, make a placeholder until data is available.
+      if( Gibberish.mode === 'worklet' ) {
         sampler.data = g.data( filename, 1, { onload })
 
         // check to see if a promise is returned; a valid
@@ -160,8 +180,9 @@ module.exports = function( Gibberish ) {
             g.lt(  sampler.phase, end   * sampler.bufferLength[0] ) 
           ),
           // ...read data
-          g.peek( 
-            sampler.data, 
+          sampler.peek = g.peekDyn( 
+            sampler.bufferLoc[0], 
+            sampler.bufferLength[0],
             sampler.phase,
             { mode:'samples' }
           ),
@@ -190,7 +211,7 @@ module.exports = function( Gibberish ) {
       if( Gibberish.mode === 'processor' ) {
         syn.data.buffer = buffer
         syn.data.memory.values.length = syn.data.dim = buffer.length
-        syn.__redoGraph() 
+        //syn.__redoGraph() 
       }
     }
 
