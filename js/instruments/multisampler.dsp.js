@@ -11,8 +11,8 @@ module.exports = function( Gibberish ) {
     pickFile( sample ) {
       this.currentSample = sample
     },
-    pick( idx ) {
-      idx = Math.floor( idx )
+    pick( __idx ) {
+      const idx = Math.floor( __idx )
       const keys = Object.keys( this.samplers )
       const key = keys[ idx ]
       this.currentSample = key
@@ -33,10 +33,10 @@ module.exports = function( Gibberish ) {
         const voice = this.__getVoice__()
 
         // set voice buffer length
-        g.gen.memory.heap.set( [sampler.dataLength], voice.bufferLength.memory.values.idx )
+        g.gen.memory.heap.set( [ sampler.dataLength ], voice.bufferLength.memory.values.idx )
 
         // set voice data index
-        g.gen.memory.heap.set( [sampler.dataIdx], voice.bufferLoc.memory.values.idx )
+        g.gen.memory.heap.set( [ sampler.dataIdx ], voice.bufferLoc.memory.values.idx )
 
         voice.trigger()
       }
@@ -219,7 +219,6 @@ module.exports = function( Gibberish ) {
       }
     }
 
-    syn.samplers = samplers
     syn.__createGraph()
 
     const out = Gibberish.factory( 
@@ -232,6 +231,7 @@ module.exports = function( Gibberish ) {
     Gibberish.preventProxy = true
     Gibberish.proxyEnabled = false
     out.voices = voices
+    out.samplers = samplers
     Gibberish.proxyEnabled = true
     Gibberish.preventProxy = false
 
@@ -252,23 +252,6 @@ module.exports = function( Gibberish ) {
     __triggerLoudness:1
   }
 
-  //const envCheckFactory = function( voice, _poly ) {
-  //  const envCheck = () => {
-  //    const phase = Gibberish.memory.heap[ voice.__phase__.memory.value.idx ]
-  //    if( ( voice.rate > 0 && phase > voice.end ) || ( voice.rate < 0 && phase < 0 ) ) {
-  //      _poly.disconnectUgen.call( _poly, voice )
-  //      voice.isConnected = false
-  //    }else{
-  //      Gibberish.blockCallbacks.push( envCheck )
-  //    }
-  //  }
-
-  //  return envCheck
-  //}
-
-  //const PolySampler = Gibberish.PolyTemplate( Sampler, ['rate','pan','gain','start','end','loops','bufferLength','__triggerLoudness','loudness'], envCheckFactory ) 
-
-  //return [ Sampler, PolySampler ]
   return Sampler
 }
    
