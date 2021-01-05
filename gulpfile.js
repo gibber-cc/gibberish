@@ -99,7 +99,7 @@ const jsdsp = function({ types: t }) {
     '*':  'mul',
     '/':  'div',
     '^':  'pow',
-    '**': 'pow',
+/*    '**': 'pow',
     '%':  'mod',
     '+=': 'add',
     '*=': 'mul',
@@ -192,7 +192,7 @@ const jsdsp = function({ types: t }) {
       }
 
       path.traverse( innerVisitor, state )
-      state.usejsdsp = false;
+      state.usejsdsp = state.usejsdsp === true ? true : false
       //path.skip()
     }
   }
