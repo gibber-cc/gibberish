@@ -49,7 +49,7 @@ module.exports = function( Gibberish ) {
   const Sampler = inputProps => {
     const syn = Object.create( proto )
 
-    const props = Object.assign( { onload:null, voiceCount:0 }, Sampler.defaults, inputProps )
+    const props = Object.assign( { onload:null, voiceCount:0, files:[] }, Sampler.defaults, inputProps )
 
     syn.isStereo = props.isStereo !== undefined ? props.isStereo : false
 
@@ -122,7 +122,8 @@ module.exports = function( Gibberish ) {
 
     // load in sample data
     const samplers = {}
-    for( let filename of props.files ) {
+    //for( let filename of props.files ) {
+    syn.loadSample = function( filename ) {
       'use jsdsp'
 
       const sampler = samplers[ filename ] = {
@@ -152,23 +153,15 @@ module.exports = function( Gibberish ) {
           // set data memory spec before issuing memory request
           sampler.dataLength = sampler.data.memory.values.length = sampler.data.dim = sampler.data.buffer.length
 
-          // set the length of the buffer (works)
-          //g.gen.memory.heap.set( [sampler.data.buffer.length], sampler.bufferLength.memory.values.idx )
-
           // request memory to copy the bufer over
           g.gen.requestMemory( sampler.data.memory, false )
           g.gen.memory.heap.set( sampler.data.buffer, sampler.data.memory.values.idx )
 
           // set location of buffer (does not work)
           sampler.dataIdx = sampler.data.memory.values.idx
-          //g.gen.memory.heap.set( [sampler.data.memory.values.idx], sampler.bufferLoc.memory.values.idx )
 
           syn.currentSample = sampler.filename
         }
-
-        //if( typeof syn.onload === 'function' ){  
-        //  syn.onload( buffer || syn.data.buffer )
-        //}
       }
 
       // passing a filename to data will cause it to be loaded in the main thread
@@ -198,6 +191,8 @@ module.exports = function( Gibberish ) {
         sampler.data.onload = onload
       } 
     }
+
+    props.files.forEach( filename => syn.loadSample( filename ) )
 
     syn.__createGraph = function() {
       'use jsdsp'
