@@ -134,6 +134,11 @@ const Sequencer = props => {
     stop() {
       seq.__isRunning = false
       return __seq
+    },
+
+    set( patternString ) {
+      seq.__pattern = Pattern( patternString, { addLocations:true, addUID:true, enclose:true })
+
     }
   }
 
