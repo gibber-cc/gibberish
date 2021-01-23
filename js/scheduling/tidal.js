@@ -165,6 +165,8 @@ Sequencer.getUID = ()=> {
   return __uid++
 }
 
+Sequencer.Pattern = Pattern
+
 Sequencer.clock = { cps: 1 }
 
 Sequencer.id = Gibberish.utilities.getUID()
