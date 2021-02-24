@@ -9,7 +9,7 @@ module.exports = function( Gibberish ) {
     let syn = Object.create( instrument )
 
     let frequency = g.in( 'frequency' ),
-        glide = g.in( 'glide' ),
+        glide = g.max( 1, g.in( 'glide' ) ),
         slidingFreq = g.slide( frequency, glide, glide ),
         cmRatio = g.in( 'cmRatio' ),
         index = g.in( 'index' ),
@@ -57,7 +57,7 @@ module.exports = function( Gibberish ) {
         const carrierOsc = Gibberish.oscillators.factory( syn.carrierWaveform, g.add( slidingFreq, modOscWithEnvAvg ), syn.antialias )
 
         // XXX horrible hack below to "use" saturation even when not using a diode filter 
-        const carrierOscWithEnv = props.filterType === 2 ? carrierOsc * env : g.mul(carrierOsc, g.mul(env,saturation) )
+        const carrierOscWithEnv = props.filterModel === 2 ? carrierOsc * env : g.mul(carrierOsc, g.mul(env,saturation) )
 
         const baseCutoffFreq = g.in( 'cutoff' ) * ( frequency /  ( g.gen.samplerate / 16 ) ) 
         const cutoff = g.min( baseCutoffFreq * g.pow( 2, g.in('filterMult') * Loudness ) * env, .995 ) 
@@ -80,7 +80,7 @@ module.exports = function( Gibberish ) {
       return env
     }
     
-    syn.__requiresRecompilation = [ 'carrierWaveform', 'modulatorWaveform', 'antialias', 'filterType', 'filterMode' ]
+    syn.__requiresRecompilation = [ 'carrierWaveform', 'modulatorWaveform', 'antialias', 'filterModel', 'filterMode' ]
     const env = syn.__createGraph()
 
     const out = Gibberish.factory( syn, syn.graph , ['instruments','FM'], props )
@@ -114,14 +114,14 @@ module.exports = function( Gibberish ) {
     filterMult:1.5,
     Q:.25,
     cutoff:.35,
-    filterType:0,
+    filterModel:0,
     filterMode:0,
     loudness: 1,
     __triggerLoudness:1
 
   }
 
-  const PolyFM = Gibberish.PolyTemplate( FM, ['glide','frequency','attack','decay','pulsewidth','pan','gain','cmRatio','index', 'saturation', 'filterMult', 'Q', 'cutoff', 'antialias', 'filterType', 'carrierWaveform', 'modulatorWaveform','filterMode', 'feedback', 'useADSR', 'sustain', 'release', 'sustainLevel', '__triggerLoudness','loudness' ] ) 
+  const PolyFM = Gibberish.PolyTemplate( FM, ['glide','frequency','attack','decay','pulsewidth','pan','gain','cmRatio','index', 'saturation', 'filterMult', 'Q', 'cutoff', 'antialias', 'filterModel', 'carrierWaveform', 'modulatorWaveform','filterMode', 'feedback', 'useADSR', 'sustain', 'release', 'sustainLevel', '__triggerLoudness','loudness' ] ) 
   PolyFM.defaults = FM.defaults
 
   return [ FM, PolyFM ]

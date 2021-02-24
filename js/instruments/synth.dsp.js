@@ -11,7 +11,7 @@ module.exports = function( Gibberish ) {
     const frequency = g.in( 'frequency' ),
           loudness  = g.in( 'loudness' ), 
           triggerLoudness = g.in( '__triggerLoudness' ),
-          glide = g.in( 'glide' ),
+          glide = g.max( 1, g.in( 'glide' ) ),
           slidingFreq = g.slide( frequency, glide, glide ),
           attack = g.in( 'attack' ), decay = g.in( 'decay' ),
           sustain = g.in( 'sustain' ), sustainLevel = g.in( 'sustainLevel' ),
@@ -52,7 +52,7 @@ module.exports = function( Gibberish ) {
         
         // XXX This line has to be here for correct code generation to work when
         // saturation is not being used... obviously this should cancel out. 
-        if( syn.filterType !== 2 ) synthWithGain = synthWithGain + saturation - saturation
+        if( syn.filterModel !== 2 ) synthWithGain = synthWithGain + saturation - saturation
     
         if( syn.panVoices === true ) { 
           panner = g.pan( synthWithGain, synthWithGain, g.in( 'pan' ) ) 
@@ -72,7 +72,7 @@ module.exports = function( Gibberish ) {
 
     }
     
-    syn.__requiresRecompilation = [ 'waveform', 'antialias', 'filterType','filterMode', 'useADSR', 'shape' ]
+    syn.__requiresRecompilation = [ 'waveform', 'antialias', 'filterModel','filterMode', 'useADSR', 'shape' ]
     const env = syn.__createGraph()
 
     const out = Gibberish.factory( syn, syn.graph, ['instruments', 'synth'], props, null, true, ['saturation']  )
@@ -105,12 +105,12 @@ module.exports = function( Gibberish ) {
     filterMult:2,
     Q:.25,
     cutoff:.5,
-    filterType:1,
+    filterModel:1,
     filterMode:0
   }
 
   // do not include velocity, which shoudl always be per voice
-  let PolySynth = Gibberish.PolyTemplate( Synth, ['frequency','attack','decay','pulsewidth','pan','gain','glide', 'saturation', 'filterMult', 'Q', 'cutoff', 'resonance', 'antialias', 'filterType', 'waveform', 'filterMode', '__triggerLoudness', 'loudness'] ) 
+  let PolySynth = Gibberish.PolyTemplate( Synth, ['frequency','attack','decay','pulsewidth','pan','gain','glide', 'saturation', 'filterMult', 'Q', 'cutoff', 'resonance', 'antialias', 'filterModel', 'waveform', 'filterMode', '__triggerLoudness', 'loudness'] ) 
   PolySynth.defaults = Synth.defaults
 
   return [ Synth, PolySynth ]

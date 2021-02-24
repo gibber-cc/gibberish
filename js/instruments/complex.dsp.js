@@ -13,7 +13,7 @@ module.exports = function( Gibberish ) {
     const frequency = g.in( 'frequency' ),
           loudness  = g.in( 'loudness' ), 
           triggerLoudness = g.in( '__triggerLoudness' ),
-          glide   = g.in( 'glide' ),
+          glide   = g.max( 1, g.in( 'glide' ) ),
           slidingFreq = g.slide( frequency, glide, glide ),
           attack  = g.in( 'attack' ), 
           decay   = g.in( 'decay' ),
@@ -59,7 +59,7 @@ module.exports = function( Gibberish ) {
 
         let complexWithGain = filteredOsc * g.in( 'gain' )
         // XXX ugly, ugly hack
-        if(  props.filterType !== 2 ) complexWithGain = complexWithGain * saturation
+        if(  props.filterModel !== 2 ) complexWithGain = complexWithGain * saturation
     
         if( syn.panVoices === true ) { 
           panner = g.pan( complexWithGain, complexWithGain, g.in( 'pan' ) ) 
@@ -75,7 +75,7 @@ module.exports = function( Gibberish ) {
 
     }
     
-    syn.__requiresRecompilation = [ 'waveform', 'antialias', 'filterType','filterMode', 'useADSR', 'shape' ]
+    syn.__requiresRecompilation = [ 'waveform', 'antialias', 'filterModel','filterMode', 'useADSR', 'shape' ]
     syn.__createGraph()
 
     const out = Gibberish.factory( syn, syn.graph, ['instruments', 'complex'], props  )
@@ -106,7 +106,8 @@ module.exports = function( Gibberish ) {
     filterMult:2,
     Q:.25,
     cutoff:.5,
-    filterType:1,
+    //filterType:1,
+    filterModel:1,
     filterMode:0,
     isStereo:false,
     pregain:4,
@@ -115,7 +116,7 @@ module.exports = function( Gibberish ) {
   }
 
   // do not include velocity, which shoudl always be per voice
-  let PolyComplex = Gibberish.PolyTemplate( Complex, ['frequency','attack','decay','pulsewidth','pan','gain','glide', 'saturation', 'filterMult', 'Q', 'cutoff', 'resonance', 'antialias', 'filterType', 'waveform', 'filterMode', '__triggerLoudness', 'loudness', 'pregain', 'postgain', 'bias'] ) 
+  let PolyComplex = Gibberish.PolyTemplate( Complex, ['frequency','attack','decay','pulsewidth','pan','gain','glide', 'saturation', 'filterMult', 'Q', 'cutoff', 'resonance', 'antialias', 'filterModel', 'waveform', 'filterMode', '__triggerLoudness', 'loudness', 'pregain', 'postgain', 'bias'] ) 
   PolyComplex.defaults = Complex.defaults
 
   return [ Complex, PolyComplex ]

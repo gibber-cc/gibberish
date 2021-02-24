@@ -8,7 +8,7 @@ module.exports = function( Gibberish ) {
     const syn = Object.create( instrument ),
           oscs = [], 
           frequency = g.in( 'frequency' ),
-          glide = g.in( 'glide' ),
+          glide = g.max( 1, g.in( 'glide' ) ),
           slidingFreq = g.memo( g.slide( frequency, glide, glide ) ),
           attack = g.in( 'attack' ), decay = g.in( 'decay' ),
           sustain = g.in( 'sustain' ), sustainLevel = g.in( 'sustainLevel' ),
@@ -55,7 +55,7 @@ module.exports = function( Gibberish ) {
       //const cutoff = baseCutoffFreq * g.pow( 2, g.in('filterMult') * loudness ) * env 
       const oscSum = g.add( ...oscs ),
             // XXX horrible hack below to "use" saturation even when not using a diode filter 
-            oscWithEnv = props.filterType === 2 ? g.mul( oscSum, env ) : g.sub( g.add( g.mul( oscSum, env), saturation ), saturation ),
+            oscWithEnv = props.filterModel=== 2 ? g.mul( oscSum, env ) : g.sub( g.add( g.mul( oscSum, env), saturation ), saturation ),
             baseCutoffFreq = g.mul( g.in('cutoff'), g.div( frequency, g.gen.samplerate / 16 ) ),
             cutoff = g.mul( g.mul( baseCutoffFreq, g.pow( 2, g.mul( g.in('filterMult'), Loudness ) )), env ),
             filteredOsc = Gibberish.filters.factory( oscWithEnv, cutoff, g.in('saturation'), syn )
@@ -72,7 +72,7 @@ module.exports = function( Gibberish ) {
       syn.env = env
     }
 
-    syn.__requiresRecompilation = [ 'waveform', 'antialias', 'filterType', 'filterMode' ]
+    syn.__requiresRecompilation = [ 'waveform', 'antialias', 'filterModel', 'filterMode' ]
     syn.__createGraph()
 
     const out = Gibberish.factory( syn, syn.graph, ['instruments','Monosynth'], props )
@@ -101,11 +101,11 @@ module.exports = function( Gibberish ) {
     panVoices:false,
     glide: 1,
     antialias:false,
-    filterType: 1,
+    //filterType: 1,
+    filterModel: 1,
     filterMode: 0, // 0 = LP, 1 = HP, 2 = BP, 3 = Notch
     saturation:.5,
     filterMult: 2,
-    isLowPass:true,
     loudness:1,
     __triggerLoudness:1
   }
@@ -114,7 +114,7 @@ module.exports = function( Gibberish ) {
     [ 'frequency','attack','decay','cutoff','Q',
       'detune2','detune3','pulsewidth','pan','gain', 
       'glide', 'saturation', 'filterMult',  'antialias', 
-      'filterType', 'waveform', 'filterMode', 'loudness', '__triggerLoudness' ]
+      'filterModel', 'waveform', 'filterMode', 'loudness', '__triggerLoudness' ]
   ) 
   PolyMono.defaults = Mono.defaults
 
