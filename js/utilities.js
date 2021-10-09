@@ -234,6 +234,18 @@ const utilities = {
     return out
   },
 
+  // for wrapping upvalues in a dictionary and passing function across thread
+  // to be reconstructed.
+  // ex; wrapped = fn( ()=> { return Math.random() * test }, { test:20 })
+  // syn.note.seq( wrapped, 1/4 )
+  fn( fnc, dict={}) {
+    const fncstr = fnc.toString()
+    const firstBracketIdx = fncstr.indexOf('{')
+    const code = fncstr.slice(firstBracketIdx+1, -1 )
+    const s = { requiresRender:true, filters:[], fncstr:code, args:[], dict, addFilter( f ) { this.filters.push(f) } }  
+    return s
+  },
+
   export( obj ) {
     obj.wrap = this.wrap
     obj.future = this.future
