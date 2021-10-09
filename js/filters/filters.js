@@ -20,7 +20,7 @@ module.exports = function( Gibberish ) {
 
       let props = Object.assign({}, filters.defaults, _props )
 
-      switch( props.filterType ) {
+      switch( props.filterModel ) {
         case 1:
           filteredOsc = g.zd24( input, g.min( g.in('Q'), .9999 ), cutoff, 0 ) // g.max(.005, g.min( cutoff, 1 ) ) )
           break;
@@ -46,7 +46,7 @@ module.exports = function( Gibberish ) {
       return filteredOsc
     },
 
-    defaults: { filterMode: 0, filterType:0 }
+    defaults: { filterMode: 0, filterModel:0 }
   }
 
   filters.export = target => {

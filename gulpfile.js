@@ -11,7 +11,24 @@ const gulp = require('gulp'),
       clean      = require( 'gulp-clean' ),
       workletStr = {
         prefix:`const global = typeof window === 'undefined' ? {} : window;
-        let Gibberish = null; 
+        let Gibberish = null,
+            Clock = null,
+            time  = 0,
+            sin   = null,
+            sinr  = null,
+            sinn  = null,
+            cos   = null,
+            cosr  = null,
+            cosn  = null,
+            abs   = null,
+            random= null,
+            floor = null,
+            ceil  = null,
+            round = null,
+            min   = null,
+            max   = null,
+            g     = null
+
         let initialized = false;\n`,
 
         postfix:`global.Gibberish.workletProcessor = GibberishProcessor 

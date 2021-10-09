@@ -92,6 +92,7 @@ module.exports = function( Gibberish ) {
     for( let property of props ) {
       if( property === 'pan' || property === 'id' ) continue
       Object.defineProperty( synth, property, {
+        configurable:true,
         get() {
           return synth.properties[ property ] || ugen.defaults[ property ]
         },
