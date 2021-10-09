@@ -27,6 +27,8 @@ const Scheduler = {
     time += this.phase
 
     this.queue.push({ time, func, priority })
+
+    return this.phase
   },
 
   tick( usingSync = false ) {
