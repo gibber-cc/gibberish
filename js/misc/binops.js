@@ -8,6 +8,7 @@ module.exports = function( Gibberish ) {
   const createProperties = function( p, id ) {
     for( let i = 0; i < 2; i++ ) {
       Object.defineProperty( p, i, {
+        configurable:true,
         get() { return p.inputs[ i ] },
         set(v) {
           p.inputs[ i ] = v
