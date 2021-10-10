@@ -2,10 +2,46 @@ const __proxy = require( '../workletProxy.js' )
 
 module.exports = function( Gibberish ) {
 
+const renderFnc = function( pattern ) {
+  const keys = Object.keys( pattern.dict )
+  const objs = Object.values( pattern.dict )
+    .map( v => typeof v === 'object' && !Array.isArray( v )
+    ? Gibberish.processor.ugens.get(v.id) 
+    : v 
+    )
+
+  // we create a new inner function using the function constructor,
+  // where every argument is codegen'd as an upvalue to the
+  // returned function. after codegen we call the functon
+  // to get the inner function with the upvalues andd
+  // return that. Store references to globals as upvalues as well.
+  let code = 'let Gibberish = __Gibberish, global = __global;\n'
+  keys.forEach( k => {
+    let line = `let ${k} = `
+    const value = pattern.dict[ k ]
+    const getter = typeof value === 'object' 
+      ? Array.isArray( value )
+      ? `[${value.toString()}]`
+      : `Gibberish.processor.ugens.get(${ value.id })`
+      : value
+    line += getter 
+    code += line + '\n'
+
+  })  
+  code +=`return function() { ${ pattern.fncstr } }` 
+
+  // pass in globals to be used as upvalues in final function
+  const fnc = new Function( '__Gibberish', '__global', code )( Gibberish, global )
+
+  return fnc 
+}
+
 const proxy = __proxy( Gibberish )
 
 const Sequencer = props => {
   let __seq
+  let floatError = 0
+
   const seq = {
     type:'seq',
     __isRunning:false,
@@ -62,41 +98,50 @@ const Sequencer = props => {
         shouldRun = false 
       }
 
-      if( shouldRun ) {
-        if( seq.mainthreadonly !== undefined ) {
-          if( typeof value === 'function' ) {
-            value = value()
-          }
-          //console.log( 'main thread only' )
-          Gibberish.processor.messages.push( seq.mainthreadonly, seq.key, value )
-        }else if( typeof value === 'function' && seq.target === undefined ) {
-          value()
-        }else if( typeof seq.target[ seq.key ] === 'function' ) {
-          //console.log( seq.key, seq.target )
-          if( typeof value === 'function' ) value = value()
-          if( value !== seq.DNR )
-            seq.target[ seq.key ]( value )
-        }else{
-          if( typeof value === 'function' ) value = value()
-          if( value !== seq.DNR )
-            seq.target[ seq.key ] = value
-        }
+      if( value === Sequencer.DO_NOT_OUTPUT ) shouldRun = false
 
-        if( seq.reportOutput === true ) {
-          Gibberish.processor.port.postMessage({
-            address:'__sequencer',
-            id: seq.id,
-            name:'output',
-            value,
-            phase: seq.__valuesPhase,
-            length: seq.values.length
-          })
+      if( shouldRun ) {
+        try{
+          if( seq.mainthreadonly !== undefined ) {
+            if( typeof value === 'function' ) {
+              value = value()
+            }
+            //console.log( 'main thread only' )
+            Gibberish.processor.messages.push( seq.mainthreadonly, seq.key, value )
+          }else if( typeof value === 'function' && seq.target === undefined ) {
+            value()
+          }else if( typeof seq.target[ seq.key ] === 'function' ) {
+            //console.log( seq.key, seq.target )
+            if( typeof value === 'function' ) value = value()
+            if( value !== seq.DNR )
+              seq.target[ seq.key ]( value )
+          }else{
+            if( typeof value === 'function' ) value = value()
+            if( value !== seq.DNR )
+              seq.target[ seq.key ] = value
+          }
+
+          if( seq.reportOutput === true ) {
+            Gibberish.processor.port.postMessage({
+              address:'__sequencer',
+              id: seq.id,
+              name:'output',
+              value,
+              phase: seq.__valuesPhase,
+              length: seq.values.length
+            })
+          }
+        } catch(e) {
+          console.error( `A sequence targeting ${seq.target.ugenName}.${seq.key} contains an improper value and will be stopped.` )
+          return
         }
       }
       
       if( Gibberish.mode === 'processor' ) {
         if( seq.__isRunning === true && !isNaN( timing ) && seq.autotrig === false ) {
+          timing += floatError
           Gibberish.scheduler.add( timing, seq.tick, seq.priority )
+          floatError = timing - Math.floor( timing )
         }
       }
     },
@@ -171,8 +216,16 @@ const Sequencer = props => {
 
   if( Gibberish.mode === 'worklet' ) {
     Gibberish.utilities.createPubSub( seq )
+  }else{
+    // need a separate reference to the properties for worklet meta-programming
+    if( typeof props.values === 'object' && props.values.requiresRender === true ) {
+      props.values = renderFnc( props.values )
+    }
+    if( props.timings !== null && typeof props.timings === 'object' && props.timings.requiresRender === true ) {
+      props.timings = renderFnc( props.timings )
+    }
   }
-  // need a separate reference to the properties for worklet meta-programming
+
   const properties = Object.assign( {}, Sequencer.defaults, props )
   Object.assign( seq, properties ) 
   seq.__properties__ = properties
@@ -182,7 +235,7 @@ const Sequencer = props => {
   return __seq
 }
 
-Sequencer.defaults = { priority:100000, rate:1, reportOutput:false, autotrig:false }
+Sequencer.defaults = { priority:100, rate:1, reportOutput:false, autotrig:false }
 
 Sequencer.make = function( values, timings, target, key, priority, reportOutput ) {
   return Sequencer({ values, timings, target, key, priority, reportOutput })
