@@ -1,3 +1,4 @@
+
 class GibberishProcessor extends AudioWorkletProcessor {
   static get parameterDescriptors() {}
 
@@ -16,6 +17,7 @@ class GibberishProcessor extends AudioWorkletProcessor {
     Gibberish.preventProxy = false
     Gibberish.debug = false 
     Gibberish.processor = this
+    Gibberish.time = 0
 
     this.port.onmessage = this.handleMessage.bind( this )
     this.queue = []
@@ -86,7 +88,14 @@ class GibberishProcessor extends AudioWorkletProcessor {
   playQueue() {
     // must set delay property to false!!! otherwise the message
     // will be delayed continually...
-    this.queue.forEach( m => { m.data.delay = false; this.handleMessage( m ) } )
+    this.queue.forEach( m => { 
+      m.data.delay = false; 
+      try {
+        this.handleMessage( m ) 
+      }catch( e ) {
+        console.error( e )
+      }
+    })
     this.queue.length = 0
   }
 
@@ -202,7 +211,11 @@ class GibberishProcessor extends AudioWorkletProcessor {
         // in this case, we wait until the next measure boundary.
         this.queue.push( event )
       }else{
-        target.samplers[ event.data.filename ].data.onload( event.data.buffer )
+        const sampler = target.samplers[ event.data.filename ]
+        if( sampler !== undefined ) 
+          sampler.data.onload( event.data.buffer )
+        else
+          target.loadSample( event.data.filename, null, event.data.buffer )
       }
     }else if( event.data.address === 'callback' ) {
       console.log( Gibberish.callback.toString() )
@@ -249,10 +262,11 @@ class GibberishProcessor extends AudioWorkletProcessor {
       const scheduler = gibberish.scheduler
       let   callback  = this.callback
       let   ugens     = gibberish.callbackUgens 
+      Gibberish.outputs = outputs
 
       this.messages.length = 0
       // XXX is there some way to optimize this out?
-      if( callback === undefined && gibberish.graphIsDirty === false ) return true
+      //if( callback === undefined && gibberish.graphIsDirty === false ) return true
 
       let callbacklength = gibberish.blockCallbacks.length
 
@@ -270,19 +284,31 @@ class GibberishProcessor extends AudioWorkletProcessor {
       const len = outputs[0][0].length
       let phase = 0
       for (let i = 0; i < len; ++i) {
-        phase = scheduler.tick()
+        // run sequencers, catch errors and remove from queue
+        try {
+          phase = scheduler.tick()
+        } catch(e) {
+          console.error( e )
+          scheduler.queue.pop()
+          phase++ 
+          //continue
+        }
 
+        // if sequencing triggers codegen...
         if( gibberish.graphIsDirty ) {
           const oldCallback = callback
           const oldUgens = ugens.slice(0)
           const oldNames = gibberish.callbackNames.slice(0)
 
+          // generate callback and try to catch errors...
           let cb
           try{
             cb = gibberish.generateCallback()
           } catch(e) {
             console.log( 'callback error:', e )
 
+            // restore callback 
+            // XXX should some type of notification be sent to the main thread?
             cb = oldCallback
             gibberish.callbackUgens = oldUgens
             gibberish.callbackNames = oldNames
@@ -291,9 +317,14 @@ class GibberishProcessor extends AudioWorkletProcessor {
           } finally {
             ugens = gibberish.callbackUgens
             this.callback = callback = cb
+            // tell main thread that new callback has been created
+            // in case it wants to display it / do something else
             this.port.postMessage({ address:'callback', code:cb.toString() }) 
           } 
         }
+
+        //XXX sub real samplerate sheesh
+        time += 1/44100
         const out = callback.apply( null, ugens )
 
         output[0][ i ] = out[0]
@@ -310,10 +341,16 @@ class GibberishProcessor extends AudioWorkletProcessor {
         }
       }     
       if( this.messages.length > 0 ) {
-        this.port.postMessage({ 
-          address:'state', 
-          messages:this.messages 
-        })
+        try{ 
+          this.port.postMessage({ 
+            address:'state', 
+            messages:this.messages 
+          })
+        } catch( e ) {
+          console.groupCollapsed( 'There was an error passing state from the audio thread to the main thread.' )
+          console.error( e )
+          console.groupEnd()
+        }
       }
       this.port.postMessage({
         address:'phase',
