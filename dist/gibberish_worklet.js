@@ -8410,8 +8410,11 @@ Object.assign(instrument, {
     // if binop is should be used...
     if (isNaN(this.frequency)) {
       // and if we are assigning binop for the first time...
-
       let obj = Gibberish.processor.ugens.get(this.frequency.id);
+      if (obj === undefined) {
+        throw Error(`Incorrect note ${this.frequency} assigned to ${this.ugenName}; this value will be ignored.`);
+        return;
+      }
       if (obj.isop !== true) {
         obj.inputs[0] = freq;
       } else {
@@ -8431,8 +8434,12 @@ Object.assign(instrument, {
   },
 
   trigger(loudness = 1) {
-    this.__triggerLoudness = loudness;
-    this.env.trigger();
+    if (isNaN(loudness)) {
+      throw Error(`A non-number was passed to trigger() on ${this.ugenName}; this value will be ignored and the envelope will not be triggered.`);
+    } else {
+      this.__triggerLoudness = loudness;
+      this.env.trigger();
+    }
   }
 
 });
@@ -9643,6 +9650,7 @@ module.exports = function (Gibberish) {
   const createProperties = function (p, id) {
     for (let i = 0; i < 2; i++) {
       Object.defineProperty(p, i, {
+        configurable: true,
         get() {
           return p.inputs[i];
         },
@@ -10768,14 +10776,42 @@ module.exports = function (Gibberish) {
 };
 
 },{"../ugen.js":151,"../workletProxy.js":153,"genish.js":40}],149:[function(require,module,exports){
+(function (global){
 const __proxy = require('../workletProxy.js');
 
 module.exports = function (Gibberish) {
+
+  const renderFnc = function (pattern) {
+    const keys = Object.keys(pattern.dict);
+    const objs = Object.values(pattern.dict).map(v => typeof v === 'object' && !Array.isArray(v) ? Gibberish.processor.ugens.get(v.id) : v);
+
+    // we create a new inner function using the function constructor,
+    // where every argument is codegen'd as an upvalue to the
+    // returned function. after codegen we call the functon
+    // to get the inner function with the upvalues andd
+    // return that. Store references to globals as upvalues as well.
+    let code = 'let Gibberish = __Gibberish, global = __global;\n';
+    keys.forEach(k => {
+      let line = `let ${k} = `;
+      const value = pattern.dict[k];
+      const getter = typeof value === 'object' ? Array.isArray(value) ? `[${value.toString()}]` : `Gibberish.processor.ugens.get(${value.id})` : value;
+      line += getter;
+      code += line + '\n';
+    });
+    code += `return function() { ${pattern.fncstr} }`;
+
+    // pass in globals to be used as upvalues in final function
+    const fnc = new Function('__Gibberish', '__global', code)(Gibberish, global);
+
+    return fnc;
+  };
 
   const proxy = __proxy(Gibberish);
 
   const Sequencer = props => {
     let __seq;
+    let floatError = 0;
+
     const seq = {
       type: 'seq',
       __isRunning: false,
@@ -10824,39 +10860,48 @@ module.exports = function (Gibberish) {
           shouldRun = false;
         }
 
-        if (shouldRun) {
-          if (seq.mainthreadonly !== undefined) {
-            if (typeof value === 'function') {
-              value = value();
-            }
-            //console.log( 'main thread only' )
-            Gibberish.processor.messages.push(seq.mainthreadonly, seq.key, value);
-          } else if (typeof value === 'function' && seq.target === undefined) {
-            value();
-          } else if (typeof seq.target[seq.key] === 'function') {
-            //console.log( seq.key, seq.target )
-            if (typeof value === 'function') value = value();
-            if (value !== seq.DNR) seq.target[seq.key](value);
-          } else {
-            if (typeof value === 'function') value = value();
-            if (value !== seq.DNR) seq.target[seq.key] = value;
-          }
+        if (value === Sequencer.DO_NOT_OUTPUT) shouldRun = false;
 
-          if (seq.reportOutput === true) {
-            Gibberish.processor.port.postMessage({
-              address: '__sequencer',
-              id: seq.id,
-              name: 'output',
-              value,
-              phase: seq.__valuesPhase,
-              length: seq.values.length
-            });
+        if (shouldRun) {
+          try {
+            if (seq.mainthreadonly !== undefined) {
+              if (typeof value === 'function') {
+                value = value();
+              }
+              //console.log( 'main thread only' )
+              Gibberish.processor.messages.push(seq.mainthreadonly, seq.key, value);
+            } else if (typeof value === 'function' && seq.target === undefined) {
+              value();
+            } else if (typeof seq.target[seq.key] === 'function') {
+              //console.log( seq.key, seq.target )
+              if (typeof value === 'function') value = value();
+              if (value !== seq.DNR) seq.target[seq.key](value);
+            } else {
+              if (typeof value === 'function') value = value();
+              if (value !== seq.DNR) seq.target[seq.key] = value;
+            }
+
+            if (seq.reportOutput === true) {
+              Gibberish.processor.port.postMessage({
+                address: '__sequencer',
+                id: seq.id,
+                name: 'output',
+                value,
+                phase: seq.__valuesPhase,
+                length: seq.values.length
+              });
+            }
+          } catch (e) {
+            console.error(`A sequence targeting ${seq.target.ugenName}.${seq.key} contains an improper value and will be stopped.`);
+            return;
           }
         }
 
         if (Gibberish.mode === 'processor') {
           if (seq.__isRunning === true && !isNaN(timing) && seq.autotrig === false) {
+            timing += floatError;
             Gibberish.scheduler.add(timing, seq.tick, seq.priority);
+            floatError = timing - Math.floor(timing);
           }
         }
       },
@@ -10925,8 +10970,16 @@ module.exports = function (Gibberish) {
 
     if (Gibberish.mode === 'worklet') {
       Gibberish.utilities.createPubSub(seq);
+    } else {
+      // need a separate reference to the properties for worklet meta-programming
+      if (typeof props.values === 'object' && props.values.requiresRender === true) {
+        props.values = renderFnc(props.values);
+      }
+      if (props.timings !== null && typeof props.timings === 'object' && props.timings.requiresRender === true) {
+        props.timings = renderFnc(props.timings);
+      }
     }
-    // need a separate reference to the properties for worklet meta-programming
+
     const properties = Object.assign({}, Sequencer.defaults, props);
     Object.assign(seq, properties);
     seq.__properties__ = properties;
@@ -10936,7 +10989,7 @@ module.exports = function (Gibberish) {
     return __seq;
   };
 
-  Sequencer.defaults = { priority: 100000, rate: 1, reportOutput: false, autotrig: false };
+  Sequencer.defaults = { priority: 100, rate: 1, reportOutput: false, autotrig: false };
 
   Sequencer.make = function (values, timings, target, key, priority, reportOutput) {
     return Sequencer({ values, timings, target, key, priority, reportOutput });
@@ -10947,6 +11000,7 @@ module.exports = function (Gibberish) {
   return Sequencer;
 };
 
+}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 },{"../workletProxy.js":153}],150:[function(require,module,exports){
 const __proxy = require('../workletProxy.js');
 const Pattern = require('tidal.pegjs');
@@ -11526,6 +11580,20 @@ module.exports = function (Gibberish) {
         })
       };
       return out;
+    },
+
+    // for wrapping upvalues in a dictionary and passing function across thread
+    // to be reconstructed.
+    // ex; wrapped = fn( ()=> { return Math.random() * test }, { test:20 })
+    // syn.note.seq( wrapped, 1/4 )
+    fn(fnc, dict = {}) {
+      const fncstr = fnc.toString();
+      const firstBracketIdx = fncstr.indexOf('{');
+      const code = fncstr.slice(firstBracketIdx + 1, -1);
+      const s = { requiresRender: true, filters: [], fncstr: code, args: [], dict, addFilter(f) {
+          this.filters.push(f);
+        } };
+      return s;
     },
 
     export(obj) {
@@ -18151,6 +18219,7 @@ function hasOwnProperty(obj, prop) {
 }).call(this,require('_process'),typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 },{"./support/isBuffer":173,"_process":159,"inherits":172}]},{},[116])(116)
 });
+
 class GibberishProcessor extends AudioWorkletProcessor {
   static get parameterDescriptors() {}
 
@@ -18169,6 +18238,7 @@ class GibberishProcessor extends AudioWorkletProcessor {
     Gibberish.preventProxy = false
     Gibberish.debug = false 
     Gibberish.processor = this
+    Gibberish.time = 0
 
     this.port.onmessage = this.handleMessage.bind( this )
     this.queue = []
@@ -18239,7 +18309,14 @@ class GibberishProcessor extends AudioWorkletProcessor {
   playQueue() {
     // must set delay property to false!!! otherwise the message
     // will be delayed continually...
-    this.queue.forEach( m => { m.data.delay = false; this.handleMessage( m ) } )
+    this.queue.forEach( m => { 
+      m.data.delay = false; 
+      try {
+        this.handleMessage( m ) 
+      }catch( e ) {
+        console.error( e )
+      }
+    })
     this.queue.length = 0
   }
 
@@ -18355,7 +18432,11 @@ class GibberishProcessor extends AudioWorkletProcessor {
         // in this case, we wait until the next measure boundary.
         this.queue.push( event )
       }else{
-        target.samplers[ event.data.filename ].data.onload( event.data.buffer )
+        const sampler = target.samplers[ event.data.filename ]
+        if( sampler !== undefined ) 
+          sampler.data.onload( event.data.buffer )
+        else
+          target.loadSample( event.data.filename, null, event.data.buffer )
       }
     }else if( event.data.address === 'callback' ) {
       console.log( Gibberish.callback.toString() )
@@ -18402,10 +18483,11 @@ class GibberishProcessor extends AudioWorkletProcessor {
       const scheduler = gibberish.scheduler
       let   callback  = this.callback
       let   ugens     = gibberish.callbackUgens 
+      Gibberish.outputs = outputs
 
       this.messages.length = 0
       // XXX is there some way to optimize this out?
-      if( callback === undefined && gibberish.graphIsDirty === false ) return true
+      //if( callback === undefined && gibberish.graphIsDirty === false ) return true
 
       let callbacklength = gibberish.blockCallbacks.length
 
@@ -18423,19 +18505,31 @@ class GibberishProcessor extends AudioWorkletProcessor {
       const len = outputs[0][0].length
       let phase = 0
       for (let i = 0; i < len; ++i) {
-        phase = scheduler.tick()
+        // run sequencers, catch errors and remove from queue
+        try {
+          phase = scheduler.tick()
+        } catch(e) {
+          console.error( e )
+          scheduler.queue.pop()
+          phase++ 
+          //continue
+        }
 
+        // if sequencing triggers codegen...
         if( gibberish.graphIsDirty ) {
           const oldCallback = callback
           const oldUgens = ugens.slice(0)
           const oldNames = gibberish.callbackNames.slice(0)
 
+          // generate callback and try to catch errors...
           let cb
           try{
             cb = gibberish.generateCallback()
           } catch(e) {
             console.log( 'callback error:', e )
 
+            // restore callback 
+            // XXX should some type of notification be sent to the main thread?
             cb = oldCallback
             gibberish.callbackUgens = oldUgens
             gibberish.callbackNames = oldNames
@@ -18444,9 +18538,14 @@ class GibberishProcessor extends AudioWorkletProcessor {
           } finally {
             ugens = gibberish.callbackUgens
             this.callback = callback = cb
+            // tell main thread that new callback has been created
+            // in case it wants to display it / do something else
             this.port.postMessage({ address:'callback', code:cb.toString() }) 
           } 
         }
+
+        //XXX sub real samplerate sheesh
+        time += 1/44100
         const out = callback.apply( null, ugens )
 
         output[0][ i ] = out[0]
@@ -18463,10 +18562,16 @@ class GibberishProcessor extends AudioWorkletProcessor {
         }
       }     
       if( this.messages.length > 0 ) {
-        this.port.postMessage({ 
-          address:'state', 
-          messages:this.messages 
-        })
+        try{ 
+          this.port.postMessage({ 
+            address:'state', 
+            messages:this.messages 
+          })
+        } catch( e ) {
+          console.groupCollapsed( 'There was an error passing state from the audio thread to the main thread.' )
+          console.error( e )
+          console.groupEnd()
+        }
       }
       this.port.postMessage({
         address:'phase',
