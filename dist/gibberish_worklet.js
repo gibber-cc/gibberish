@@ -18546,10 +18546,13 @@ class GibberishProcessor extends AudioWorkletProcessor {
 
         //XXX sub real samplerate sheesh
         time += 1/44100
-        const out = callback.apply( null, ugens )
 
-        output[0][ i ] = out[0]
-        output[1][ i ] = out[1] 
+        if( callback !== undefined ) {
+          const out = callback.apply( null, ugens )
+
+          output[0][ i ] = out[0]
+          output[1][ i ] = out[1] 
+        }
       }
       if( ugens.length > 1 ) {
         for( let i = 1; i < ugens.length - 1; i++ ) {
