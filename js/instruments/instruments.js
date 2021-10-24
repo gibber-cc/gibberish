@@ -8,7 +8,8 @@ const instruments = {
   Cowbell     : require( './cowbell.js' )( Gibberish ),
   Tom         : require( './tom.js' )( Gibberish ),
   Clap        : require( './clap.dsp.js' )( Gibberish ),
-  Multisampler: require( './multisampler.dsp.js' )( Gibberish )
+  Multisampler: require( './multisampler.dsp.js' )( Gibberish ),
+  Soundfont   : require( './soundfont.js' )( Gibberish )
 }
 
 instruments.Clave.defaults.frequency = 2500
