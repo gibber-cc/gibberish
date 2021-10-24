@@ -45,8 +45,35 @@ module.exports = function( Gibberish ) {
       return this.trigger()
     },
     note( rate ) {
-      //this.rate = rate
+      // soundfont measures pitch in cents
+      // originalPitch = findMidiForHz( hz ) * 100 // (100 cents per midi index)
+      // rate = Math.pow(2, (100.0 * pitch - originalPitch) / 1200.0) // 1200 cents per octave
       return this.trigger( null, rate )
+    },
+    midipick( midinote ) {
+      // loop through zones to find correct sample #
+      let idx = 0, pitch = 0
+      for( let zone of this.zones ) {
+        if( midinote >= zone.keyRangeLow && midinote <= zone.keyRangeHigh ) {
+          pitch = zone.originalPitch
+          break;
+        }
+        idx++
+      }
+      this.pick( idx )
+      return pitch
+    },
+    midinote( midinote ) {
+      'no jsdsp'
+      const samplePitch = this.midipick( midinote )
+      const pitch = Math.pow( 2, (100 * midinote - samplePitch ) / 1200 ) 
+      this.note( pitch )
+    }, 
+    midichord( frequencies ) {
+      if( Gibberish !== undefined && Gibberish.mode !== 'worklet' ) {
+        frequencies.forEach( v => this.midinote( v ) )
+        this.triggerChord = frequencies
+      }
     },
     setpan( num=0, value=.5 ) {
       if( Gibberish.mode === 'processor' ) {
@@ -254,6 +281,7 @@ module.exports = function( Gibberish ) {
           onload( sampler, __onload )
         }     
       }else{
+        // not sure if first case will happen with soundfonts (it does with regular multisampler)
         if( buffer === null ) {
           sampler.data = g.data( new Float32Array(), 1, { onload, filename })
           sampler.data.onload = onload
@@ -275,11 +303,15 @@ module.exports = function( Gibberish ) {
         .then( res => res.json() )
         .then( json => {
           const zones = soundfonts[ soundNumber ] = json.zones
+          this.zones = zones
+          let idx = 1
           for( let zone of zones ) {
-            console.log( 'loading:', zone )
+            console.log( 'loading:', zone.keyRangeLow, zone.keyRangeHigh, idx )
             const ab = Gibberish.utilities.base64.decodeArrayBuffer( zone.file )
+            let __idx = idx
+            idx++ 
             g.utilities.ctx.decodeAudioData( ab, buffer => {
-              zone.sampler = syn.loadSample( `${soundNumber}_${bankIndex}`, null, buffer )
+              zone.sampler = syn.loadSample( `${__idx}_${bankIndex}`, null, buffer )
             })
           }
         })
