@@ -204,7 +204,10 @@ const jsdsp = function({ types: t }) {
         path.node.directives.forEach( directive => {
           if( directive.value.value === 'use jsdsp' ) {
             state.usejsdsp = true
+          }else if( directive.value.value === 'no jsdsp' ) {
+            state.usejsdsp = false
           }
+          
         })
       }
 
@@ -225,7 +228,10 @@ const jsdsp = function({ types: t }) {
           path.node.directives.forEach( directive => {
             if( directive.value.value === 'use jsdsp' ) {
               state.usejsdsp = true
+            }else if( directive.value.value === 'no jsdsp' ) {
+              state.usejsdsp = false
             }
+
           })
         }
 
