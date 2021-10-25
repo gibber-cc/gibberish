@@ -23,6 +23,14 @@ const genish = g
 
 const soundfonts = {}
 
+const banks = [
+  'Aspirin',
+  'Chaos',
+  'FluidR3',
+  'GeneralUserGS',
+  'JCLive'
+]
+
 module.exports = function( Gibberish ) {
   const proto = Object.create( instrument )
   const memo = {}
@@ -67,6 +75,7 @@ module.exports = function( Gibberish ) {
       'no jsdsp'
       const samplePitch = this.midipick( midinote )
       const pitch = Math.pow( 2, (100 * midinote - samplePitch ) / 1200 ) 
+      //const pitch = 1//Math.pow( 2, (samplePitch ) ) 
       this.note( pitch )
     }, 
     midichord( frequencies ) {
@@ -296,22 +305,24 @@ module.exports = function( Gibberish ) {
     }
 
     syn.loadBank = function( soundNumber=1, bankIndex=0 ) {
+      'no jsdsp'
+
       // need to memoize... already storing in soundfonts
       if( Gibberish.mode === 'processor' ) return
+      let num = (soundNumber-1) + '0'
+      if( soundNumber < 100 ) num = '0'+num
+      if( soundNumber < 10 )  num = '0'+num
 
-      fetch( `${Soundfont.resourcePath}0000_Aspirin_sf2_file.json` )
+      fetch( `${Soundfont.resourcePath}${num}_${banks[bankIndex]}.sf2.json` )
         .then( res => res.json() )
         .then( json => {
           const zones = soundfonts[ soundNumber ] = json.zones
           this.zones = zones
-          let idx = 1
-          for( let zone of zones ) {
-            console.log( 'loading:', zone.keyRangeLow, zone.keyRangeHigh, idx )
+          for( let i = 0; i < zones.length; i++) {
+            const zone = zones[i]
             const ab = Gibberish.utilities.base64.decodeArrayBuffer( zone.file )
-            let __idx = idx
-            idx++ 
             g.utilities.ctx.decodeAudioData( ab, buffer => {
-              zone.sampler = syn.loadSample( `${__idx}_${bankIndex}`, null, buffer )
+              zone.sampler = syn.loadSample( i, null, buffer )
             })
           }
         })
