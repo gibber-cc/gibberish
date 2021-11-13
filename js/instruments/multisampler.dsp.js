@@ -64,7 +64,16 @@ module.exports = function( Gibberish ) {
         g.gen.memory.heap[ voice.bufferLoc.memory.values.idx ] = sampler.dataIdx
 
         //if( rate !== null ) g.gen.memory.heap[ voice.rate.memory.values.idx ] = rate
-        if( rate !== null ) voice.rate = rate 
+        if( rate !== null ) voice.rate = rate
+        if( rate > 0 ) {
+          voice.trigger()
+        }else{
+          console.log( 'reverse?', rate )
+          voice.bang.trigger()
+          //voice.phase.value = 0
+          voice.phase.value = sampler.dataLength - 1
+          console.log( 'phase', voice.phase.value )
+        }
         //if( rate < 0 ) {
         //  const phase = sampler.dataIdx + Math.round((sampler.dataLength/2)) - 1
         //  console.log( 'phase:', phase, 'length:', sampler.dataLength, 'start:', sampler.dataIdx )
@@ -75,7 +84,7 @@ module.exports = function( Gibberish ) {
         //  voice.trigger()
         //}
         
-        voice.trigger()
+        //voice.trigger()
         //g.gen.memory.heap[ voice.rate.memory.values.idx ] = rate
       }
 
@@ -116,7 +125,6 @@ module.exports = function( Gibberish ) {
       Gibberish.worklet.port.postMessage( syn.__meta__ )
     }
 
-    // create all our vocecs
     const voices = []
     for( let i = 0; i < syn.maxVoices; i++ ) {
       'use jsdsp'
@@ -128,6 +136,14 @@ module.exports = function( Gibberish ) {
         // XXX how do I change this from main thread?
         __pan: g.data( [.5], 1, { meta:true }),
         __rate: g.data( [1], 1, { meta:true }),
+        __shouldLoop: g.data( [1], 1, { meta:true }),
+        __loudness:  g.data( [1], 1, { meta:true }),
+        get loudness() { 
+          return g.gen.memory.heap[ this.__loudness.memory.values.idx   ]
+        },
+        set loudness( v ) {
+          g.gen.memory.heap[ this.__loudness.memory.values.idx ] = v
+        },
         set pan(v) {
           g.gen.memory.heap[ this.__pan.memory.values.idx ] = v
         },
@@ -164,8 +180,8 @@ module.exports = function( Gibberish ) {
         0
       ) 
       * loudness 
-      * triggerLoudness 
-      
+      * voice.__loudness[0] 
+
       const pan = g.pan( voice.graph, voice.graph, voice.__pan[0] )
       voice.graph = [ pan.left, pan.right ]
 
