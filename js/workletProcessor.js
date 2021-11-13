@@ -25,6 +25,7 @@ class GibberishProcessor extends AudioWorkletProcessor {
 
     // XXX ridiculous hack to get around processor not having a worklet property
     Gibberish.worklet = { ugens: this.ugens, port:this.port }
+    Gibberish.genish.gen.samplerate = sampleRate
 
     this.ugens.set( Gibberish.id, Gibberish )
 
@@ -283,6 +284,7 @@ class GibberishProcessor extends AudioWorkletProcessor {
       const output = outputs[ 0 ]
       const len = outputs[0][0].length
       let phase = 0
+
       for (let i = 0; i < len; ++i) {
         // run sequencers, catch errors and remove from queue
         try {
@@ -324,7 +326,7 @@ class GibberishProcessor extends AudioWorkletProcessor {
         }
 
         //XXX sub real samplerate sheesh
-        time += 1/44100
+        time += 1/sampleRate
 
         if( callback !== undefined ) {
           const out = callback.apply( null, ugens )

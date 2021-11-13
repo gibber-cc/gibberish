@@ -889,16 +889,13 @@ module.exports = ( incr=1, min=0, max=Infinity, reset=0, loops=1,  properties ) 
   defaults )
  
   Object.defineProperty( ugen, 'value', {
-    get() { 
-      console.log( 'counter value', this.memory.value.idx, gen.memory.heap[ this.memory.value.idx ], gen.memory )
-        
+    get() {
       if( this.memory.value.idx !== null ) {
         return gen.memory.heap[ this.memory.value.idx ]
       }
     },
     set( v ) {
       if( this.memory.value.idx !== null ) {
-        console.log( 'settting counter', v )
         gen.memory.heap[ this.memory.value.idx ] = v 
       }
     }
@@ -1059,10 +1056,6 @@ module.exports = ( x, y=1, properties ) => {
     //}
   }else if( x instanceof Float32Array ) {
     buffer = x
-  }else if( x instanceof Uint8Array ) {
-    buffer = x
-  }else if( x instanceof AudioBuffer ) {
-    buffer = x.getChannelData(0)
   }
   
   ugen = Object.create( proto ) 

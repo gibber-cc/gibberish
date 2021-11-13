@@ -909,16 +909,13 @@ module.exports = ( incr=1, min=0, max=Infinity, reset=0, loops=1,  properties ) 
   defaults )
  
   Object.defineProperty( ugen, 'value', {
-    get() { 
-      console.log( 'counter value', this.memory.value.idx, gen.memory.heap[ this.memory.value.idx ], gen.memory )
-        
+    get() {
       if( this.memory.value.idx !== null ) {
         return gen.memory.heap[ this.memory.value.idx ]
       }
     },
     set( v ) {
       if( this.memory.value.idx !== null ) {
-        console.log( 'settting counter', v )
         gen.memory.heap[ this.memory.value.idx ] = v 
       }
     }
@@ -1079,10 +1076,6 @@ module.exports = ( x, y=1, properties ) => {
     //}
   }else if( x instanceof Float32Array ) {
     buffer = x
-  }else if( x instanceof Uint8Array ) {
-    buffer = x
-  }else if( x instanceof AudioBuffer ) {
-    buffer = x.getChannelData(0)
   }
   
   ugen = Object.create( proto ) 
@@ -18769,6 +18762,7 @@ class GibberishProcessor extends AudioWorkletProcessor {
 
     // XXX ridiculous hack to get around processor not having a worklet property
     Gibberish.worklet = { ugens: this.ugens, port:this.port }
+    Gibberish.genish.gen.samplerate = sampleRate
 
     this.ugens.set( Gibberish.id, Gibberish )
 
@@ -19027,6 +19021,7 @@ class GibberishProcessor extends AudioWorkletProcessor {
       const output = outputs[ 0 ]
       const len = outputs[0][0].length
       let phase = 0
+
       for (let i = 0; i < len; ++i) {
         // run sequencers, catch errors and remove from queue
         try {
@@ -19068,7 +19063,7 @@ class GibberishProcessor extends AudioWorkletProcessor {
         }
 
         //XXX sub real samplerate sheesh
-        time += 1/44100
+        time += 1/sampleRate
 
         if( callback !== undefined ) {
           const out = callback.apply( null, ugens )
