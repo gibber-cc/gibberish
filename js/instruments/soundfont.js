@@ -52,13 +52,18 @@ module.exports = function( Gibberish ) {
       this.currentSample = key
       return this.trigger()
     },
-    note( rate ) {
+    __note( rate, loudness=null ) {
       // soundfont measures pitch in cents
       // originalPitch = findMidiForHz( hz ) * 100 // (100 cents per midi index)
       // rate = Math.pow(2, (100.0 * pitch - originalPitch) / 1200.0) // 1200 cents per octave
-      return this.trigger( null, rate )
+      return this.trigger( loudness, rate )
     },
-    midipick( midinote ) {
+    note( freq, loudness=null ) {
+      'no jsdsp'
+      const midinote = 69 + 12 * Math.log2( freq/440 )
+      this.midinote( midinote, loudness )
+    },
+    midipick( midinote, loudness ) {
       // loop through zones to find correct sample #
       let idx = 0, pitch = 0
       for( let zone of this.zones ) {
@@ -71,12 +76,12 @@ module.exports = function( Gibberish ) {
       this.pick( idx )
       return pitch
     },
-    midinote( midinote ) {
+    midinote( midinote, loudness=null ) {
       'no jsdsp'
       const samplePitch = this.midipick( midinote )
       const pitch = Math.pow( 2, (100 * midinote - samplePitch ) / 1200 ) 
       //const pitch = 1//Math.pow( 2, (samplePitch ) ) 
-      this.note( pitch )
+      this.__note( pitch, loudness )
     }, 
     midichord( frequencies ) {
       if( Gibberish !== undefined && Gibberish.mode !== 'worklet' ) {
@@ -84,6 +89,13 @@ module.exports = function( Gibberish ) {
         this.triggerChord = frequencies
       }
     },
+    chord( frequencies ) {
+      if( Gibberish !== undefined && Gibberish.mode !== 'worklet' ) {
+        frequencies.forEach( v => this.note( v ) )
+        this.triggerChord = frequencies
+      }
+    },
+
     setpan( num=0, value=.5 ) {
       if( Gibberish.mode === 'processor' ) {
         const voice = this.voices[ num ]
@@ -102,7 +114,7 @@ module.exports = function( Gibberish ) {
     },
     trigger( volume=null, rate=null ) {
       'no jsdsp'
-      if( volume !== null ) this.__triggerLoudness = volume
+      //if( volume !== null ) this.__triggerLoudness = volume
 
       let voice = null
       if( Gibberish.mode === 'processor' ) {
@@ -119,10 +131,15 @@ module.exports = function( Gibberish ) {
         // set voice data index
         g.gen.memory.heap[ voice.bufferLoc.memory.values.idx ] = sampler.dataIdx
 
+        g.gen.memory.heap[ voice.__loopStart.memory.values.idx ] = sampler.zone.loopStart
+        g.gen.memory.heap[ voice.__loopEnd.memory.values.idx   ] = sampler.zone.loopEnd
+
+        if( volume !== null )
+          g.gen.memory.heap[ voice.loudness.memory.values.idx   ] = volume
+
         if( rate !== null ) voice.rate = rate 
         
         voice.trigger()
-        //g.gen.memory.heap[ voice.rate.memory.values.idx ] = rate
       }
 
       return voice
@@ -152,7 +169,7 @@ module.exports = function( Gibberish ) {
     if( Gibberish.mode === 'worklet' ) {
       syn.__meta__ = {
         address:'add',
-        name: ['instruments', 'Multisampler'],
+        name: ['instruments', 'Soundfont'],
         properties: JSON.stringify(props), 
         id: syn.id
       }
@@ -174,6 +191,16 @@ module.exports = function( Gibberish ) {
         // XXX how do I change this from main thread?
         __pan: g.data( [.5], 1, { meta:true }),
         __rate: g.data( [1], 1, { meta:true }),
+        __shouldLoop: g.data( [1], 1, { meta:true }),
+        __loopStart: g.data( [1], 1, { meta:true }),
+        __loopEnd:   g.data( [1], 1, { meta:true }),
+        __loudness:  g.data( [1], 1, { meta:true }),
+        get loudness() { 
+          return g.gen.memory.heap[ this.__loudness.memory.values.idx   ]
+        },
+        set loudness( v ) {
+          g.gen.memory.heap[ this.__loudness.memory.values.idx ] = v
+        },
         set pan(v) {
           g.gen.memory.heap[ this.__pan.memory.values.idx ] = v
         },
@@ -210,7 +237,46 @@ module.exports = function( Gibberish ) {
         0
       ) 
       * loudness 
-      * triggerLoudness 
+      * voice.__loudness[0] 
+
+      // start of attempt to loop sustain...
+      //voice.graph = g.ifelse(
+      //  // if phase is greater than start and less than end... 
+      //  g.and( 
+      //    g.gte( voice.phase, start * voice.bufferLength[0] ), 
+      //    g.lt(  voice.phase, end   * voice.bufferLength[0] ) 
+      //  ),
+      //  // ...read data
+      //  voice.peek = g.peekDyn( 
+      //    voice.bufferLoc[0], 
+      //    voice.bufferLength[0],
+      //    voice.phase,
+      //    { mode:'samples' }
+      //  ),
+      //  // ...else return 0
+      //  g.ifelse(
+      //    g.and(
+      //      voice.__shouldLoop[0],
+      //      g.gt( voice.phase, voice.__loopEnd[0] )
+      //    ),
+      //    g.peekDyn( 
+      //      voice.bufferLoc[0], 
+      //      voice.bufferLength[0],
+      //      g.add( 
+      //        voice.__loopStart[0],
+      //        g.mod(
+      //          voice.phase,
+      //          //g.sub( voice.phase, voice.__loopStart[0] ),
+      //          g.sub( voice.__loopEnd[0], voice.__loopStart[0] )
+      //        )
+      //      ),
+      //      { mode:'samples' }
+      //    ),
+      //    0
+      //  )
+      //) 
+      //* loudness 
+      //* triggerLoudness 
       
       const pan = g.pan( voice.graph, voice.graph, voice.__pan[0] )
       voice.graph = [ pan.left, pan.right ]
@@ -243,6 +309,7 @@ module.exports = function( Gibberish ) {
 
         // set data memory spec before issuing memory request
         this.dataLength = this.data.memory.values.length = this.data.dim = this.data.buffer.length
+        this.zone = syn.zones[ this.filename ]
 
         // request memory to copy the bufer over
         g.gen.requestMemory( this.data.memory, false )
@@ -304,12 +371,23 @@ module.exports = function( Gibberish ) {
       return sampler
     }
 
-    syn.loadBank = function( soundNumber=1, bankIndex=0 ) {
+    syn.load = function( soundNumber=0, bankIndex=0 ) {
       'no jsdsp'
 
       // need to memoize... already storing in soundfonts
       if( Gibberish.mode === 'processor' ) return
-      let num = (soundNumber-1) + '0'
+
+      // in case users pass name of soundfont instead of number
+      if( typeof soundNumber === 'string' ) {
+        let __soundNumber = Soundfont.names.indexOf( soundNumber )
+        if( __soundNumber === -1 ) {
+          __soundNumber = 0
+          console.warn( `The ${soundNumber} Soundfont can't be found. Using Piano instead.` )
+        }
+        soundNumber = __soundNumber
+      }
+
+      let num = (soundNumber) + '0'
       if( soundNumber < 100 ) num = '0'+num
       if( soundNumber < 10 )  num = '0'+num
 
@@ -382,6 +460,140 @@ module.exports = function( Gibberish ) {
   }
 
   Soundfont.resourcePath = 'resources/soundfonts/'
+  Soundfont.names = [
+    "Acoustic Grand Piano",
+    "Bright Acoustic Piano",
+    "Electric Grand Piano",
+    "Honky-tonk Piano",
+    "Electric Piano 1",
+    "Electric Piano 2",
+    "Harpsichord",
+    "Clavi",
+    "Celesta",
+    "Glockenspiel",
+    "Music Box",
+    "Vibraphone",
+    "Marimba",
+    "Xylophone",
+    "Tubular Bells",
+    "Dulcimer",
+    "Drawbar Organ",
+    "Percussive Organ",
+    "Rock Organ",
+    "Church Organ",
+    "Reed Organ",
+    "Accordion",
+    "Harmonica",
+    "Tango Accordion",
+    "Acoustic Guitar (nylon)",
+    "Acoustic Guitar (steel)",
+    "Electric Guitar (jazz)",
+    "Electric Guitar (clean)",
+    "Electric Guitar (muted)",
+    "Overdriven Guitar",
+    "Distortion Guitar",
+    "Guitar harmonics",
+    "Acoustic Bass",
+    "Electric Bass (finger)",
+    "Electric Bass (pick)",
+    "Fretless Bass",
+    "Slap Bass 1",
+    "Slap Bass 2",
+    "Synth Bass 1",
+    "Synth Bass 2",
+    "Violin",
+    "Viola",
+    "Cello",
+    "Contrabass",
+    "Tremolo Strings",
+    "Pizzicato Strings",
+    "Orchestral Harp",
+    "Timpani",
+    "String Ensemble 1",
+    "String Ensemble 2",
+    "SynthStrings 1",
+    "SynthStrings 2",
+    "Choir Aahs",
+    "Voice Oohs",
+    "Synth Voice",
+    "Orchestra Hit",
+    "Trumpet",
+    "Trombone",
+    "Tuba",
+    "Muted Trumpet",
+    "French Horn",
+    "Brass Section",
+    "SynthBrass 1",
+    "SynthBrass 2",
+    "Soprano Sax",
+    "Alto Sax",
+    "Tenor Sax",
+    "Baritone Sax",
+    "Oboe",
+    "English Horn",
+    "Bassoon",
+    "Clarinet",
+    "Piccolo",
+    "Flute",
+    "Recorder",
+    "Pan Flute",
+    "Blown Bottle",
+    "Shakuhachi",
+    "Whistle",
+    "Ocarina",
+    "Lead 1 (square)",
+    "Lead 2 (sawtooth)",
+    "Lead 3 (calliope)",
+    "Lead 4 (chiff)",
+    "Lead 5 (charang)",
+    "Lead 6 (voice)",
+    "Lead 7 (fifths)",
+    "Lead 8 (bass + lead)",
+    "Pad 1 (new age)",
+    "Pad 2 (warm)",
+    "Pad 3 (polysynth)",
+    "Pad 4 (choir)",
+    "Pad 5 (bowed)",
+    "Pad 6 (metallic)",
+    "Pad 7 (halo)",
+    "Pad 8 (sweep)",
+    "FX 1 (rain)",
+    "FX 2 (soundtrack)",
+    "FX 3 (crystal)",
+    "FX 4 (atmosphere)",
+    "FX 5 (brightness)",
+    "FX 6 (goblins)",
+    "FX 7 (echoes)",
+    "FX 8 (sci-fi)",
+    "Sitar",
+    "Banjo",
+    "Shamisen",
+    "Koto",
+    "Kalimba",
+    "Bag pipe",
+    "Fiddle",
+    "Shanai",
+    "Tinkle Bell",
+    "Agogo",
+    "Steel Drums",
+    "Woodblock",
+    "Taiko Drum",
+    "Melodic Tom",
+    "Synth Drum",
+    "Reverse Cymbal",
+    "Guitar Fret Noise",
+    "Breath Noise",
+    "Seashore",
+    "Bird Tweet",
+    "Telephone Ring",
+    "Helicopter",
+    "Applause",
+    "Gunshot"
+  ]
+
+  Soundfont.inspect = function() {
+    console.table( Soundfont.names )
+  }
 
   return Soundfont
 }
