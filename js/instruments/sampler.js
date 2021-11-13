@@ -63,7 +63,14 @@ module.exports = function( Gibberish ) {
       syn.__bang__ = g.bang()
       syn.__trigger = syn.__bang__.trigger
 
-      syn.__phase__ = g.counter( rate, g.mul(start,bufferLength), g.mul( end, bufferLength ), syn.__bang__, shouldLoop, { shouldWrap:false, initialValue:9999999 })
+      syn.__phase__ = g.counter( 
+        rate, 
+        g.mul(start,bufferLength), 
+        g.mul( end, bufferLength ), 
+        syn.__bang__, 
+        shouldLoop, 
+        { shouldWrap:false, initialValue:9999999 }
+      )
       
       syn.__rateStorage__ = rateStorage
       rateStorage[0] = rate
