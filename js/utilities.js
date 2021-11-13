@@ -246,6 +246,16 @@ const utilities = {
     return s
   },
 
+  run( fnc ) { 
+    const str = fnc.tostring()
+    const idx = str.indexof('=>') + 2
+    const code = str.slice( idx ).trim()
+    Gibberish.worklet.port.postMessage({ 
+      address:'eval',
+      code
+    })
+  },
+
   export( obj ) {
     obj.wrap = this.wrap
     obj.future = this.future
