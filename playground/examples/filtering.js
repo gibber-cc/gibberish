@@ -39,7 +39,7 @@ filter.mode = 1
 syn = Synth({ attack:44 }).connect()
 syn.note( 220 ) // default Filter24Moog model 
 
-syn.filterType = 2  // tb-303 filter model
+syn.filterModel = 2  // tb-303 filter model
 syn.saturation = 20 // distortion only available in tb-303 filter model
 syn.Q = .65
 
