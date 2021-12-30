@@ -28,6 +28,9 @@
     "tidal.pegjs": "latest",
     "codemirror": "^5.47.0"
   },
+  "scripts": {
+    "link": "npm link genish"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/gibber-cc/gibberish"
