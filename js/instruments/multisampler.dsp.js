@@ -68,11 +68,11 @@ module.exports = function( Gibberish ) {
         if( rate > 0 ) {
           voice.trigger()
         }else{
-          console.log( 'reverse?', rate )
+          //console.log( 'reverse?', rate )
           voice.bang.trigger()
           //voice.phase.value = 0
           voice.phase.value = sampler.dataLength - 1
-          console.log( 'phase', voice.phase.value )
+          //console.log( 'phase', voice.phase.value )
         }
         //if( rate < 0 ) {
         //  const phase = sampler.dataIdx + Math.round((sampler.dataLength/2)) - 1
