@@ -176,10 +176,12 @@ const utilities = {
         }else if( obj !== undefined ) {
           const propSplit = propName.split('.')
           if( obj[ propSplit[ 0 ] ] !== undefined ) {
-            if( typeof obj[ propSplit[ 0 ] ][ propSplit[ 1 ] ] !== 'function' ) {
-              obj[ propSplit[ 0 ] ][ propSplit[ 1 ] ] = value
-            }else{
-              obj[ propSplit[ 0 ] ][ propSplit[ 1 ] ]( value )
+            if( propSplit[1] !== undefined ) {
+              if( typeof obj[ propSplit[ 0 ] ][ propSplit[ 1 ] ] !== 'function' ) {
+                obj[ propSplit[ 0 ] ][ propSplit[ 1 ] ] = value
+              }else{
+                obj[ propSplit[ 0 ] ][ propSplit[ 1 ] ]( value )
+              }
             }
           }else{
             //console.log( 'undefined split property!', id, propSplit[0], propSplit[1], value, obj )
