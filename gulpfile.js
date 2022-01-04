@@ -1,4 +1,4 @@
-const gulp       = require( 'gulp' ),
+const { src, task, dest, series, watch } = require( 'gulp' ),
       babel      = require( 'gulp-babel' ),
       babelify   = require( 'babelify' ),
       browserify = require( 'browserify' ),
@@ -37,7 +37,7 @@ const gulp       = require( 'gulp' ),
 
 let workletBlob = workletStr.prefix
 
-const workletFnc = () => {
+const workletFnc = cb => {
   const gibberishText = fs.readFileSync( './dist/gibberish.js', 'utf-8' )
   const processorText = fs.readFileSync( './js/workletProcessor.js', 'utf-8' )
 
@@ -46,19 +46,22 @@ const workletFnc = () => {
   workletBlob += workletStr.postfix
 
   fs.writeFileSync( './dist/gibberish_worklet.js', workletBlob )
+
+  cb()
 }
 
-const jsFunc = () => {
-  return browserify({ debug:false, standalone:'Gibberish' })
+const jsFunc = cb => {
+  const out = browserify({ standalone:'Gibberish' })
     .require( './js/index.js', { entry: true } )
     .transform( babelify, { plugins:[jsdsp] }) 
     .bundle()
-    .pipe( source('gibberish.js') )
-    .pipe( gulp.dest('./dist') )
-
+    .pipe( source( 'gibberish.js' ) )
+    .pipe( dest( './dist' ) )
+  
+  cb()
 }
 
-const minifyLib = ()=> {
+/*const minifyLib = ()=> {
   return gulp.src( './dist/gibberish.js' )
     .pipe( guglify() )
     .pipe( rename('gibberish.min.js') )
@@ -76,26 +79,29 @@ const minifyWorklet = ()=> {
     .pipe( gzip() )
     .pipe( rename('gibberish_worklet.min.js.gz') )
     .pipe( gulp.dest('./dist') )
-}
+}*/
 
-gulp.task( 'workletblob', ['js'], workletFnc ) 
-gulp.task( 'clean', ()=> {
-  return gulp.src( './dist/*.js*', { read:false  })
-    .pipe( clean() )
-})
-gulp.task( 'minifyLib', [], minifyLib )
-gulp.task( 'minifyWorklet', [], minifyWorklet )
-gulp.task( 'minify', ['minifyLib', 'minifyWorklet'] )
-gulp.task( 'js', jsFunc )
-gulp.task( 'watch', function() {
-  return gulp.watch( './js/**/*.js', ['workletblob'] )
-    /*.pipe( 
-      notify({ 
-        message:'Gibberish build completed.',
-        onLast:true
-      }) 
-    )*/
-})
+//gulp.task( 'js', gulp.series( jsFunc ) )
+//gulp.task( 'workletblob', gulp.series('js'), workletFnc ) 
+
+exports.default = series( jsFunc, workletFnc )
+
+//gulp.task( 'clean', ()=> {
+//  return gulp.src( './dist/*.js*', { read:false  })
+//    .pipe( clean() )
+//})
+//gulp.task( 'minifyLib', [], minifyLib )
+//gulp.task( 'minifyWorklet', [], minifyWorklet )
+//gulp.task( 'minify', ['minifyLib', 'minifyWorklet'] )
+//gulp.task( 'watch', function() {
+//  return gulp.watch( './js/**/*.js', ['workletblob'] )
+//    [>.pipe( 
+//      notify({ 
+//        message:'Gibberish build completed.',
+//        onLast:true
+//      }) 
+//    )*/
+//})
 
 const gibberFunc = ()=> {
   const gibberishText = fs.readFileSync( './dist/gibberish.js', 'utf-8' )
@@ -105,8 +111,8 @@ const gibberFunc = ()=> {
   fs.writeFileSync( '/Users/charlie/Documents/code/gibber.audio.lib/dist/gibberish_worklet.js', gibberishWorklet )
 }
 
-gulp.task( 'gibber', ['workletblob'], gibberFunc )
-gulp.task( 'default', ['workletblob'] )
+//gulp.task( 'gibber', gulp.series('workletblob'), gibberFunc )
+//gulp.task( 'default', gulp.series('workletblob') )
 
 
 const jsdsp = function({ types: t }) {
