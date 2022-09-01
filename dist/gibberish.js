@@ -1,4 +1,4809 @@
 (function(f){if(typeof exports==="object"&&typeof module!=="undefined"){module.exports=f()}else if(typeof define==="function"&&define.amd){define([],f)}else{var g;if(typeof window!=="undefined"){g=window}else if(typeof global!=="undefined"){g=global}else if(typeof self!=="undefined"){g=self}else{g=this}g.Gibberish = f()}})(function(){var define,module,exports;return (function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}return r})()({1:[function(require,module,exports){
+'use strict'
+
+let gen  = require('./gen.js')
+
+let proto = {
+  name:'abs',
+
+  gen() {
+    let out,
+        inputs = gen.getInputs( this )
+
+    const isWorklet = gen.mode === 'worklet'
+    const ref = isWorklet ? '' : 'gen.'
+
+    if( isNaN( inputs[0] ) ) {
+      gen.closures.add({ [ this.name ]: isWorklet ? 'Math.abs' : Math.abs })
+
+      out = `${ref}abs( ${inputs[0]} )`
+
+    } else {
+      out = Math.abs( parseFloat( inputs[0] ) )
+    }
+    
+    return out
+  }
+}
+
+module.exports = x => {
+  let abs = Object.create( proto )
+
+  abs.inputs = [ x ]
+
+  return abs
+}
+
+},{"./gen.js":33}],2:[function(require,module,exports){
+'use strict'
+
+let gen  = require('./gen.js')
+
+let proto = {
+  basename:'accum',
+
+  gen() {
+    let code,
+        inputs = gen.getInputs( this ),
+        genName = 'gen.' + this.name,
+        functionBody
+
+    gen.requestMemory( this.memory )
+
+    gen.memory.heap[ this.memory.value.idx ] = this.initialValue
+
+    functionBody = this.callback( genName, inputs[0], inputs[1], `memory[${this.memory.value.idx}]` )
+
+    //gen.closures.add({ [ this.name ]: this }) 
+
+    gen.memo[ this.name ] = this.name + '_value'
+    
+    return [ this.name + '_value', functionBody ]
+  },
+
+  callback( _name, _incr, _reset, valueRef ) {
+    let diff = this.max - this.min,
+        out = '',
+        wrap = ''
+    
+    /* three different methods of wrapping, third is most expensive:
+     *
+     * 1: range {0,1}: y = x - (x | 0)
+     * 2: log2(this.max) == integer: y = x & (this.max - 1)
+     * 3: all others: if( x >= this.max ) y = this.max -x
+     *
+     */
+
+    // must check for reset before storing value for output
+    if( !(typeof this.inputs[1] === 'number' && this.inputs[1] < 1) ) { 
+      if( this.resetValue !== this.min ) {
+
+        out += `  if( ${_reset} >=1 ) ${valueRef} = ${this.resetValue}\n\n`
+        //out += `  if( ${_reset} >=1 ) ${valueRef} = ${this.min}\n\n`
+      }else{
+        out += `  if( ${_reset} >=1 ) ${valueRef} = ${this.min}\n\n`
+        //out += `  if( ${_reset} >=1 ) ${valueRef} = ${this.initialValue}\n\n`
+      }
+    }
+
+    out += `  var ${this.name}_value = ${valueRef}\n`
+    
+    if( this.shouldWrap === false && this.shouldClamp === true ) {
+      out += `  if( ${valueRef} < ${this.max } ) ${valueRef} += ${_incr}\n`
+    }else{
+      out += `  ${valueRef} += ${_incr}\n` // store output value before accumulating  
+    }
+
+    if( this.max !== Infinity  && this.shouldWrapMax ) wrap += `  if( ${valueRef} >= ${this.max} ) ${valueRef} -= ${diff}\n`
+    if( this.min !== -Infinity && this.shouldWrapMin ) wrap += `  if( ${valueRef} < ${this.min} ) ${valueRef} += ${diff}\n`
+
+    //if( this.min === 0 && this.max === 1 ) { 
+    //  wrap =  `  ${valueRef} = ${valueRef} - (${valueRef} | 0)\n\n`
+    //} else if( this.min === 0 && ( Math.log2( this.max ) | 0 ) === Math.log2( this.max ) ) {
+    //  wrap =  `  ${valueRef} = ${valueRef} & (${this.max} - 1)\n\n`
+    //} else if( this.max !== Infinity ){
+    //  wrap = `  if( ${valueRef} >= ${this.max} ) ${valueRef} -= ${diff}\n\n`
+    //}
+
+    out = out + wrap + '\n'
+
+    return out
+  },
+
+  defaults : { min:0, max:1, resetValue:0, initialValue:0, shouldWrap:true, shouldWrapMax: true, shouldWrapMin:true, shouldClamp:false }
+}
+
+module.exports = ( incr, reset=0, properties ) => {
+  const ugen = Object.create( proto )
+      
+  Object.assign( ugen, 
+    { 
+      uid:    gen.getUID(),
+      inputs: [ incr, reset ],
+      memory: {
+        value: { length:1, idx:null }
+      }
+    },
+    proto.defaults,
+    properties 
+  )
+
+  if( properties !== undefined && properties.shouldWrapMax === undefined && properties.shouldWrapMin === undefined ) {
+    if( properties.shouldWrap !== undefined ) {
+      ugen.shouldWrapMin = ugen.shouldWrapMax = properties.shouldWrap
+    }
+  }
+
+  if( properties !== undefined && properties.resetValue === undefined ) {
+    ugen.resetValue = ugen.min
+  }
+
+  if( ugen.initialValue === undefined ) ugen.initialValue = ugen.min
+
+  Object.defineProperty( ugen, 'value', {
+    get()  { 
+      //console.log( 'gen:', gen, gen.memory )
+      return gen.memory.heap[ this.memory.value.idx ] 
+    },
+    set(v) { gen.memory.heap[ this.memory.value.idx ] = v }
+  })
+
+  ugen.name = `${ugen.basename}${ugen.uid}`
+
+  return ugen
+}
+
+},{"./gen.js":33}],3:[function(require,module,exports){
+'use strict'
+
+let gen  = require('./gen.js')
+
+let proto = {
+  basename:'acos',
+
+  gen() {
+    let out,
+        inputs = gen.getInputs( this )
+    
+
+    const isWorklet = gen.mode === 'worklet'
+    const ref = isWorklet ? '' : 'gen.'
+
+    if( isNaN( inputs[0] ) ) {
+      gen.closures.add({ 'acos': isWorklet ? 'Math.acos' :Math.acos })
+
+      out = `${ref}acos( ${inputs[0]} )` 
+
+    } else {
+      out = Math.acos( parseFloat( inputs[0] ) )
+    }
+    
+    return out
+  }
+}
+
+module.exports = x => {
+  let acos = Object.create( proto )
+
+  acos.inputs = [ x ]
+  acos.id = gen.getUID()
+  acos.name = `${acos.basename}{acos.id}`
+
+  return acos
+}
+
+},{"./gen.js":33}],4:[function(require,module,exports){
+'use strict'
+
+let gen      = require( './gen.js' ),
+    mul      = require( './mul.js' ),
+    sub      = require( './sub.js' ),
+    div      = require( './div.js' ),
+    data     = require( './data.js' ),
+    peek     = require( './peek.js' ),
+    accum    = require( './accum.js' ),
+    ifelse   = require( './ifelseif.js' ),
+    lt       = require( './lt.js' ),
+    bang     = require( './bang.js' ),
+    env      = require( './env.js' ),
+    add      = require( './add.js' ),
+    poke     = require( './poke.js' ),
+    neq      = require( './neq.js' ),
+    and      = require( './and.js' ),
+    gte      = require( './gte.js' ),
+    memo     = require( './memo.js' ),
+    utilities= require( './utilities.js' )
+
+module.exports = ( attackTime = 44100, decayTime = 44100, _props ) => {
+  const props = Object.assign({}, { shape:'exponential', alpha:5, trigger:null }, _props )
+  const _bang = props.trigger !== null ? props.trigger : bang(),
+        phase = accum( 1, _bang, { min:0, max: Infinity, initialValue:-Infinity, shouldWrap:false })
+      
+  let bufferData, bufferDataReverse, decayData, out, buffer
+
+  //console.log( 'shape:', props.shape, 'attack time:', attackTime, 'decay time:', decayTime )
+  let completeFlag = data( [0] )
+  
+  // slightly more efficient to use existing phase accumulator for linear envelopes
+  if( props.shape === 'linear' ) {
+    out = ifelse( 
+      and( gte( phase, 0), lt( phase, attackTime )),
+      div( phase, attackTime ),
+
+      and( gte( phase, 0),  lt( phase, add( attackTime, decayTime ) ) ),
+      sub( 1, div( sub( phase, attackTime ), decayTime ) ),
+      
+      neq( phase, -Infinity),
+      poke( completeFlag, 1, 0, { inline:0 }),
+
+      0 
+    )
+  } else {
+    bufferData = env({ length:1024, type:props.shape, alpha:props.alpha })
+    bufferDataReverse = env({ length:1024, type:props.shape, alpha:props.alpha, reverse:true })
+
+    out = ifelse( 
+      and( gte( phase, 0), lt( phase, attackTime ) ), 
+      peek( bufferData, div( phase, attackTime ), { boundmode:'clamp' } ), 
+
+      and( gte(phase,0), lt( phase, add( attackTime, decayTime ) ) ), 
+      peek( bufferDataReverse, div( sub( phase, attackTime ), decayTime ), { boundmode:'clamp' }),
+
+      neq( phase, -Infinity ),
+      poke( completeFlag, 1, 0, { inline:0 }),
+
+      0
+    )
+  }
+
+  const usingWorklet = gen.mode === 'worklet'
+  if( usingWorklet === true ) {
+    out.node = null
+    utilities.register( out )
+  }
+
+  // needed for gibberish... getting this to work right with worklets
+  // via promises will probably be tricky
+  out.isComplete = ()=> {
+    if( usingWorklet === true && out.node !== null ) {
+      const p = new Promise( resolve => {
+        out.node.getMemoryValue( completeFlag.memory.values.idx, resolve )
+      })
+
+      return p
+    }else{
+      return gen.memory.heap[ completeFlag.memory.values.idx ]
+    }
+  }
+
+  out.trigger = ()=> {
+    if( usingWorklet === true && out.node !== null ) {
+      out.node.port.postMessage({ key:'set', idx:completeFlag.memory.values.idx, value:0 })
+    }
+    //else{
+    //  gen.memory.heap[ completeFlag.memory.values.idx ] = 0
+    //}
+    _bang.trigger()
+  }
+
+  return out 
+}
+
+},{"./accum.js":2,"./add.js":5,"./and.js":7,"./bang.js":11,"./data.js":19,"./div.js":24,"./env.js":25,"./gen.js":33,"./gte.js":35,"./ifelseif.js":38,"./lt.js":41,"./memo.js":45,"./mul.js":51,"./neq.js":52,"./peek.js":57,"./poke.js":61,"./sub.js":72,"./utilities.js":78}],5:[function(require,module,exports){
+'use strict'
+
+const gen = require('./gen.js')
+
+const proto = { 
+  basename:'add',
+  gen() {
+    let inputs = gen.getInputs( this ),
+        out='',
+        sum = 0, numCount = 0, adderAtEnd = false, alreadyFullSummed = true
+
+    if( inputs.length === 0 ) return 0
+
+    out = `  var ${this.name} = `
+
+    inputs.forEach( (v,i) => {
+      if( isNaN( v ) ) {
+        out += v
+        if( i < inputs.length -1 ) {
+          adderAtEnd = true
+          out += ' + '
+        }
+        alreadyFullSummed = false
+      }else{
+        sum += parseFloat( v )
+        numCount++
+      }
+    })
+
+    if( numCount > 0 ) {
+      out += adderAtEnd || alreadyFullSummed ? sum : ' + ' + sum
+    }
+
+    out += '\n'
+
+    gen.memo[ this.name ] = this.name
+
+    return [ this.name, out ]
+  }
+}
+
+module.exports = ( ...args ) => {
+  const add = Object.create( proto )
+  add.id = gen.getUID()
+  add.name = add.basename + add.id
+  add.inputs = args
+
+  return add
+}
+
+},{"./gen.js":33}],6:[function(require,module,exports){
+'use strict'
+
+let gen      = require( './gen.js' ),
+    mul      = require( './mul.js' ),
+    sub      = require( './sub.js' ),
+    div      = require( './div.js' ),
+    data     = require( './data.js' ),
+    peek     = require( './peek.js' ),
+    accum    = require( './accum.js' ),
+    ifelse   = require( './ifelseif.js' ),
+    lt       = require( './lt.js' ),
+    bang     = require( './bang.js' ),
+    env      = require( './env.js' ),
+    param    = require( './param.js' ),
+    add      = require( './add.js' ),
+    gtp      = require( './gtp.js' ),
+    not      = require( './not.js' ),
+    and      = require( './and.js' ),
+    neq      = require( './neq.js' ),
+    poke     = require( './poke.js' )
+
+module.exports = ( attackTime=44, decayTime=22050, sustainTime=44100, sustainLevel=.6, releaseTime=44100, _props ) => {
+  let envTrigger = bang(),
+      phase = accum( 1, envTrigger, { max: Infinity, shouldWrap:false, initialValue:Infinity }),
+      shouldSustain = param( 1 ),
+      defaults = {
+         shape: 'exponential',
+         alpha: 5,
+         triggerRelease: false,
+      },
+      props = Object.assign({}, defaults, _props ),
+      bufferData, decayData, out, buffer, sustainCondition, releaseAccum, releaseCondition
+
+
+  const completeFlag = data( [0] )
+
+  bufferData = env({ length:1024, alpha:props.alpha, shift:0, type:props.shape })
+
+  sustainCondition = props.triggerRelease 
+    ? shouldSustain
+    : lt( phase, add( attackTime, decayTime, sustainTime ) )
+
+  releaseAccum = props.triggerRelease
+    ? gtp( sub( sustainLevel, accum( div( sustainLevel, releaseTime ) , 0, { shouldWrap:false }) ), 0 )
+    : sub( sustainLevel, mul( div( sub( phase, add( attackTime, decayTime, sustainTime ) ), releaseTime ), sustainLevel ) ), 
+
+  releaseCondition = props.triggerRelease
+    ? not( shouldSustain )
+    : lt( phase, add( attackTime, decayTime, sustainTime, releaseTime ) )
+
+  out = ifelse(
+    // attack 
+    lt( phase,  attackTime ), 
+    peek( bufferData, div( phase, attackTime ), { boundmode:'clamp' } ), 
+
+    // decay
+    lt( phase, add( attackTime, decayTime ) ), 
+    peek( bufferData, sub( 1, mul( div( sub( phase,  attackTime ),  decayTime ), sub( 1,  sustainLevel ) ) ), { boundmode:'clamp' }),
+
+    // sustain
+    and( sustainCondition, neq( phase, Infinity ) ),
+    peek( bufferData,  sustainLevel ),
+
+    // release
+    releaseCondition, //lt( phase,  attackTime +  decayTime +  sustainTime +  releaseTime ),
+    peek( 
+      bufferData,
+      releaseAccum, 
+      //sub(  sustainLevel, mul( div( sub( phase,  attackTime +  decayTime +  sustainTime),  releaseTime ),  sustainLevel ) ), 
+      { boundmode:'clamp' }
+    ),
+
+    neq( phase, Infinity ),
+    poke( completeFlag, 1, 0, { inline:0 }),
+
+    0
+  )
+   
+  const usingWorklet = gen.mode === 'worklet'
+  if( usingWorklet === true ) {
+    out.node = null
+    utilities.register( out )
+  }
+
+  out.trigger = ()=> {
+    shouldSustain.value = 1
+    envTrigger.trigger()
+  }
+ 
+  // needed for gibberish... getting this to work right with worklets
+  // via promises will probably be tricky
+  out.isComplete = ()=> {
+    if( usingWorklet === true && out.node !== null ) {
+      const p = new Promise( resolve => {
+        out.node.getMemoryValue( completeFlag.memory.values.idx, resolve )
+      })
+
+      return p
+    }else{
+      return gen.memory.heap[ completeFlag.memory.values.idx ]
+    }
+  }
+
+
+  out.release = ()=> {
+    shouldSustain.value = 0
+    // XXX pretty nasty... grabs accum inside of gtp and resets value manually
+    // unfortunately envTrigger won't work as it's back to 0 by the time the release block is triggered...
+    if( usingWorklet && out.node !== null ) {
+      out.node.port.postMessage({ key:'set', idx:releaseAccum.inputs[0].inputs[1].memory.value.idx, value:0 })
+    }else{
+      gen.memory.heap[ releaseAccum.inputs[0].inputs[1].memory.value.idx ] = 0
+    }
+  }
+
+  return out 
+}
+
+},{"./accum.js":2,"./add.js":5,"./and.js":7,"./bang.js":11,"./data.js":19,"./div.js":24,"./env.js":25,"./gen.js":33,"./gtp.js":36,"./ifelseif.js":38,"./lt.js":41,"./mul.js":51,"./neq.js":52,"./not.js":54,"./param.js":56,"./peek.js":57,"./poke.js":61,"./sub.js":72}],7:[function(require,module,exports){
+'use strict'
+
+let gen = require( './gen.js' )
+
+let proto = {
+  basename:'and',
+
+  gen() {
+    let inputs = gen.getInputs( this ), out
+
+    out = `  var ${this.name} = (${inputs[0]} !== 0 && ${inputs[1]} !== 0) | 0\n\n`
+
+    gen.memo[ this.name ] = `${this.name}`
+
+    return [ `${this.name}`, out ]
+  },
+
+}
+
+module.exports = ( in1, in2 ) => {
+  let ugen = Object.create( proto )
+  Object.assign( ugen, {
+    uid:     gen.getUID(),
+    inputs:  [ in1, in2 ],
+  })
+  
+  ugen.name = `${ugen.basename}${ugen.uid}`
+
+  return ugen
+}
+
+},{"./gen.js":33}],8:[function(require,module,exports){
+'use strict'
+
+let gen  = require('./gen.js')
+
+let proto = {
+  basename:'asin',
+
+  gen() {
+    let out,
+        inputs = gen.getInputs( this )
+    
+    const isWorklet = gen.mode === 'worklet'
+    const ref = isWorklet ? '' : 'gen.'
+
+    if( isNaN( inputs[0] ) ) {
+      gen.closures.add({ 'asin': isWorklet ? 'Math.sin' : Math.asin })
+
+      out = `${ref}asin( ${inputs[0]} )` 
+
+    } else {
+      out = Math.asin( parseFloat( inputs[0] ) )
+    }
+    
+    return out
+  }
+}
+
+module.exports = x => {
+  let asin = Object.create( proto )
+
+  asin.inputs = [ x ]
+  asin.id = gen.getUID()
+  asin.name = `${asin.basename}{asin.id}`
+
+  return asin
+}
+
+},{"./gen.js":33}],9:[function(require,module,exports){
+'use strict'
+
+let gen  = require('./gen.js')
+
+let proto = {
+  basename:'atan',
+
+  gen() {
+    let out,
+        inputs = gen.getInputs( this )
+    
+    const isWorklet = gen.mode === 'worklet'
+    const ref = isWorklet ? '' : 'gen.'
+
+    if( isNaN( inputs[0] ) ) {
+      gen.closures.add({ 'atan': isWorklet ? 'Math.atan' : Math.atan })
+
+      out = `${ref}atan( ${inputs[0]} )` 
+
+    } else {
+      out = Math.atan( parseFloat( inputs[0] ) )
+    }
+    
+    return out
+  }
+}
+
+module.exports = x => {
+  let atan = Object.create( proto )
+
+  atan.inputs = [ x ]
+  atan.id = gen.getUID()
+  atan.name = `${atan.basename}{atan.id}`
+
+  return atan
+}
+
+},{"./gen.js":33}],10:[function(require,module,exports){
+'use strict'
+
+let gen     = require( './gen.js' ),
+    history = require( './history.js' ),
+    mul     = require( './mul.js' ),
+    sub     = require( './sub.js' )
+
+module.exports = ( decayTime = 44100 ) => {
+  let ssd = history ( 1 ),
+      t60 = Math.exp( -6.907755278921 / decayTime )
+
+  ssd.in( mul( ssd.out, t60 ) )
+
+  ssd.out.trigger = ()=> {
+    ssd.value = 1
+  }
+
+  return sub( 1, ssd.out )
+}
+
+},{"./gen.js":33,"./history.js":37,"./mul.js":51,"./sub.js":72}],11:[function(require,module,exports){
+'use strict'
+
+let gen = require('./gen.js')
+
+let proto = {
+  gen() {
+    gen.requestMemory( this.memory )
+    
+    let out = 
+`  var ${this.name} = memory[${this.memory.value.idx}]
+  if( ${this.name} === 1 ) memory[${this.memory.value.idx}] = 0      
+      
+`
+    gen.memo[ this.name ] = this.name
+
+    return [ this.name, out ]
+  } 
+}
+
+module.exports = ( _props ) => {
+  let ugen = Object.create( proto ),
+      props = Object.assign({}, { min:0, max:1 }, _props )
+
+  ugen.name = 'bang' + gen.getUID()
+
+  ugen.min = props.min
+  ugen.max = props.max
+
+  const usingWorklet = gen.mode === 'worklet'
+  if( usingWorklet === true ) {
+    ugen.node = null
+    utilities.register( ugen )
+  }
+
+  ugen.trigger = () => {
+    if( usingWorklet === true && ugen.node !== null ) {
+      ugen.node.port.postMessage({ key:'set', idx:ugen.memory.value.idx, value:ugen.max })
+    }else{
+      gen.memory.heap[ ugen.memory.value.idx ] = ugen.max 
+    }
+  }
+
+  ugen.memory = {
+    value: { length:1, idx:null }
+  }
+
+  return ugen
+}
+
+},{"./gen.js":33}],12:[function(require,module,exports){
+'use strict'
+
+let gen = require( './gen.js' )
+
+let proto = {
+  basename:'bool',
+
+  gen() {
+    let inputs = gen.getInputs( this ), out
+
+    out = `${inputs[0]} === 0 ? 0 : 1`
+    
+    //gen.memo[ this.name ] = `gen.data.${this.name}`
+
+    //return [ `gen.data.${this.name}`, ' ' +out ]
+    return out
+  }
+}
+
+module.exports = ( in1 ) => {
+  let ugen = Object.create( proto )
+
+  Object.assign( ugen, { 
+    uid:        gen.getUID(),
+    inputs:     [ in1 ],
+  })
+  
+  ugen.name = `${ugen.basename}${ugen.uid}`
+
+  return ugen
+}
+
+
+},{"./gen.js":33}],13:[function(require,module,exports){
+'use strict'
+
+let gen  = require('./gen.js')
+
+let proto = {
+  name:'ceil',
+
+  gen() {
+    let out,
+        inputs = gen.getInputs( this )
+
+    
+    const isWorklet = gen.mode === 'worklet'
+    const ref = isWorklet ? '' : 'gen.'
+
+    if( isNaN( inputs[0] ) ) {
+      gen.closures.add({ [ this.name ]: isWorklet ? 'Math.ceil' : Math.ceil })
+
+      out = `${ref}ceil( ${inputs[0]} )`
+
+    } else {
+      out = Math.ceil( parseFloat( inputs[0] ) )
+    }
+    
+    return out
+  }
+}
+
+module.exports = x => {
+  let ceil = Object.create( proto )
+
+  ceil.inputs = [ x ]
+
+  return ceil
+}
+
+},{"./gen.js":33}],14:[function(require,module,exports){
+'use strict'
+
+let gen  = require('./gen.js'),
+    floor= require('./floor.js'),
+    sub  = require('./sub.js'),
+    memo = require('./memo.js')
+
+let proto = {
+  basename:'clip',
+
+  gen() {
+    let code,
+        inputs = gen.getInputs( this ),
+        out
+
+    out =
+
+` var ${this.name} = ${inputs[0]}
+  if( ${this.name} > ${inputs[2]} ) ${this.name} = ${inputs[2]}
+  else if( ${this.name} < ${inputs[1]} ) ${this.name} = ${inputs[1]}
+`
+    out = ' ' + out
+    
+    gen.memo[ this.name ] = this.name
+
+    return [ this.name, out ]
+  },
+}
+
+module.exports = ( in1, min=-1, max=1 ) => {
+  let ugen = Object.create( proto )
+
+  Object.assign( ugen, { 
+    min, 
+    max,
+    uid:    gen.getUID(),
+    inputs: [ in1, min, max ],
+  })
+  
+  ugen.name = `${ugen.basename}${ugen.uid}`
+
+  return ugen
+}
+
+},{"./floor.js":30,"./gen.js":33,"./memo.js":45,"./sub.js":72}],15:[function(require,module,exports){
+'use strict'
+
+let gen  = require('./gen.js')
+
+let proto = {
+  basename:'cos',
+
+  gen() {
+    let out,
+        inputs = gen.getInputs( this )
+    
+    
+    const isWorklet = gen.mode === 'worklet'
+
+    const ref = isWorklet ? '' : 'gen.'
+
+    if( isNaN( inputs[0] ) ) {
+      gen.closures.add({ 'cos': isWorklet ? 'Math.cos' : Math.cos })
+
+      out = `${ref}cos( ${inputs[0]} )` 
+
+    } else {
+      out = Math.cos( parseFloat( inputs[0] ) )
+    }
+    
+    return out
+  }
+}
+
+module.exports = x => {
+  let cos = Object.create( proto )
+
+  cos.inputs = [ x ]
+  cos.id = gen.getUID()
+  cos.name = `${cos.basename}{cos.id}`
+
+  return cos
+}
+
+},{"./gen.js":33}],16:[function(require,module,exports){
+'use strict'
+
+let gen  = require('./gen.js')
+
+let proto = {
+  basename:'counter',
+
+  gen() {
+    let code,
+        inputs = gen.getInputs( this ),
+        genName = 'gen.' + this.name,
+        functionBody
+       
+    if( this.memory.value.idx === null ) gen.requestMemory( this.memory )
+    gen.memory.heap[ this.memory.value.idx ] = this.initialValue
+    
+    functionBody  = this.callback( genName, inputs[0], inputs[1], inputs[2], inputs[3], inputs[4],  `memory[${this.memory.value.idx}]`, `memory[${this.memory.wrap.idx}]`  )
+
+    gen.memo[ this.name ] = this.name + '_value'
+   
+    if( gen.memo[ this.wrap.name ] === undefined ) this.wrap.gen()
+
+    return [ this.name + '_value', functionBody ]
+  },
+
+  callback( _name, _incr, _min, _max, _reset, loops, valueRef, wrapRef ) {
+    let diff = this.max - this.min,
+        out = '',
+        wrap = ''
+    // must check for reset before storing value for output
+    if( !(typeof this.inputs[3] === 'number' && this.inputs[3] < 1) ) { 
+      out += `  if( ${_reset} >= 1 ) ${valueRef} = ${_min}\n`
+    }
+
+    out += `  var ${this.name}_value = ${valueRef};\n  ${valueRef} += ${_incr}\n` // store output value before accumulating  
+    
+    if( typeof this.max === 'number' && this.max !== Infinity && typeof this.min !== 'number' ) {
+      wrap = 
+`  if( ${valueRef} >= ${this.max} &&  ${loops} > 0) {
+    ${valueRef} -= ${diff}
+    ${wrapRef} = 1
+  }else{
+    ${wrapRef} = 0
+  }\n`
+    }else if( this.max !== Infinity && this.min !== Infinity ) {
+      wrap = 
+`  if( ${valueRef} >= ${_max} &&  ${loops} > 0) {
+    ${valueRef} -= ${_max} - ${_min}
+    ${wrapRef} = 1
+  }else if( ${valueRef} < ${_min} &&  ${loops} > 0) {
+    ${valueRef} += ${_max} - ${_min}
+    ${wrapRef} = 1
+  }else{
+    ${wrapRef} = 0
+  }\n`
+    }else{
+      out += '\n'
+    }
+
+    out = out + wrap
+
+    return out
+  }
+}
+
+module.exports = ( incr=1, min=0, max=Infinity, reset=0, loops=1,  properties ) => {
+  let ugen = Object.create( proto ),
+      defaults = Object.assign( { initialValue: 0, shouldWrap:true }, properties )
+
+  Object.assign( ugen, { 
+    min:    min, 
+    max:    max,
+    initialValue: defaults.initialValue,
+    value:  defaults.initialValue,
+    uid:    gen.getUID(),
+    inputs: [ incr, min, max, reset, loops ],
+    memory: {
+      value: { length:1, idx: null },
+      wrap:  { length:1, idx: null } 
+    },
+    wrap : {
+      gen() { 
+        if( ugen.memory.wrap.idx === null ) {
+          gen.requestMemory( ugen.memory )
+        }
+        gen.getInputs( this )
+        gen.memo[ this.name ] = `memory[ ${ugen.memory.wrap.idx} ]`
+        return `memory[ ${ugen.memory.wrap.idx} ]` 
+      }
+    }
+  },
+  defaults )
+ 
+  Object.defineProperty( ugen, 'value', {
+    get() { 
+      //console.log( 'counter value', this.memory.value.idx, gen.memory.heap[ this.memory.value.idx ], gen.memory )
+        
+      if( this.memory.value.idx !== null ) {
+        return gen.memory.heap[ this.memory.value.idx ]
+      }
+    },
+    set( v ) {
+      if( this.memory.value.idx !== null ) {
+        //console.log( 'settting counter', v )
+        gen.memory.heap[ this.memory.value.idx ] = v 
+      }
+    }
+  })
+  
+  ugen.wrap.inputs = [ ugen ]
+  ugen.name = `${ugen.basename}${ugen.uid}`
+  ugen.wrap.name = ugen.name + '_wrap'
+  return ugen
+} 
+
+},{"./gen.js":33}],17:[function(require,module,exports){
+'use strict'
+
+let gen  = require( './gen.js' ),
+    accum= require( './phasor.js' ),
+    data = require( './data.js' ),
+    peek = require( './peek.js' ),
+    mul  = require( './mul.js' ),
+    phasor=require( './phasor.js')
+
+let proto = {
+  basename:'cycle',
+
+  initTable() {    
+    let buffer = new Float32Array( 1024 )
+
+    for( let i = 0, l = buffer.length; i < l; i++ ) {
+      buffer[ i ] = Math.sin( ( i / l ) * ( Math.PI * 2 ) )
+    }
+
+    gen.globals.cycle = data( buffer, 1, { immutable:true } )
+  }
+
+}
+
+module.exports = ( frequency=1, reset=0, _props ) => {
+  if( typeof gen.globals.cycle === 'undefined' ) proto.initTable() 
+  const props = Object.assign({}, { min:0 }, _props )
+
+  const ugen = peek( gen.globals.cycle, phasor( frequency, reset, props ))
+  ugen.name = 'cycle' + gen.getUID()
+
+  return ugen
+}
+
+},{"./data.js":19,"./gen.js":33,"./mul.js":51,"./peek.js":57,"./phasor.js":59}],18:[function(require,module,exports){
+'use strict'
+
+const gen  = require( './gen.js' ),
+      accum= require( './phasor.js' ),
+      data = require( './data.js' ),
+      peek = require( './peek.js' ),
+      mul  = require( './mul.js' ),
+      add  = require( './add.js' ),
+      phasor=require( './phasor.js')
+
+const proto = {
+  basename:'cycleN',
+
+  initTable() {    
+    let buffer = new Float32Array( 1024 )
+
+    for( let i = 0, l = buffer.length; i < l; i++ ) {
+      buffer[ i ] = Math.sin( ( i / l ) * ( Math.PI * 2 ) )
+    }
+
+    gen.globals.cycle = data( buffer, 1, { immutable:true } )
+  }
+
+}
+
+module.exports = ( frequency=1, reset=0, _props ) => {
+  if( typeof gen.globals.cycle === 'undefined' ) proto.initTable() 
+  const props = Object.assign({}, { min:0 }, _props )
+
+  const ugen = mul( add( 1, peek( gen.globals.cycle, phasor( frequency, reset, props )) ), .5 )
+  ugen.name = 'cycle' + gen.getUID()
+
+  return ugen
+}
+
+},{"./add.js":5,"./data.js":19,"./gen.js":33,"./mul.js":51,"./peek.js":57,"./phasor.js":59}],19:[function(require,module,exports){
+'use strict'
+
+const gen  = require('./gen.js'),
+      utilities = require( './utilities.js' ),
+      peek = require('./peek.js'),
+      poke = require('./poke.js')
+
+const proto = {
+  basename:'data',
+  globals: {},
+  memo:{},
+
+  gen() {
+    let idx
+    //console.log( 'data name:', this.name, proto.memo )
+    //debugger
+    if( gen.memo[ this.name ] === undefined ) {
+      let ugen = this
+      gen.requestMemory( this.memory, this.immutable ) 
+      idx = this.memory.values.idx
+      if( this.buffer !== undefined ) {
+        try {
+          gen.memory.heap.set( this.buffer, idx )
+        }catch( e ) {
+          console.log( e )
+          throw Error( 'error with request. asking for ' + this.buffer.length +'. current index: ' + gen.memoryIndex + ' of ' + gen.memory.heap.length )
+        }
+      }
+      //gen.data[ this.name ] = this
+      //return 'gen.memory' + this.name + '.buffer'
+      if( this.name.indexOf('data') === -1 ) {
+        proto.memo[ this.name ] = idx
+      }else{
+        gen.memo[ this.name ] = idx
+      }
+    }else{
+      //console.log( 'using gen data memo', proto.memo[ this.name ] )
+      idx = gen.memo[ this.name ]
+    }
+    return idx
+  },
+}
+
+module.exports = ( x, y=1, properties ) => {
+  let ugen, buffer, shouldLoad = false
+  
+  if( properties !== undefined && properties.global !== undefined ) {
+    if( gen.globals[ properties.global ] ) {
+      return gen.globals[ properties.global ]
+    }
+  }
+
+  if( typeof x === 'number' ) {
+    if( y !== 1 ) {
+      buffer = []
+      for( let i = 0; i < y; i++ ) {
+        buffer[ i ] = new Float32Array( x )
+      }
+    }else{
+      buffer = new Float32Array( x )
+    }
+  }else if( Array.isArray( x ) ) { //! (x instanceof Float32Array ) ) {
+    let size = x.length
+    buffer = new Float32Array( size )
+    for( let i = 0; i < x.length; i++ ) {
+      buffer[ i ] = x[ i ]
+    }
+  }else if( typeof x === 'string' ) {
+    //buffer = { length: y > 1 ? y : gen.samplerate * 60 } // XXX what???
+    //if( proto.memo[ x ] === undefined ) {
+      buffer = { length: y > 1 ? y : 1 } // XXX what???
+      shouldLoad = true
+    //}else{
+      //buffer = proto.memo[ x ]
+    //}
+  }else if( x instanceof Float32Array ) {
+    buffer = x
+  }else if( x instanceof Uint8Array ) {
+    buffer = x
+  }else if( x instanceof AudioBuffer ) {
+    buffer = x.getChannelData(0)
+  }
+  
+  ugen = Object.create( proto ) 
+
+  Object.assign( ugen, 
+  { 
+    buffer,
+    name: proto.basename + gen.getUID(),
+    dim:  buffer !== undefined ? buffer.length : 1, // XXX how do we dynamically allocate this?
+    channels : 1,
+    onload: properties !== undefined ? properties.onload || null : null,
+    //then( fnc ) {
+    //  ugen.onload = fnc
+    //  return ugen
+    //},
+    immutable: properties !== undefined && properties.immutable === true ? true : false,
+    load( filename, __resolve ) {
+      let promise = utilities.loadSample( filename, ugen )
+      promise.then( _buffer => { 
+        proto.memo[ x ] = _buffer
+        ugen.name = filename
+        ugen.memory.values.length = ugen.dim = _buffer.length
+
+        gen.requestMemory( ugen.memory, ugen.immutable ) 
+        gen.memory.heap.set( _buffer, ugen.memory.values.idx )
+        if( typeof ugen.onload === 'function' ) ugen.onload( _buffer ) 
+        __resolve( ugen )
+      })
+    },
+    memory : {
+      values: { length:buffer !== undefined ? buffer.length : 1, idx:null }
+    }
+  },
+  properties
+  )
+
+  
+  if( properties !== undefined ) {
+    if( properties.global !== undefined ) {
+      gen.globals[ properties.global ] = ugen
+    }
+    if( properties.meta === true ) {
+      for( let i = 0, length = ugen.buffer.length; i < length; i++ ) {
+        Object.defineProperty( ugen, i, {
+          get () {
+            return peek( ugen, i, { mode:'simple', interp:'none' } )
+          },
+          set( v ) {
+            return poke( ugen, v, i )
+          }
+        })
+      }
+    }
+  }
+
+  let returnValue
+  if( shouldLoad === true ) {
+    returnValue = new Promise( (resolve,reject) => {
+      //ugen.load( x, resolve )
+      let promise = utilities.loadSample( x, ugen )
+      promise.then( _buffer => { 
+        proto.memo[ x ] = _buffer
+        ugen.memory.values.length = ugen.dim = _buffer.length
+
+        ugen.buffer = _buffer
+        //gen.once( 'memory init', ()=> {
+        //  console.log( "CALLED", ugen.memory )
+        //  gen.requestMemory( ugen.memory, ugen.immutable ) 
+        //  gen.memory.heap.set( _buffer, ugen.memory.values.idx )
+        //  if( typeof ugen.onload === 'function' ) ugen.onload( _buffer ) 
+        //})
+        
+        resolve( ugen )
+      })     
+    })
+  }else if( proto.memo[ x ] !== undefined ) {
+
+    gen.once( 'memory init', ()=> {
+      gen.requestMemory( ugen.memory, ugen.immutable ) 
+      gen.memory.heap.set( ugen.buffer, ugen.memory.values.idx )
+      if( typeof ugen.onload === 'function' ) ugen.onload( ugen.buffer ) 
+    })
+
+    returnValue = ugen
+  }else{
+    returnValue = ugen
+  }
+
+  return returnValue 
+}
+
+
+},{"./gen.js":33,"./peek.js":57,"./poke.js":61,"./utilities.js":78}],20:[function(require,module,exports){
+'use strict'
+
+let gen     = require( './gen.js' ),
+    history = require( './history.js' ),
+    sub     = require( './sub.js' ),
+    add     = require( './add.js' ),
+    mul     = require( './mul.js' ),
+    memo    = require( './memo.js' )
+
+module.exports = ( in1 ) => {
+  let x1 = history(),
+      y1 = history(),
+      filter
+
+  //History x1, y1; y = in1 - x1 + y1*0.9997; x1 = in1; y1 = y; out1 = y;
+  filter = memo( add( sub( in1, x1.out ), mul( y1.out, .9997 ) ) )
+  x1.in( in1 )
+  y1.in( filter )
+
+  return filter
+}
+
+},{"./add.js":5,"./gen.js":33,"./history.js":37,"./memo.js":45,"./mul.js":51,"./sub.js":72}],21:[function(require,module,exports){
+'use strict'
+
+let gen     = require( './gen.js' ),
+    history = require( './history.js' ),
+    mul     = require( './mul.js' ),
+    t60     = require( './t60.js' )
+
+module.exports = ( decayTime = 44100, props ) => {
+  let properties = Object.assign({}, { initValue:1 }, props ),
+      ssd = history ( properties.initValue )
+
+  ssd.in( mul( ssd.out, t60( decayTime ) ) )
+
+  ssd.out.trigger = ()=> {
+    ssd.value = 1
+  }
+
+  return ssd.out 
+}
+
+},{"./gen.js":33,"./history.js":37,"./mul.js":51,"./t60.js":74}],22:[function(require,module,exports){
+'use strict'
+
+const gen  = require( './gen.js'  ),
+      data = require( './data.js' ),
+      poke = require( './poke.js' ),
+      peek = require( './peek.js' ),
+      sub  = require( './sub.js'  ),
+      wrap = require( './wrap.js' ),
+      accum= require( './accum.js'),
+      memo = require( './memo.js' )
+
+const proto = {
+  basename:'delay',
+
+  gen() {
+    let inputs = gen.getInputs( this )
+    
+    gen.memo[ this.name ] = inputs[0]
+    
+    return inputs[0]
+  },
+}
+
+const defaults = { size: 512, interp:'none' }
+
+module.exports = ( in1, taps, properties ) => {
+  const ugen = Object.create( proto )
+  let writeIdx, readIdx, delaydata
+
+  if( Array.isArray( taps ) === false ) taps = [ taps ]
+  
+  const props = Object.assign( {}, defaults, properties )
+
+  const maxTapSize = Math.max( ...taps )
+  if( props.size < maxTapSize ) props.size = maxTapSize
+
+  delaydata = data( props.size )
+  
+  ugen.inputs = []
+
+  writeIdx = accum( 1, 0, { max:props.size, min:0 })
+  
+  for( let i = 0; i < taps.length; i++ ) {
+    ugen.inputs[ i ] = peek( delaydata, wrap( sub( writeIdx, taps[i] ), 0, props.size ),{ mode:'samples', interp:props.interp })
+  }
+  
+  ugen.outputs = ugen.inputs // XXX ugh, Ugh, UGH! but i guess it works.
+
+  poke( delaydata, in1, writeIdx )
+
+  ugen.name = `${ugen.basename}${gen.getUID()}`
+
+  return ugen
+}
+
+},{"./accum.js":2,"./data.js":19,"./gen.js":33,"./memo.js":45,"./peek.js":57,"./poke.js":61,"./sub.js":72,"./wrap.js":80}],23:[function(require,module,exports){
+'use strict'
+
+let gen     = require( './gen.js' ),
+    history = require( './history.js' ),
+    sub     = require( './sub.js' )
+
+module.exports = ( in1 ) => {
+  let n1 = history()
+    
+  n1.in( in1 )
+
+  let ugen = sub( in1, n1.out )
+  ugen.name = 'delta'+gen.getUID()
+
+  return ugen
+}
+
+},{"./gen.js":33,"./history.js":37,"./sub.js":72}],24:[function(require,module,exports){
+'use strict'
+
+let gen = require('./gen.js')
+
+const proto = {
+  basename:'div',
+  gen() {
+    let inputs = gen.getInputs( this ),
+        out=`  var ${this.name} = `,
+        diff = 0, 
+        numCount = 0,
+        lastNumber = inputs[ 0 ],
+        lastNumberIsUgen = isNaN( lastNumber ), 
+        divAtEnd = false
+
+    inputs.forEach( (v,i) => {
+      if( i === 0 ) return
+
+      let isNumberUgen = isNaN( v ),
+        isFinalIdx   = i === inputs.length - 1
+
+      if( !lastNumberIsUgen && !isNumberUgen ) {
+        lastNumber = lastNumber / v
+        out += lastNumber
+      }else{
+        out += `${lastNumber} / ${v}`
+      }
+
+      if( !isFinalIdx ) out += ' / ' 
+    })
+
+    out += '\n'
+
+    gen.memo[ this.name ] = this.name
+
+    return [ this.name, out ]
+  }
+}
+
+module.exports = (...args) => {
+  const div = Object.create( proto )
+  
+  Object.assign( div, {
+    id:     gen.getUID(),
+    inputs: args,
+  })
+
+  div.name = div.basename + div.id
+  
+  return div
+}
+
+},{"./gen.js":33}],25:[function(require,module,exports){
+'use strict'
+
+let gen     = require( './gen' ),
+    windows = require( './windows' ),
+    data    = require( './data' ),
+    peek    = require( './peek' ),
+    phasor  = require( './phasor' ),
+    defaults = {
+      type:'triangular', length:1024, alpha:.15, shift:0, reverse:false 
+    }
+
+module.exports = props => {
+  
+  let properties = Object.assign( {}, defaults, props )
+  let buffer = new Float32Array( properties.length )
+
+  let name = properties.type + '_' + properties.length + '_' + properties.shift + '_' + properties.reverse + '_' + properties.alpha
+  if( typeof gen.globals.windows[ name ] === 'undefined' ) { 
+
+    for( let i = 0; i < properties.length; i++ ) {
+      buffer[ i ] = windows[ properties.type ]( properties.length, i, properties.alpha, properties.shift )
+    }
+
+    if( properties.reverse === true ) { 
+      buffer.reverse()
+    }
+    gen.globals.windows[ name ] = data( buffer )
+  }
+
+  let ugen = gen.globals.windows[ name ] 
+  ugen.name = 'env' + gen.getUID()
+
+  return ugen
+}
+
+},{"./data":19,"./gen":33,"./peek":57,"./phasor":59,"./windows":79}],26:[function(require,module,exports){
+'use strict'
+
+let gen = require( './gen.js' )
+
+let proto = {
+  basename:'eq',
+
+  gen() {
+    let inputs = gen.getInputs( this ), out
+
+    out = this.inputs[0] === this.inputs[1] ? 1 : `  var ${this.name} = (${inputs[0]} === ${inputs[1]}) | 0\n\n`
+
+    gen.memo[ this.name ] = `${this.name}`
+
+    return [ `${this.name}`, out ]
+  },
+
+}
+
+module.exports = ( in1, in2 ) => {
+  let ugen = Object.create( proto )
+  Object.assign( ugen, {
+    uid:     gen.getUID(),
+    inputs:  [ in1, in2 ],
+  })
+  
+  ugen.name = `${ugen.basename}${ugen.uid}`
+
+  return ugen
+}
+
+},{"./gen.js":33}],27:[function(require,module,exports){
+'use strict'
+
+let gen  = require('./gen.js')
+
+let proto = {
+  name:'exp',
+
+  gen() {
+    let out,
+        inputs = gen.getInputs( this )
+
+    
+    const isWorklet = gen.mode === 'worklet'
+    const ref = isWorklet? '' : 'gen.'
+
+    if( isNaN( inputs[0] ) ) {
+      gen.closures.add({ [ this.name ]: isWorklet ? 'Math.exp' : Math.exp })
+
+      out = `${ref}exp( ${inputs[0]} )`
+
+    } else {
+      out = Math.exp( parseFloat( inputs[0] ) )
+    }
+    
+    return out
+  }
+}
+
+module.exports = x => {
+  let exp = Object.create( proto )
+
+  exp.inputs = [ x ]
+
+  return exp
+}
+
+},{"./gen.js":33}],28:[function(require,module,exports){
+/**
+ * Copyright 2018 Google LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not
+ * use this file except in compliance with the License. You may obtain a copy of
+ * the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under
+ * the License.
+ */
+
+// originally from:
+// https://github.com/GoogleChromeLabs/audioworklet-polyfill
+// I am modifying it to accept variable buffer sizes
+// and to get rid of some strange global initialization that seems required to use it
+// with browserify. Also, I added changes to fix a bug in Safari for the AudioWorkletProcessor
+// property not having a prototype (see:https://github.com/GoogleChromeLabs/audioworklet-polyfill/pull/25)
+// TODO: Why is there an iframe involved? (realm.js)
+
+const Realm = require( './realm.js' )
+
+const AWPF = function( self = window, bufferSize = 4096 ) {
+  const PARAMS = []
+  let nextPort
+
+  if (typeof AudioWorkletNode !== 'function' || !("audioWorklet" in AudioContext.prototype)) {
+    self.AudioWorkletNode = function AudioWorkletNode (context, name, options) {
+      const processor = getProcessorsForContext(context)[name];
+      const outputChannels = options && options.outputChannelCount ? options.outputChannelCount[0] : 2;
+      const scriptProcessor = context.createScriptProcessor( bufferSize, 2, outputChannels);
+
+      scriptProcessor.parameters = new Map();
+      if (processor.properties) {
+        for (let i = 0; i < processor.properties.length; i++) {
+          const prop = processor.properties[i];
+          const node = context.createGain().gain;
+          node.value = prop.defaultValue;
+          // @TODO there's no good way to construct the proxy AudioParam here
+          scriptProcessor.parameters.set(prop.name, node);
+        }
+      }
+
+      const mc = new MessageChannel();
+      nextPort = mc.port2;
+      const inst = new processor.Processor(options || {});
+      nextPort = null;
+
+      scriptProcessor.port = mc.port1;
+      scriptProcessor.processor = processor;
+      scriptProcessor.instance = inst;
+      scriptProcessor.onaudioprocess = onAudioProcess;
+      return scriptProcessor;
+    };
+
+    Object.defineProperty((self.AudioContext || self.webkitAudioContext).prototype, 'audioWorklet', {
+      get () {
+        return this.$$audioWorklet || (this.$$audioWorklet = new self.AudioWorklet(this));
+      }
+    });
+
+    /* XXX - ADDED TO OVERCOME PROBLEM IN SAFARI WHERE AUDIOWORKLETPROCESSOR PROTOTYPE IS NOT AN OBJECT */
+    const AudioWorkletProcessor = function() {
+      this.port = nextPort
+    }
+    AudioWorkletProcessor.prototype = {}
+
+    self.AudioWorklet = class AudioWorklet {
+      constructor (audioContext) {
+        this.$$context = audioContext;
+      }
+
+      addModule (url, options) {
+        return fetch(url).then(r => {
+          if (!r.ok) throw Error(r.status);
+          return r.text();
+        }).then( code => {
+          const context = {
+            sampleRate: this.$$context.sampleRate,
+            currentTime: this.$$context.currentTime,
+            AudioWorkletProcessor,
+            registerProcessor: (name, Processor) => {
+              const processors = getProcessorsForContext(this.$$context);
+              processors[name] = {
+                realm,
+                context,
+                Processor,
+                properties: Processor.parameterDescriptors || []
+              };
+            }
+          };
+
+          context.self = context;
+          const realm = new Realm(context, document.documentElement);
+          realm.exec(((options && options.transpile) || String)(code));
+          return null;
+        });
+      }
+    };
+  }
+
+  function onAudioProcess (e) {
+    const parameters = {};
+    let index = -1;
+    this.parameters.forEach((value, key) => {
+      const arr = PARAMS[++index] || (PARAMS[index] = new Float32Array(this.bufferSize));
+      // @TODO proper values here if possible
+      arr.fill(value.value);
+      parameters[key] = arr;
+    });
+    this.processor.realm.exec(
+      'self.sampleRate=sampleRate=' + this.context.sampleRate + ';' +
+      'self.currentTime=currentTime=' + this.context.currentTime
+    );
+    const inputs = channelToArray(e.inputBuffer);
+    const outputs = channelToArray(e.outputBuffer);
+    this.instance.process([inputs], [outputs], parameters);
+  }
+
+  function channelToArray (ch) {
+    const out = [];
+    for (let i = 0; i < ch.numberOfChannels; i++) {
+      out[i] = ch.getChannelData(i);
+    }
+    return out;
+  }
+
+  function getProcessorsForContext (audioContext) {
+    return audioContext.$$processors || (audioContext.$$processors = {});
+  }
+}
+
+module.exports = AWPF
+
+},{"./realm.js":29}],29:[function(require,module,exports){
+/**
+ * Copyright 2018 Google LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not
+ * use this file except in compliance with the License. You may obtain a copy of
+ * the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under
+ * the License.
+ */
+
+module.exports = function Realm (scope, parentElement) {
+  const frame = document.createElement('iframe');
+  frame.style.cssText = 'position:absolute;left:0;top:-999px;width:1px;height:1px;';
+  parentElement.appendChild(frame);
+  const win = frame.contentWindow;
+  const doc = win.document;
+  let vars = 'var window,$hook';
+  for (const i in win) {
+    if (!(i in scope) && i !== 'eval') {
+      vars += ',';
+      vars += i;
+    }
+  }
+  for (const i in scope) {
+    vars += ',';
+    vars += i;
+    vars += '=self.';
+    vars += i;
+  }
+  const script = doc.createElement('script');
+  script.appendChild(doc.createTextNode(
+    `function $hook(self,console) {"use strict";
+        ${vars};return function() {return eval(arguments[0])}}`
+  ));
+  doc.body.appendChild(script);
+  this.exec = win.$hook.call(scope, scope, console);
+}
+
+},{}],30:[function(require,module,exports){
+'use strict'
+
+let gen  = require('./gen.js')
+
+let proto = {
+  name:'floor',
+
+  gen() {
+    let out,
+        inputs = gen.getInputs( this )
+
+    if( isNaN( inputs[0] ) ) {
+      //gen.closures.add({ [ this.name ]: Math.floor })
+
+      out = `( ${inputs[0]} | 0 )`
+
+    } else {
+      out = inputs[0] | 0
+    }
+    
+    return out
+  }
+}
+
+module.exports = x => {
+  let floor = Object.create( proto )
+
+  floor.inputs = [ x ]
+
+  return floor
+}
+
+},{"./gen.js":33}],31:[function(require,module,exports){
+'use strict'
+
+let gen  = require('./gen.js')
+
+let proto = {
+  basename:'fold',
+
+  gen() {
+    let code,
+        inputs = gen.getInputs( this ),
+        out
+
+    out = this.createCallback( inputs[0], this.min, this.max ) 
+
+    gen.memo[ this.name ] = this.name + '_value'
+
+    return [ this.name + '_value', out ]
+  },
+
+  createCallback( v, lo, hi ) {
+    let out =
+` var ${this.name}_value = ${v},
+      ${this.name}_range = ${hi} - ${lo},
+      ${this.name}_numWraps = 0
+
+  if(${this.name}_value >= ${hi}){
+    ${this.name}_value -= ${this.name}_range
+    if(${this.name}_value >= ${hi}){
+      ${this.name}_numWraps = ((${this.name}_value - ${lo}) / ${this.name}_range) | 0
+      ${this.name}_value -= ${this.name}_range * ${this.name}_numWraps
+    }
+    ${this.name}_numWraps++
+  } else if(${this.name}_value < ${lo}){
+    ${this.name}_value += ${this.name}_range
+    if(${this.name}_value < ${lo}){
+      ${this.name}_numWraps = ((${this.name}_value - ${lo}) / ${this.name}_range- 1) | 0
+      ${this.name}_value -= ${this.name}_range * ${this.name}_numWraps
+    }
+    ${this.name}_numWraps--
+  }
+  if(${this.name}_numWraps & 1) ${this.name}_value = ${hi} + ${lo} - ${this.name}_value
+`
+    return ' ' + out
+  }
+}
+
+module.exports = ( in1, min=0, max=1 ) => {
+  let ugen = Object.create( proto )
+
+  Object.assign( ugen, { 
+    min, 
+    max,
+    uid:    gen.getUID(),
+    inputs: [ in1 ],
+  })
+  
+  ugen.name = `${ugen.basename}${ugen.uid}`
+
+  return ugen
+}
+
+},{"./gen.js":33}],32:[function(require,module,exports){
+'use strict'
+
+let gen = require( './gen.js' )
+
+let proto = {
+  basename:'gate',
+  controlString:null, // insert into output codegen for determining indexing
+  gen() {
+    let inputs = gen.getInputs( this ), out
+    
+    gen.requestMemory( this.memory )
+    
+    let lastInputMemoryIdx = 'memory[ ' + this.memory.lastInput.idx + ' ]',
+        outputMemoryStartIdx = this.memory.lastInput.idx + 1,
+        inputSignal = inputs[0],
+        controlSignal = inputs[1]
+    
+    /* 
+     * we check to see if the current control inputs equals our last input
+     * if so, we store the signal input in the memory associated with the currently
+     * selected index. If not, we put 0 in the memory associated with the last selected index,
+     * change the selected index, and then store the signal in put in the memery assoicated
+     * with the newly selected index
+     */
+    
+    out =
+
+` if( ${controlSignal} !== ${lastInputMemoryIdx} ) {
+    memory[ ${lastInputMemoryIdx} + ${outputMemoryStartIdx}  ] = 0 
+    ${lastInputMemoryIdx} = ${controlSignal}
+  }
+  memory[ ${outputMemoryStartIdx} + ${controlSignal} ] = ${inputSignal}
+
+`
+    this.controlString = inputs[1]
+    this.initialized = true
+
+    gen.memo[ this.name ] = this.name
+
+    this.outputs.forEach( v => v.gen() )
+
+    return [ null, ' ' + out ]
+  },
+
+  childgen() {
+    if( this.parent.initialized === false ) {
+      gen.getInputs( this ) // parent gate is only input of a gate output, should only be gen'd once.
+    }
+
+    if( gen.memo[ this.name ] === undefined ) {
+      gen.requestMemory( this.memory )
+
+      gen.memo[ this.name ] = `memory[ ${this.memory.value.idx} ]`
+    }
+    
+    return  `memory[ ${this.memory.value.idx} ]`
+  }
+}
+
+module.exports = ( control, in1, properties ) => {
+  let ugen = Object.create( proto ),
+      defaults = { count: 2 }
+
+  if( typeof properties !== undefined ) Object.assign( defaults, properties )
+
+  Object.assign( ugen, {
+    outputs: [],
+    uid:     gen.getUID(),
+    inputs:  [ in1, control ],
+    memory: {
+      lastInput: { length:1, idx:null }
+    },
+    initialized:false
+  },
+  defaults )
+  
+  ugen.name = `${ugen.basename}${gen.getUID()}`
+
+  for( let i = 0; i < ugen.count; i++ ) {
+    ugen.outputs.push({
+      index:i,
+      gen: proto.childgen,
+      parent:ugen,
+      inputs: [ ugen ],
+      memory: {
+        value: { length:1, idx:null }
+      },
+      initialized:false,
+      name: `${ugen.name}_out${gen.getUID()}`
+    })
+  }
+
+  return ugen
+}
+
+},{"./gen.js":33}],33:[function(require,module,exports){
+'use strict'
+
+/* gen.js
+ *
+ * low-level code generation for unit generators
+ *
+ */
+const MemoryHelper = require( 'memory-helper' )
+const EE = require( 'events' ).EventEmitter
+
+const gen = {
+
+  accum:0,
+  getUID() { return this.accum++ },
+  debug:false,
+  samplerate: 44100, // change on audiocontext creation
+  shouldLocalize: false,
+  graph:null,
+  alwaysReturnArrays: false,
+  globals:{
+    windows: {},
+  },
+  mode:'worklet',
+  
+  /* closures
+   *
+   * Functions that are included as arguments to master callback. Examples: Math.abs, Math.random etc.
+   * XXX Should probably be renamed callbackProperties or something similar... closures are no longer used.
+   */
+
+  closures: new Set(),
+  params:   new Set(),
+  inputs:   new Set(),
+
+  parameters: new Set(),
+  endBlock: new Set(),
+  histories: new Map(),
+
+  memo: {},
+
+  //data: {},
+  
+  /* export
+   *
+   * place gen functions into another object for easier reference
+   */
+
+  export( obj ) {},
+
+  addToEndBlock( v ) {
+    this.endBlock.add( '  ' + v )
+  },
+  
+  requestMemory( memorySpec, immutable=false ) {
+    for( let key in memorySpec ) {
+      let request = memorySpec[ key ]
+
+      //console.log( 'requesting ' + key + ':' , JSON.stringify( request ) )
+
+      if( request.length === undefined ) {
+        console.log( 'undefined length for:', key )
+
+        continue
+      }
+
+      request.idx = gen.memory.alloc( request.length, immutable )
+    }
+  },
+
+  createMemory( amount=4096, type ) {
+    const mem = MemoryHelper.create( amount, type )
+    return mem
+  },
+
+  createCallback( ugen, mem, debug = false, shouldInlineMemory=false, memType = Float64Array ) {
+    const numChannels = Array.isArray( ugen ) ? ugen.length : 1
+    let isStereo = Array.isArray( ugen ) && ugen.length > 1,
+        callback, 
+        channel1, channel2
+
+    if( typeof mem === 'number' || mem === undefined ) {
+      this.memory = this.createMemory( mem, memType )
+    }else{
+      this.memory = mem
+    }
+    
+    this.outputIdx = this.memory.alloc( numChannels, true )
+    this.emit( 'memory init' )
+
+    //console.log( 'cb memory:', mem )
+    this.graph = ugen
+    this.memo = {} 
+    this.endBlock.clear()
+    this.closures.clear()
+    this.inputs.clear()
+    this.params.clear()
+    this.globals = { windows:{} }
+    
+    this.parameters.clear()
+    
+    this.functionBody = "  'use strict'\n"
+    if( shouldInlineMemory===false ) {
+      this.functionBody += this.mode === 'worklet' ? 
+        "  var memory = this.memory\n\n" :
+        "  var memory = gen.memory\n\n"
+    }
+
+    // call .gen() on the head of the graph we are generating the callback for
+    //console.log( 'HEAD', ugen )
+    for( let i = 0; i < numChannels; i++ ) {
+      if( typeof ugen[i] === 'number' ) continue
+
+      //let channel = isStereo ? ugen[i].gen() : ugen.gen(),
+      let channel = numChannels > 1 ? this.getInput( ugen[i] ) : this.getInput( ugen ), 
+          body = ''
+
+      // if .gen() returns array, add ugen callback (graphOutput[1]) to our output functions body
+      // and then return name of ugen. If .gen() only generates a number (for really simple graphs)
+      // just return that number (graphOutput[0]).
+      if( Array.isArray( channel ) ) {
+        for( let j = 0; j < channel.length; j++ ) {
+          body += channel[ j ] + '\n'
+        }
+      }else{
+        body += channel
+      }
+
+      // split body to inject return keyword on last line
+      body = body.split('\n')
+     
+      //if( debug ) console.log( 'functionBody length', body )
+      
+      // next line is to accommodate memo as graph head
+      if( body[ body.length -1 ].trim().indexOf('let') > -1 ) { body.push( '\n' ) } 
+
+      // get index of last line
+      let lastidx = body.length - 1
+
+      // insert return keyword
+      body[ lastidx ] = '  memory[' + (this.outputIdx + i) + ']  = ' + body[ lastidx ] + '\n'
+
+      this.functionBody += body.join('\n')
+    }
+    
+    this.histories.forEach( value => {
+      if( value !== null )
+        value.gen()      
+    })
+
+    let returnStatement =  `  return ` 
+
+    // if we are returning an array of values, add starting bracket
+    if( numChannels !== 1 || this.alwaysReturnArray === true ) {
+      returnStatement += '[ '
+    }
+
+    returnStatement += `memory[ ${this.outputIdx} ]`
+    if( numChannels > 1 || this.alwaysReturnArray === true ) {
+      for( let i = 1; i < numChannels; i++ ) {
+        returnStatement += `, memory[ ${this.outputIdx + i} ]`
+      }
+      returnStatement += ' ] '
+    }
+     // memory[${this.outputIdx + 1}] ]` : `  return memory[${this.outputIdx}]`
+    
+    this.functionBody = this.functionBody.split('\n')
+
+    if( this.endBlock.size ) { 
+      this.functionBody = this.functionBody.concat( Array.from( this.endBlock ) )
+      this.functionBody.push( returnStatement )
+    }else{
+      this.functionBody.push( returnStatement )
+    }
+    // reassemble function body
+    this.functionBody = this.functionBody.join('\n')
+
+    // we can only dynamically create a named function by dynamically creating another function
+    // to construct the named function! sheesh...
+    //
+    if( shouldInlineMemory === true ) {
+      this.parameters.add( 'memory' )
+    }
+
+    let paramString = ''
+    if( this.mode === 'worklet' ) {
+      for( let name of this.parameters.values() ) {
+        paramString += name + ','
+      }
+      paramString = paramString.slice(0,-1)
+    }
+
+    const separator = this.parameters.size !== 0 && this.inputs.size > 0 ? ', ' : ''
+
+    let inputString = ''
+    if( this.mode === 'worklet' ) {
+      for( let ugen of this.inputs.values() ) {
+        inputString += ugen.name + ','
+      }
+      inputString = inputString.slice(0,-1)
+    }
+
+    let buildString = this.mode === 'worklet'
+      ? `return function( ${inputString} ${separator} ${paramString} ){ \n${ this.functionBody }\n}`
+      : `return function gen( ${ [...this.parameters].join(',') } ){ \n${ this.functionBody }\n}`
+    
+    if( this.debug || debug ) console.log( buildString ) 
+
+    callback = new Function( buildString )()
+
+    // assign properties to named function
+    for( let dict of this.closures.values() ) {
+      let name = Object.keys( dict )[0],
+          value = dict[ name ]
+
+      callback[ name ] = value
+    }
+
+    for( let dict of this.params.values() ) {
+      let name = Object.keys( dict )[0],
+          ugen = dict[ name ]
+      
+      Object.defineProperty( callback, name, {
+        configurable: true,
+        get() { return ugen.value },
+        set(v){ ugen.value = v }
+      })
+      //callback[ name ] = value
+    }
+
+    callback.members = this.closures
+    callback.data = this.data
+    callback.params = this.params
+    callback.inputs = this.inputs
+    callback.parameters = this.parameters//.slice( 0 )
+    callback.out = this.memory.heap.subarray( this.outputIdx, this.outputIdx + numChannels )
+    callback.isStereo = isStereo
+
+    //if( MemoryHelper.isPrototypeOf( this.memory ) ) 
+    callback.memory = this.memory.heap
+
+    this.histories.clear()
+
+    return callback
+  },
+  
+  /* getInputs
+   *
+   * Called by each individual ugen when their .gen() method is called to resolve their various inputs.
+   * If an input is a number, return the number. If
+   * it is an ugen, call .gen() on the ugen, memoize the result and return the result. If the
+   * ugen has previously been memoized return the memoized value.
+   *
+   */
+  getInputs( ugen ) {
+    return ugen.inputs.map( gen.getInput ) 
+  },
+
+  getInput( input ) {
+    let isObject = typeof input === 'object',
+        processedInput
+
+    if( isObject ) { // if input is a ugen... 
+      //console.log( input.name, gen.memo[ input.name ] )
+      if( gen.memo[ input.name ] ) { // if it has been memoized...
+        processedInput = gen.memo[ input.name ]
+      }else if( Array.isArray( input ) ) {
+        gen.getInput( input[0] )
+        gen.getInput( input[1] )
+      }else{ // if not memoized generate code  
+        if( typeof input.gen !== 'function' ) {
+          console.log( 'no gen found:', input, input.gen )
+          input = input.graph
+        }
+        let code = input.gen()
+        //if( code.indexOf( 'Object' ) > -1 ) console.log( 'bad input:', input, code )
+        
+        if( Array.isArray( code ) ) {
+          if( !gen.shouldLocalize ) {
+            gen.functionBody += code[1]
+          }else{
+            gen.codeName = code[0]
+            gen.localizedCode.push( code[1] )
+          }
+          //console.log( 'after GEN' , this.functionBody )
+          processedInput = code[0]
+        }else{
+          processedInput = code
+        }
+      }
+    }else{ // it input is a number
+      processedInput = input
+    }
+
+    return processedInput
+  },
+
+  startLocalize() {
+    this.localizedCode = []
+    this.shouldLocalize = true
+  },
+  endLocalize() {
+    this.shouldLocalize = false
+
+    return [ this.codeName, this.localizedCode.slice(0) ]
+  },
+
+  free( graph ) {
+    if( Array.isArray( graph ) ) { // stereo ugen
+      for( let channel of graph ) {
+        this.free( channel )
+      }
+    } else {
+      if( typeof graph === 'object' ) {
+        if( graph.memory !== undefined ) {
+          for( let memoryKey in graph.memory ) {
+            this.memory.free( graph.memory[ memoryKey ].idx )
+          }
+        }
+        if( Array.isArray( graph.inputs ) ) {
+          for( let ugen of graph.inputs ) {
+            this.free( ugen )
+          }
+        }
+      }
+    }
+  }
+}
+
+gen.__proto__ = new EE()
+
+module.exports = gen
+
+},{"events":156,"memory-helper":81}],34:[function(require,module,exports){
+'use strict'
+
+let gen  = require('./gen.js')
+
+let proto = {
+  basename:'gt',
+
+  gen() {
+    let out,
+        inputs = gen.getInputs( this )
+    
+    out = `  var ${this.name} = `  
+
+    if( isNaN( this.inputs[0] ) || isNaN( this.inputs[1] ) ) {
+      out += `(( ${inputs[0]} > ${inputs[1]}) | 0 )`
+    } else {
+      out += inputs[0] > inputs[1] ? 1 : 0 
+    }
+    out += '\n\n'
+
+    gen.memo[ this.name ] = this.name
+
+    return [this.name, out]
+  }
+}
+
+module.exports = (x,y) => {
+  let gt = Object.create( proto )
+
+  gt.inputs = [ x,y ]
+  gt.name = gt.basename + gen.getUID()
+
+  return gt
+}
+
+},{"./gen.js":33}],35:[function(require,module,exports){
+'use strict'
+
+let gen = require('./gen.js')
+
+let proto = {
+  name:'gte',
+
+  gen() {
+    let out,
+        inputs = gen.getInputs( this )
+    
+    out = `  var ${this.name} = `  
+
+    if( isNaN( this.inputs[0] ) || isNaN( this.inputs[1] ) ) {
+      out += `( ${inputs[0]} >= ${inputs[1]} | 0 )`
+    } else {
+      out += inputs[0] >= inputs[1] ? 1 : 0 
+    }
+    out += '\n\n'
+
+    gen.memo[ this.name ] = this.name
+
+    return [this.name, out]
+  }
+}
+
+module.exports = (x,y) => {
+  let gt = Object.create( proto )
+
+  gt.inputs = [ x,y ]
+  gt.name = 'gte' + gen.getUID()
+
+  return gt
+}
+
+},{"./gen.js":33}],36:[function(require,module,exports){
+'use strict'
+
+let gen  = require('./gen.js')
+
+let proto = {
+  name:'gtp',
+
+  gen() {
+    let out,
+        inputs = gen.getInputs( this )
+
+    if( isNaN( this.inputs[0] ) || isNaN( this.inputs[1] ) ) {
+      out = `(${inputs[ 0 ]} * ( ( ${inputs[0]} > ${inputs[1]} ) | 0 ) )` 
+    } else {
+      out = inputs[0] * ( ( inputs[0] > inputs[1] ) | 0 )
+    }
+    
+    return out
+  }
+}
+
+module.exports = (x,y) => {
+  let gtp = Object.create( proto )
+
+  gtp.inputs = [ x,y ]
+
+  return gtp
+}
+
+},{"./gen.js":33}],37:[function(require,module,exports){
+'use strict'
+
+let gen  = require('./gen.js')
+
+module.exports = ( in1=0 ) => {
+  let ugen = {
+    inputs: [ in1 ],
+    memory: { value: { length:1, idx: null } },
+    recorder: null,
+
+    in( v ) {
+      if( gen.histories.has( v ) ){
+        let memoHistory = gen.histories.get( v )
+        ugen.name = memoHistory.name
+        return memoHistory
+      }
+
+      let obj = {
+        gen() {
+          let inputs = gen.getInputs( ugen )
+
+          if( ugen.memory.value.idx === null ) {
+            gen.requestMemory( ugen.memory )
+            gen.memory.heap[ ugen.memory.value.idx ] = in1
+          }
+
+          let idx = ugen.memory.value.idx
+          
+          gen.addToEndBlock( 'memory[ ' + idx + ' ] = ' + inputs[ 0 ] )
+          
+          // return ugen that is being recorded instead of ssd.
+          // this effectively makes a call to ssd.record() transparent to the graph.
+          // recording is triggered by prior call to gen.addToEndBlock.
+          gen.histories.set( v, obj )
+
+          return inputs[ 0 ]
+        },
+        name: ugen.name + '_in'+gen.getUID(),
+        memory: ugen.memory
+      }
+
+      this.inputs[ 0 ] = v
+      
+      ugen.recorder = obj
+
+      return obj
+    },
+    
+    out: {
+            
+      gen() {
+        if( ugen.memory.value.idx === null ) {
+          if( gen.histories.get( ugen.inputs[0] ) === undefined ) {
+            gen.histories.set( ugen.inputs[0], ugen.recorder )
+          }
+          gen.requestMemory( ugen.memory )
+          gen.memory.heap[ ugen.memory.value.idx ] = parseFloat( in1 )
+        }
+        let idx = ugen.memory.value.idx
+         
+        return 'memory[ ' + idx + ' ] '
+      },
+    },
+
+    uid: gen.getUID(),
+  }
+  
+  ugen.out.memory = ugen.memory 
+
+  ugen.name = 'history' + ugen.uid
+  ugen.out.name = ugen.name + '_out'
+  ugen.in._name  = ugen.name = '_in'
+
+  Object.defineProperty( ugen, 'value', {
+    get() {
+      if( this.memory.value.idx !== null ) {
+        return gen.memory.heap[ this.memory.value.idx ]
+      }
+    },
+    set( v ) {
+      if( this.memory.value.idx !== null ) {
+        gen.memory.heap[ this.memory.value.idx ] = v 
+      }
+    }
+  })
+
+  return ugen
+}
+
+},{"./gen.js":33}],38:[function(require,module,exports){
+'use strict'
+
+let gen = require( './gen.js' )
+
+let proto = {
+  basename:'ifelse',
+
+  gen() {
+    let conditionals = this.inputs[0],
+        defaultValue = gen.getInput( conditionals[ conditionals.length - 1] ),
+        out = `  var ${this.name}_out = ${defaultValue}\n` 
+
+    //console.log( 'conditionals:', this.name, conditionals )
+
+    //console.log( 'defaultValue:', defaultValue )
+
+    for( let i = 0; i < conditionals.length - 2; i+= 2 ) {
+      let isEndBlock = i === conditionals.length - 3,
+          cond  = gen.getInput( conditionals[ i ] ),
+          preblock = conditionals[ i+1 ],
+          block, blockName, output
+
+      //console.log( 'pb', preblock )
+
+      if( typeof preblock === 'number' ){
+        block = preblock
+        blockName = null
+      }else{
+        if( gen.memo[ preblock.name ] === undefined ) {
+          // used to place all code dependencies in appropriate blocks
+          gen.startLocalize()
+
+          gen.getInput( preblock )
+
+          block = gen.endLocalize()
+          blockName = block[0]
+          block = block[ 1 ].join('')
+          block = '  ' + block.replace( /\n/gi, '\n  ' )
+        }else{
+          block = ''
+          blockName = gen.memo[ preblock.name ]
+        }
+      }
+
+      output = blockName === null ? 
+        `  ${this.name}_out = ${block}` :
+        `${block}  ${this.name}_out = ${blockName}`
+      
+      if( i===0 ) out += ' '
+      out += 
+` if( ${cond} === 1 ) {
+${output}
+  }`
+
+      if( !isEndBlock ) {
+        out += ` else`
+      }else{
+        out += `\n`
+      }
+    }
+
+    gen.memo[ this.name ] = `${this.name}_out`
+
+    return [ `${this.name}_out`, out ]
+  }
+}
+
+module.exports = ( ...args  ) => {
+  let ugen = Object.create( proto ),
+      conditions = Array.isArray( args[0] ) ? args[0] : args
+
+  Object.assign( ugen, {
+    uid:     gen.getUID(),
+    inputs:  [ conditions ],
+  })
+  
+  ugen.name = `${ugen.basename}${ugen.uid}`
+
+  return ugen
+}
+
+},{"./gen.js":33}],39:[function(require,module,exports){
+'use strict'
+
+let gen = require('./gen.js')
+
+let proto = {
+  basename:'in',
+
+  gen() {
+    const isWorklet = gen.mode === 'worklet'
+
+    if( isWorklet ) {
+      gen.inputs.add( this )
+    }else{
+      gen.parameters.add( this.name )
+    }
+
+    gen.memo[ this.name ] = isWorklet === true ? this.name + '[i]' : this.name
+
+    return gen.memo[ this.name ]
+  } 
+}
+
+module.exports = ( name, inputNumber=0, channelNumber=0, defaultValue=0, min=0, max=1 ) => {
+  let input = Object.create( proto )
+
+  input.id   = gen.getUID()
+  input.name = name !== undefined ? name : `${input.basename}${input.id}`
+  Object.assign( input, { defaultValue, min, max, inputNumber, channelNumber })
+
+  input[0] = {
+    gen() {
+      if( ! gen.parameters.has( input.name ) ) gen.parameters.add( input.name )
+      return input.name + '[0]'
+    }
+  }
+  input[1] = {
+    gen() {
+      if( ! gen.parameters.has( input.name ) ) gen.parameters.add( input.name )
+      return input.name + '[1]'
+    }
+  }
+
+
+  return input
+}
+
+},{"./gen.js":33}],40:[function(require,module,exports){
+'use strict'
+
+const library = {
+  export( destination ) {
+    if( destination === window ) {
+      destination.ssd = library.history    // history is window object property, so use ssd as alias
+      destination.input = library.in       // in is a keyword in javascript
+      destination.ternary = library.switch // switch is a keyword in javascript
+
+      delete library.history
+      delete library.in
+      delete library.switch
+    }
+
+    Object.assign( destination, library )
+
+    Object.defineProperty( library, 'samplerate', {
+      get() { return library.gen.samplerate },
+      set(v) {}
+    })
+
+    library.in = destination.input
+    library.history = destination.ssd
+    library.switch = destination.ternary
+
+    destination.clip = library.clamp
+  },
+
+  gen:      require( './gen.js' ),
+  
+  abs:      require( './abs.js' ),
+  round:    require( './round.js' ),
+  param:    require( './param.js' ),
+  add:      require( './add.js' ),
+  sub:      require( './sub.js' ),
+  mul:      require( './mul.js' ),
+  div:      require( './div.js' ),
+  accum:    require( './accum.js' ),
+  counter:  require( './counter.js' ),
+  sin:      require( './sin.js' ),
+  cos:      require( './cos.js' ),
+  tan:      require( './tan.js' ),
+  tanh:     require( './tanh.js' ),
+  asin:     require( './asin.js' ),
+  acos:     require( './acos.js' ),
+  atan:     require( './atan.js' ),  
+  phasor:   require( './phasor.js' ),
+  phasorN:  require( './phasorN.js' ),
+  data:     require( './data.js' ),
+  peek:     require( './peek.js' ),
+  peekDyn:  require( './peekDyn.js' ),
+  cycle:    require( './cycle.js' ),
+  cycleN:   require( './cycleN.js' ),
+  history:  require( './history.js' ),
+  delta:    require( './delta.js' ),
+  floor:    require( './floor.js' ),
+  ceil:     require( './ceil.js' ),
+  min:      require( './min.js' ),
+  max:      require( './max.js' ),
+  sign:     require( './sign.js' ),
+  dcblock:  require( './dcblock.js' ),
+  memo:     require( './memo.js' ),
+  rate:     require( './rate.js' ),
+  wrap:     require( './wrap.js' ),
+  mix:      require( './mix.js' ),
+  clamp:    require( './clamp.js' ),
+  poke:     require( './poke.js' ),
+  delay:    require( './delay.js' ),
+  fold:     require( './fold.js' ),
+  mod :     require( './mod.js' ),
+  sah :     require( './sah.js' ),
+  noise:    require( './noise.js' ),
+  not:      require( './not.js' ),
+  gt:       require( './gt.js' ),
+  gte:      require( './gte.js' ),
+  lt:       require( './lt.js' ), 
+  lte:      require( './lte.js' ), 
+  bool:     require( './bool.js' ),
+  gate:     require( './gate.js' ),
+  train:    require( './train.js' ),
+  slide:    require( './slide.js' ),
+  in:       require( './in.js' ),
+  t60:      require( './t60.js'),
+  mtof:     require( './mtof.js'),
+  ltp:      require( './ltp.js'),        // TODO: test
+  gtp:      require( './gtp.js'),        // TODO: test
+  switch:   require( './switch.js' ),
+  mstosamps:require( './mstosamps.js' ), // TODO: needs test,
+  selector: require( './selector.js' ),
+  utilities:require( './utilities.js' ),
+  pow:      require( './pow.js' ),
+  attack:   require( './attack.js' ),
+  decay:    require( './decay.js' ),
+  windows:  require( './windows.js' ),
+  env:      require( './env.js' ),
+  ad:       require( './ad.js'  ),
+  adsr:     require( './adsr.js' ),
+  ifelse:   require( './ifelseif.js' ),
+  bang:     require( './bang.js' ),
+  and:      require( './and.js' ),
+  pan:      require( './pan.js' ),
+  eq:       require( './eq.js' ),
+  neq:      require( './neq.js' ),
+  exp:      require( './exp.js' ),
+  process:  require( './process.js' ),
+  seq:      require( './seq.js' )
+}
+
+library.gen.lib = library
+
+module.exports = library
+
+},{"./abs.js":1,"./accum.js":2,"./acos.js":3,"./ad.js":4,"./add.js":5,"./adsr.js":6,"./and.js":7,"./asin.js":8,"./atan.js":9,"./attack.js":10,"./bang.js":11,"./bool.js":12,"./ceil.js":13,"./clamp.js":14,"./cos.js":15,"./counter.js":16,"./cycle.js":17,"./cycleN.js":18,"./data.js":19,"./dcblock.js":20,"./decay.js":21,"./delay.js":22,"./delta.js":23,"./div.js":24,"./env.js":25,"./eq.js":26,"./exp.js":27,"./floor.js":30,"./fold.js":31,"./gate.js":32,"./gen.js":33,"./gt.js":34,"./gte.js":35,"./gtp.js":36,"./history.js":37,"./ifelseif.js":38,"./in.js":39,"./lt.js":41,"./lte.js":42,"./ltp.js":43,"./max.js":44,"./memo.js":45,"./min.js":46,"./mix.js":47,"./mod.js":48,"./mstosamps.js":49,"./mtof.js":50,"./mul.js":51,"./neq.js":52,"./noise.js":53,"./not.js":54,"./pan.js":55,"./param.js":56,"./peek.js":57,"./peekDyn.js":58,"./phasor.js":59,"./phasorN.js":60,"./poke.js":61,"./pow.js":62,"./process.js":63,"./rate.js":64,"./round.js":65,"./sah.js":66,"./selector.js":67,"./seq.js":68,"./sign.js":69,"./sin.js":70,"./slide.js":71,"./sub.js":72,"./switch.js":73,"./t60.js":74,"./tan.js":75,"./tanh.js":76,"./train.js":77,"./utilities.js":78,"./windows.js":79,"./wrap.js":80}],41:[function(require,module,exports){
+'use strict'
+
+let gen  = require('./gen.js')
+
+let proto = {
+  basename:'lt',
+
+  gen() {
+    let out,
+        inputs = gen.getInputs( this )
+
+    out = `  var ${this.name} = `  
+
+    if( isNaN( this.inputs[0] ) || isNaN( this.inputs[1] ) ) {
+      out += `(( ${inputs[0]} < ${inputs[1]}) | 0  )`
+    } else {
+      out += inputs[0] < inputs[1] ? 1 : 0 
+    }
+    out += '\n'
+
+    gen.memo[ this.name ] = this.name
+
+    return [this.name, out]
+  }
+}
+
+module.exports = (x,y) => {
+  let lt = Object.create( proto )
+
+  lt.inputs = [ x,y ]
+  lt.name = lt.basename + gen.getUID()
+
+  return lt
+}
+
+},{"./gen.js":33}],42:[function(require,module,exports){
+'use strict'
+
+let gen  = require('./gen.js')
+
+let proto = {
+  name:'lte',
+
+  gen() {
+    let out,
+        inputs = gen.getInputs( this )
+
+    out = `  var ${this.name} = `  
+
+    if( isNaN( this.inputs[0] ) || isNaN( this.inputs[1] ) ) {
+      out += `( ${inputs[0]} <= ${inputs[1]} | 0  )`
+    } else {
+      out += inputs[0] <= inputs[1] ? 1 : 0 
+    }
+    out += '\n'
+
+    gen.memo[ this.name ] = this.name
+
+    return [this.name, out]
+  }
+}
+
+module.exports = (x,y) => {
+  let lt = Object.create( proto )
+
+  lt.inputs = [ x,y ]
+  lt.name = 'lte' + gen.getUID()
+
+  return lt
+}
+
+},{"./gen.js":33}],43:[function(require,module,exports){
+'use strict'
+
+let gen  = require('./gen.js')
+
+let proto = {
+  name:'ltp',
+
+  gen() {
+    let out,
+        inputs = gen.getInputs( this )
+
+    if( isNaN( this.inputs[0] ) || isNaN( this.inputs[1] ) ) {
+      out = `(${inputs[ 0 ]} * (( ${inputs[0]} < ${inputs[1]} ) | 0 ) )` 
+    } else {
+      out = inputs[0] * (( inputs[0] < inputs[1] ) | 0 )
+    }
+    
+    return out
+  }
+}
+
+module.exports = (x,y) => {
+  let ltp = Object.create( proto )
+
+  ltp.inputs = [ x,y ]
+
+  return ltp
+}
+
+},{"./gen.js":33}],44:[function(require,module,exports){
+'use strict'
+
+let gen  = require('./gen.js')
+
+let proto = {
+  name:'max',
+
+  gen() {
+    let out,
+        inputs = gen.getInputs( this )
+
+    
+    const isWorklet = gen.mode === 'worklet'
+    const ref = isWorklet? '' : 'gen.'
+
+    if( isNaN( inputs[0] ) || isNaN( inputs[1] ) ) {
+      gen.closures.add({ [ this.name ]: isWorklet ? 'Math.max' : Math.max })
+
+      out = `${ref}max( ${inputs[0]}, ${inputs[1]} )`
+
+    } else {
+      out = Math.max( parseFloat( inputs[0] ), parseFloat( inputs[1] ) )
+    }
+    
+    return out
+  }
+}
+
+module.exports = (x,y) => {
+  let max = Object.create( proto )
+
+  max.inputs = [ x,y ]
+
+  return max
+}
+
+},{"./gen.js":33}],45:[function(require,module,exports){
+'use strict'
+
+let gen = require('./gen.js')
+
+let proto = {
+  basename:'memo',
+
+  gen() {
+    let out,
+        inputs = gen.getInputs( this )
+    
+    out = `  var ${this.name} = ${inputs[0]}\n`
+
+    gen.memo[ this.name ] = this.name
+
+    return [ this.name, out ]
+  } 
+}
+
+module.exports = (in1,memoName) => {
+  let memo = Object.create( proto )
+  
+  memo.inputs = [ in1 ]
+  memo.id   = gen.getUID()
+  memo.name = memoName !== undefined ? memoName + '_' + gen.getUID() : `${memo.basename}${memo.id}`
+
+  return memo
+}
+
+},{"./gen.js":33}],46:[function(require,module,exports){
+'use strict'
+
+let gen  = require('./gen.js')
+
+let proto = {
+  name:'min',
+
+  gen() {
+    let out,
+        inputs = gen.getInputs( this )
+
+    
+    const isWorklet = gen.mode === 'worklet'
+    const ref = isWorklet? '' : 'gen.'
+
+    if( isNaN( inputs[0] ) || isNaN( inputs[1] ) ) {
+      gen.closures.add({ [ this.name ]: isWorklet ? 'Math.min' : Math.min })
+
+      out = `${ref}min( ${inputs[0]}, ${inputs[1]} )`
+
+    } else {
+      out = Math.min( parseFloat( inputs[0] ), parseFloat( inputs[1] ) )
+    }
+    
+    return out
+  }
+}
+
+module.exports = (x,y) => {
+  let min = Object.create( proto )
+
+  min.inputs = [ x,y ]
+
+  return min
+}
+
+},{"./gen.js":33}],47:[function(require,module,exports){
+'use strict'
+
+let gen = require('./gen.js'),
+    add = require('./add.js'),
+    mul = require('./mul.js'),
+    sub = require('./sub.js'),
+    memo= require('./memo.js')
+
+module.exports = ( in1, in2, t=.5 ) => {
+  let ugen = memo( add( mul(in1, sub(1,t ) ), mul( in2, t ) ) )
+  ugen.name = 'mix' + gen.getUID()
+
+  return ugen
+}
+
+},{"./add.js":5,"./gen.js":33,"./memo.js":45,"./mul.js":51,"./sub.js":72}],48:[function(require,module,exports){
+'use strict'
+
+let gen = require('./gen.js')
+
+module.exports = (...args) => {
+  let mod = {
+    id:     gen.getUID(),
+    inputs: args,
+
+    gen() {
+      let inputs = gen.getInputs( this ),
+          out='(',
+          diff = 0, 
+          numCount = 0,
+          lastNumber = inputs[ 0 ],
+          lastNumberIsUgen = isNaN( lastNumber ), 
+          modAtEnd = false
+
+      inputs.forEach( (v,i) => {
+        if( i === 0 ) return
+
+        let isNumberUgen = isNaN( v ),
+            isFinalIdx   = i === inputs.length - 1
+
+        if( !lastNumberIsUgen && !isNumberUgen ) {
+          lastNumber = lastNumber % v
+          out += lastNumber
+        }else{
+          out += `${lastNumber} % ${v}`
+        }
+
+        if( !isFinalIdx ) out += ' % ' 
+      })
+
+      out += ')'
+
+      return out
+    }
+  }
+  
+  return mod
+}
+
+},{"./gen.js":33}],49:[function(require,module,exports){
+'use strict'
+
+let gen  = require('./gen.js')
+
+let proto = {
+  basename:'mstosamps',
+
+  gen() {
+    let out,
+        inputs = gen.getInputs( this ),
+        returnValue
+
+    if( isNaN( inputs[0] ) ) {
+      out = `  var ${this.name } = ${gen.samplerate} / 1000 * ${inputs[0]} \n\n`
+     
+      gen.memo[ this.name ] = out
+      
+      returnValue = [ this.name, out ]
+    } else {
+      out = gen.samplerate / 1000 * this.inputs[0]
+
+      returnValue = out
+    }    
+
+    return returnValue
+  }
+}
+
+module.exports = x => {
+  let mstosamps = Object.create( proto )
+
+  mstosamps.inputs = [ x ]
+  mstosamps.name = proto.basename + gen.getUID()
+
+  return mstosamps
+}
+
+},{"./gen.js":33}],50:[function(require,module,exports){
+'use strict'
+
+let gen  = require('./gen.js')
+
+let proto = {
+  name:'mtof',
+
+  gen() {
+    let out,
+        inputs = gen.getInputs( this )
+
+    if( isNaN( inputs[0] ) ) {
+      gen.closures.add({ [ this.name ]: Math.exp })
+
+      out = `( ${this.tuning} * gen.exp( .057762265 * (${inputs[0]} - 69) ) )`
+
+    } else {
+      out = this.tuning * Math.exp( .057762265 * ( inputs[0] - 69) )
+    }
+    
+    return out
+  }
+}
+
+module.exports = ( x, props ) => {
+  let ugen = Object.create( proto ),
+      defaults = { tuning:440 }
+  
+  if( props !== undefined ) Object.assign( props.defaults )
+
+  Object.assign( ugen, defaults )
+  ugen.inputs = [ x ]
+  
+
+  return ugen
+}
+
+},{"./gen.js":33}],51:[function(require,module,exports){
+'use strict'
+
+const gen = require('./gen.js')
+
+const proto = {
+  basename: 'mul',
+
+  gen() {
+    let inputs = gen.getInputs( this ),
+        out = `  var ${this.name} = `,
+        sum = 1, numCount = 0, mulAtEnd = false, alreadyFullSummed = true
+
+    inputs.forEach( (v,i) => {
+      if( isNaN( v ) ) {
+        out += v
+        if( i < inputs.length -1 ) {
+          mulAtEnd = true
+          out += ' * '
+        }
+        alreadyFullSummed = false
+      }else{
+        if( i === 0 ) {
+          sum = v
+        }else{
+          sum *= parseFloat( v )
+        }
+        numCount++
+      }
+    })
+
+    if( numCount > 0 ) {
+      out += mulAtEnd || alreadyFullSummed ? sum : ' * ' + sum
+    }
+
+    out += '\n'
+
+    gen.memo[ this.name ] = this.name
+
+    return [ this.name, out ]
+  }
+}
+
+module.exports = ( ...args ) => {
+  const mul = Object.create( proto )
+  
+  Object.assign( mul, {
+      id:     gen.getUID(),
+      inputs: args,
+  })
+  
+  mul.name = mul.basename + mul.id
+
+  return mul
+}
+
+},{"./gen.js":33}],52:[function(require,module,exports){
+'use strict'
+
+let gen = require( './gen.js' )
+
+let proto = {
+  basename:'neq',
+
+  gen() {
+    let inputs = gen.getInputs( this ), out
+
+    out = /*this.inputs[0] !== this.inputs[1] ? 1 :*/ `  var ${this.name} = (${inputs[0]} !== ${inputs[1]}) | 0\n\n`
+
+    gen.memo[ this.name ] = this.name
+
+    return [ this.name, out ]
+  },
+
+}
+
+module.exports = ( in1, in2 ) => {
+  let ugen = Object.create( proto )
+  Object.assign( ugen, {
+    uid:     gen.getUID(),
+    inputs:  [ in1, in2 ],
+  })
+  
+  ugen.name = `${ugen.basename}${ugen.uid}`
+
+  return ugen
+}
+
+},{"./gen.js":33}],53:[function(require,module,exports){
+'use strict'
+
+let gen  = require('./gen.js')
+
+let proto = {
+  name:'noise',
+
+  gen() {
+    let out
+
+    const isWorklet = gen.mode === 'worklet'
+    const ref = isWorklet? '' : 'gen.'
+
+    gen.closures.add({ 'noise' : isWorklet ? 'Math.random' : Math.random })
+
+    out = `  var ${this.name} = ${ref}noise()\n`
+    
+    gen.memo[ this.name ] = this.name
+
+    return [ this.name, out ]
+  }
+}
+
+module.exports = x => {
+  let noise = Object.create( proto )
+  noise.name = proto.name + gen.getUID()
+
+  return noise
+}
+
+},{"./gen.js":33}],54:[function(require,module,exports){
+'use strict'
+
+let gen  = require('./gen.js')
+
+let proto = {
+  name:'not',
+
+  gen() {
+    let out,
+        inputs = gen.getInputs( this )
+
+    if( isNaN( this.inputs[0] ) ) {
+      out = `( ${inputs[0]} === 0 ? 1 : 0 )`
+    } else {
+      out = !inputs[0] === 0 ? 1 : 0
+    }
+    
+    return out
+  }
+}
+
+module.exports = x => {
+  let not = Object.create( proto )
+
+  not.inputs = [ x ]
+
+  return not
+}
+
+},{"./gen.js":33}],55:[function(require,module,exports){
+'use strict'
+
+let gen = require( './gen.js' ),
+    data = require( './data.js' ),
+    peek = require( './peek.js' ),
+    mul  = require( './mul.js' )
+
+let proto = {
+  basename:'pan', 
+  initTable() {    
+    let bufferL = new Float32Array( 1024 ),
+        bufferR = new Float32Array( 1024 )
+
+    const angToRad = Math.PI / 180
+    for( let i = 0; i < 1024; i++ ) { 
+      let pan = i * ( 90 / 1024 )
+      bufferL[i] = Math.cos( pan * angToRad ) 
+      bufferR[i] = Math.sin( pan * angToRad )
+    }
+
+    gen.globals.panL = data( bufferL, 1, { immutable:true })
+    gen.globals.panR = data( bufferR, 1, { immutable:true })
+  }
+
+}
+
+module.exports = ( leftInput, rightInput, pan =.5, properties ) => {
+  if( gen.globals.panL === undefined ) proto.initTable()
+
+  let ugen = Object.create( proto )
+
+  Object.assign( ugen, {
+    uid:     gen.getUID(),
+    inputs:  [ leftInput, rightInput ],
+    left:    mul( leftInput, peek( gen.globals.panL, pan, { boundmode:'clamp' }) ),
+    right:   mul( rightInput, peek( gen.globals.panR, pan, { boundmode:'clamp' }) )
+  })
+  
+  ugen.name = `${ugen.basename}${ugen.uid}`
+
+  return ugen
+}
+
+},{"./data.js":19,"./gen.js":33,"./mul.js":51,"./peek.js":57}],56:[function(require,module,exports){
+'use strict'
+
+let gen = require('./gen.js')
+
+let proto = {
+  basename: 'param',
+
+  gen() {
+    gen.requestMemory( this.memory )
+    
+    gen.params.add( this )
+
+    const isWorklet = gen.mode === 'worklet'
+
+    if( isWorklet ) gen.parameters.add( this.name )
+
+    this.value = this.initialValue
+
+    gen.memo[ this.name ] = isWorklet ? this.name : `memory[${this.memory.value.idx}]`
+
+    return gen.memo[ this.name ]
+  } 
+}
+
+module.exports = ( propName=0, value=0, min=0, max=1 ) => {
+  let ugen = Object.create( proto )
+  
+  if( typeof propName !== 'string' ) {
+    ugen.name = ugen.basename + gen.getUID()
+    ugen.initialValue = propName
+    ugen.min = value
+    ugen.max = min
+  }else{
+    ugen.name = propName
+    ugen.min = min
+    ugen.max = max
+    ugen.initialValue = value
+  }
+
+  ugen.defaultValue = ugen.initialValue
+
+  // for storing worklet nodes once they're instantiated
+  ugen.waapi = null
+
+  ugen.isWorklet = gen.mode === 'worklet'
+
+  Object.defineProperty( ugen, 'value', {
+    get() {
+      if( this.memory.value.idx !== null ) {
+        return gen.memory.heap[ this.memory.value.idx ]
+      }else{
+        return this.initialValue
+      }
+    },
+    set( v ) {
+      if( this.memory.value.idx !== null ) {
+        if( this.isWorklet && this.waapi !== null ) {
+          this.waapi[ propName ].value = v
+        }else{
+          gen.memory.heap[ this.memory.value.idx ] = v
+        } 
+      }
+    }
+  })
+
+  ugen.memory = {
+    value: { length:1, idx:null }
+  }
+
+  return ugen
+}
+
+},{"./gen.js":33}],57:[function(require,module,exports){
+
+const gen  = require('./gen.js'),
+      dataUgen = require('./data.js')
+
+let proto = {
+  basename:'peek',
+
+  gen() {
+    let genName = 'gen.' + this.name,
+        inputs = gen.getInputs( this ),
+        out, functionBody, next, lengthIsLog2, idx
+    
+    idx = inputs[1]
+    lengthIsLog2 = (Math.log2( this.data.buffer.length ) | 0)  === Math.log2( this.data.buffer.length )
+
+    if( this.mode !== 'simple' ) {
+
+    functionBody = `  var ${this.name}_dataIdx  = ${idx}, 
+      ${this.name}_phase = ${this.mode === 'samples' ? inputs[0] : inputs[0] + ' * ' + (this.data.buffer.length) }, 
+      ${this.name}_index = ${this.name}_phase | 0,\n`
+
+    if( this.boundmode === 'wrap' ) {
+      next = lengthIsLog2 ?
+      `( ${this.name}_index + 1 ) & (${this.data.buffer.length} - 1)` :
+      `${this.name}_index + 1 >= ${this.data.buffer.length} ? ${this.name}_index + 1 - ${this.data.buffer.length} : ${this.name}_index + 1`
+    }else if( this.boundmode === 'clamp' ) {
+      next = 
+        `${this.name}_index + 1 >= ${this.data.buffer.length - 1} ? ${this.data.buffer.length - 1} : ${this.name}_index + 1`
+    } else if( this.boundmode === 'fold' || this.boundmode === 'mirror' ) {
+      next = 
+        `${this.name}_index + 1 >= ${this.data.buffer.length - 1} ? ${this.name}_index - ${this.data.buffer.length - 1} : ${this.name}_index + 1`
+    }else{
+       next = 
+      `${this.name}_index + 1`     
+    }
+
+    if( this.interp === 'linear' ) {      
+    functionBody += `      ${this.name}_frac  = ${this.name}_phase - ${this.name}_index,
+      ${this.name}_base  = memory[ ${this.name}_dataIdx +  ${this.name}_index ],
+      ${this.name}_next  = ${next},`
+      
+      if( this.boundmode === 'ignore' ) {
+        functionBody += `
+      ${this.name}_out   = ${this.name}_index >= ${this.data.buffer.length - 1} || ${this.name}_index < 0 ? 0 : ${this.name}_base + ${this.name}_frac * ( memory[ ${this.name}_dataIdx + ${this.name}_next ] - ${this.name}_base )\n\n`
+      }else{
+        functionBody += `
+      ${this.name}_out   = ${this.name}_base + ${this.name}_frac * ( memory[ ${this.name}_dataIdx + ${this.name}_next ] - ${this.name}_base )\n\n`
+      }
+    }else{
+      functionBody += `      ${this.name}_out = memory[ ${this.name}_dataIdx + ${this.name}_index ]\n\n`
+    }
+
+    } else { // mode is simple
+      functionBody = `memory[ ${idx} + ${ inputs[0] } ]`
+      
+      return functionBody
+    }
+
+    gen.memo[ this.name ] = this.name + '_out'
+
+    return [ this.name+'_out', functionBody ]
+  },
+
+  defaults : { channels:1, mode:'phase', interp:'linear', boundmode:'wrap' }
+}
+
+module.exports = ( input_data, index=0, properties ) => {
+  let ugen = Object.create( proto )
+
+  //console.log( dataUgen, gen.data )
+
+  // XXX why is dataUgen not the actual function? some type of browserify nonsense...
+  const finalData = typeof input_data.basename === 'undefined' ? gen.lib.data( input_data ) : input_data
+
+  Object.assign( ugen, 
+    { 
+      'data':     finalData,
+      dataName:   finalData.name,
+      uid:        gen.getUID(),
+      inputs:     [ index, finalData ],
+    },
+    proto.defaults,
+    properties 
+  )
+  
+  ugen.name = ugen.basename + ugen.uid
+
+  return ugen
+}
+
+
+},{"./data.js":19,"./gen.js":33}],58:[function(require,module,exports){
+const gen  = require('./gen.js'),
+      dataUgen = require('./data.js')
+
+const proto = {
+  basename:'peek',
+
+  gen() {
+    let genName = 'gen.' + this.name,
+        inputs = gen.getInputs( this ),
+        out, functionBody, next, lengthIsLog2, indexer, dataStart, length
+    
+    // data object codegens to its starting index
+    dataStart = inputs[0]
+    length    = inputs[1]
+    indexer   = inputs[2]
+
+    //lengthIsLog2 = (Math.log2( length ) | 0)  === Math.log2( length )
+
+    if( this.mode !== 'simple' ) {
+
+      functionBody = `  var ${this.name}_dataIdx  = ${dataStart}, 
+        ${this.name}_phase = ${this.mode === 'samples' ? indexer : indexer + ' * ' + (length) }, 
+        ${this.name}_index = ${this.name}_phase | 0,\n`
+
+      if( this.boundmode === 'wrap' ) {
+        next =`${this.name}_index + 1 >= ${length} ? ${this.name}_index + 1 - ${length} : ${this.name}_index + 1`
+      }else if( this.boundmode === 'clamp' ) {
+        next = 
+          `${this.name}_index + 1 >= ${length} -1 ? ${length} - 1 : ${this.name}_index + 1`
+      } else if( this.boundmode === 'fold' || this.boundmode === 'mirror' ) {
+        next = 
+          `${this.name}_index + 1 >= ${length} - 1 ? ${this.name}_index - ${length} - 1 : ${this.name}_index + 1`
+      }else{
+         next = 
+        `${this.name}_index + 1`     
+      }
+
+      if( this.interp === 'linear' ) {      
+        functionBody += `      ${this.name}_frac  = ${this.name}_phase - ${this.name}_index,
+        ${this.name}_base  = memory[ ${this.name}_dataIdx +  ${this.name}_index ],
+        ${this.name}_next  = ${next},`
+        
+        if( this.boundmode === 'ignore' ) {
+          functionBody += `
+        ${this.name}_out   = ${this.name}_index >= ${length} - 1 || ${this.name}_index < 0 ? 0 : ${this.name}_base + ${this.name}_frac * ( memory[ ${this.name}_dataIdx + ${this.name}_next ] - ${this.name}_base )\n\n`
+        }else{
+          functionBody += `
+        ${this.name}_out   = ${this.name}_base + ${this.name}_frac * ( memory[ ${this.name}_dataIdx + ${this.name}_next ] - ${this.name}_base )\n\n`
+        }
+      }else{
+        functionBody += `      ${this.name}_out = memory[ ${this.name}_dataIdx + ${this.name}_index ]\n\n`
+      }
+
+    } else { // mode is simple
+      functionBody = `memory[ ${dataStart} + ${ indexer } ]`
+      
+      return functionBody
+    }
+
+    gen.memo[ this.name ] = this.name + '_out'
+
+    return [ this.name+'_out', functionBody ]
+  },
+
+  defaults : { channels:1, mode:'phase', interp:'linear', boundmode:'wrap' }
+}
+
+module.exports = ( input_data, length, index=0, properties ) => {
+  const ugen = Object.create( proto )
+
+  // XXX why is dataUgen not the actual function? some type of browserify nonsense...
+  const finalData = typeof input_data.basename === 'undefined' ? gen.lib.data( input_data ) : input_data
+
+  Object.assign( ugen, 
+    { 
+      'data':     finalData,
+      dataName:   finalData.name,
+      uid:        gen.getUID(),
+      inputs:     [ input_data, length, index, finalData ],
+    },
+    proto.defaults,
+    properties 
+  )
+  
+  ugen.name = ugen.basename + ugen.uid
+
+  return ugen
+}
+
+
+},{"./data.js":19,"./gen.js":33}],59:[function(require,module,exports){
+'use strict'
+
+const gen   = require( './gen.js' ),
+      accum = require( './accum.js' ),
+      mul   = require( './mul.js' ),
+      proto = { basename:'phasor' },
+      div   = require( './div.js' )
+
+const defaults = { min: -1, max: 1 }
+
+module.exports = ( frequency = 1, reset = 0, _props ) => {
+  const props = Object.assign( {}, defaults, _props )
+
+  const range = props.max - props.min
+
+  const ugen = typeof frequency === 'number' 
+    ? accum( (frequency * range) / gen.samplerate, reset, props ) 
+    : accum( 
+        div( 
+          mul( frequency, range ),
+          gen.samplerate
+        ), 
+        reset, props 
+    )
+
+  ugen.name = proto.basename + gen.getUID()
+
+  return ugen
+}
+
+},{"./accum.js":2,"./div.js":24,"./gen.js":33,"./mul.js":51}],60:[function(require,module,exports){
+'use strict'
+
+const gen   = require( './gen.js' ),
+      accum = require( './accum.js' ),
+      mul   = require( './mul.js' ),
+      proto = { basename:'phasorN' },
+      div   = require( './div.js' )
+
+const defaults = { min: 0, max: 1 }
+
+module.exports = ( frequency = 1, reset = 0, _props ) => {
+  const props = Object.assign( {}, defaults, _props )
+
+  const range = props.max - props.min
+
+  const ugen = typeof frequency === 'number' 
+    ? accum( (frequency * range) / gen.samplerate, reset, props ) 
+    : accum( 
+        div( 
+          mul( frequency, range ),
+          gen.samplerate
+        ), 
+        reset, props 
+    )
+
+  ugen.name = proto.basename + gen.getUID()
+
+  return ugen
+}
+
+},{"./accum.js":2,"./div.js":24,"./gen.js":33,"./mul.js":51}],61:[function(require,module,exports){
+'use strict'
+
+let gen  = require('./gen.js'),
+    mul  = require('./mul.js'),
+    wrap = require('./wrap.js')
+
+let proto = {
+  basename:'poke',
+
+  gen() {
+    let dataName = 'memory',
+        inputs = gen.getInputs( this ),
+        idx, out, wrapped
+    
+    idx = this.data.gen()
+
+    //gen.requestMemory( this.memory )
+    //wrapped = wrap( this.inputs[1], 0, this.dataLength ).gen()
+    //idx = wrapped[0]
+    //gen.functionBody += wrapped[1]
+    let outputStr = this.inputs[1] === 0 ?
+      `  ${dataName}[ ${idx} ] = ${inputs[0]}\n` :
+      `  ${dataName}[ ${idx} + ${inputs[1]} ] = ${inputs[0]}\n`
+
+    if( this.inline === undefined ) {
+      gen.functionBody += outputStr
+    }else{
+      return [ this.inline, outputStr ]
+    }
+  }
+}
+module.exports = ( data, value, index, properties ) => {
+  let ugen = Object.create( proto ),
+      defaults = { channels:1 } 
+
+  if( properties !== undefined ) Object.assign( defaults, properties )
+
+  Object.assign( ugen, { 
+    data,
+    dataName:   data.name,
+    dataLength: data.buffer.length,
+    uid:        gen.getUID(),
+    inputs:     [ value, index ],
+  },
+  defaults )
+
+
+  ugen.name = ugen.basename + ugen.uid
+  
+  gen.histories.set( ugen.name, ugen )
+
+  return ugen
+}
+
+},{"./gen.js":33,"./mul.js":51,"./wrap.js":80}],62:[function(require,module,exports){
+'use strict'
+
+let gen  = require('./gen.js')
+
+let proto = {
+  basename:'pow',
+
+  gen() {
+    let out,
+        inputs = gen.getInputs( this )
+    
+    
+    const isWorklet = gen.mode === 'worklet'
+    const ref = isWorklet? '' : 'gen.'
+
+    if( isNaN( inputs[0] ) || isNaN( inputs[1] ) ) {
+      gen.closures.add({ 'pow': isWorklet ? 'Math.pow' : Math.pow })
+
+      out = `${ref}pow( ${inputs[0]}, ${inputs[1]} )` 
+
+    } else {
+      if( typeof inputs[0] === 'string' && inputs[0][0] === '(' ) {
+        inputs[0] = inputs[0].slice(1,-1)
+      }
+      if( typeof inputs[1] === 'string' && inputs[1][0] === '(' ) {
+        inputs[1] = inputs[1].slice(1,-1)
+      }
+
+      out = Math.pow( parseFloat( inputs[0] ), parseFloat( inputs[1]) )
+    }
+    
+    return out
+  }
+}
+
+module.exports = (x,y) => {
+  let pow = Object.create( proto )
+
+  pow.inputs = [ x,y ]
+  pow.id = gen.getUID()
+  pow.name = `${pow.basename}{pow.id}`
+
+  return pow
+}
+
+},{"./gen.js":33}],63:[function(require,module,exports){
+'use strict'
+
+let gen  = require('./gen.js')
+const proto = {
+  basename:'process',
+
+  gen() {
+    let out,
+        inputs = gen.getInputs( this )
+
+    gen.closures.add({ [''+this.funcname] : this.func })
+
+    out = `  var ${this.name} = gen['${this.funcname}'](`
+
+    inputs.forEach( (v,i,arr ) => {
+      out += arr[ i ]
+      if( i < arr.length - 1 ) out += ','
+    })
+
+    out += ')\n'
+
+    gen.memo[ this.name ] = this.name
+
+    return [this.name, out]
+  }
+}
+
+module.exports = (...args) => {
+  const process = {}// Object.create( proto )
+  const id = gen.getUID()
+  process.name = 'process' + id 
+
+  process.func = new Function( ...args )
+
+  //gen.globals[ process.name ] = process.func
+
+  process.call = function( ...args  ) {
+    const output = Object.create( proto )
+    output.funcname = process.name
+    output.func = process.func
+    output.name = 'process_out_' + id
+    output.process = process
+
+    output.inputs = args
+
+    return output
+  }
+
+  return process 
+}
+
+},{"./gen.js":33}],64:[function(require,module,exports){
+'use strict'
+
+let gen     = require( './gen.js' ),
+    history = require( './history.js' ),
+    sub     = require( './sub.js' ),
+    add     = require( './add.js' ),
+    mul     = require( './mul.js' ),
+    memo    = require( './memo.js' ),
+    delta   = require( './delta.js' ),
+    wrap    = require( './wrap.js' )
+
+let proto = {
+  basename:'rate',
+
+  gen() {
+    let inputs = gen.getInputs( this ),
+        phase  = history(),
+        inMinus1 = history(),
+        genName = 'gen.' + this.name,
+        filter, sum, out
+
+    gen.closures.add({ [ this.name ]: this }) 
+
+    out = 
+` var ${this.name}_diff = ${inputs[0]} - ${genName}.lastSample
+  if( ${this.name}_diff < -.5 ) ${this.name}_diff += 1
+  ${genName}.phase += ${this.name}_diff * ${inputs[1]}
+  if( ${genName}.phase > 1 ) ${genName}.phase -= 1
+  ${genName}.lastSample = ${inputs[0]}
+`
+    out = ' ' + out
+
+    return [ genName + '.phase', out ]
+  }
+}
+
+module.exports = ( in1, rate ) => {
+  let ugen = Object.create( proto )
+
+  Object.assign( ugen, { 
+    phase:      0,
+    lastSample: 0,
+    uid:        gen.getUID(),
+    inputs:     [ in1, rate ],
+  })
+  
+  ugen.name = `${ugen.basename}${ugen.uid}`
+
+  return ugen
+}
+
+},{"./add.js":5,"./delta.js":23,"./gen.js":33,"./history.js":37,"./memo.js":45,"./mul.js":51,"./sub.js":72,"./wrap.js":80}],65:[function(require,module,exports){
+'use strict'
+
+let gen  = require('./gen.js')
+
+let proto = {
+  name:'round',
+
+  gen() {
+    let out,
+        inputs = gen.getInputs( this )
+
+    
+    const isWorklet = gen.mode === 'worklet'
+    const ref = isWorklet? '' : 'gen.'
+
+    if( isNaN( inputs[0] ) ) {
+      gen.closures.add({ [ this.name ]: isWorklet ? 'Math.round' : Math.round })
+
+      out = `${ref}round( ${inputs[0]} )`
+
+    } else {
+      out = Math.round( parseFloat( inputs[0] ) )
+    }
+    
+    return out
+  }
+}
+
+module.exports = x => {
+  let round = Object.create( proto )
+
+  round.inputs = [ x ]
+
+  return round
+}
+
+},{"./gen.js":33}],66:[function(require,module,exports){
+'use strict'
+
+let gen     = require( './gen.js' )
+
+let proto = {
+  basename:'sah',
+
+  gen() {
+    let inputs = gen.getInputs( this ), out
+
+    //gen.data[ this.name ] = 0
+    //gen.data[ this.name + '_control' ] = 0
+
+    gen.requestMemory( this.memory )
+
+
+    out = 
+` var ${this.name}_control = memory[${this.memory.control.idx}],
+      ${this.name}_trigger = ${inputs[1]} > ${inputs[2]} ? 1 : 0
+
+  if( ${this.name}_trigger !== ${this.name}_control  ) {
+    if( ${this.name}_trigger === 1 ) 
+      memory[${this.memory.value.idx}] = ${inputs[0]}
+    
+    memory[${this.memory.control.idx}] = ${this.name}_trigger
+  }
+`
+    
+    gen.memo[ this.name ] = `memory[${this.memory.value.idx}]`//`gen.data.${this.name}`
+
+    return [ `memory[${this.memory.value.idx}]`, ' ' +out ]
+  }
+}
+
+module.exports = ( in1, control, threshold=0, properties ) => {
+  let ugen = Object.create( proto ),
+      defaults = { init:0 }
+
+  if( properties !== undefined ) Object.assign( defaults, properties )
+
+  Object.assign( ugen, { 
+    lastSample: 0,
+    uid:        gen.getUID(),
+    inputs:     [ in1, control,threshold ],
+    memory: {
+      control: { idx:null, length:1 },
+      value:   { idx:null, length:1 },
+    }
+  },
+  defaults )
+  
+  ugen.name = `${ugen.basename}${ugen.uid}`
+
+  return ugen
+}
+
+},{"./gen.js":33}],67:[function(require,module,exports){
+'use strict'
+
+let gen = require( './gen.js' )
+
+let proto = {
+  basename:'selector',
+
+  gen() {
+    let inputs = gen.getInputs( this ), out, returnValue = 0
+    
+    switch( inputs.length ) {
+      case 2 :
+        returnValue = inputs[1]
+        break;
+      case 3 :
+        out = `  var ${this.name}_out = ${inputs[0]} === 1 ? ${inputs[1]} : ${inputs[2]}\n\n`;
+        returnValue = [ this.name + '_out', out ]
+        break;  
+      default:
+        out = 
+` var ${this.name}_out = 0
+  switch( ${inputs[0]} + 1 ) {\n`
+
+        for( let i = 1; i < inputs.length; i++ ){
+          out +=`    case ${i}: ${this.name}_out = ${inputs[i]}; break;\n` 
+        }
+
+        out += '  }\n\n'
+        
+        returnValue = [ this.name + '_out', ' ' + out ]
+    }
+
+    gen.memo[ this.name ] = this.name + '_out'
+
+    return returnValue
+  },
+}
+
+module.exports = ( ...inputs ) => {
+  let ugen = Object.create( proto )
+  
+  Object.assign( ugen, {
+    uid:     gen.getUID(),
+    inputs
+  })
+  
+  ugen.name = `${ugen.basename}${ugen.uid}`
+
+  return ugen
+}
+
+},{"./gen.js":33}],68:[function(require,module,exports){
+'use strict'
+
+let gen   = require( './gen.js' ),
+    accum = require( './accum.js' ),
+    counter= require( './counter.js' ),
+    peek  = require( './peek.js' ),
+    ssd   = require( './history.js' ),
+    data  = require( './data.js' ),
+    proto = { basename:'seq' }
+
+module.exports = ( durations = 11025, values = [0,1], phaseIncrement = 1) => {
+  let clock
+  
+  if( Array.isArray( durations ) ) {
+    // we want a counter that is using our current
+    // rate value, but we want the rate value to be derived from
+    // the counter. must insert a single-sample dealy to avoid
+    // infinite loop.
+    const clock2 = counter( 0, 0, durations.length )
+    const __durations = peek( data( durations ), clock2, { mode:'simple' }) 
+    clock = counter( phaseIncrement, 0, __durations )
+    
+    // add one sample delay to avoid codegen loop
+    const s = ssd()
+    s.in( clock.wrap )
+    clock2.inputs[0] = s.out
+  }else{
+    // if the rate argument is a single value we don't need to
+    // do anything tricky.
+    clock = counter( phaseIncrement, 0, durations )
+  }
+  
+  const stepper = accum( clock.wrap, 0, { min:0, max:values.length })
+   
+  const ugen = peek( data( values ), stepper, { mode:'simple' })
+
+  ugen.name = proto.basename + gen.getUID()
+  ugen.trigger = clock.wrap
+
+  return ugen
+}
+
+},{"./accum.js":2,"./counter.js":16,"./data.js":19,"./gen.js":33,"./history.js":37,"./peek.js":57}],69:[function(require,module,exports){
+'use strict'
+
+let gen  = require('./gen.js')
+
+let proto = {
+  name:'sign',
+
+  gen() {
+    let out,
+        inputs = gen.getInputs( this )
+
+    
+    const isWorklet = gen.mode === 'worklet'
+    const ref = isWorklet? '' : 'gen.'
+
+    if( isNaN( inputs[0] ) ) {
+      gen.closures.add({ [ this.name ]: isWorklet ? 'Math.sign' : Math.sign })
+
+      out = `${ref}sign( ${inputs[0]} )`
+
+    } else {
+      out = Math.sign( parseFloat( inputs[0] ) )
+    }
+    
+    return out
+  }
+}
+
+module.exports = x => {
+  let sign = Object.create( proto )
+
+  sign.inputs = [ x ]
+
+  return sign
+}
+
+},{"./gen.js":33}],70:[function(require,module,exports){
+'use strict'
+
+let gen  = require('./gen.js')
+
+let proto = {
+  basename:'sin',
+
+  gen() {
+    let out,
+        inputs = gen.getInputs( this )
+    
+    
+    const isWorklet = gen.mode === 'worklet'
+    const ref = isWorklet? '' : 'gen.'
+
+    if( isNaN( inputs[0] ) ) {
+      gen.closures.add({ 'sin': isWorklet ? 'Math.sin' : Math.sin })
+
+      out = `${ref}sin( ${inputs[0]} )` 
+
+    } else {
+      out = Math.sin( parseFloat( inputs[0] ) )
+    }
+    
+    return out
+  }
+}
+
+module.exports = x => {
+  let sin = Object.create( proto )
+
+  sin.inputs = [ x ]
+  sin.id = gen.getUID()
+  sin.name = `${sin.basename}{sin.id}`
+
+  return sin
+}
+
+},{"./gen.js":33}],71:[function(require,module,exports){
+'use strict'
+
+let gen     = require( './gen.js' ),
+    history = require( './history.js' ),
+    sub     = require( './sub.js' ),
+    add     = require( './add.js' ),
+    mul     = require( './mul.js' ),
+    memo    = require( './memo.js' ),
+    gt      = require( './gt.js' ),
+    div     = require( './div.js' ),
+    _switch = require( './switch.js' )
+
+module.exports = ( in1, slideUp = 1, slideDown = 1 ) => {
+  let y1 = history(0),
+      filter, slideAmount
+
+  //y (n) = y (n-1) + ((x (n) - y (n-1))/slide) 
+  slideAmount = _switch( gt(in1,y1.out), slideUp, slideDown )
+
+  filter = memo( add( y1.out, div( sub( in1, y1.out ), slideAmount ) ) )
+
+  y1.in( filter )
+
+  return filter
+}
+
+},{"./add.js":5,"./div.js":24,"./gen.js":33,"./gt.js":34,"./history.js":37,"./memo.js":45,"./mul.js":51,"./sub.js":72,"./switch.js":73}],72:[function(require,module,exports){
+'use strict'
+
+const gen = require('./gen.js')
+
+const proto = {
+  basename:'sub',
+  gen() {
+    let inputs = gen.getInputs( this ),
+        out=0,
+        diff = 0,
+        needsParens = false, 
+        numCount = 0,
+        lastNumber = inputs[ 0 ],
+        lastNumberIsUgen = isNaN( lastNumber ), 
+        subAtEnd = false,
+        hasUgens = false,
+        returnValue = 0
+
+    this.inputs.forEach( value => { if( isNaN( value ) ) hasUgens = true })
+
+    out = '  var ' + this.name + ' = '
+
+    inputs.forEach( (v,i) => {
+      if( i === 0 ) return
+
+      let isNumberUgen = isNaN( v ),
+          isFinalIdx   = i === inputs.length - 1
+
+      if( !lastNumberIsUgen && !isNumberUgen ) {
+        lastNumber = lastNumber - v
+        out += lastNumber
+        return
+      }else{
+        needsParens = true
+        out += `${lastNumber} - ${v}`
+      }
+
+      if( !isFinalIdx ) out += ' - ' 
+    })
+
+    out += '\n'
+
+    returnValue = [ this.name, out ]
+
+    gen.memo[ this.name ] = this.name
+
+    return returnValue
+  }
+
+}
+
+module.exports = ( ...args ) => {
+  let sub = Object.create( proto )
+
+  Object.assign( sub, {
+    id:     gen.getUID(),
+    inputs: args
+  })
+       
+  sub.name = 'sub' + sub.id
+
+  return sub
+}
+
+},{"./gen.js":33}],73:[function(require,module,exports){
+'use strict'
+
+let gen = require( './gen.js' )
+
+let proto = {
+  basename:'switch',
+
+  gen() {
+    let inputs = gen.getInputs( this ), out
+
+    if( inputs[1] === inputs[2] ) return inputs[1] // if both potential outputs are the same just return one of them
+    
+    out = `  var ${this.name}_out = ${inputs[0]} === 1 ? ${inputs[1]} : ${inputs[2]}\n`
+
+    gen.memo[ this.name ] = `${this.name}_out`
+
+    return [ `${this.name}_out`, out ]
+  },
+
+}
+
+module.exports = ( control, in1 = 1, in2 = 0 ) => {
+  let ugen = Object.create( proto )
+  Object.assign( ugen, {
+    uid:     gen.getUID(),
+    inputs:  [ control, in1, in2 ],
+  })
+  
+  ugen.name = `${ugen.basename}${ugen.uid}`
+
+  return ugen
+}
+
+},{"./gen.js":33}],74:[function(require,module,exports){
+'use strict'
+
+let gen  = require('./gen.js')
+
+let proto = {
+  basename:'t60',
+
+  gen() {
+    let out,
+        inputs = gen.getInputs( this ),
+        returnValue
+
+    const isWorklet = gen.mode === 'worklet'
+    const ref = isWorklet? '' : 'gen.'
+
+    if( isNaN( inputs[0] ) ) {
+      gen.closures.add({ [ 'exp' ]: isWorklet ? 'Math.exp' : Math.exp })
+
+      out = `  var ${this.name} = ${ref}exp( -6.907755278921 / ${inputs[0]} )\n\n`
+     
+      gen.memo[ this.name ] = out
+      
+      returnValue = [ this.name, out ]
+    } else {
+      out = Math.exp( -6.907755278921 / inputs[0] )
+
+      returnValue = out
+    }    
+
+    return returnValue
+  }
+}
+
+module.exports = x => {
+  let t60 = Object.create( proto )
+
+  t60.inputs = [ x ]
+  t60.name = proto.basename + gen.getUID()
+
+  return t60
+}
+
+},{"./gen.js":33}],75:[function(require,module,exports){
+'use strict'
+
+let gen  = require('./gen.js')
+
+let proto = {
+  basename:'tan',
+
+  gen() {
+    let out,
+        inputs = gen.getInputs( this )
+    
+    
+    const isWorklet = gen.mode === 'worklet'
+    const ref = isWorklet? '' : 'gen.'
+
+    if( isNaN( inputs[0] ) ) {
+      gen.closures.add({ 'tan': isWorklet ? 'Math.tan' : Math.tan })
+
+      out = `${ref}tan( ${inputs[0]} )` 
+
+    } else {
+      out = Math.tan( parseFloat( inputs[0] ) )
+    }
+    
+    return out
+  }
+}
+
+module.exports = x => {
+  let tan = Object.create( proto )
+
+  tan.inputs = [ x ]
+  tan.id = gen.getUID()
+  tan.name = `${tan.basename}{tan.id}`
+
+  return tan
+}
+
+},{"./gen.js":33}],76:[function(require,module,exports){
+'use strict'
+
+let gen  = require('./gen.js')
+
+let proto = {
+  basename:'tanh',
+
+  gen() {
+    let out,
+        inputs = gen.getInputs( this )
+    
+    
+    const isWorklet = gen.mode === 'worklet'
+    const ref = isWorklet? '' : 'gen.'
+
+    if( isNaN( inputs[0] ) ) {
+      gen.closures.add({ 'tanh': isWorklet ? 'Math.tan' : Math.tanh })
+
+      out = `${ref}tanh( ${inputs[0]} )` 
+
+    } else {
+      out = Math.tanh( parseFloat( inputs[0] ) )
+    }
+    
+    return out
+  }
+}
+
+module.exports = x => {
+  let tanh = Object.create( proto )
+
+  tanh.inputs = [ x ]
+  tanh.id = gen.getUID()
+  tanh.name = `${tanh.basename}{tanh.id}`
+
+  return tanh
+}
+
+},{"./gen.js":33}],77:[function(require,module,exports){
+'use strict'
+
+let gen     = require( './gen.js' ),
+    lt      = require( './lt.js' ),
+    accum   = require( './accum.js' ),
+    div     = require( './div.js' )
+
+module.exports = ( frequency=440, pulsewidth=.5 ) => {
+  let graph = lt( accum( div( frequency, 44100 ) ), pulsewidth )
+
+  graph.name = `train${gen.getUID()}`
+
+  return graph
+}
+
+
+},{"./accum.js":2,"./div.js":24,"./gen.js":33,"./lt.js":41}],78:[function(require,module,exports){
+'use strict'
+
+const AWPF = require( './external/audioworklet-polyfill.js' ),
+      gen  = require( './gen.js' ),
+      data = require( './data.js' )
+
+let isStereo = false
+
+const utilities = {
+  ctx: null,
+  buffers: {},
+  isStereo:false,
+
+  clear() {
+    if( this.workletNode !== undefined ) {
+      this.workletNode.disconnect()
+    }else{
+      this.callback = () => 0
+    }
+    this.clear.callbacks.forEach( v => v() )
+    this.clear.callbacks.length = 0
+
+    this.isStereo = false
+
+    if( gen.graph !== null ) gen.free( gen.graph )
+  },
+
+  createContext( bufferSize = 2048 ) {
+    const AC = typeof AudioContext === 'undefined' ? webkitAudioContext : AudioContext
+    
+    // tell polyfill global object and buffersize
+    AWPF( window, bufferSize )
+
+    const start = () => {
+      if( typeof AC !== 'undefined' ) {
+        this.ctx = new AC({ latencyHint:.0125 })
+
+        gen.samplerate = this.ctx.sampleRate
+
+        if( document && document.documentElement && 'ontouchstart' in document.documentElement ) {
+          window.removeEventListener( 'touchstart', start )
+        }else{
+          window.removeEventListener( 'mousedown', start )
+          window.removeEventListener( 'keydown', start )
+        }
+
+        const mySource = utilities.ctx.createBufferSource()
+        mySource.connect( utilities.ctx.destination )
+        mySource.start()
+      }
+    }
+
+    if( document && document.documentElement && 'ontouchstart' in document.documentElement ) {
+      window.addEventListener( 'touchstart', start )
+    }else{
+      window.addEventListener( 'mousedown', start )
+      window.addEventListener( 'keydown', start )
+    }
+
+    return this
+  },
+
+  createScriptProcessor() {
+    this.node = this.ctx.createScriptProcessor( 1024, 0, 2 )
+    this.clearFunction = function() { return 0 }
+    if( typeof this.callback === 'undefined' ) this.callback = this.clearFunction
+
+    this.node.onaudioprocess = function( audioProcessingEvent ) {
+      const outputBuffer = audioProcessingEvent.outputBuffer
+
+      const left = outputBuffer.getChannelData( 0 ),
+            right= outputBuffer.getChannelData( 1 ),
+            isStereo = utilities.isStereo
+
+     for( var sample = 0; sample < left.length; sample++ ) {
+        var out = utilities.callback()
+
+        if( isStereo === false ) {
+          left[ sample ] = right[ sample ] = out 
+        }else{
+          left[ sample  ] = out[0]
+          right[ sample ] = out[1]
+        }
+      }
+    }
+
+    this.node.connect( this.ctx.destination )
+
+    return this
+  },
+
+  // remove starting stuff and add tabs
+  prettyPrintCallback( cb ) {
+    // get rid of "function gen" and start with parenthesis
+    // const shortendCB = cb.toString().slice(9)
+    const cbSplit = cb.toString().split('\n')
+    const cbTrim = cbSplit.slice( 3, -2 )
+    const cbTabbed = cbTrim.map( v => '      ' + v ) 
+    
+    return cbTabbed.join('\n')
+  },
+
+  createParameterDescriptors( cb ) {
+    // [{name: 'amplitude', defaultValue: 0.25, minValue: 0, maxValue: 1}];
+    let paramStr = ''
+
+    //for( let ugen of cb.params.values() ) {
+    //  paramStr += `{ name:'${ugen.name}', defaultValue:${ugen.value}, minValue:${ugen.min}, maxValue:${ugen.max} },\n      `
+    //}
+    for( let ugen of cb.params.values() ) {
+      paramStr += `{ name:'${ugen.name}', automationRate:'k-rate', defaultValue:${ugen.defaultValue}, minValue:${ugen.min}, maxValue:${ugen.max} },\n      `
+    }
+    return paramStr
+  },
+
+  createParameterDereferences( cb ) {
+    let str = cb.params.size > 0 ? '\n      ' : ''
+    for( let ugen of cb.params.values() ) {
+      str += `const ${ugen.name} = parameters.${ugen.name}[0]\n      `
+    }
+
+    return str
+  },
+
+  createParameterArguments( cb ) {
+    let  paramList = ''
+    for( let ugen of cb.params.values() ) {
+      paramList += ugen.name + '[i],'
+    }
+    paramList = paramList.slice( 0, -1 )
+
+    return paramList
+  },
+
+  createInputDereferences( cb ) {
+    let str = cb.inputs.size > 0 ? '\n' : ''
+    for( let input of  cb.inputs.values() ) {
+      str += `const ${input.name} = inputs[ ${input.inputNumber} ][ ${input.channelNumber} ]\n      `
+    }
+
+    return str
+  },
+
+
+  createInputArguments( cb ) {
+    let  paramList = ''
+    for( let input of cb.inputs.values() ) {
+      paramList += input.name + '[i],'
+    }
+    paramList = paramList.slice( 0, -1 )
+
+    return paramList
+  },
+      
+  createFunctionDereferences( cb ) {
+    let memberString = cb.members.size > 0 ? '\n' : ''
+    let memo = {}
+    for( let dict of cb.members.values() ) {
+      const name = Object.keys( dict )[0],
+            value = dict[ name ]
+
+      if( memo[ name ] !== undefined ) continue
+      memo[ name ] = true
+
+      memberString += `      const ${name} = ${value}\n`
+    }
+
+    return memberString
+  },
+
+  createWorkletProcessor( graph, name, debug, mem=44100*10, __eval=false, kernel=false ) {
+    const numChannels = Array.isArray( graph ) ? graph.length : 1
+    //const mem = MemoryHelper.create( 4096, Float64Array )
+    const cb = gen.createCallback( graph, mem, debug )
+    const inputs = cb.inputs
+
+    // get all inputs and create appropriate audioparam initializers
+    const parameterDescriptors = this.createParameterDescriptors( cb )
+    const parameterDereferences = this.createParameterDereferences( cb )
+    const paramList = this.createParameterArguments( cb )
+    const inputDereferences = this.createInputDereferences( cb )
+    const inputList = this.createInputArguments( cb )   
+    const memberString = this.createFunctionDereferences( cb )
+
+    let inputsString = ''
+    let genishOutputLine = ''
+    for( let i = 0; i < numChannels; i++ ) {
+      inputsString += `const channel${i} = output[ ${i} ]\n\t\t`
+      genishOutputLine += `channel${i}[ i ] = memory[ ${i} ]\n\t\t`
+    }
+
+    // change output based on number of channels.
+    //const genishOutputLine = cb.isStereo === false
+    //  ? `left[ i ] = memory[0]`
+    //  : `left[ i ] = memory[0];\n\t\tright[ i ] = memory[1]\n`
+    
+
+    const prettyCallback = this.prettyPrintCallback( cb )
+
+    // if __eval, provide the ability of eval code in worklet
+    const evalString = __eval
+      ? ` else if( event.data.key === 'eval' ) {
+        eval( event.data.code )
+      }
+`
+      : ''
+
+    const kernelFncString = `this.kernel = function( memory ) {
+      ${prettyCallback}
+    }`
+    /***** begin callback code ****/
+    // note that we have to check to see that memory has been passed
+    // to the worker before running the callback function, otherwise
+    // it can be passed too slowly and fail on occassion
+
+    const workletCode = `
+class ${name}Processor extends AudioWorkletProcessor {
+
+  static get parameterDescriptors() {
+    const params = [
+      ${ parameterDescriptors }      
+    ]
+    return params
+  }
+ 
+  constructor( options ) {
+    super( options )
+    this.port.onmessage = this.handleMessage.bind( this )
+    this.initialized = false
+    ${ kernel ? kernelFncString : '' }
+  }
+
+  handleMessage( event ) {
+    if( event.data.key === 'init' ) {
+      this.memory = event.data.memory
+      this.initialized = true
+    }else if( event.data.key === 'set' ) {
+      this.memory[ event.data.idx ] = event.data.value
+    }else if( event.data.key === 'get' ) {
+      this.port.postMessage({ key:'return', idx:event.data.idx, value:this.memory[event.data.idx] })     
+    }${ evalString }
+  }
+
+  process( inputs, outputs, parameters ) {
+    if( this.initialized === true ) {
+      const output = outputs[0]
+      ${inputsString}
+      const len    = channel0.length
+      const memory = this.memory ${parameterDereferences}${inputDereferences}${memberString}
+      ${kernel ? 'const kernel = this.kernel' : '' }
+
+      for( let i = 0; i < len; ++i ) {
+        ${kernel ? 'kernel( memory )\n' : prettyCallback}
+        ${genishOutputLine}
+      }
+    }
+    return true
+  }
+}
+    
+registerProcessor( '${name}', ${name}Processor)`
+
+    
+    /***** end callback code *****/
+
+
+    if( debug === true ) console.log( workletCode )
+
+    const url = window.URL.createObjectURL(
+      new Blob(
+        [ workletCode ], 
+        { type: 'text/javascript' }
+      )
+    )
+
+    return [ url, workletCode, inputs, cb.params, numChannels ] 
+  },
+
+  registeredForNodeAssignment: [],
+  register( ugen ) {
+    if( this.registeredForNodeAssignment.indexOf( ugen ) === -1 ) {
+      this.registeredForNodeAssignment.push( ugen )
+    }
+  },
+
+  playWorklet( graph, name, debug=false, mem=44100 * 60, __eval=false, kernel=false ) {
+    utilities.clear()
+
+    const [ url, codeString, inputs, params, numChannels ] = utilities.createWorkletProcessor( graph, name, debug, mem, __eval, kernel )
+    console.log( 'numChannels:', numChannels )
+
+    const nodePromise = new Promise( (resolve,reject) => {
+   
+      utilities.ctx.audioWorklet.addModule( url ).then( ()=> {
+        const workletNode = new AudioWorkletNode( utilities.ctx, name, { channelInterpretation:'discrete', channelCount: numChannels, outputChannelCount:[ numChannels ] })
+
+        workletNode.callbacks = {}
+        workletNode.onmessage = function( event ) {
+          if( event.data.message === 'return' ) {
+            workletNode.callbacks[ event.data.idx ]( event.data.value )
+            delete workletNode.callbacks[ event.data.idx ]
+          }
+        }
+
+        workletNode.getMemoryValue = function( idx, cb ) {
+          this.workletCallbacks[ idx ] = cb
+          this.workletNode.port.postMessage({ key:'get', idx: idx })
+        }
+        
+        workletNode.port.postMessage({ key:'init', memory:gen.memory.heap })
+        utilities.workletNode = workletNode
+
+        utilities.registeredForNodeAssignment.forEach( ugen => ugen.node = workletNode )
+        utilities.registeredForNodeAssignment.length = 0
+
+        // assign all params as properties of node for easier reference 
+        for( let dict of inputs.values() ) {
+          const name = Object.keys( dict )[0]
+          const param = workletNode.parameters.get( name )
+      
+          Object.defineProperty( workletNode, name, {
+            set( v ) {
+              param.value = v
+            },
+            get() {
+              return param.value
+            }
+          })
+        }
+
+        for( let ugen of params.values() ) {
+          const name = ugen.name
+          const param = workletNode.parameters.get( name )
+          ugen.waapi = param 
+          // initialize?
+          param.value = ugen.defaultValue
+
+          Object.defineProperty( workletNode, name, {
+            set( v ) {
+              param.value = v
+            },
+            get() {
+              return param.value
+            }
+          })
+        }
+
+        if( utilities.console ) utilities.console.setValue( codeString )
+
+        workletNode.connect( utilities.ctx.destination )
+
+        resolve( workletNode )
+      })
+
+    })
+
+    return nodePromise
+  },
+  
+  playGraph( graph, debug, mem=44100*10, memType=Float32Array ) {
+    utilities.clear()
+    if( debug === undefined ) debug = false
+          
+    this.isStereo = Array.isArray( graph )
+
+    utilities.callback = gen.createCallback( graph, mem, debug, false, memType )
+    
+    if( utilities.console ) utilities.console.setValue( utilities.callback.toString() )
+
+    return utilities.callback
+  },
+
+  loadSample( soundFilePath, data ) {
+    const isLoaded = utilities.buffers[ soundFilePath ] !== undefined
+
+    let req = new XMLHttpRequest()
+    req.open( 'GET', soundFilePath, true )
+    req.responseType = 'arraybuffer' 
+    
+    let promise = new Promise( (resolve,reject) => {
+      if( !isLoaded ) {
+        req.onload = function() {
+          var audioData = req.response
+
+          utilities.ctx.decodeAudioData( audioData, (buffer) => {
+            data.buffer = buffer.getChannelData(0)
+            utilities.buffers[ soundFilePath ] = data.buffer
+            resolve( data.buffer )
+          })
+        }
+      }else{
+        setTimeout( ()=> resolve( utilities.buffers[ soundFilePath ] ), 0 )
+      }
+    })
+
+    if( !isLoaded ) req.send()
+
+    return promise
+  }
+
+}
+
+utilities.clear.callbacks = []
+
+module.exports = utilities
+
+},{"./data.js":19,"./external/audioworklet-polyfill.js":28,"./gen.js":33}],79:[function(require,module,exports){
+'use strict'
+
+/*
+ * many windows here adapted from https://github.com/corbanbrook/dsp.js/blob/master/dsp.js
+ * starting at line 1427
+ * taken 8/15/16
+*/ 
+
+const windows = module.exports = { 
+  bartlett( length, index ) {
+    return 2 / (length - 1) * ((length - 1) / 2 - Math.abs(index - (length - 1) / 2)) 
+  },
+
+  bartlettHann( length, index ) {
+    return 0.62 - 0.48 * Math.abs(index / (length - 1) - 0.5) - 0.38 * Math.cos( 2 * Math.PI * index / (length - 1))
+  },
+
+  blackman( length, index, alpha ) {
+    let a0 = (1 - alpha) / 2,
+        a1 = 0.5,
+        a2 = alpha / 2
+
+    return a0 - a1 * Math.cos(2 * Math.PI * index / (length - 1)) + a2 * Math.cos(4 * Math.PI * index / (length - 1))
+  },
+
+  cosine( length, index ) {
+    return Math.cos(Math.PI * index / (length - 1) - Math.PI / 2)
+  },
+
+  gauss( length, index, alpha ) {
+    return Math.pow(Math.E, -0.5 * Math.pow((index - (length - 1) / 2) / (alpha * (length - 1) / 2), 2))
+  },
+
+  hamming( length, index ) {
+    return 0.54 - 0.46 * Math.cos( Math.PI * 2 * index / (length - 1))
+  },
+
+  hann( length, index ) {
+    return 0.5 * (1 - Math.cos( Math.PI * 2 * index / (length - 1)) )
+  },
+
+  lanczos( length, index ) {
+    let x = 2 * index / (length - 1) - 1;
+    return Math.sin(Math.PI * x) / (Math.PI * x)
+  },
+
+  rectangular( length, index ) {
+    return 1
+  },
+
+  triangular( length, index ) {
+    return 2 / length * (length / 2 - Math.abs(index - (length - 1) / 2))
+  },
+
+  // parabola
+  welch( length, _index, ignore, shift=0 ) {
+    //w[n] = 1 - Math.pow( ( n - ( (N-1) / 2 ) ) / (( N-1 ) / 2 ), 2 )
+    const index = shift === 0 ? _index : (_index + Math.floor( shift * length )) % length
+    const n_1_over2 = (length - 1) / 2 
+
+    return 1 - Math.pow( ( index - n_1_over2 ) / n_1_over2, 2 )
+  },
+  inversewelch( length, _index, ignore, shift=0 ) {
+    //w[n] = 1 - Math.pow( ( n - ( (N-1) / 2 ) ) / (( N-1 ) / 2 ), 2 )
+    let index = shift === 0 ? _index : (_index + Math.floor( shift * length )) % length
+    const n_1_over2 = (length - 1) / 2
+
+    return Math.pow( ( index - n_1_over2 ) / n_1_over2, 2 )
+  },
+
+  parabola( length, index ) {
+    if( index <= length / 2 ) {
+      return windows.inversewelch( length / 2, index ) - 1
+    }else{
+      return 1 - windows.inversewelch( length / 2, index - length / 2 )
+    }
+  },
+
+  exponential( length, index, alpha ) {
+    return Math.pow( index / length, alpha )
+  },
+
+  linear( length, index ) {
+    return index / length
+  }
+}
+
+},{}],80:[function(require,module,exports){
+'use strict'
+
+let gen  = require('./gen.js'),
+    floor= require('./floor.js'),
+    sub  = require('./sub.js'),
+    memo = require('./memo.js')
+
+let proto = {
+  basename:'wrap',
+
+  gen() {
+    let code,
+        inputs = gen.getInputs( this ),
+        signal = inputs[0], min = inputs[1], max = inputs[2],
+        out, diff
+
+    //out = `(((${inputs[0]} - ${this.min}) % ${diff}  + ${diff}) % ${diff} + ${this.min})`
+    //const long numWraps = long((v-lo)/range) - (v < lo);
+    //return v - range * double(numWraps);   
+    
+    if( this.min === 0 ) {
+      diff = max
+    }else if ( isNaN( max ) || isNaN( min ) ) {
+      diff = `${max} - ${min}`
+    }else{
+      diff = max - min
+    }
+
+    out =
+` var ${this.name} = ${inputs[0]}
+  if( ${this.name} < ${this.min} ) ${this.name} += ${diff}
+  else if( ${this.name} > ${this.max} ) ${this.name} -= ${diff}
+
+`
+
+    return [ this.name, ' ' + out ]
+  },
+}
+
+module.exports = ( in1, min=0, max=1 ) => {
+  let ugen = Object.create( proto )
+
+  Object.assign( ugen, { 
+    min, 
+    max,
+    uid:    gen.getUID(),
+    inputs: [ in1, min, max ],
+  })
+  
+  ugen.name = `${ugen.basename}${ugen.uid}`
+
+  return ugen
+}
+
+},{"./floor.js":30,"./gen.js":33,"./memo.js":45,"./sub.js":72}],81:[function(require,module,exports){
+'use strict';
+
+var MemoryHelper = {
+  create: function create() {
+    var size = arguments.length <= 0 || arguments[0] === undefined ? 4096 : arguments[0];
+    var memtype = arguments.length <= 1 || arguments[1] === undefined ? Float32Array : arguments[1];
+
+    var helper = Object.create(this);
+
+    Object.assign(helper, {
+      heap: new memtype(size),
+      list: {},
+      freeList: {}
+    });
+
+    return helper;
+  },
+  alloc: function alloc(amount) {
+    var idx = -1;
+
+    if (amount > this.heap.length) {
+      throw Error('Allocation request is larger than heap size of ' + this.heap.length);
+    }
+
+    for (var key in this.freeList) {
+      var candidateSize = this.freeList[key];
+
+      if (candidateSize >= amount) {
+        idx = key;
+
+        this.list[idx] = amount;
+
+        if (candidateSize !== amount) {
+          var newIndex = idx + amount,
+              newFreeSize = void 0;
+
+          for (var _key in this.list) {
+            if (_key > newIndex) {
+              newFreeSize = _key - newIndex;
+              this.freeList[newIndex] = newFreeSize;
+            }
+          }
+        }
+        
+        break;
+      }
+    }
+    
+    if( idx !== -1 ) delete this.freeList[ idx ]
+
+    if (idx === -1) {
+      var keys = Object.keys(this.list),
+          lastIndex = void 0;
+
+      if (keys.length) {
+        // if not first allocation...
+        lastIndex = parseInt(keys[keys.length - 1]);
+
+        idx = lastIndex + this.list[lastIndex];
+      } else {
+        idx = 0;
+      }
+
+      this.list[idx] = amount;
+    }
+
+    if (idx + amount >= this.heap.length) {
+      throw Error('No available blocks remain sufficient for allocation request.');
+    }
+    return idx;
+  },
+  free: function free(index) {
+    if (typeof this.list[index] !== 'number') {
+      throw Error('Calling free() on non-existing block.');
+    }
+
+    this.list[index] = 0;
+
+    var size = 0;
+    for (var key in this.list) {
+      if (key > index) {
+        size = key - index;
+        break;
+      }
+    }
+
+    this.freeList[index] = size;
+  }
+};
+
+module.exports = MemoryHelper;
+
+},{}],82:[function(require,module,exports){
 "use strict";
 
 var ugen = require('../ugen.js');
@@ -10,7 +4815,7 @@ Object.assign(analyzer, {
 });
 module.exports = analyzer;
 
-},{"../ugen.js":72}],2:[function(require,module,exports){
+},{"../ugen.js":153}],83:[function(require,module,exports){
 "use strict";
 
 module.exports = function (Gibberish) {
@@ -40,7 +4845,7 @@ module.exports = function (Gibberish) {
   return analyzers;
 };
 
-},{"./follow.dsp.js":3,"./singlesampledelay.js":4}],3:[function(require,module,exports){
+},{"./follow.dsp.js":84,"./singlesampledelay.js":85}],84:[function(require,module,exports){
 "use strict";
 
 var g = require('genish.js'),
@@ -248,7 +5053,7 @@ module.exports = function (Gibberish) {
   return Follow;
 };
 
-},{"../ugen.js":72,"./analyzer.js":1,"genish.js":114}],4:[function(require,module,exports){
+},{"../ugen.js":153,"./analyzer.js":82,"genish.js":40}],85:[function(require,module,exports){
 "use strict";
 
 var g = require('genish.js'),
@@ -369,7 +5174,7 @@ module.exports = function (Gibberish) {
   };
 };
 
-},{"../ugen.js":72,"../workletProxy.js":74,"./analyzer.js":1,"genish.js":114}],5:[function(require,module,exports){
+},{"../ugen.js":153,"../workletProxy.js":155,"./analyzer.js":82,"genish.js":40}],86:[function(require,module,exports){
 "use strict";
 
 var ugen = require('../ugen.js'),
@@ -401,7 +5206,7 @@ module.exports = function (Gibberish) {
   return AD;
 };
 
-},{"../ugen.js":72,"genish.js":114}],6:[function(require,module,exports){
+},{"../ugen.js":153,"genish.js":40}],87:[function(require,module,exports){
 "use strict";
 
 var ugen = require('../ugen.js'),
@@ -443,7 +5248,7 @@ module.exports = function (Gibberish) {
   return ADSR;
 };
 
-},{"../ugen.js":72,"genish.js":114}],7:[function(require,module,exports){
+},{"../ugen.js":153,"genish.js":40}],88:[function(require,module,exports){
 "use strict";
 
 var g = require('genish.js');
@@ -483,7 +5288,7 @@ module.exports = function (Gibberish) {
   return Envelopes;
 };
 
-},{"./ad.js":5,"./adsr.js":6,"./ramp.js":8,"genish.js":114}],8:[function(require,module,exports){
+},{"./ad.js":86,"./adsr.js":87,"./ramp.js":89,"genish.js":40}],89:[function(require,module,exports){
 "use strict";
 
 var ugen = require('../ugen.js'),
@@ -517,7 +5322,7 @@ module.exports = function (Gibberish) {
   return Ramp;
 };
 
-},{"../ugen.js":72,"genish.js":114}],9:[function(require,module,exports){
+},{"../ugen.js":153,"genish.js":40}],90:[function(require,module,exports){
 "use strict";
 
 /**
@@ -655,7 +5460,7 @@ var AWPF = function (self = window, bufferSize = 4096) {
 
 module.exports = AWPF;
 
-},{"./realm.js":12}],10:[function(require,module,exports){
+},{"./realm.js":93}],91:[function(require,module,exports){
 "use strict";function _classCallCheck3(instance,Constructor){if(!(instance instanceof Constructor)){throw new TypeError("Cannot call a class as a function");}}function _defineProperties(target,props){for(var i=0;i<props.length;i++){var descriptor=props[i];descriptor.enumerable=descriptor.enumerable||false;descriptor.configurable=true;if("value"in descriptor)descriptor.writable=true;Object.defineProperty(target,descriptor.key,descriptor);}}function _createClass3(Constructor,protoProps,staticProps){if(protoProps)_defineProperties(Constructor.prototype,protoProps);if(staticProps)_defineProperties(Constructor,staticProps);Object.defineProperty(Constructor,"prototype",{writable:false});return Constructor;}function _defineProperty(obj,key,value){if(key in obj){Object.defineProperty(obj,key,{value:value,enumerable:true,configurable:true,writable:true});}else{obj[key]=value;}return obj;}var __defProp=Object.defineProperty;var __defNormalProp=(obj,key,value)=>key in obj?__defProp(obj,key,{enumerable:true,configurable:true,writable:true,value}):obj[key]=value;var __publicField=(obj,key,value)=>{__defNormalProp(obj,typeof key!=="symbol"?key+"":key,value);return value;};Object.defineProperties(exports,_defineProperty({__esModule:{value:true}},Symbol.toStringTag,{value:"Module"}));function _mergeNamespaces(n,m){for(var i2=0;i2<m.length;i2++){const e=m[i2];if(typeof e!=="string"&&!Array.isArray(e)){for(const k in e){if(k!=="default"&&!(k in n)){const d=Object.getOwnPropertyDescriptor(e,k);if(d){Object.defineProperty(n,k,d.get?d:{enumerable:true,get:()=>e[k]});}}}}}return Object.freeze(Object.defineProperty(n,Symbol.toStringTag,{value:"Module"}));}function peg$subclass(child,parent){function C(){this.constructor=child;}C.prototype=parent.prototype;child.prototype=new C();}function peg$SyntaxError(message,expected,found,location){var self=Error.call(this,message);if(Object.setPrototypeOf){Object.setPrototypeOf(self,peg$SyntaxError.prototype);}self.expected=expected;self.found=found;self.location=location;self.name="SyntaxError";return self;}peg$subclass(peg$SyntaxError,Error);function peg$padEnd(str,targetLength,padString){padString=padString||" ";if(str.length>targetLength){return str;}targetLength-=str.length;padString+=padString.repeat(targetLength);return str+padString.slice(0,targetLength);}peg$SyntaxError.prototype.format=function(sources){var str="Error: "+this.message;if(this.location){var src=null;var k;for(k=0;k<sources.length;k++){if(sources[k].source===this.location.source){src=sources[k].text.split(/\r\n|\n|\r/g);break;}}var s=this.location.start;var loc=this.location.source+":"+s.line+":"+s.column;if(src){var e=this.location.end;var filler=peg$padEnd("",s.line.toString().length," ");var line=src[s.line-1];var last=s.line===e.line?e.column:line.length+1;var hatLen=last-s.column||1;str+="\n --> "+loc+"\n"+filler+" |\n"+s.line+" | "+line+"\n"+filler+" | "+peg$padEnd("",s.column-1," ")+peg$padEnd("",hatLen,"^");}else{str+="\n at "+loc;}}return str;};peg$SyntaxError.buildMessage=function(expected,found){var DESCRIBE_EXPECTATION_FNS={literal:function(expectation){return'"'+literalEscape(expectation.text)+'"';},class:function(expectation){var escapedParts=expectation.parts.map(function(part){return Array.isArray(part)?classEscape(part[0])+"-"+classEscape(part[1]):classEscape(part);});return"["+(expectation.inverted?"^":"")+escapedParts.join("")+"]";},any:function(){return"any character";},end:function(){return"end of input";},other:function(expectation){return expectation.description;}};function hex(ch){return ch.charCodeAt(0).toString(16).toUpperCase();}function literalEscape(s){return s.replace(/\\/g,"\\\\").replace(/"/g,'\\"').replace(/\0/g,"\\0").replace(/\t/g,"\\t").replace(/\n/g,"\\n").replace(/\r/g,"\\r").replace(/[\x00-\x0F]/g,function(ch){return"\\x0"+hex(ch);}).replace(/[\x10-\x1F\x7F-\x9F]/g,function(ch){return"\\x"+hex(ch);});}function classEscape(s){return s.replace(/\\/g,"\\\\").replace(/\]/g,"\\]").replace(/\^/g,"\\^").replace(/-/g,"\\-").replace(/\0/g,"\\0").replace(/\t/g,"\\t").replace(/\n/g,"\\n").replace(/\r/g,"\\r").replace(/[\x00-\x0F]/g,function(ch){return"\\x0"+hex(ch);}).replace(/[\x10-\x1F\x7F-\x9F]/g,function(ch){return"\\x"+hex(ch);});}function describeExpectation(expectation){return DESCRIBE_EXPECTATION_FNS[expectation.type](expectation);}function describeExpected(expected2){var descriptions=expected2.map(describeExpectation);var i2,j;descriptions.sort();if(descriptions.length>0){for(i2=1,j=1;i2<descriptions.length;i2++){if(descriptions[i2-1]!==descriptions[i2]){descriptions[j]=descriptions[i2];j++;}}descriptions.length=j;}switch(descriptions.length){case 1:return descriptions[0];case 2:return descriptions[0]+" or "+descriptions[1];default:return descriptions.slice(0,-1).join(", ")+", or "+descriptions[descriptions.length-1];}}function describeFound(found2){return found2?'"'+literalEscape(found2)+'"':"end of input";}return"Expected "+describeExpected(expected)+" but "+describeFound(found)+" found.";};function peg$parse(input,options){options=options!==void 0?options:{};var peg$FAILED={};var peg$source=options.grammarSource;var peg$startRuleFunctions={start:peg$parsestart};var peg$startRuleFunction=peg$parsestart;var peg$c0=".";var peg$c1="-";var peg$c2="+";var peg$c3="0";var peg$c4=",";var peg$c5="|";var peg$c6='"';var peg$c7="'";var peg$c8="#";var peg$c9="^";var peg$c10="_";var peg$c11=":";var peg$c12="[";var peg$c13="]";var peg$c14="<";var peg$c15=">";var peg$c16="@";var peg$c17="!";var peg$c18="(";var peg$c19=")";var peg$c20="/";var peg$c21="*";var peg$c22="%";var peg$c23="?";var peg$c24="struct";var peg$c25="target";var peg$c26="euclid";var peg$c27="slow";var peg$c28="rotL";var peg$c29="rotR";var peg$c30="fast";var peg$c31="scale";var peg$c32="//";var peg$c33="cat";var peg$c34="$";var peg$c35="setcps";var peg$c36="setbpm";var peg$c37="hush";var peg$r0=/^[1-9]/;var peg$r1=/^[eE]/;var peg$r2=/^[0-9]/;var peg$r3=/^[ \n\r\t]/;var peg$r4=/^[0-9a-zA-Z~]/;var peg$r5=/^[^\n]/;var peg$e0=peg$otherExpectation("number");var peg$e1=peg$literalExpectation(".",false);var peg$e2=peg$classExpectation([["1","9"]],false,false);var peg$e3=peg$classExpectation(["e","E"],false,false);var peg$e4=peg$literalExpectation("-",false);var peg$e5=peg$literalExpectation("+",false);var peg$e6=peg$literalExpectation("0",false);var peg$e7=peg$classExpectation([["0","9"]],false,false);var peg$e8=peg$otherExpectation("whitespace");var peg$e9=peg$classExpectation([" ","\n","\r","	"],false,false);var peg$e10=peg$literalExpectation(",",false);var peg$e11=peg$literalExpectation("|",false);var peg$e12=peg$literalExpectation('"',false);var peg$e13=peg$literalExpectation("'",false);var peg$e14=peg$classExpectation([["0","9"],["a","z"],["A","Z"],"~"],false,false);var peg$e15=peg$literalExpectation("#",false);var peg$e16=peg$literalExpectation("^",false);var peg$e17=peg$literalExpectation("_",false);var peg$e18=peg$literalExpectation(":",false);var peg$e19=peg$literalExpectation("[",false);var peg$e20=peg$literalExpectation("]",false);var peg$e21=peg$literalExpectation("<",false);var peg$e22=peg$literalExpectation(">",false);var peg$e23=peg$literalExpectation("@",false);var peg$e24=peg$literalExpectation("!",false);var peg$e25=peg$literalExpectation("(",false);var peg$e26=peg$literalExpectation(")",false);var peg$e27=peg$literalExpectation("/",false);var peg$e28=peg$literalExpectation("*",false);var peg$e29=peg$literalExpectation("%",false);var peg$e30=peg$literalExpectation("?",false);var peg$e31=peg$literalExpectation("struct",false);var peg$e32=peg$literalExpectation("target",false);var peg$e33=peg$literalExpectation("euclid",false);var peg$e34=peg$literalExpectation("slow",false);var peg$e35=peg$literalExpectation("rotL",false);var peg$e36=peg$literalExpectation("rotR",false);var peg$e37=peg$literalExpectation("fast",false);var peg$e38=peg$literalExpectation("scale",false);var peg$e39=peg$literalExpectation("//",false);var peg$e40=peg$classExpectation(["\n"],true,false);var peg$e41=peg$literalExpectation("cat",false);var peg$e42=peg$literalExpectation("$",false);var peg$e43=peg$literalExpectation("setcps",false);var peg$e44=peg$literalExpectation("setbpm",false);var peg$e45=peg$literalExpectation("hush",false);var peg$f0=function(){return parseFloat(text());};var peg$f1=function(chars){return chars.join("");};var peg$f2=function(s){return s;};var peg$f3=function(sc){sc.arguments_.alignment="t";return sc;};var peg$f4=function(a){return{weight:a};};var peg$f5=function(a){return{replicate:a};};var peg$f6=function(p2,s,r){return{operator:{type_:"bjorklund",arguments_:{pulse:p2,step:s,rotation:r||0}}};};var peg$f7=function(a){return{operator:{type_:"stretch",arguments_:{amount:a}}};};var peg$f8=function(a){return{operator:{type_:"stretch",arguments_:{amount:"1/"+a}}};};var peg$f9=function(a){return{operator:{type_:"fixed-step",arguments_:{amount:a}}};};var peg$f10=function(a){return{operator:{type_:"degradeBy",arguments_:{amount:a?a:0.5}}};};var peg$f11=function(s,o){return new ElementStub(s,o);};var peg$f12=function(s){return new PatternStub(s,"h");};var peg$f13=function(tail){return{alignment:"v",list:tail};};var peg$f14=function(tail){return{alignment:"r",list:tail};};var peg$f15=function(head,tail){if(tail&&tail.list.length>0){return new PatternStub([head,...tail.list],tail.alignment);}else{return head;}};var peg$f16=function(sc){return sc;};var peg$f17=function(s){return{name:"struct",args:{sequence:s}};};var peg$f18=function(s){return{name:"target",args:{name:s}};};var peg$f19=function(p2,s,r){return{name:"bjorklund",args:{pulse:parseInt(p2),step:parseInt(s)}};};var peg$f20=function(a){return{name:"stretch",args:{amount:a}};};var peg$f21=function(a){return{name:"shift",args:{amount:"-"+a}};};var peg$f22=function(a){return{name:"shift",args:{amount:a}};};var peg$f23=function(a){return{name:"stretch",args:{amount:"1/"+a}};};var peg$f24=function(s){return{name:"scale",args:{scale:s.join("")}};};var peg$f25=function(s,v){return v;};var peg$f26=function(s,ss){ss.unshift(s);return new PatternStub(ss,"t");};var peg$f27=function(sg){return sg;};var peg$f28=function(o,soc){return new OperatorStub(o.name,o.args,soc);};var peg$f29=function(sc){return sc;};var peg$f30=function(c){return c;};var peg$f31=function(v){return new CommandStub("setcps",{value:v});};var peg$f32=function(v){return new CommandStub("setcps",{value:v/120/2});};var peg$f33=function(){return new CommandStub("hush");};var peg$currPos=0;var peg$savedPos=0;var peg$posDetailsCache=[{line:1,column:1}];var peg$maxFailPos=0;var peg$maxFailExpected=[];var peg$silentFails=0;var peg$result;if("startRule"in options){if(!(options.startRule in peg$startRuleFunctions)){throw new Error(`Can't start parsing from rule "`+options.startRule+'".');}peg$startRuleFunction=peg$startRuleFunctions[options.startRule];}function text(){return input.substring(peg$savedPos,peg$currPos);}function location(){return peg$computeLocation(peg$savedPos,peg$currPos);}function peg$literalExpectation(text2,ignoreCase){return{type:"literal",text:text2,ignoreCase};}function peg$classExpectation(parts,inverted,ignoreCase){return{type:"class",parts,inverted,ignoreCase};}function peg$endExpectation(){return{type:"end"};}function peg$otherExpectation(description){return{type:"other",description};}function peg$computePosDetails(pos){var details=peg$posDetailsCache[pos];var p2;if(details){return details;}else{p2=pos-1;while(!peg$posDetailsCache[p2]){p2--;}details=peg$posDetailsCache[p2];details={line:details.line,column:details.column};while(p2<pos){if(input.charCodeAt(p2)===10){details.line++;details.column=1;}else{details.column++;}p2++;}peg$posDetailsCache[pos]=details;return details;}}function peg$computeLocation(startPos,endPos){var startPosDetails=peg$computePosDetails(startPos);var endPosDetails=peg$computePosDetails(endPos);return{source:peg$source,start:{offset:startPos,line:startPosDetails.line,column:startPosDetails.column},end:{offset:endPos,line:endPosDetails.line,column:endPosDetails.column}};}function peg$fail(expected){if(peg$currPos<peg$maxFailPos){return;}if(peg$currPos>peg$maxFailPos){peg$maxFailPos=peg$currPos;peg$maxFailExpected=[];}peg$maxFailExpected.push(expected);}function peg$buildStructuredError(expected,found,location2){return new peg$SyntaxError(peg$SyntaxError.buildMessage(expected,found),expected,found,location2);}function peg$parsestart(){var s0;s0=peg$parsestatement();return s0;}function peg$parsenumber(){var s0,s2;peg$silentFails++;s0=peg$currPos;peg$parseminus();s2=peg$parseint();if(s2!==peg$FAILED){peg$parsefrac();peg$parseexp();peg$savedPos=s0;s0=peg$f0();}else{peg$currPos=s0;s0=peg$FAILED;}peg$silentFails--;if(s0===peg$FAILED){if(peg$silentFails===0){peg$fail(peg$e0);}}return s0;}function peg$parsedecimal_point(){var s0;if(input.charCodeAt(peg$currPos)===46){s0=peg$c0;peg$currPos++;}else{s0=peg$FAILED;if(peg$silentFails===0){peg$fail(peg$e1);}}return s0;}function peg$parsedigit1_9(){var s0;if(peg$r0.test(input.charAt(peg$currPos))){s0=input.charAt(peg$currPos);peg$currPos++;}else{s0=peg$FAILED;if(peg$silentFails===0){peg$fail(peg$e2);}}return s0;}function peg$parsee(){var s0;if(peg$r1.test(input.charAt(peg$currPos))){s0=input.charAt(peg$currPos);peg$currPos++;}else{s0=peg$FAILED;if(peg$silentFails===0){peg$fail(peg$e3);}}return s0;}function peg$parseexp(){var s0,s1,s2,s3,s4;s0=peg$currPos;s1=peg$parsee();if(s1!==peg$FAILED){s2=peg$parseminus();if(s2===peg$FAILED){s2=peg$parseplus();}if(s2===peg$FAILED){s2=null;}s3=[];s4=peg$parseDIGIT();if(s4!==peg$FAILED){while(s4!==peg$FAILED){s3.push(s4);s4=peg$parseDIGIT();}}else{s3=peg$FAILED;}if(s3!==peg$FAILED){s1=[s1,s2,s3];s0=s1;}else{peg$currPos=s0;s0=peg$FAILED;}}else{peg$currPos=s0;s0=peg$FAILED;}return s0;}function peg$parsefrac(){var s0,s1,s2,s3;s0=peg$currPos;s1=peg$parsedecimal_point();if(s1!==peg$FAILED){s2=[];s3=peg$parseDIGIT();if(s3!==peg$FAILED){while(s3!==peg$FAILED){s2.push(s3);s3=peg$parseDIGIT();}}else{s2=peg$FAILED;}if(s2!==peg$FAILED){s1=[s1,s2];s0=s1;}else{peg$currPos=s0;s0=peg$FAILED;}}else{peg$currPos=s0;s0=peg$FAILED;}return s0;}function peg$parseint(){var s0,s1,s2,s3;s0=peg$parsezero();if(s0===peg$FAILED){s0=peg$currPos;s1=peg$parsedigit1_9();if(s1!==peg$FAILED){s2=[];s3=peg$parseDIGIT();while(s3!==peg$FAILED){s2.push(s3);s3=peg$parseDIGIT();}s1=[s1,s2];s0=s1;}else{peg$currPos=s0;s0=peg$FAILED;}}return s0;}function peg$parseminus(){var s0;if(input.charCodeAt(peg$currPos)===45){s0=peg$c1;peg$currPos++;}else{s0=peg$FAILED;if(peg$silentFails===0){peg$fail(peg$e4);}}return s0;}function peg$parseplus(){var s0;if(input.charCodeAt(peg$currPos)===43){s0=peg$c2;peg$currPos++;}else{s0=peg$FAILED;if(peg$silentFails===0){peg$fail(peg$e5);}}return s0;}function peg$parsezero(){var s0;if(input.charCodeAt(peg$currPos)===48){s0=peg$c3;peg$currPos++;}else{s0=peg$FAILED;if(peg$silentFails===0){peg$fail(peg$e6);}}return s0;}function peg$parseDIGIT(){var s0;if(peg$r2.test(input.charAt(peg$currPos))){s0=input.charAt(peg$currPos);peg$currPos++;}else{s0=peg$FAILED;if(peg$silentFails===0){peg$fail(peg$e7);}}return s0;}function peg$parsews(){var s0,s1;peg$silentFails++;s0=[];if(peg$r3.test(input.charAt(peg$currPos))){s1=input.charAt(peg$currPos);peg$currPos++;}else{s1=peg$FAILED;if(peg$silentFails===0){peg$fail(peg$e9);}}while(s1!==peg$FAILED){s0.push(s1);if(peg$r3.test(input.charAt(peg$currPos))){s1=input.charAt(peg$currPos);peg$currPos++;}else{s1=peg$FAILED;if(peg$silentFails===0){peg$fail(peg$e9);}}}peg$silentFails--;s1=peg$FAILED;if(peg$silentFails===0){peg$fail(peg$e8);}return s0;}function peg$parsecomma(){var s0,s1,s2,s3;s0=peg$currPos;s1=peg$parsews();if(input.charCodeAt(peg$currPos)===44){s2=peg$c4;peg$currPos++;}else{s2=peg$FAILED;if(peg$silentFails===0){peg$fail(peg$e10);}}if(s2!==peg$FAILED){s3=peg$parsews();s1=[s1,s2,s3];s0=s1;}else{peg$currPos=s0;s0=peg$FAILED;}return s0;}function peg$parsepipe(){var s0,s1,s2,s3;s0=peg$currPos;s1=peg$parsews();if(input.charCodeAt(peg$currPos)===124){s2=peg$c5;peg$currPos++;}else{s2=peg$FAILED;if(peg$silentFails===0){peg$fail(peg$e11);}}if(s2!==peg$FAILED){s3=peg$parsews();s1=[s1,s2,s3];s0=s1;}else{peg$currPos=s0;s0=peg$FAILED;}return s0;}function peg$parsequote(){var s0;if(input.charCodeAt(peg$currPos)===34){s0=peg$c6;peg$currPos++;}else{s0=peg$FAILED;if(peg$silentFails===0){peg$fail(peg$e12);}}if(s0===peg$FAILED){if(input.charCodeAt(peg$currPos)===39){s0=peg$c7;peg$currPos++;}else{s0=peg$FAILED;if(peg$silentFails===0){peg$fail(peg$e13);}}}return s0;}function peg$parsestep_char(){var s0;if(peg$r4.test(input.charAt(peg$currPos))){s0=input.charAt(peg$currPos);peg$currPos++;}else{s0=peg$FAILED;if(peg$silentFails===0){peg$fail(peg$e14);}}if(s0===peg$FAILED){if(input.charCodeAt(peg$currPos)===45){s0=peg$c1;peg$currPos++;}else{s0=peg$FAILED;if(peg$silentFails===0){peg$fail(peg$e4);}}if(s0===peg$FAILED){if(input.charCodeAt(peg$currPos)===35){s0=peg$c8;peg$currPos++;}else{s0=peg$FAILED;if(peg$silentFails===0){peg$fail(peg$e15);}}if(s0===peg$FAILED){if(input.charCodeAt(peg$currPos)===46){s0=peg$c0;peg$currPos++;}else{s0=peg$FAILED;if(peg$silentFails===0){peg$fail(peg$e1);}}if(s0===peg$FAILED){if(input.charCodeAt(peg$currPos)===94){s0=peg$c9;peg$currPos++;}else{s0=peg$FAILED;if(peg$silentFails===0){peg$fail(peg$e16);}}if(s0===peg$FAILED){if(input.charCodeAt(peg$currPos)===95){s0=peg$c10;peg$currPos++;}else{s0=peg$FAILED;if(peg$silentFails===0){peg$fail(peg$e17);}}if(s0===peg$FAILED){if(input.charCodeAt(peg$currPos)===58){s0=peg$c11;peg$currPos++;}else{s0=peg$FAILED;if(peg$silentFails===0){peg$fail(peg$e18);}}}}}}}}return s0;}function peg$parsestep(){var s0,s2,s3;s0=peg$currPos;peg$parsews();s2=[];s3=peg$parsestep_char();if(s3!==peg$FAILED){while(s3!==peg$FAILED){s2.push(s3);s3=peg$parsestep_char();}}else{s2=peg$FAILED;}if(s2!==peg$FAILED){s3=peg$parsews();peg$savedPos=s0;s0=peg$f1(s2);}else{peg$currPos=s0;s0=peg$FAILED;}return s0;}function peg$parsesub_cycle(){var s0,s2,s4,s6;s0=peg$currPos;peg$parsews();if(input.charCodeAt(peg$currPos)===91){s2=peg$c12;peg$currPos++;}else{s2=peg$FAILED;if(peg$silentFails===0){peg$fail(peg$e19);}}if(s2!==peg$FAILED){peg$parsews();s4=peg$parsestack_or_choose();if(s4!==peg$FAILED){peg$parsews();if(input.charCodeAt(peg$currPos)===93){s6=peg$c13;peg$currPos++;}else{s6=peg$FAILED;if(peg$silentFails===0){peg$fail(peg$e20);}}if(s6!==peg$FAILED){peg$parsews();peg$savedPos=s0;s0=peg$f2(s4);}else{peg$currPos=s0;s0=peg$FAILED;}}else{peg$currPos=s0;s0=peg$FAILED;}}else{peg$currPos=s0;s0=peg$FAILED;}return s0;}function peg$parsetimeline(){var s0,s2,s4,s6;s0=peg$currPos;peg$parsews();if(input.charCodeAt(peg$currPos)===60){s2=peg$c14;peg$currPos++;}else{s2=peg$FAILED;if(peg$silentFails===0){peg$fail(peg$e21);}}if(s2!==peg$FAILED){peg$parsews();s4=peg$parsesingle_cycle();if(s4!==peg$FAILED){peg$parsews();if(input.charCodeAt(peg$currPos)===62){s6=peg$c15;peg$currPos++;}else{s6=peg$FAILED;if(peg$silentFails===0){peg$fail(peg$e22);}}if(s6!==peg$FAILED){peg$parsews();peg$savedPos=s0;s0=peg$f3(s4);}else{peg$currPos=s0;s0=peg$FAILED;}}else{peg$currPos=s0;s0=peg$FAILED;}}else{peg$currPos=s0;s0=peg$FAILED;}return s0;}function peg$parseslice(){var s0;s0=peg$parsestep();if(s0===peg$FAILED){s0=peg$parsesub_cycle();if(s0===peg$FAILED){s0=peg$parsetimeline();}}return s0;}function peg$parseslice_modifier(){var s0;s0=peg$parseslice_weight();if(s0===peg$FAILED){s0=peg$parseslice_bjorklund();if(s0===peg$FAILED){s0=peg$parseslice_slow();if(s0===peg$FAILED){s0=peg$parseslice_fast();if(s0===peg$FAILED){s0=peg$parseslice_fixed_step();if(s0===peg$FAILED){s0=peg$parseslice_replicate();if(s0===peg$FAILED){s0=peg$parseslice_degrade();}}}}}}return s0;}function peg$parseslice_weight(){var s0,s1,s2;s0=peg$currPos;if(input.charCodeAt(peg$currPos)===64){s1=peg$c16;peg$currPos++;}else{s1=peg$FAILED;if(peg$silentFails===0){peg$fail(peg$e23);}}if(s1!==peg$FAILED){s2=peg$parsenumber();if(s2!==peg$FAILED){peg$savedPos=s0;s0=peg$f4(s2);}else{peg$currPos=s0;s0=peg$FAILED;}}else{peg$currPos=s0;s0=peg$FAILED;}return s0;}function peg$parseslice_replicate(){var s0,s1,s2;s0=peg$currPos;if(input.charCodeAt(peg$currPos)===33){s1=peg$c17;peg$currPos++;}else{s1=peg$FAILED;if(peg$silentFails===0){peg$fail(peg$e24);}}if(s1!==peg$FAILED){s2=peg$parsenumber();if(s2!==peg$FAILED){peg$savedPos=s0;s0=peg$f5(s2);}else{peg$currPos=s0;s0=peg$FAILED;}}else{peg$currPos=s0;s0=peg$FAILED;}return s0;}function peg$parseslice_bjorklund(){var s0,s1,s3,s5,s7,s11,s13;s0=peg$currPos;if(input.charCodeAt(peg$currPos)===40){s1=peg$c18;peg$currPos++;}else{s1=peg$FAILED;if(peg$silentFails===0){peg$fail(peg$e25);}}if(s1!==peg$FAILED){peg$parsews();s3=peg$parsenumber();if(s3!==peg$FAILED){peg$parsews();s5=peg$parsecomma();if(s5!==peg$FAILED){peg$parsews();s7=peg$parsenumber();if(s7!==peg$FAILED){peg$parsews();peg$parsecomma();peg$parsews();s11=peg$parsenumber();if(s11===peg$FAILED){s11=null;}peg$parsews();if(input.charCodeAt(peg$currPos)===41){s13=peg$c19;peg$currPos++;}else{s13=peg$FAILED;if(peg$silentFails===0){peg$fail(peg$e26);}}if(s13!==peg$FAILED){peg$savedPos=s0;s0=peg$f6(s3,s7,s11);}else{peg$currPos=s0;s0=peg$FAILED;}}else{peg$currPos=s0;s0=peg$FAILED;}}else{peg$currPos=s0;s0=peg$FAILED;}}else{peg$currPos=s0;s0=peg$FAILED;}}else{peg$currPos=s0;s0=peg$FAILED;}return s0;}function peg$parseslice_slow(){var s0,s1,s2;s0=peg$currPos;if(input.charCodeAt(peg$currPos)===47){s1=peg$c20;peg$currPos++;}else{s1=peg$FAILED;if(peg$silentFails===0){peg$fail(peg$e27);}}if(s1!==peg$FAILED){s2=peg$parsenumber();if(s2!==peg$FAILED){peg$savedPos=s0;s0=peg$f7(s2);}else{peg$currPos=s0;s0=peg$FAILED;}}else{peg$currPos=s0;s0=peg$FAILED;}return s0;}function peg$parseslice_fast(){var s0,s1,s2;s0=peg$currPos;if(input.charCodeAt(peg$currPos)===42){s1=peg$c21;peg$currPos++;}else{s1=peg$FAILED;if(peg$silentFails===0){peg$fail(peg$e28);}}if(s1!==peg$FAILED){s2=peg$parsenumber();if(s2!==peg$FAILED){peg$savedPos=s0;s0=peg$f8(s2);}else{peg$currPos=s0;s0=peg$FAILED;}}else{peg$currPos=s0;s0=peg$FAILED;}return s0;}function peg$parseslice_fixed_step(){var s0,s1,s2;s0=peg$currPos;if(input.charCodeAt(peg$currPos)===37){s1=peg$c22;peg$currPos++;}else{s1=peg$FAILED;if(peg$silentFails===0){peg$fail(peg$e29);}}if(s1!==peg$FAILED){s2=peg$parsenumber();if(s2!==peg$FAILED){peg$savedPos=s0;s0=peg$f9(s2);}else{peg$currPos=s0;s0=peg$FAILED;}}else{peg$currPos=s0;s0=peg$FAILED;}return s0;}function peg$parseslice_degrade(){var s0,s1,s2;s0=peg$currPos;if(input.charCodeAt(peg$currPos)===63){s1=peg$c23;peg$currPos++;}else{s1=peg$FAILED;if(peg$silentFails===0){peg$fail(peg$e30);}}if(s1!==peg$FAILED){s2=peg$parsenumber();if(s2===peg$FAILED){s2=null;}peg$savedPos=s0;s0=peg$f10(s2);}else{peg$currPos=s0;s0=peg$FAILED;}return s0;}function peg$parseslice_with_modifier(){var s0,s1,s2;s0=peg$currPos;s1=peg$parseslice();if(s1!==peg$FAILED){s2=peg$parseslice_modifier();if(s2===peg$FAILED){s2=null;}peg$savedPos=s0;s0=peg$f11(s1,s2);}else{peg$currPos=s0;s0=peg$FAILED;}return s0;}function peg$parsesingle_cycle(){var s0,s1,s2;s0=peg$currPos;s1=[];s2=peg$parseslice_with_modifier();if(s2!==peg$FAILED){while(s2!==peg$FAILED){s1.push(s2);s2=peg$parseslice_with_modifier();}}else{s1=peg$FAILED;}if(s1!==peg$FAILED){peg$savedPos=s0;s1=peg$f12(s1);}s0=s1;return s0;}function peg$parsestack_tail(){var s0,s1,s2,s3,s4;s0=peg$currPos;s1=[];s2=peg$currPos;s3=peg$parsecomma();if(s3!==peg$FAILED){s4=peg$parsesingle_cycle();if(s4!==peg$FAILED){s2=s4;}else{peg$currPos=s2;s2=peg$FAILED;}}else{peg$currPos=s2;s2=peg$FAILED;}if(s2!==peg$FAILED){while(s2!==peg$FAILED){s1.push(s2);s2=peg$currPos;s3=peg$parsecomma();if(s3!==peg$FAILED){s4=peg$parsesingle_cycle();if(s4!==peg$FAILED){s2=s4;}else{peg$currPos=s2;s2=peg$FAILED;}}else{peg$currPos=s2;s2=peg$FAILED;}}}else{s1=peg$FAILED;}if(s1!==peg$FAILED){peg$savedPos=s0;s1=peg$f13(s1);}s0=s1;return s0;}function peg$parsechoose_tail(){var s0,s1,s2,s3,s4;s0=peg$currPos;s1=[];s2=peg$currPos;s3=peg$parsepipe();if(s3!==peg$FAILED){s4=peg$parsesingle_cycle();if(s4!==peg$FAILED){s2=s4;}else{peg$currPos=s2;s2=peg$FAILED;}}else{peg$currPos=s2;s2=peg$FAILED;}if(s2!==peg$FAILED){while(s2!==peg$FAILED){s1.push(s2);s2=peg$currPos;s3=peg$parsepipe();if(s3!==peg$FAILED){s4=peg$parsesingle_cycle();if(s4!==peg$FAILED){s2=s4;}else{peg$currPos=s2;s2=peg$FAILED;}}else{peg$currPos=s2;s2=peg$FAILED;}}}else{s1=peg$FAILED;}if(s1!==peg$FAILED){peg$savedPos=s0;s1=peg$f14(s1);}s0=s1;return s0;}function peg$parsestack_or_choose(){var s0,s1,s2;s0=peg$currPos;s1=peg$parsesingle_cycle();if(s1!==peg$FAILED){s2=peg$parsestack_tail();if(s2===peg$FAILED){s2=peg$parsechoose_tail();}if(s2===peg$FAILED){s2=null;}peg$savedPos=s0;s0=peg$f15(s1,s2);}else{peg$currPos=s0;s0=peg$FAILED;}return s0;}function peg$parsesequence(){var s0,s2,s3,s4;s0=peg$currPos;peg$parsews();s2=peg$parsequote();if(s2!==peg$FAILED){s3=peg$parsestack_or_choose();if(s3!==peg$FAILED){s4=peg$parsequote();if(s4!==peg$FAILED){peg$savedPos=s0;s0=peg$f16(s3);}else{peg$currPos=s0;s0=peg$FAILED;}}else{peg$currPos=s0;s0=peg$FAILED;}}else{peg$currPos=s0;s0=peg$FAILED;}return s0;}function peg$parseoperator(){var s0;s0=peg$parsescale();if(s0===peg$FAILED){s0=peg$parseslow();if(s0===peg$FAILED){s0=peg$parsefast();if(s0===peg$FAILED){s0=peg$parsetarget();if(s0===peg$FAILED){s0=peg$parsebjorklund();if(s0===peg$FAILED){s0=peg$parsestruct();if(s0===peg$FAILED){s0=peg$parserotR();if(s0===peg$FAILED){s0=peg$parserotL();}}}}}}}return s0;}function peg$parsestruct(){var s0,s1,s3;s0=peg$currPos;if(input.substr(peg$currPos,6)===peg$c24){s1=peg$c24;peg$currPos+=6;}else{s1=peg$FAILED;if(peg$silentFails===0){peg$fail(peg$e31);}}if(s1!==peg$FAILED){peg$parsews();s3=peg$parsesequence_or_operator();if(s3!==peg$FAILED){peg$savedPos=s0;s0=peg$f17(s3);}else{peg$currPos=s0;s0=peg$FAILED;}}else{peg$currPos=s0;s0=peg$FAILED;}return s0;}function peg$parsetarget(){var s0,s1,s3,s4,s5;s0=peg$currPos;if(input.substr(peg$currPos,6)===peg$c25){s1=peg$c25;peg$currPos+=6;}else{s1=peg$FAILED;if(peg$silentFails===0){peg$fail(peg$e32);}}if(s1!==peg$FAILED){peg$parsews();s3=peg$parsequote();if(s3!==peg$FAILED){s4=peg$parsestep();if(s4!==peg$FAILED){s5=peg$parsequote();if(s5!==peg$FAILED){peg$savedPos=s0;s0=peg$f18(s4);}else{peg$currPos=s0;s0=peg$FAILED;}}else{peg$currPos=s0;s0=peg$FAILED;}}else{peg$currPos=s0;s0=peg$FAILED;}}else{peg$currPos=s0;s0=peg$FAILED;}return s0;}function peg$parsebjorklund(){var s0,s1,s3,s5;s0=peg$currPos;if(input.substr(peg$currPos,6)===peg$c26){s1=peg$c26;peg$currPos+=6;}else{s1=peg$FAILED;if(peg$silentFails===0){peg$fail(peg$e33);}}if(s1!==peg$FAILED){peg$parsews();s3=peg$parseint();if(s3!==peg$FAILED){peg$parsews();s5=peg$parseint();if(s5!==peg$FAILED){peg$parsews();peg$parseint();peg$savedPos=s0;s0=peg$f19(s3,s5);}else{peg$currPos=s0;s0=peg$FAILED;}}else{peg$currPos=s0;s0=peg$FAILED;}}else{peg$currPos=s0;s0=peg$FAILED;}return s0;}function peg$parseslow(){var s0,s1,s3;s0=peg$currPos;if(input.substr(peg$currPos,4)===peg$c27){s1=peg$c27;peg$currPos+=4;}else{s1=peg$FAILED;if(peg$silentFails===0){peg$fail(peg$e34);}}if(s1!==peg$FAILED){peg$parsews();s3=peg$parsenumber();if(s3!==peg$FAILED){peg$savedPos=s0;s0=peg$f20(s3);}else{peg$currPos=s0;s0=peg$FAILED;}}else{peg$currPos=s0;s0=peg$FAILED;}return s0;}function peg$parserotL(){var s0,s1,s3;s0=peg$currPos;if(input.substr(peg$currPos,4)===peg$c28){s1=peg$c28;peg$currPos+=4;}else{s1=peg$FAILED;if(peg$silentFails===0){peg$fail(peg$e35);}}if(s1!==peg$FAILED){peg$parsews();s3=peg$parsenumber();if(s3!==peg$FAILED){peg$savedPos=s0;s0=peg$f21(s3);}else{peg$currPos=s0;s0=peg$FAILED;}}else{peg$currPos=s0;s0=peg$FAILED;}return s0;}function peg$parserotR(){var s0,s1,s3;s0=peg$currPos;if(input.substr(peg$currPos,4)===peg$c29){s1=peg$c29;peg$currPos+=4;}else{s1=peg$FAILED;if(peg$silentFails===0){peg$fail(peg$e36);}}if(s1!==peg$FAILED){peg$parsews();s3=peg$parsenumber();if(s3!==peg$FAILED){peg$savedPos=s0;s0=peg$f22(s3);}else{peg$currPos=s0;s0=peg$FAILED;}}else{peg$currPos=s0;s0=peg$FAILED;}return s0;}function peg$parsefast(){var s0,s1,s3;s0=peg$currPos;if(input.substr(peg$currPos,4)===peg$c30){s1=peg$c30;peg$currPos+=4;}else{s1=peg$FAILED;if(peg$silentFails===0){peg$fail(peg$e37);}}if(s1!==peg$FAILED){peg$parsews();s3=peg$parsenumber();if(s3!==peg$FAILED){peg$savedPos=s0;s0=peg$f23(s3);}else{peg$currPos=s0;s0=peg$FAILED;}}else{peg$currPos=s0;s0=peg$FAILED;}return s0;}function peg$parsescale(){var s0,s1,s3,s4,s5;s0=peg$currPos;if(input.substr(peg$currPos,5)===peg$c31){s1=peg$c31;peg$currPos+=5;}else{s1=peg$FAILED;if(peg$silentFails===0){peg$fail(peg$e38);}}if(s1!==peg$FAILED){peg$parsews();s3=peg$parsequote();if(s3!==peg$FAILED){s4=[];s5=peg$parsestep_char();if(s5!==peg$FAILED){while(s5!==peg$FAILED){s4.push(s5);s5=peg$parsestep_char();}}else{s4=peg$FAILED;}if(s4!==peg$FAILED){s5=peg$parsequote();if(s5!==peg$FAILED){peg$savedPos=s0;s0=peg$f24(s4);}else{peg$currPos=s0;s0=peg$FAILED;}}else{peg$currPos=s0;s0=peg$FAILED;}}else{peg$currPos=s0;s0=peg$FAILED;}}else{peg$currPos=s0;s0=peg$FAILED;}return s0;}function peg$parsecomment(){var s0,s1,s2,s3;s0=peg$currPos;if(input.substr(peg$currPos,2)===peg$c32){s1=peg$c32;peg$currPos+=2;}else{s1=peg$FAILED;if(peg$silentFails===0){peg$fail(peg$e39);}}if(s1!==peg$FAILED){s2=[];if(peg$r5.test(input.charAt(peg$currPos))){s3=input.charAt(peg$currPos);peg$currPos++;}else{s3=peg$FAILED;if(peg$silentFails===0){peg$fail(peg$e40);}}while(s3!==peg$FAILED){s2.push(s3);if(peg$r5.test(input.charAt(peg$currPos))){s3=input.charAt(peg$currPos);peg$currPos++;}else{s3=peg$FAILED;if(peg$silentFails===0){peg$fail(peg$e40);}}}s1=[s1,s2];s0=s1;}else{peg$currPos=s0;s0=peg$FAILED;}return s0;}function peg$parsecat(){var s0,s1,s3,s5,s6,s7,s8,s9;s0=peg$currPos;if(input.substr(peg$currPos,3)===peg$c33){s1=peg$c33;peg$currPos+=3;}else{s1=peg$FAILED;if(peg$silentFails===0){peg$fail(peg$e41);}}if(s1!==peg$FAILED){peg$parsews();if(input.charCodeAt(peg$currPos)===91){s3=peg$c12;peg$currPos++;}else{s3=peg$FAILED;if(peg$silentFails===0){peg$fail(peg$e19);}}if(s3!==peg$FAILED){peg$parsews();s5=peg$parsesequence_or_operator();if(s5!==peg$FAILED){s6=[];s7=peg$currPos;s8=peg$parsecomma();if(s8!==peg$FAILED){s9=peg$parsesequence_or_operator();if(s9!==peg$FAILED){peg$savedPos=s7;s7=peg$f25(s5,s9);}else{peg$currPos=s7;s7=peg$FAILED;}}else{peg$currPos=s7;s7=peg$FAILED;}while(s7!==peg$FAILED){s6.push(s7);s7=peg$currPos;s8=peg$parsecomma();if(s8!==peg$FAILED){s9=peg$parsesequence_or_operator();if(s9!==peg$FAILED){peg$savedPos=s7;s7=peg$f25(s5,s9);}else{peg$currPos=s7;s7=peg$FAILED;}}else{peg$currPos=s7;s7=peg$FAILED;}}s7=peg$parsews();if(input.charCodeAt(peg$currPos)===93){s8=peg$c13;peg$currPos++;}else{s8=peg$FAILED;if(peg$silentFails===0){peg$fail(peg$e20);}}if(s8!==peg$FAILED){peg$savedPos=s0;s0=peg$f26(s5,s6);}else{peg$currPos=s0;s0=peg$FAILED;}}else{peg$currPos=s0;s0=peg$FAILED;}}else{peg$currPos=s0;s0=peg$FAILED;}}else{peg$currPos=s0;s0=peg$FAILED;}return s0;}function peg$parsesequence_or_group(){var s0;s0=peg$parsecat();if(s0===peg$FAILED){s0=peg$parsesequence();}return s0;}function peg$parsesequence_or_operator(){var s0,s1,s3,s4,s5;s0=peg$currPos;s1=peg$parsesequence_or_group();if(s1!==peg$FAILED){peg$parsews();s3=[];s4=peg$parsecomment();while(s4!==peg$FAILED){s3.push(s4);s4=peg$parsecomment();}peg$savedPos=s0;s0=peg$f27(s1);}else{peg$currPos=s0;s0=peg$FAILED;}if(s0===peg$FAILED){s0=peg$currPos;s1=peg$parseoperator();if(s1!==peg$FAILED){peg$parsews();if(input.charCodeAt(peg$currPos)===36){s3=peg$c34;peg$currPos++;}else{s3=peg$FAILED;if(peg$silentFails===0){peg$fail(peg$e42);}}if(s3!==peg$FAILED){s4=peg$parsews();s5=peg$parsesequence_or_operator();if(s5!==peg$FAILED){peg$savedPos=s0;s0=peg$f28(s1,s5);}else{peg$currPos=s0;s0=peg$FAILED;}}else{peg$currPos=s0;s0=peg$FAILED;}}else{peg$currPos=s0;s0=peg$FAILED;}}return s0;}function peg$parsesequ_or_operator_or_comment(){var s0,s1;s0=peg$currPos;s1=peg$parsesequence_or_operator();if(s1!==peg$FAILED){peg$savedPos=s0;s1=peg$f29(s1);}s0=s1;if(s0===peg$FAILED){s0=peg$parsecomment();}return s0;}function peg$parsesequence_definition(){var s0;s0=peg$parsesequ_or_operator_or_comment();return s0;}function peg$parsecommand(){var s0,s2;s0=peg$currPos;peg$parsews();s2=peg$parsesetcps();if(s2===peg$FAILED){s2=peg$parsesetbpm();if(s2===peg$FAILED){s2=peg$parsehush();}}if(s2!==peg$FAILED){peg$parsews();peg$savedPos=s0;s0=peg$f30(s2);}else{peg$currPos=s0;s0=peg$FAILED;}return s0;}function peg$parsesetcps(){var s0,s1,s3;s0=peg$currPos;if(input.substr(peg$currPos,6)===peg$c35){s1=peg$c35;peg$currPos+=6;}else{s1=peg$FAILED;if(peg$silentFails===0){peg$fail(peg$e43);}}if(s1!==peg$FAILED){peg$parsews();s3=peg$parsenumber();if(s3!==peg$FAILED){peg$savedPos=s0;s0=peg$f31(s3);}else{peg$currPos=s0;s0=peg$FAILED;}}else{peg$currPos=s0;s0=peg$FAILED;}return s0;}function peg$parsesetbpm(){var s0,s1,s3;s0=peg$currPos;if(input.substr(peg$currPos,6)===peg$c36){s1=peg$c36;peg$currPos+=6;}else{s1=peg$FAILED;if(peg$silentFails===0){peg$fail(peg$e44);}}if(s1!==peg$FAILED){peg$parsews();s3=peg$parsenumber();if(s3!==peg$FAILED){peg$savedPos=s0;s0=peg$f32(s3);}else{peg$currPos=s0;s0=peg$FAILED;}}else{peg$currPos=s0;s0=peg$FAILED;}return s0;}function peg$parsehush(){var s0,s1;s0=peg$currPos;if(input.substr(peg$currPos,4)===peg$c37){s1=peg$c37;peg$currPos+=4;}else{s1=peg$FAILED;if(peg$silentFails===0){peg$fail(peg$e45);}}if(s1!==peg$FAILED){peg$savedPos=s0;s1=peg$f33();}s0=s1;return s0;}function peg$parsestatement(){var s0;s0=peg$parsesequence_definition();if(s0===peg$FAILED){s0=peg$parsecommand();}return s0;}var PatternStub=function(source,alignment){this.type_="pattern";this.arguments_={alignment};this.source_=source;};var OperatorStub=function(name,args,source){this.type_=name;this.arguments_=args;this.source_=source;};var ElementStub=function(source,options2){this.type_="element";this.source_=source;this.options_=options2;this.location_=location();};var CommandStub=function(name,options2){this.type_="command";this.name_=name;this.options_=options2;};peg$result=peg$startRuleFunction();if(peg$result!==peg$FAILED&&peg$currPos===input.length){return peg$result;}else{if(peg$result!==peg$FAILED&&peg$currPos<input.length){peg$fail(peg$endExpectation());}throw peg$buildStructuredError(peg$maxFailExpected,peg$maxFailPos<input.length?input.charAt(peg$maxFailPos):null,peg$maxFailPos<input.length?peg$computeLocation(peg$maxFailPos,peg$maxFailPos+1):peg$computeLocation(peg$maxFailPos,peg$maxFailPos));}}function getDefaultExportFromCjs(x){return x&&x.__esModule&&Object.prototype.hasOwnProperty.call(x,"default")?x["default"]:x;}function getAugmentedNamespace(n){var f=n.default;if(typeof f=="function"){var a=function(){return f.apply(this,arguments);};a.prototype=f.prototype;}else a={};Object.defineProperty(a,"__esModule",{value:true});Object.keys(n).forEach(function(k){var d=Object.getOwnPropertyDescriptor(n,k);Object.defineProperty(a,k,d.get?d:{enumerable:true,get:function(){return n[k];}});});return a;}var fraction$1={exports:{}};/**
  * @license Fraction.js v4.2.0 05/03/2022
  * https://www.xarg.org/2014/03/rational-numbers-in-javascript/
@@ -672,7 +5477,7 @@ object-assign
 @license MIT
 */var getOwnPropertySymbols=Object.getOwnPropertySymbols;var hasOwnProperty=Object.prototype.hasOwnProperty;var propIsEnumerable=Object.prototype.propertyIsEnumerable;function toObject(val){if(val===null||val===void 0){throw new TypeError("Object.assign cannot be called with null or undefined");}return Object(val);}function shouldUseNative(){try{if(!Object.assign){return false;}var test1=new String("abc");test1[5]="de";if(Object.getOwnPropertyNames(test1)[0]==="5"){return false;}var test2={};for(var i2=0;i2<10;i2++){test2["_"+String.fromCharCode(i2)]=i2;}var order2=Object.getOwnPropertyNames(test2).map(function(n){return test2[n];});if(order2.join("")!=="0123456789"){return false;}var test3={};"abcdefghijklmnopqrst".split("").forEach(function(letter){test3[letter]=letter;});if(Object.keys(Object.assign({},test3)).join("")!=="abcdefghijklmnopqrst"){return false;}return true;}catch(err){return false;}}var objectAssign=shouldUseNative()?Object.assign:function(target,source){var from;var to=toObject(target);var symbols;for(var s=1;s<arguments.length;s++){from=Object(arguments[s]);for(var key in from){if(hasOwnProperty.call(from,key)){to[key]=from[key];}}if(getOwnPropertySymbols){symbols=getOwnPropertySymbols(from);for(var i2=0;i2<symbols.length;i2++){if(propIsEnumerable.call(from,symbols[i2])){to[symbols[i2]]=from[symbols[i2]];}}}}return to;};var objectAssign$1=/* @__PURE__ */_mergeNamespaces({__proto__:null,"default":objectAssign},[objectAssign]);var require$$0$3=/* @__PURE__ */getAugmentedNamespace(objectAssign$1);var utils$1={};var ast$2={exports:{}};(function(){function isExpression(node){if(node==null){return false;}switch(node.type){case"ArrayExpression":case"AssignmentExpression":case"BinaryExpression":case"CallExpression":case"ConditionalExpression":case"FunctionExpression":case"Identifier":case"Literal":case"LogicalExpression":case"MemberExpression":case"NewExpression":case"ObjectExpression":case"SequenceExpression":case"ThisExpression":case"UnaryExpression":case"UpdateExpression":return true;}return false;}function isIterationStatement2(node){if(node==null){return false;}switch(node.type){case"DoWhileStatement":case"ForInStatement":case"ForStatement":case"WhileStatement":return true;}return false;}function isStatement(node){if(node==null){return false;}switch(node.type){case"BlockStatement":case"BreakStatement":case"ContinueStatement":case"DebuggerStatement":case"DoWhileStatement":case"EmptyStatement":case"ExpressionStatement":case"ForInStatement":case"ForStatement":case"IfStatement":case"LabeledStatement":case"ReturnStatement":case"SwitchStatement":case"ThrowStatement":case"TryStatement":case"VariableDeclaration":case"WhileStatement":case"WithStatement":return true;}return false;}function isSourceElement(node){return isStatement(node)||node!=null&&node.type==="FunctionDeclaration";}function trailingStatement(node){switch(node.type){case"IfStatement":if(node.alternate!=null){return node.alternate;}return node.consequent;case"LabeledStatement":case"ForStatement":case"ForInStatement":case"WhileStatement":case"WithStatement":return node.body;}return null;}function isProblematicIfStatement(node){var current;if(node.type!=="IfStatement"){return false;}if(node.alternate==null){return false;}current=node.consequent;do{if(current.type==="IfStatement"){if(current.alternate==null){return true;}}current=trailingStatement(current);}while(current);return false;}ast$2.exports={isExpression,isStatement,isIterationStatement:isIterationStatement2,isSourceElement,isProblematicIfStatement,trailingStatement};})();var ast$1=/* @__PURE__ */_mergeNamespaces({__proto__:null,"default":ast$2.exports},[ast$2.exports]);var require$$0$2=/* @__PURE__ */getAugmentedNamespace(ast$1);var code$2={exports:{}};(function(){var ES6Regex,ES5Regex,NON_ASCII_WHITESPACES,IDENTIFIER_START,IDENTIFIER_PART,ch;ES5Regex={NonAsciiIdentifierStart:/[\xAA\xB5\xBA\xC0-\xD6\xD8-\xF6\xF8-\u02C1\u02C6-\u02D1\u02E0-\u02E4\u02EC\u02EE\u0370-\u0374\u0376\u0377\u037A-\u037D\u037F\u0386\u0388-\u038A\u038C\u038E-\u03A1\u03A3-\u03F5\u03F7-\u0481\u048A-\u052F\u0531-\u0556\u0559\u0561-\u0587\u05D0-\u05EA\u05F0-\u05F2\u0620-\u064A\u066E\u066F\u0671-\u06D3\u06D5\u06E5\u06E6\u06EE\u06EF\u06FA-\u06FC\u06FF\u0710\u0712-\u072F\u074D-\u07A5\u07B1\u07CA-\u07EA\u07F4\u07F5\u07FA\u0800-\u0815\u081A\u0824\u0828\u0840-\u0858\u08A0-\u08B4\u08B6-\u08BD\u0904-\u0939\u093D\u0950\u0958-\u0961\u0971-\u0980\u0985-\u098C\u098F\u0990\u0993-\u09A8\u09AA-\u09B0\u09B2\u09B6-\u09B9\u09BD\u09CE\u09DC\u09DD\u09DF-\u09E1\u09F0\u09F1\u0A05-\u0A0A\u0A0F\u0A10\u0A13-\u0A28\u0A2A-\u0A30\u0A32\u0A33\u0A35\u0A36\u0A38\u0A39\u0A59-\u0A5C\u0A5E\u0A72-\u0A74\u0A85-\u0A8D\u0A8F-\u0A91\u0A93-\u0AA8\u0AAA-\u0AB0\u0AB2\u0AB3\u0AB5-\u0AB9\u0ABD\u0AD0\u0AE0\u0AE1\u0AF9\u0B05-\u0B0C\u0B0F\u0B10\u0B13-\u0B28\u0B2A-\u0B30\u0B32\u0B33\u0B35-\u0B39\u0B3D\u0B5C\u0B5D\u0B5F-\u0B61\u0B71\u0B83\u0B85-\u0B8A\u0B8E-\u0B90\u0B92-\u0B95\u0B99\u0B9A\u0B9C\u0B9E\u0B9F\u0BA3\u0BA4\u0BA8-\u0BAA\u0BAE-\u0BB9\u0BD0\u0C05-\u0C0C\u0C0E-\u0C10\u0C12-\u0C28\u0C2A-\u0C39\u0C3D\u0C58-\u0C5A\u0C60\u0C61\u0C80\u0C85-\u0C8C\u0C8E-\u0C90\u0C92-\u0CA8\u0CAA-\u0CB3\u0CB5-\u0CB9\u0CBD\u0CDE\u0CE0\u0CE1\u0CF1\u0CF2\u0D05-\u0D0C\u0D0E-\u0D10\u0D12-\u0D3A\u0D3D\u0D4E\u0D54-\u0D56\u0D5F-\u0D61\u0D7A-\u0D7F\u0D85-\u0D96\u0D9A-\u0DB1\u0DB3-\u0DBB\u0DBD\u0DC0-\u0DC6\u0E01-\u0E30\u0E32\u0E33\u0E40-\u0E46\u0E81\u0E82\u0E84\u0E87\u0E88\u0E8A\u0E8D\u0E94-\u0E97\u0E99-\u0E9F\u0EA1-\u0EA3\u0EA5\u0EA7\u0EAA\u0EAB\u0EAD-\u0EB0\u0EB2\u0EB3\u0EBD\u0EC0-\u0EC4\u0EC6\u0EDC-\u0EDF\u0F00\u0F40-\u0F47\u0F49-\u0F6C\u0F88-\u0F8C\u1000-\u102A\u103F\u1050-\u1055\u105A-\u105D\u1061\u1065\u1066\u106E-\u1070\u1075-\u1081\u108E\u10A0-\u10C5\u10C7\u10CD\u10D0-\u10FA\u10FC-\u1248\u124A-\u124D\u1250-\u1256\u1258\u125A-\u125D\u1260-\u1288\u128A-\u128D\u1290-\u12B0\u12B2-\u12B5\u12B8-\u12BE\u12C0\u12C2-\u12C5\u12C8-\u12D6\u12D8-\u1310\u1312-\u1315\u1318-\u135A\u1380-\u138F\u13A0-\u13F5\u13F8-\u13FD\u1401-\u166C\u166F-\u167F\u1681-\u169A\u16A0-\u16EA\u16EE-\u16F8\u1700-\u170C\u170E-\u1711\u1720-\u1731\u1740-\u1751\u1760-\u176C\u176E-\u1770\u1780-\u17B3\u17D7\u17DC\u1820-\u1877\u1880-\u1884\u1887-\u18A8\u18AA\u18B0-\u18F5\u1900-\u191E\u1950-\u196D\u1970-\u1974\u1980-\u19AB\u19B0-\u19C9\u1A00-\u1A16\u1A20-\u1A54\u1AA7\u1B05-\u1B33\u1B45-\u1B4B\u1B83-\u1BA0\u1BAE\u1BAF\u1BBA-\u1BE5\u1C00-\u1C23\u1C4D-\u1C4F\u1C5A-\u1C7D\u1C80-\u1C88\u1CE9-\u1CEC\u1CEE-\u1CF1\u1CF5\u1CF6\u1D00-\u1DBF\u1E00-\u1F15\u1F18-\u1F1D\u1F20-\u1F45\u1F48-\u1F4D\u1F50-\u1F57\u1F59\u1F5B\u1F5D\u1F5F-\u1F7D\u1F80-\u1FB4\u1FB6-\u1FBC\u1FBE\u1FC2-\u1FC4\u1FC6-\u1FCC\u1FD0-\u1FD3\u1FD6-\u1FDB\u1FE0-\u1FEC\u1FF2-\u1FF4\u1FF6-\u1FFC\u2071\u207F\u2090-\u209C\u2102\u2107\u210A-\u2113\u2115\u2119-\u211D\u2124\u2126\u2128\u212A-\u212D\u212F-\u2139\u213C-\u213F\u2145-\u2149\u214E\u2160-\u2188\u2C00-\u2C2E\u2C30-\u2C5E\u2C60-\u2CE4\u2CEB-\u2CEE\u2CF2\u2CF3\u2D00-\u2D25\u2D27\u2D2D\u2D30-\u2D67\u2D6F\u2D80-\u2D96\u2DA0-\u2DA6\u2DA8-\u2DAE\u2DB0-\u2DB6\u2DB8-\u2DBE\u2DC0-\u2DC6\u2DC8-\u2DCE\u2DD0-\u2DD6\u2DD8-\u2DDE\u2E2F\u3005-\u3007\u3021-\u3029\u3031-\u3035\u3038-\u303C\u3041-\u3096\u309D-\u309F\u30A1-\u30FA\u30FC-\u30FF\u3105-\u312D\u3131-\u318E\u31A0-\u31BA\u31F0-\u31FF\u3400-\u4DB5\u4E00-\u9FD5\uA000-\uA48C\uA4D0-\uA4FD\uA500-\uA60C\uA610-\uA61F\uA62A\uA62B\uA640-\uA66E\uA67F-\uA69D\uA6A0-\uA6EF\uA717-\uA71F\uA722-\uA788\uA78B-\uA7AE\uA7B0-\uA7B7\uA7F7-\uA801\uA803-\uA805\uA807-\uA80A\uA80C-\uA822\uA840-\uA873\uA882-\uA8B3\uA8F2-\uA8F7\uA8FB\uA8FD\uA90A-\uA925\uA930-\uA946\uA960-\uA97C\uA984-\uA9B2\uA9CF\uA9E0-\uA9E4\uA9E6-\uA9EF\uA9FA-\uA9FE\uAA00-\uAA28\uAA40-\uAA42\uAA44-\uAA4B\uAA60-\uAA76\uAA7A\uAA7E-\uAAAF\uAAB1\uAAB5\uAAB6\uAAB9-\uAABD\uAAC0\uAAC2\uAADB-\uAADD\uAAE0-\uAAEA\uAAF2-\uAAF4\uAB01-\uAB06\uAB09-\uAB0E\uAB11-\uAB16\uAB20-\uAB26\uAB28-\uAB2E\uAB30-\uAB5A\uAB5C-\uAB65\uAB70-\uABE2\uAC00-\uD7A3\uD7B0-\uD7C6\uD7CB-\uD7FB\uF900-\uFA6D\uFA70-\uFAD9\uFB00-\uFB06\uFB13-\uFB17\uFB1D\uFB1F-\uFB28\uFB2A-\uFB36\uFB38-\uFB3C\uFB3E\uFB40\uFB41\uFB43\uFB44\uFB46-\uFBB1\uFBD3-\uFD3D\uFD50-\uFD8F\uFD92-\uFDC7\uFDF0-\uFDFB\uFE70-\uFE74\uFE76-\uFEFC\uFF21-\uFF3A\uFF41-\uFF5A\uFF66-\uFFBE\uFFC2-\uFFC7\uFFCA-\uFFCF\uFFD2-\uFFD7\uFFDA-\uFFDC]/,NonAsciiIdentifierPart:/[\xAA\xB5\xBA\xC0-\xD6\xD8-\xF6\xF8-\u02C1\u02C6-\u02D1\u02E0-\u02E4\u02EC\u02EE\u0300-\u0374\u0376\u0377\u037A-\u037D\u037F\u0386\u0388-\u038A\u038C\u038E-\u03A1\u03A3-\u03F5\u03F7-\u0481\u0483-\u0487\u048A-\u052F\u0531-\u0556\u0559\u0561-\u0587\u0591-\u05BD\u05BF\u05C1\u05C2\u05C4\u05C5\u05C7\u05D0-\u05EA\u05F0-\u05F2\u0610-\u061A\u0620-\u0669\u066E-\u06D3\u06D5-\u06DC\u06DF-\u06E8\u06EA-\u06FC\u06FF\u0710-\u074A\u074D-\u07B1\u07C0-\u07F5\u07FA\u0800-\u082D\u0840-\u085B\u08A0-\u08B4\u08B6-\u08BD\u08D4-\u08E1\u08E3-\u0963\u0966-\u096F\u0971-\u0983\u0985-\u098C\u098F\u0990\u0993-\u09A8\u09AA-\u09B0\u09B2\u09B6-\u09B9\u09BC-\u09C4\u09C7\u09C8\u09CB-\u09CE\u09D7\u09DC\u09DD\u09DF-\u09E3\u09E6-\u09F1\u0A01-\u0A03\u0A05-\u0A0A\u0A0F\u0A10\u0A13-\u0A28\u0A2A-\u0A30\u0A32\u0A33\u0A35\u0A36\u0A38\u0A39\u0A3C\u0A3E-\u0A42\u0A47\u0A48\u0A4B-\u0A4D\u0A51\u0A59-\u0A5C\u0A5E\u0A66-\u0A75\u0A81-\u0A83\u0A85-\u0A8D\u0A8F-\u0A91\u0A93-\u0AA8\u0AAA-\u0AB0\u0AB2\u0AB3\u0AB5-\u0AB9\u0ABC-\u0AC5\u0AC7-\u0AC9\u0ACB-\u0ACD\u0AD0\u0AE0-\u0AE3\u0AE6-\u0AEF\u0AF9\u0B01-\u0B03\u0B05-\u0B0C\u0B0F\u0B10\u0B13-\u0B28\u0B2A-\u0B30\u0B32\u0B33\u0B35-\u0B39\u0B3C-\u0B44\u0B47\u0B48\u0B4B-\u0B4D\u0B56\u0B57\u0B5C\u0B5D\u0B5F-\u0B63\u0B66-\u0B6F\u0B71\u0B82\u0B83\u0B85-\u0B8A\u0B8E-\u0B90\u0B92-\u0B95\u0B99\u0B9A\u0B9C\u0B9E\u0B9F\u0BA3\u0BA4\u0BA8-\u0BAA\u0BAE-\u0BB9\u0BBE-\u0BC2\u0BC6-\u0BC8\u0BCA-\u0BCD\u0BD0\u0BD7\u0BE6-\u0BEF\u0C00-\u0C03\u0C05-\u0C0C\u0C0E-\u0C10\u0C12-\u0C28\u0C2A-\u0C39\u0C3D-\u0C44\u0C46-\u0C48\u0C4A-\u0C4D\u0C55\u0C56\u0C58-\u0C5A\u0C60-\u0C63\u0C66-\u0C6F\u0C80-\u0C83\u0C85-\u0C8C\u0C8E-\u0C90\u0C92-\u0CA8\u0CAA-\u0CB3\u0CB5-\u0CB9\u0CBC-\u0CC4\u0CC6-\u0CC8\u0CCA-\u0CCD\u0CD5\u0CD6\u0CDE\u0CE0-\u0CE3\u0CE6-\u0CEF\u0CF1\u0CF2\u0D01-\u0D03\u0D05-\u0D0C\u0D0E-\u0D10\u0D12-\u0D3A\u0D3D-\u0D44\u0D46-\u0D48\u0D4A-\u0D4E\u0D54-\u0D57\u0D5F-\u0D63\u0D66-\u0D6F\u0D7A-\u0D7F\u0D82\u0D83\u0D85-\u0D96\u0D9A-\u0DB1\u0DB3-\u0DBB\u0DBD\u0DC0-\u0DC6\u0DCA\u0DCF-\u0DD4\u0DD6\u0DD8-\u0DDF\u0DE6-\u0DEF\u0DF2\u0DF3\u0E01-\u0E3A\u0E40-\u0E4E\u0E50-\u0E59\u0E81\u0E82\u0E84\u0E87\u0E88\u0E8A\u0E8D\u0E94-\u0E97\u0E99-\u0E9F\u0EA1-\u0EA3\u0EA5\u0EA7\u0EAA\u0EAB\u0EAD-\u0EB9\u0EBB-\u0EBD\u0EC0-\u0EC4\u0EC6\u0EC8-\u0ECD\u0ED0-\u0ED9\u0EDC-\u0EDF\u0F00\u0F18\u0F19\u0F20-\u0F29\u0F35\u0F37\u0F39\u0F3E-\u0F47\u0F49-\u0F6C\u0F71-\u0F84\u0F86-\u0F97\u0F99-\u0FBC\u0FC6\u1000-\u1049\u1050-\u109D\u10A0-\u10C5\u10C7\u10CD\u10D0-\u10FA\u10FC-\u1248\u124A-\u124D\u1250-\u1256\u1258\u125A-\u125D\u1260-\u1288\u128A-\u128D\u1290-\u12B0\u12B2-\u12B5\u12B8-\u12BE\u12C0\u12C2-\u12C5\u12C8-\u12D6\u12D8-\u1310\u1312-\u1315\u1318-\u135A\u135D-\u135F\u1380-\u138F\u13A0-\u13F5\u13F8-\u13FD\u1401-\u166C\u166F-\u167F\u1681-\u169A\u16A0-\u16EA\u16EE-\u16F8\u1700-\u170C\u170E-\u1714\u1720-\u1734\u1740-\u1753\u1760-\u176C\u176E-\u1770\u1772\u1773\u1780-\u17D3\u17D7\u17DC\u17DD\u17E0-\u17E9\u180B-\u180D\u1810-\u1819\u1820-\u1877\u1880-\u18AA\u18B0-\u18F5\u1900-\u191E\u1920-\u192B\u1930-\u193B\u1946-\u196D\u1970-\u1974\u1980-\u19AB\u19B0-\u19C9\u19D0-\u19D9\u1A00-\u1A1B\u1A20-\u1A5E\u1A60-\u1A7C\u1A7F-\u1A89\u1A90-\u1A99\u1AA7\u1AB0-\u1ABD\u1B00-\u1B4B\u1B50-\u1B59\u1B6B-\u1B73\u1B80-\u1BF3\u1C00-\u1C37\u1C40-\u1C49\u1C4D-\u1C7D\u1C80-\u1C88\u1CD0-\u1CD2\u1CD4-\u1CF6\u1CF8\u1CF9\u1D00-\u1DF5\u1DFB-\u1F15\u1F18-\u1F1D\u1F20-\u1F45\u1F48-\u1F4D\u1F50-\u1F57\u1F59\u1F5B\u1F5D\u1F5F-\u1F7D\u1F80-\u1FB4\u1FB6-\u1FBC\u1FBE\u1FC2-\u1FC4\u1FC6-\u1FCC\u1FD0-\u1FD3\u1FD6-\u1FDB\u1FE0-\u1FEC\u1FF2-\u1FF4\u1FF6-\u1FFC\u200C\u200D\u203F\u2040\u2054\u2071\u207F\u2090-\u209C\u20D0-\u20DC\u20E1\u20E5-\u20F0\u2102\u2107\u210A-\u2113\u2115\u2119-\u211D\u2124\u2126\u2128\u212A-\u212D\u212F-\u2139\u213C-\u213F\u2145-\u2149\u214E\u2160-\u2188\u2C00-\u2C2E\u2C30-\u2C5E\u2C60-\u2CE4\u2CEB-\u2CF3\u2D00-\u2D25\u2D27\u2D2D\u2D30-\u2D67\u2D6F\u2D7F-\u2D96\u2DA0-\u2DA6\u2DA8-\u2DAE\u2DB0-\u2DB6\u2DB8-\u2DBE\u2DC0-\u2DC6\u2DC8-\u2DCE\u2DD0-\u2DD6\u2DD8-\u2DDE\u2DE0-\u2DFF\u2E2F\u3005-\u3007\u3021-\u302F\u3031-\u3035\u3038-\u303C\u3041-\u3096\u3099\u309A\u309D-\u309F\u30A1-\u30FA\u30FC-\u30FF\u3105-\u312D\u3131-\u318E\u31A0-\u31BA\u31F0-\u31FF\u3400-\u4DB5\u4E00-\u9FD5\uA000-\uA48C\uA4D0-\uA4FD\uA500-\uA60C\uA610-\uA62B\uA640-\uA66F\uA674-\uA67D\uA67F-\uA6F1\uA717-\uA71F\uA722-\uA788\uA78B-\uA7AE\uA7B0-\uA7B7\uA7F7-\uA827\uA840-\uA873\uA880-\uA8C5\uA8D0-\uA8D9\uA8E0-\uA8F7\uA8FB\uA8FD\uA900-\uA92D\uA930-\uA953\uA960-\uA97C\uA980-\uA9C0\uA9CF-\uA9D9\uA9E0-\uA9FE\uAA00-\uAA36\uAA40-\uAA4D\uAA50-\uAA59\uAA60-\uAA76\uAA7A-\uAAC2\uAADB-\uAADD\uAAE0-\uAAEF\uAAF2-\uAAF6\uAB01-\uAB06\uAB09-\uAB0E\uAB11-\uAB16\uAB20-\uAB26\uAB28-\uAB2E\uAB30-\uAB5A\uAB5C-\uAB65\uAB70-\uABEA\uABEC\uABED\uABF0-\uABF9\uAC00-\uD7A3\uD7B0-\uD7C6\uD7CB-\uD7FB\uF900-\uFA6D\uFA70-\uFAD9\uFB00-\uFB06\uFB13-\uFB17\uFB1D-\uFB28\uFB2A-\uFB36\uFB38-\uFB3C\uFB3E\uFB40\uFB41\uFB43\uFB44\uFB46-\uFBB1\uFBD3-\uFD3D\uFD50-\uFD8F\uFD92-\uFDC7\uFDF0-\uFDFB\uFE00-\uFE0F\uFE20-\uFE2F\uFE33\uFE34\uFE4D-\uFE4F\uFE70-\uFE74\uFE76-\uFEFC\uFF10-\uFF19\uFF21-\uFF3A\uFF3F\uFF41-\uFF5A\uFF66-\uFFBE\uFFC2-\uFFC7\uFFCA-\uFFCF\uFFD2-\uFFD7\uFFDA-\uFFDC]/};ES6Regex={NonAsciiIdentifierStart:/[\xAA\xB5\xBA\xC0-\xD6\xD8-\xF6\xF8-\u02C1\u02C6-\u02D1\u02E0-\u02E4\u02EC\u02EE\u0370-\u0374\u0376\u0377\u037A-\u037D\u037F\u0386\u0388-\u038A\u038C\u038E-\u03A1\u03A3-\u03F5\u03F7-\u0481\u048A-\u052F\u0531-\u0556\u0559\u0561-\u0587\u05D0-\u05EA\u05F0-\u05F2\u0620-\u064A\u066E\u066F\u0671-\u06D3\u06D5\u06E5\u06E6\u06EE\u06EF\u06FA-\u06FC\u06FF\u0710\u0712-\u072F\u074D-\u07A5\u07B1\u07CA-\u07EA\u07F4\u07F5\u07FA\u0800-\u0815\u081A\u0824\u0828\u0840-\u0858\u08A0-\u08B4\u08B6-\u08BD\u0904-\u0939\u093D\u0950\u0958-\u0961\u0971-\u0980\u0985-\u098C\u098F\u0990\u0993-\u09A8\u09AA-\u09B0\u09B2\u09B6-\u09B9\u09BD\u09CE\u09DC\u09DD\u09DF-\u09E1\u09F0\u09F1\u0A05-\u0A0A\u0A0F\u0A10\u0A13-\u0A28\u0A2A-\u0A30\u0A32\u0A33\u0A35\u0A36\u0A38\u0A39\u0A59-\u0A5C\u0A5E\u0A72-\u0A74\u0A85-\u0A8D\u0A8F-\u0A91\u0A93-\u0AA8\u0AAA-\u0AB0\u0AB2\u0AB3\u0AB5-\u0AB9\u0ABD\u0AD0\u0AE0\u0AE1\u0AF9\u0B05-\u0B0C\u0B0F\u0B10\u0B13-\u0B28\u0B2A-\u0B30\u0B32\u0B33\u0B35-\u0B39\u0B3D\u0B5C\u0B5D\u0B5F-\u0B61\u0B71\u0B83\u0B85-\u0B8A\u0B8E-\u0B90\u0B92-\u0B95\u0B99\u0B9A\u0B9C\u0B9E\u0B9F\u0BA3\u0BA4\u0BA8-\u0BAA\u0BAE-\u0BB9\u0BD0\u0C05-\u0C0C\u0C0E-\u0C10\u0C12-\u0C28\u0C2A-\u0C39\u0C3D\u0C58-\u0C5A\u0C60\u0C61\u0C80\u0C85-\u0C8C\u0C8E-\u0C90\u0C92-\u0CA8\u0CAA-\u0CB3\u0CB5-\u0CB9\u0CBD\u0CDE\u0CE0\u0CE1\u0CF1\u0CF2\u0D05-\u0D0C\u0D0E-\u0D10\u0D12-\u0D3A\u0D3D\u0D4E\u0D54-\u0D56\u0D5F-\u0D61\u0D7A-\u0D7F\u0D85-\u0D96\u0D9A-\u0DB1\u0DB3-\u0DBB\u0DBD\u0DC0-\u0DC6\u0E01-\u0E30\u0E32\u0E33\u0E40-\u0E46\u0E81\u0E82\u0E84\u0E87\u0E88\u0E8A\u0E8D\u0E94-\u0E97\u0E99-\u0E9F\u0EA1-\u0EA3\u0EA5\u0EA7\u0EAA\u0EAB\u0EAD-\u0EB0\u0EB2\u0EB3\u0EBD\u0EC0-\u0EC4\u0EC6\u0EDC-\u0EDF\u0F00\u0F40-\u0F47\u0F49-\u0F6C\u0F88-\u0F8C\u1000-\u102A\u103F\u1050-\u1055\u105A-\u105D\u1061\u1065\u1066\u106E-\u1070\u1075-\u1081\u108E\u10A0-\u10C5\u10C7\u10CD\u10D0-\u10FA\u10FC-\u1248\u124A-\u124D\u1250-\u1256\u1258\u125A-\u125D\u1260-\u1288\u128A-\u128D\u1290-\u12B0\u12B2-\u12B5\u12B8-\u12BE\u12C0\u12C2-\u12C5\u12C8-\u12D6\u12D8-\u1310\u1312-\u1315\u1318-\u135A\u1380-\u138F\u13A0-\u13F5\u13F8-\u13FD\u1401-\u166C\u166F-\u167F\u1681-\u169A\u16A0-\u16EA\u16EE-\u16F8\u1700-\u170C\u170E-\u1711\u1720-\u1731\u1740-\u1751\u1760-\u176C\u176E-\u1770\u1780-\u17B3\u17D7\u17DC\u1820-\u1877\u1880-\u18A8\u18AA\u18B0-\u18F5\u1900-\u191E\u1950-\u196D\u1970-\u1974\u1980-\u19AB\u19B0-\u19C9\u1A00-\u1A16\u1A20-\u1A54\u1AA7\u1B05-\u1B33\u1B45-\u1B4B\u1B83-\u1BA0\u1BAE\u1BAF\u1BBA-\u1BE5\u1C00-\u1C23\u1C4D-\u1C4F\u1C5A-\u1C7D\u1C80-\u1C88\u1CE9-\u1CEC\u1CEE-\u1CF1\u1CF5\u1CF6\u1D00-\u1DBF\u1E00-\u1F15\u1F18-\u1F1D\u1F20-\u1F45\u1F48-\u1F4D\u1F50-\u1F57\u1F59\u1F5B\u1F5D\u1F5F-\u1F7D\u1F80-\u1FB4\u1FB6-\u1FBC\u1FBE\u1FC2-\u1FC4\u1FC6-\u1FCC\u1FD0-\u1FD3\u1FD6-\u1FDB\u1FE0-\u1FEC\u1FF2-\u1FF4\u1FF6-\u1FFC\u2071\u207F\u2090-\u209C\u2102\u2107\u210A-\u2113\u2115\u2118-\u211D\u2124\u2126\u2128\u212A-\u2139\u213C-\u213F\u2145-\u2149\u214E\u2160-\u2188\u2C00-\u2C2E\u2C30-\u2C5E\u2C60-\u2CE4\u2CEB-\u2CEE\u2CF2\u2CF3\u2D00-\u2D25\u2D27\u2D2D\u2D30-\u2D67\u2D6F\u2D80-\u2D96\u2DA0-\u2DA6\u2DA8-\u2DAE\u2DB0-\u2DB6\u2DB8-\u2DBE\u2DC0-\u2DC6\u2DC8-\u2DCE\u2DD0-\u2DD6\u2DD8-\u2DDE\u3005-\u3007\u3021-\u3029\u3031-\u3035\u3038-\u303C\u3041-\u3096\u309B-\u309F\u30A1-\u30FA\u30FC-\u30FF\u3105-\u312D\u3131-\u318E\u31A0-\u31BA\u31F0-\u31FF\u3400-\u4DB5\u4E00-\u9FD5\uA000-\uA48C\uA4D0-\uA4FD\uA500-\uA60C\uA610-\uA61F\uA62A\uA62B\uA640-\uA66E\uA67F-\uA69D\uA6A0-\uA6EF\uA717-\uA71F\uA722-\uA788\uA78B-\uA7AE\uA7B0-\uA7B7\uA7F7-\uA801\uA803-\uA805\uA807-\uA80A\uA80C-\uA822\uA840-\uA873\uA882-\uA8B3\uA8F2-\uA8F7\uA8FB\uA8FD\uA90A-\uA925\uA930-\uA946\uA960-\uA97C\uA984-\uA9B2\uA9CF\uA9E0-\uA9E4\uA9E6-\uA9EF\uA9FA-\uA9FE\uAA00-\uAA28\uAA40-\uAA42\uAA44-\uAA4B\uAA60-\uAA76\uAA7A\uAA7E-\uAAAF\uAAB1\uAAB5\uAAB6\uAAB9-\uAABD\uAAC0\uAAC2\uAADB-\uAADD\uAAE0-\uAAEA\uAAF2-\uAAF4\uAB01-\uAB06\uAB09-\uAB0E\uAB11-\uAB16\uAB20-\uAB26\uAB28-\uAB2E\uAB30-\uAB5A\uAB5C-\uAB65\uAB70-\uABE2\uAC00-\uD7A3\uD7B0-\uD7C6\uD7CB-\uD7FB\uF900-\uFA6D\uFA70-\uFAD9\uFB00-\uFB06\uFB13-\uFB17\uFB1D\uFB1F-\uFB28\uFB2A-\uFB36\uFB38-\uFB3C\uFB3E\uFB40\uFB41\uFB43\uFB44\uFB46-\uFBB1\uFBD3-\uFD3D\uFD50-\uFD8F\uFD92-\uFDC7\uFDF0-\uFDFB\uFE70-\uFE74\uFE76-\uFEFC\uFF21-\uFF3A\uFF41-\uFF5A\uFF66-\uFFBE\uFFC2-\uFFC7\uFFCA-\uFFCF\uFFD2-\uFFD7\uFFDA-\uFFDC]|\uD800[\uDC00-\uDC0B\uDC0D-\uDC26\uDC28-\uDC3A\uDC3C\uDC3D\uDC3F-\uDC4D\uDC50-\uDC5D\uDC80-\uDCFA\uDD40-\uDD74\uDE80-\uDE9C\uDEA0-\uDED0\uDF00-\uDF1F\uDF30-\uDF4A\uDF50-\uDF75\uDF80-\uDF9D\uDFA0-\uDFC3\uDFC8-\uDFCF\uDFD1-\uDFD5]|\uD801[\uDC00-\uDC9D\uDCB0-\uDCD3\uDCD8-\uDCFB\uDD00-\uDD27\uDD30-\uDD63\uDE00-\uDF36\uDF40-\uDF55\uDF60-\uDF67]|\uD802[\uDC00-\uDC05\uDC08\uDC0A-\uDC35\uDC37\uDC38\uDC3C\uDC3F-\uDC55\uDC60-\uDC76\uDC80-\uDC9E\uDCE0-\uDCF2\uDCF4\uDCF5\uDD00-\uDD15\uDD20-\uDD39\uDD80-\uDDB7\uDDBE\uDDBF\uDE00\uDE10-\uDE13\uDE15-\uDE17\uDE19-\uDE33\uDE60-\uDE7C\uDE80-\uDE9C\uDEC0-\uDEC7\uDEC9-\uDEE4\uDF00-\uDF35\uDF40-\uDF55\uDF60-\uDF72\uDF80-\uDF91]|\uD803[\uDC00-\uDC48\uDC80-\uDCB2\uDCC0-\uDCF2]|\uD804[\uDC03-\uDC37\uDC83-\uDCAF\uDCD0-\uDCE8\uDD03-\uDD26\uDD50-\uDD72\uDD76\uDD83-\uDDB2\uDDC1-\uDDC4\uDDDA\uDDDC\uDE00-\uDE11\uDE13-\uDE2B\uDE80-\uDE86\uDE88\uDE8A-\uDE8D\uDE8F-\uDE9D\uDE9F-\uDEA8\uDEB0-\uDEDE\uDF05-\uDF0C\uDF0F\uDF10\uDF13-\uDF28\uDF2A-\uDF30\uDF32\uDF33\uDF35-\uDF39\uDF3D\uDF50\uDF5D-\uDF61]|\uD805[\uDC00-\uDC34\uDC47-\uDC4A\uDC80-\uDCAF\uDCC4\uDCC5\uDCC7\uDD80-\uDDAE\uDDD8-\uDDDB\uDE00-\uDE2F\uDE44\uDE80-\uDEAA\uDF00-\uDF19]|\uD806[\uDCA0-\uDCDF\uDCFF\uDEC0-\uDEF8]|\uD807[\uDC00-\uDC08\uDC0A-\uDC2E\uDC40\uDC72-\uDC8F]|\uD808[\uDC00-\uDF99]|\uD809[\uDC00-\uDC6E\uDC80-\uDD43]|[\uD80C\uD81C-\uD820\uD840-\uD868\uD86A-\uD86C\uD86F-\uD872][\uDC00-\uDFFF]|\uD80D[\uDC00-\uDC2E]|\uD811[\uDC00-\uDE46]|\uD81A[\uDC00-\uDE38\uDE40-\uDE5E\uDED0-\uDEED\uDF00-\uDF2F\uDF40-\uDF43\uDF63-\uDF77\uDF7D-\uDF8F]|\uD81B[\uDF00-\uDF44\uDF50\uDF93-\uDF9F\uDFE0]|\uD821[\uDC00-\uDFEC]|\uD822[\uDC00-\uDEF2]|\uD82C[\uDC00\uDC01]|\uD82F[\uDC00-\uDC6A\uDC70-\uDC7C\uDC80-\uDC88\uDC90-\uDC99]|\uD835[\uDC00-\uDC54\uDC56-\uDC9C\uDC9E\uDC9F\uDCA2\uDCA5\uDCA6\uDCA9-\uDCAC\uDCAE-\uDCB9\uDCBB\uDCBD-\uDCC3\uDCC5-\uDD05\uDD07-\uDD0A\uDD0D-\uDD14\uDD16-\uDD1C\uDD1E-\uDD39\uDD3B-\uDD3E\uDD40-\uDD44\uDD46\uDD4A-\uDD50\uDD52-\uDEA5\uDEA8-\uDEC0\uDEC2-\uDEDA\uDEDC-\uDEFA\uDEFC-\uDF14\uDF16-\uDF34\uDF36-\uDF4E\uDF50-\uDF6E\uDF70-\uDF88\uDF8A-\uDFA8\uDFAA-\uDFC2\uDFC4-\uDFCB]|\uD83A[\uDC00-\uDCC4\uDD00-\uDD43]|\uD83B[\uDE00-\uDE03\uDE05-\uDE1F\uDE21\uDE22\uDE24\uDE27\uDE29-\uDE32\uDE34-\uDE37\uDE39\uDE3B\uDE42\uDE47\uDE49\uDE4B\uDE4D-\uDE4F\uDE51\uDE52\uDE54\uDE57\uDE59\uDE5B\uDE5D\uDE5F\uDE61\uDE62\uDE64\uDE67-\uDE6A\uDE6C-\uDE72\uDE74-\uDE77\uDE79-\uDE7C\uDE7E\uDE80-\uDE89\uDE8B-\uDE9B\uDEA1-\uDEA3\uDEA5-\uDEA9\uDEAB-\uDEBB]|\uD869[\uDC00-\uDED6\uDF00-\uDFFF]|\uD86D[\uDC00-\uDF34\uDF40-\uDFFF]|\uD86E[\uDC00-\uDC1D\uDC20-\uDFFF]|\uD873[\uDC00-\uDEA1]|\uD87E[\uDC00-\uDE1D]/,NonAsciiIdentifierPart:/[\xAA\xB5\xB7\xBA\xC0-\xD6\xD8-\xF6\xF8-\u02C1\u02C6-\u02D1\u02E0-\u02E4\u02EC\u02EE\u0300-\u0374\u0376\u0377\u037A-\u037D\u037F\u0386-\u038A\u038C\u038E-\u03A1\u03A3-\u03F5\u03F7-\u0481\u0483-\u0487\u048A-\u052F\u0531-\u0556\u0559\u0561-\u0587\u0591-\u05BD\u05BF\u05C1\u05C2\u05C4\u05C5\u05C7\u05D0-\u05EA\u05F0-\u05F2\u0610-\u061A\u0620-\u0669\u066E-\u06D3\u06D5-\u06DC\u06DF-\u06E8\u06EA-\u06FC\u06FF\u0710-\u074A\u074D-\u07B1\u07C0-\u07F5\u07FA\u0800-\u082D\u0840-\u085B\u08A0-\u08B4\u08B6-\u08BD\u08D4-\u08E1\u08E3-\u0963\u0966-\u096F\u0971-\u0983\u0985-\u098C\u098F\u0990\u0993-\u09A8\u09AA-\u09B0\u09B2\u09B6-\u09B9\u09BC-\u09C4\u09C7\u09C8\u09CB-\u09CE\u09D7\u09DC\u09DD\u09DF-\u09E3\u09E6-\u09F1\u0A01-\u0A03\u0A05-\u0A0A\u0A0F\u0A10\u0A13-\u0A28\u0A2A-\u0A30\u0A32\u0A33\u0A35\u0A36\u0A38\u0A39\u0A3C\u0A3E-\u0A42\u0A47\u0A48\u0A4B-\u0A4D\u0A51\u0A59-\u0A5C\u0A5E\u0A66-\u0A75\u0A81-\u0A83\u0A85-\u0A8D\u0A8F-\u0A91\u0A93-\u0AA8\u0AAA-\u0AB0\u0AB2\u0AB3\u0AB5-\u0AB9\u0ABC-\u0AC5\u0AC7-\u0AC9\u0ACB-\u0ACD\u0AD0\u0AE0-\u0AE3\u0AE6-\u0AEF\u0AF9\u0B01-\u0B03\u0B05-\u0B0C\u0B0F\u0B10\u0B13-\u0B28\u0B2A-\u0B30\u0B32\u0B33\u0B35-\u0B39\u0B3C-\u0B44\u0B47\u0B48\u0B4B-\u0B4D\u0B56\u0B57\u0B5C\u0B5D\u0B5F-\u0B63\u0B66-\u0B6F\u0B71\u0B82\u0B83\u0B85-\u0B8A\u0B8E-\u0B90\u0B92-\u0B95\u0B99\u0B9A\u0B9C\u0B9E\u0B9F\u0BA3\u0BA4\u0BA8-\u0BAA\u0BAE-\u0BB9\u0BBE-\u0BC2\u0BC6-\u0BC8\u0BCA-\u0BCD\u0BD0\u0BD7\u0BE6-\u0BEF\u0C00-\u0C03\u0C05-\u0C0C\u0C0E-\u0C10\u0C12-\u0C28\u0C2A-\u0C39\u0C3D-\u0C44\u0C46-\u0C48\u0C4A-\u0C4D\u0C55\u0C56\u0C58-\u0C5A\u0C60-\u0C63\u0C66-\u0C6F\u0C80-\u0C83\u0C85-\u0C8C\u0C8E-\u0C90\u0C92-\u0CA8\u0CAA-\u0CB3\u0CB5-\u0CB9\u0CBC-\u0CC4\u0CC6-\u0CC8\u0CCA-\u0CCD\u0CD5\u0CD6\u0CDE\u0CE0-\u0CE3\u0CE6-\u0CEF\u0CF1\u0CF2\u0D01-\u0D03\u0D05-\u0D0C\u0D0E-\u0D10\u0D12-\u0D3A\u0D3D-\u0D44\u0D46-\u0D48\u0D4A-\u0D4E\u0D54-\u0D57\u0D5F-\u0D63\u0D66-\u0D6F\u0D7A-\u0D7F\u0D82\u0D83\u0D85-\u0D96\u0D9A-\u0DB1\u0DB3-\u0DBB\u0DBD\u0DC0-\u0DC6\u0DCA\u0DCF-\u0DD4\u0DD6\u0DD8-\u0DDF\u0DE6-\u0DEF\u0DF2\u0DF3\u0E01-\u0E3A\u0E40-\u0E4E\u0E50-\u0E59\u0E81\u0E82\u0E84\u0E87\u0E88\u0E8A\u0E8D\u0E94-\u0E97\u0E99-\u0E9F\u0EA1-\u0EA3\u0EA5\u0EA7\u0EAA\u0EAB\u0EAD-\u0EB9\u0EBB-\u0EBD\u0EC0-\u0EC4\u0EC6\u0EC8-\u0ECD\u0ED0-\u0ED9\u0EDC-\u0EDF\u0F00\u0F18\u0F19\u0F20-\u0F29\u0F35\u0F37\u0F39\u0F3E-\u0F47\u0F49-\u0F6C\u0F71-\u0F84\u0F86-\u0F97\u0F99-\u0FBC\u0FC6\u1000-\u1049\u1050-\u109D\u10A0-\u10C5\u10C7\u10CD\u10D0-\u10FA\u10FC-\u1248\u124A-\u124D\u1250-\u1256\u1258\u125A-\u125D\u1260-\u1288\u128A-\u128D\u1290-\u12B0\u12B2-\u12B5\u12B8-\u12BE\u12C0\u12C2-\u12C5\u12C8-\u12D6\u12D8-\u1310\u1312-\u1315\u1318-\u135A\u135D-\u135F\u1369-\u1371\u1380-\u138F\u13A0-\u13F5\u13F8-\u13FD\u1401-\u166C\u166F-\u167F\u1681-\u169A\u16A0-\u16EA\u16EE-\u16F8\u1700-\u170C\u170E-\u1714\u1720-\u1734\u1740-\u1753\u1760-\u176C\u176E-\u1770\u1772\u1773\u1780-\u17D3\u17D7\u17DC\u17DD\u17E0-\u17E9\u180B-\u180D\u1810-\u1819\u1820-\u1877\u1880-\u18AA\u18B0-\u18F5\u1900-\u191E\u1920-\u192B\u1930-\u193B\u1946-\u196D\u1970-\u1974\u1980-\u19AB\u19B0-\u19C9\u19D0-\u19DA\u1A00-\u1A1B\u1A20-\u1A5E\u1A60-\u1A7C\u1A7F-\u1A89\u1A90-\u1A99\u1AA7\u1AB0-\u1ABD\u1B00-\u1B4B\u1B50-\u1B59\u1B6B-\u1B73\u1B80-\u1BF3\u1C00-\u1C37\u1C40-\u1C49\u1C4D-\u1C7D\u1C80-\u1C88\u1CD0-\u1CD2\u1CD4-\u1CF6\u1CF8\u1CF9\u1D00-\u1DF5\u1DFB-\u1F15\u1F18-\u1F1D\u1F20-\u1F45\u1F48-\u1F4D\u1F50-\u1F57\u1F59\u1F5B\u1F5D\u1F5F-\u1F7D\u1F80-\u1FB4\u1FB6-\u1FBC\u1FBE\u1FC2-\u1FC4\u1FC6-\u1FCC\u1FD0-\u1FD3\u1FD6-\u1FDB\u1FE0-\u1FEC\u1FF2-\u1FF4\u1FF6-\u1FFC\u200C\u200D\u203F\u2040\u2054\u2071\u207F\u2090-\u209C\u20D0-\u20DC\u20E1\u20E5-\u20F0\u2102\u2107\u210A-\u2113\u2115\u2118-\u211D\u2124\u2126\u2128\u212A-\u2139\u213C-\u213F\u2145-\u2149\u214E\u2160-\u2188\u2C00-\u2C2E\u2C30-\u2C5E\u2C60-\u2CE4\u2CEB-\u2CF3\u2D00-\u2D25\u2D27\u2D2D\u2D30-\u2D67\u2D6F\u2D7F-\u2D96\u2DA0-\u2DA6\u2DA8-\u2DAE\u2DB0-\u2DB6\u2DB8-\u2DBE\u2DC0-\u2DC6\u2DC8-\u2DCE\u2DD0-\u2DD6\u2DD8-\u2DDE\u2DE0-\u2DFF\u3005-\u3007\u3021-\u302F\u3031-\u3035\u3038-\u303C\u3041-\u3096\u3099-\u309F\u30A1-\u30FA\u30FC-\u30FF\u3105-\u312D\u3131-\u318E\u31A0-\u31BA\u31F0-\u31FF\u3400-\u4DB5\u4E00-\u9FD5\uA000-\uA48C\uA4D0-\uA4FD\uA500-\uA60C\uA610-\uA62B\uA640-\uA66F\uA674-\uA67D\uA67F-\uA6F1\uA717-\uA71F\uA722-\uA788\uA78B-\uA7AE\uA7B0-\uA7B7\uA7F7-\uA827\uA840-\uA873\uA880-\uA8C5\uA8D0-\uA8D9\uA8E0-\uA8F7\uA8FB\uA8FD\uA900-\uA92D\uA930-\uA953\uA960-\uA97C\uA980-\uA9C0\uA9CF-\uA9D9\uA9E0-\uA9FE\uAA00-\uAA36\uAA40-\uAA4D\uAA50-\uAA59\uAA60-\uAA76\uAA7A-\uAAC2\uAADB-\uAADD\uAAE0-\uAAEF\uAAF2-\uAAF6\uAB01-\uAB06\uAB09-\uAB0E\uAB11-\uAB16\uAB20-\uAB26\uAB28-\uAB2E\uAB30-\uAB5A\uAB5C-\uAB65\uAB70-\uABEA\uABEC\uABED\uABF0-\uABF9\uAC00-\uD7A3\uD7B0-\uD7C6\uD7CB-\uD7FB\uF900-\uFA6D\uFA70-\uFAD9\uFB00-\uFB06\uFB13-\uFB17\uFB1D-\uFB28\uFB2A-\uFB36\uFB38-\uFB3C\uFB3E\uFB40\uFB41\uFB43\uFB44\uFB46-\uFBB1\uFBD3-\uFD3D\uFD50-\uFD8F\uFD92-\uFDC7\uFDF0-\uFDFB\uFE00-\uFE0F\uFE20-\uFE2F\uFE33\uFE34\uFE4D-\uFE4F\uFE70-\uFE74\uFE76-\uFEFC\uFF10-\uFF19\uFF21-\uFF3A\uFF3F\uFF41-\uFF5A\uFF66-\uFFBE\uFFC2-\uFFC7\uFFCA-\uFFCF\uFFD2-\uFFD7\uFFDA-\uFFDC]|\uD800[\uDC00-\uDC0B\uDC0D-\uDC26\uDC28-\uDC3A\uDC3C\uDC3D\uDC3F-\uDC4D\uDC50-\uDC5D\uDC80-\uDCFA\uDD40-\uDD74\uDDFD\uDE80-\uDE9C\uDEA0-\uDED0\uDEE0\uDF00-\uDF1F\uDF30-\uDF4A\uDF50-\uDF7A\uDF80-\uDF9D\uDFA0-\uDFC3\uDFC8-\uDFCF\uDFD1-\uDFD5]|\uD801[\uDC00-\uDC9D\uDCA0-\uDCA9\uDCB0-\uDCD3\uDCD8-\uDCFB\uDD00-\uDD27\uDD30-\uDD63\uDE00-\uDF36\uDF40-\uDF55\uDF60-\uDF67]|\uD802[\uDC00-\uDC05\uDC08\uDC0A-\uDC35\uDC37\uDC38\uDC3C\uDC3F-\uDC55\uDC60-\uDC76\uDC80-\uDC9E\uDCE0-\uDCF2\uDCF4\uDCF5\uDD00-\uDD15\uDD20-\uDD39\uDD80-\uDDB7\uDDBE\uDDBF\uDE00-\uDE03\uDE05\uDE06\uDE0C-\uDE13\uDE15-\uDE17\uDE19-\uDE33\uDE38-\uDE3A\uDE3F\uDE60-\uDE7C\uDE80-\uDE9C\uDEC0-\uDEC7\uDEC9-\uDEE6\uDF00-\uDF35\uDF40-\uDF55\uDF60-\uDF72\uDF80-\uDF91]|\uD803[\uDC00-\uDC48\uDC80-\uDCB2\uDCC0-\uDCF2]|\uD804[\uDC00-\uDC46\uDC66-\uDC6F\uDC7F-\uDCBA\uDCD0-\uDCE8\uDCF0-\uDCF9\uDD00-\uDD34\uDD36-\uDD3F\uDD50-\uDD73\uDD76\uDD80-\uDDC4\uDDCA-\uDDCC\uDDD0-\uDDDA\uDDDC\uDE00-\uDE11\uDE13-\uDE37\uDE3E\uDE80-\uDE86\uDE88\uDE8A-\uDE8D\uDE8F-\uDE9D\uDE9F-\uDEA8\uDEB0-\uDEEA\uDEF0-\uDEF9\uDF00-\uDF03\uDF05-\uDF0C\uDF0F\uDF10\uDF13-\uDF28\uDF2A-\uDF30\uDF32\uDF33\uDF35-\uDF39\uDF3C-\uDF44\uDF47\uDF48\uDF4B-\uDF4D\uDF50\uDF57\uDF5D-\uDF63\uDF66-\uDF6C\uDF70-\uDF74]|\uD805[\uDC00-\uDC4A\uDC50-\uDC59\uDC80-\uDCC5\uDCC7\uDCD0-\uDCD9\uDD80-\uDDB5\uDDB8-\uDDC0\uDDD8-\uDDDD\uDE00-\uDE40\uDE44\uDE50-\uDE59\uDE80-\uDEB7\uDEC0-\uDEC9\uDF00-\uDF19\uDF1D-\uDF2B\uDF30-\uDF39]|\uD806[\uDCA0-\uDCE9\uDCFF\uDEC0-\uDEF8]|\uD807[\uDC00-\uDC08\uDC0A-\uDC36\uDC38-\uDC40\uDC50-\uDC59\uDC72-\uDC8F\uDC92-\uDCA7\uDCA9-\uDCB6]|\uD808[\uDC00-\uDF99]|\uD809[\uDC00-\uDC6E\uDC80-\uDD43]|[\uD80C\uD81C-\uD820\uD840-\uD868\uD86A-\uD86C\uD86F-\uD872][\uDC00-\uDFFF]|\uD80D[\uDC00-\uDC2E]|\uD811[\uDC00-\uDE46]|\uD81A[\uDC00-\uDE38\uDE40-\uDE5E\uDE60-\uDE69\uDED0-\uDEED\uDEF0-\uDEF4\uDF00-\uDF36\uDF40-\uDF43\uDF50-\uDF59\uDF63-\uDF77\uDF7D-\uDF8F]|\uD81B[\uDF00-\uDF44\uDF50-\uDF7E\uDF8F-\uDF9F\uDFE0]|\uD821[\uDC00-\uDFEC]|\uD822[\uDC00-\uDEF2]|\uD82C[\uDC00\uDC01]|\uD82F[\uDC00-\uDC6A\uDC70-\uDC7C\uDC80-\uDC88\uDC90-\uDC99\uDC9D\uDC9E]|\uD834[\uDD65-\uDD69\uDD6D-\uDD72\uDD7B-\uDD82\uDD85-\uDD8B\uDDAA-\uDDAD\uDE42-\uDE44]|\uD835[\uDC00-\uDC54\uDC56-\uDC9C\uDC9E\uDC9F\uDCA2\uDCA5\uDCA6\uDCA9-\uDCAC\uDCAE-\uDCB9\uDCBB\uDCBD-\uDCC3\uDCC5-\uDD05\uDD07-\uDD0A\uDD0D-\uDD14\uDD16-\uDD1C\uDD1E-\uDD39\uDD3B-\uDD3E\uDD40-\uDD44\uDD46\uDD4A-\uDD50\uDD52-\uDEA5\uDEA8-\uDEC0\uDEC2-\uDEDA\uDEDC-\uDEFA\uDEFC-\uDF14\uDF16-\uDF34\uDF36-\uDF4E\uDF50-\uDF6E\uDF70-\uDF88\uDF8A-\uDFA8\uDFAA-\uDFC2\uDFC4-\uDFCB\uDFCE-\uDFFF]|\uD836[\uDE00-\uDE36\uDE3B-\uDE6C\uDE75\uDE84\uDE9B-\uDE9F\uDEA1-\uDEAF]|\uD838[\uDC00-\uDC06\uDC08-\uDC18\uDC1B-\uDC21\uDC23\uDC24\uDC26-\uDC2A]|\uD83A[\uDC00-\uDCC4\uDCD0-\uDCD6\uDD00-\uDD4A\uDD50-\uDD59]|\uD83B[\uDE00-\uDE03\uDE05-\uDE1F\uDE21\uDE22\uDE24\uDE27\uDE29-\uDE32\uDE34-\uDE37\uDE39\uDE3B\uDE42\uDE47\uDE49\uDE4B\uDE4D-\uDE4F\uDE51\uDE52\uDE54\uDE57\uDE59\uDE5B\uDE5D\uDE5F\uDE61\uDE62\uDE64\uDE67-\uDE6A\uDE6C-\uDE72\uDE74-\uDE77\uDE79-\uDE7C\uDE7E\uDE80-\uDE89\uDE8B-\uDE9B\uDEA1-\uDEA3\uDEA5-\uDEA9\uDEAB-\uDEBB]|\uD869[\uDC00-\uDED6\uDF00-\uDFFF]|\uD86D[\uDC00-\uDF34\uDF40-\uDFFF]|\uD86E[\uDC00-\uDC1D\uDC20-\uDFFF]|\uD873[\uDC00-\uDEA1]|\uD87E[\uDC00-\uDE1D]|\uDB40[\uDD00-\uDDEF]/};function isDecimalDigit2(ch2){return 48<=ch2&&ch2<=57;}function isHexDigit(ch2){return 48<=ch2&&ch2<=57||97<=ch2&&ch2<=102||65<=ch2&&ch2<=70;}function isOctalDigit(ch2){return ch2>=48&&ch2<=55;}NON_ASCII_WHITESPACES=[5760,8192,8193,8194,8195,8196,8197,8198,8199,8200,8201,8202,8239,8287,12288,65279];function isWhiteSpace2(ch2){return ch2===32||ch2===9||ch2===11||ch2===12||ch2===160||ch2>=5760&&NON_ASCII_WHITESPACES.indexOf(ch2)>=0;}function isLineTerminator2(ch2){return ch2===10||ch2===13||ch2===8232||ch2===8233;}function fromCodePoint2(cp){if(cp<=65535){return String.fromCharCode(cp);}var cu1=String.fromCharCode(Math.floor((cp-65536)/1024)+55296);var cu2=String.fromCharCode((cp-65536)%1024+56320);return cu1+cu2;}IDENTIFIER_START=new Array(128);for(ch=0;ch<128;++ch){IDENTIFIER_START[ch]=ch>=97&&ch<=122||ch>=65&&ch<=90||ch===36||ch===95;}IDENTIFIER_PART=new Array(128);for(ch=0;ch<128;++ch){IDENTIFIER_PART[ch]=ch>=97&&ch<=122||ch>=65&&ch<=90||ch>=48&&ch<=57||ch===36||ch===95;}function isIdentifierStartES5(ch2){return ch2<128?IDENTIFIER_START[ch2]:ES5Regex.NonAsciiIdentifierStart.test(fromCodePoint2(ch2));}function isIdentifierPartES5(ch2){return ch2<128?IDENTIFIER_PART[ch2]:ES5Regex.NonAsciiIdentifierPart.test(fromCodePoint2(ch2));}function isIdentifierStartES6(ch2){return ch2<128?IDENTIFIER_START[ch2]:ES6Regex.NonAsciiIdentifierStart.test(fromCodePoint2(ch2));}function isIdentifierPartES62(ch2){return ch2<128?IDENTIFIER_PART[ch2]:ES6Regex.NonAsciiIdentifierPart.test(fromCodePoint2(ch2));}code$2.exports={isDecimalDigit:isDecimalDigit2,isHexDigit,isOctalDigit,isWhiteSpace:isWhiteSpace2,isLineTerminator:isLineTerminator2,isIdentifierStartES5,isIdentifierPartES5,isIdentifierStartES6,isIdentifierPartES6:isIdentifierPartES62};})();var code$1=/* @__PURE__ */_mergeNamespaces({__proto__:null,"default":code$2.exports},[code$2.exports]);var require$$1$2=/* @__PURE__ */getAugmentedNamespace(code$1);var keyword$2={exports:{}};(function(){var code2=require$$1$2;function isStrictModeReservedWordES6(id2){switch(id2){case"implements":case"interface":case"package":case"private":case"protected":case"public":case"static":case"let":return true;default:return false;}}function isKeywordES5(id2,strict){if(!strict&&id2==="yield"){return false;}return isKeywordES6(id2,strict);}function isKeywordES6(id2,strict){if(strict&&isStrictModeReservedWordES6(id2)){return true;}switch(id2.length){case 2:return id2==="if"||id2==="in"||id2==="do";case 3:return id2==="var"||id2==="for"||id2==="new"||id2==="try";case 4:return id2==="this"||id2==="else"||id2==="case"||id2==="void"||id2==="with"||id2==="enum";case 5:return id2==="while"||id2==="break"||id2==="catch"||id2==="throw"||id2==="const"||id2==="yield"||id2==="class"||id2==="super";case 6:return id2==="return"||id2==="typeof"||id2==="delete"||id2==="switch"||id2==="export"||id2==="import";case 7:return id2==="default"||id2==="finally"||id2==="extends";case 8:return id2==="function"||id2==="continue"||id2==="debugger";case 10:return id2==="instanceof";default:return false;}}function isReservedWordES5(id2,strict){return id2==="null"||id2==="true"||id2==="false"||isKeywordES5(id2,strict);}function isReservedWordES6(id2,strict){return id2==="null"||id2==="true"||id2==="false"||isKeywordES6(id2,strict);}function isRestrictedWord(id2){return id2==="eval"||id2==="arguments";}function isIdentifierNameES5(id2){var i2,iz,ch;if(id2.length===0){return false;}ch=id2.charCodeAt(0);if(!code2.isIdentifierStartES5(ch)){return false;}for(i2=1,iz=id2.length;i2<iz;++i2){ch=id2.charCodeAt(i2);if(!code2.isIdentifierPartES5(ch)){return false;}}return true;}function decodeUtf162(lead,trail){return(lead-55296)*1024+(trail-56320)+65536;}function isIdentifierNameES6(id2){var i2,iz,ch,lowCh,check;if(id2.length===0){return false;}check=code2.isIdentifierStartES6;for(i2=0,iz=id2.length;i2<iz;++i2){ch=id2.charCodeAt(i2);if(55296<=ch&&ch<=56319){++i2;if(i2>=iz){return false;}lowCh=id2.charCodeAt(i2);if(!(56320<=lowCh&&lowCh<=57343)){return false;}ch=decodeUtf162(ch,lowCh);}if(!check(ch)){return false;}check=code2.isIdentifierPartES6;}return true;}function isIdentifierES5(id2,strict){return isIdentifierNameES5(id2)&&!isReservedWordES5(id2,strict);}function isIdentifierES6(id2,strict){return isIdentifierNameES6(id2)&&!isReservedWordES6(id2,strict);}keyword$2.exports={isKeywordES5,isKeywordES6,isReservedWordES5,isReservedWordES6,isRestrictedWord,isIdentifierNameES5,isIdentifierNameES6,isIdentifierES5,isIdentifierES6};})();var keyword$1=/* @__PURE__ */_mergeNamespaces({__proto__:null,"default":keyword$2.exports},[keyword$2.exports]);var require$$2$1=/* @__PURE__ */getAugmentedNamespace(keyword$1);var keyword;var code;var ast;(function(){ast=utils$1.ast=require$$0$2;code=utils$1.code=require$$1$2;keyword=utils$1.keyword=require$$2$1;})();var utils=/* @__PURE__ */_mergeNamespaces({__proto__:null,get ast(){return ast;},get code(){return code;},get keyword(){return keyword;},"default":utils$1},[utils$1]);var require$$1$1=/* @__PURE__ */getAugmentedNamespace(utils);var coderep$1={};var SemiOp_1;var CommaSep_1;var Semi_1;var Seq_1;var ContainsIn_1;var NoIn_1;var Brace_1;var Bracket_1;var Paren_1;var NumberCodeRep_1;var RawToken_1;var Token_1;var Empty_1;var CodeRep_1;Object.defineProperty(coderep$1,"__esModule",{value:true});var _createClass$4=function(){function defineProperties(target,props){for(var i2=0;i2<props.length;i2++){var descriptor=props[i2];descriptor.enumerable=descriptor.enumerable||false;descriptor.configurable=true;if("value"in descriptor)descriptor.writable=true;Object.defineProperty(target,descriptor.key,descriptor);}}return function(Constructor,protoProps,staticProps){if(protoProps)defineProperties(Constructor.prototype,protoProps);if(staticProps)defineProperties(Constructor,staticProps);return Constructor;};}();var getPrecedence_1=coderep$1.getPrecedence=getPrecedence;var escapeStringLiteral_1=coderep$1.escapeStringLiteral=escapeStringLiteral;function _possibleConstructorReturn$2(self,call){if(!self){throw new ReferenceError("this hasn't been initialised - super() hasn't been called");}return call&&(typeof call==="object"||typeof call==="function")?call:self;}function _inherits$2(subClass,superClass){if(typeof superClass!=="function"&&superClass!==null){throw new TypeError("Super expression must either be null or a function, not "+typeof superClass);}subClass.prototype=Object.create(superClass&&superClass.prototype,{constructor:{value:subClass,enumerable:false,writable:true,configurable:true}});if(superClass)Object.setPrototypeOf?Object.setPrototypeOf(subClass,superClass):subClass.__proto__=superClass;}function _classCallCheck$4(instance,Constructor){if(!(instance instanceof Constructor)){throw new TypeError("Cannot call a class as a function");}}var Precedence={Sequence:0,Yield:1,Assignment:1,Conditional:2,ArrowFunction:2,LogicalOR:3,LogicalAND:4,BitwiseOR:5,BitwiseXOR:6,BitwiseAND:7,Equality:8,Relational:9,BitwiseSHIFT:10,Additive:11,Multiplicative:12,Exponential:13,Prefix:14,Postfix:15,New:16,Call:17,TaggedTemplate:18,Member:19,Primary:20};var Precedence_1=coderep$1.Precedence=Precedence;var BinaryPrecedence={",":Precedence.Sequence,"||":Precedence.LogicalOR,"&&":Precedence.LogicalAND,"|":Precedence.BitwiseOR,"^":Precedence.BitwiseXOR,"&":Precedence.BitwiseAND,"==":Precedence.Equality,"!=":Precedence.Equality,"===":Precedence.Equality,"!==":Precedence.Equality,"<":Precedence.Relational,">":Precedence.Relational,"<=":Precedence.Relational,">=":Precedence.Relational,"in":Precedence.Relational,"instanceof":Precedence.Relational,"<<":Precedence.BitwiseSHIFT,">>":Precedence.BitwiseSHIFT,">>>":Precedence.BitwiseSHIFT,"+":Precedence.Additive,"-":Precedence.Additive,"*":Precedence.Multiplicative,"%":Precedence.Multiplicative,"/":Precedence.Multiplicative,"**":Precedence.Exponential};function getPrecedence(node){switch(node.type){case"ArrayExpression":case"FunctionExpression":case"ClassExpression":case"IdentifierExpression":case"AssignmentTargetIdentifier":case"NewTargetExpression":case"Super":case"LiteralBooleanExpression":case"LiteralNullExpression":case"LiteralNumericExpression":case"LiteralInfinityExpression":case"LiteralRegExpExpression":case"LiteralStringExpression":case"ObjectExpression":case"ThisExpression":case"SpreadElement":case"FunctionBody":return Precedence.Primary;case"ArrowExpression":case"AssignmentExpression":case"CompoundAssignmentExpression":case"YieldExpression":case"YieldGeneratorExpression":return Precedence.Assignment;case"ConditionalExpression":return Precedence.Conditional;case"ComputedMemberExpression":case"StaticMemberExpression":case"ComputedMemberAssignmentTarget":case"StaticMemberAssignmentTarget":switch(node.object.type){case"CallExpression":case"ComputedMemberExpression":case"StaticMemberExpression":case"TemplateExpression":return getPrecedence(node.object);default:return Precedence.Member;}case"TemplateExpression":if(node.tag==null)return Precedence.Member;switch(node.tag.type){case"CallExpression":case"ComputedMemberExpression":case"StaticMemberExpression":case"TemplateExpression":return getPrecedence(node.tag);default:return Precedence.Member;}case"BinaryExpression":return BinaryPrecedence[node.operator];case"CallExpression":return Precedence.Call;case"NewExpression":return node.arguments.length===0?Precedence.New:Precedence.Member;case"UpdateExpression":return node.isPrefix?Precedence.Prefix:Precedence.Postfix;case"AwaitExpression":case"UnaryExpression":return Precedence.Prefix;default:throw new Error("unreachable: "+node.type);}}function escapeStringLiteral(stringValue){var result="";var nSingle=0,nDouble=0;for(var i2=0,l=stringValue.length;i2<l;++i2){var ch=stringValue[i2];if(ch==='"'){++nDouble;}else if(ch==="'"){++nSingle;}}var delim=nDouble>nSingle?"'":'"';result+=delim;for(var _i=0;_i<stringValue.length;_i++){var _ch=stringValue.charAt(_i);switch(_ch){case delim:result+="\\"+delim;break;case"\n":result+="\\n";break;case"\r":result+="\\r";break;case"\\":result+="\\\\";break;case"\u2028":result+="\\u2028";break;case"\u2029":result+="\\u2029";break;default:result+=_ch;break;}}result+=delim;return result;}var CodeRep=CodeRep_1=coderep$1.CodeRep=function(){function CodeRep2(){_classCallCheck$4(this,CodeRep2);this.containsIn=false;this.containsGroup=false;this.startsWithCurly=false;this.startsWithFunctionOrClass=false;this.startsWithLet=false;this.startsWithLetSquareBracket=false;this.endsWithMissingElse=false;}_createClass$4(CodeRep2,[{key:"forEach",value:function forEach(f){f(this);}}]);return CodeRep2;}();Empty_1=coderep$1.Empty=function(_CodeRep){_inherits$2(Empty,_CodeRep);function Empty(){_classCallCheck$4(this,Empty);return _possibleConstructorReturn$2(this,(Empty.__proto__||Object.getPrototypeOf(Empty)).call(this));}_createClass$4(Empty,[{key:"emit",value:function emit(){}}]);return Empty;}(CodeRep);var Token=Token_1=coderep$1.Token=function(_CodeRep2){_inherits$2(Token2,_CodeRep2);function Token2(token){var isRegExp=arguments.length>1&&arguments[1]!==void 0?arguments[1]:false;_classCallCheck$4(this,Token2);var _this2=_possibleConstructorReturn$2(this,(Token2.__proto__||Object.getPrototypeOf(Token2)).call(this));_this2.token=token;_this2.isRegExp=isRegExp;return _this2;}_createClass$4(Token2,[{key:"emit",value:function emit(ts){ts.put(this.token,this.isRegExp);}}]);return Token2;}(CodeRep);RawToken_1=coderep$1.RawToken=function(_CodeRep3){_inherits$2(RawToken,_CodeRep3);function RawToken(token){_classCallCheck$4(this,RawToken);var _this3=_possibleConstructorReturn$2(this,(RawToken.__proto__||Object.getPrototypeOf(RawToken)).call(this));_this3.token=token;return _this3;}_createClass$4(RawToken,[{key:"emit",value:function emit(ts){ts.putRaw(this.token);}}]);return RawToken;}(CodeRep);NumberCodeRep_1=coderep$1.NumberCodeRep=function(_CodeRep4){_inherits$2(NumberCodeRep,_CodeRep4);function NumberCodeRep(number){_classCallCheck$4(this,NumberCodeRep);var _this4=_possibleConstructorReturn$2(this,(NumberCodeRep.__proto__||Object.getPrototypeOf(NumberCodeRep)).call(this));_this4.number=number;return _this4;}_createClass$4(NumberCodeRep,[{key:"emit",value:function emit(ts){ts.putNumber(this.number);}}]);return NumberCodeRep;}(CodeRep);Paren_1=coderep$1.Paren=function(_CodeRep5){_inherits$2(Paren,_CodeRep5);function Paren(expr){_classCallCheck$4(this,Paren);var _this5=_possibleConstructorReturn$2(this,(Paren.__proto__||Object.getPrototypeOf(Paren)).call(this));_this5.expr=expr;return _this5;}_createClass$4(Paren,[{key:"emit",value:function emit(ts){ts.put("(");this.expr.emit(ts,false);ts.put(")");}},{key:"forEach",value:function forEach(f){f(this);this.expr.forEach(f);}}]);return Paren;}(CodeRep);Bracket_1=coderep$1.Bracket=function(_CodeRep6){_inherits$2(Bracket,_CodeRep6);function Bracket(expr){_classCallCheck$4(this,Bracket);var _this6=_possibleConstructorReturn$2(this,(Bracket.__proto__||Object.getPrototypeOf(Bracket)).call(this));_this6.expr=expr;return _this6;}_createClass$4(Bracket,[{key:"emit",value:function emit(ts){ts.put("[");this.expr.emit(ts,false);ts.put("]");}},{key:"forEach",value:function forEach(f){f(this);this.expr.forEach(f);}}]);return Bracket;}(CodeRep);Brace_1=coderep$1.Brace=function(_CodeRep7){_inherits$2(Brace,_CodeRep7);function Brace(expr){_classCallCheck$4(this,Brace);var _this7=_possibleConstructorReturn$2(this,(Brace.__proto__||Object.getPrototypeOf(Brace)).call(this));_this7.expr=expr;return _this7;}_createClass$4(Brace,[{key:"emit",value:function emit(ts){ts.put("{");this.expr.emit(ts,false);ts.put("}");}},{key:"forEach",value:function forEach(f){f(this);this.expr.forEach(f);}}]);return Brace;}(CodeRep);NoIn_1=coderep$1.NoIn=function(_CodeRep8){_inherits$2(NoIn,_CodeRep8);function NoIn(expr){_classCallCheck$4(this,NoIn);var _this8=_possibleConstructorReturn$2(this,(NoIn.__proto__||Object.getPrototypeOf(NoIn)).call(this));_this8.expr=expr;return _this8;}_createClass$4(NoIn,[{key:"emit",value:function emit(ts){this.expr.emit(ts,true);}},{key:"forEach",value:function forEach(f){f(this);this.expr.forEach(f);}}]);return NoIn;}(CodeRep);ContainsIn_1=coderep$1.ContainsIn=function(_CodeRep9){_inherits$2(ContainsIn,_CodeRep9);function ContainsIn(expr){_classCallCheck$4(this,ContainsIn);var _this9=_possibleConstructorReturn$2(this,(ContainsIn.__proto__||Object.getPrototypeOf(ContainsIn)).call(this));_this9.expr=expr;return _this9;}_createClass$4(ContainsIn,[{key:"emit",value:function emit(ts,noIn2){if(noIn2){ts.put("(");this.expr.emit(ts,false);ts.put(")");}else{this.expr.emit(ts,false);}}},{key:"forEach",value:function forEach(f){f(this);this.expr.forEach(f);}}]);return ContainsIn;}(CodeRep);Seq_1=coderep$1.Seq=function(_CodeRep10){_inherits$2(Seq,_CodeRep10);function Seq(children){_classCallCheck$4(this,Seq);var _this10=_possibleConstructorReturn$2(this,(Seq.__proto__||Object.getPrototypeOf(Seq)).call(this));_this10.children=children;return _this10;}_createClass$4(Seq,[{key:"emit",value:function emit(ts,noIn2){this.children.forEach(function(cr){return cr.emit(ts,noIn2);});}},{key:"forEach",value:function forEach(f){f(this);this.children.forEach(function(x){return x.forEach(f);});}}]);return Seq;}(CodeRep);Semi_1=coderep$1.Semi=function(_Token){_inherits$2(Semi,_Token);function Semi(){_classCallCheck$4(this,Semi);return _possibleConstructorReturn$2(this,(Semi.__proto__||Object.getPrototypeOf(Semi)).call(this,";"));}return Semi;}(Token);CommaSep_1=coderep$1.CommaSep=function(_CodeRep11){_inherits$2(CommaSep,_CodeRep11);function CommaSep(children){_classCallCheck$4(this,CommaSep);var _this12=_possibleConstructorReturn$2(this,(CommaSep.__proto__||Object.getPrototypeOf(CommaSep)).call(this));_this12.children=children;return _this12;}_createClass$4(CommaSep,[{key:"emit",value:function emit(ts,noIn2){var first=true;this.children.forEach(function(cr){if(first){first=false;}else{ts.put(",");}cr.emit(ts,noIn2);});}},{key:"forEach",value:function forEach(f){f(this);this.children.forEach(function(x){return x.forEach(f);});}}]);return CommaSep;}(CodeRep);SemiOp_1=coderep$1.SemiOp=function(_CodeRep12){_inherits$2(SemiOp,_CodeRep12);function SemiOp(){_classCallCheck$4(this,SemiOp);return _possibleConstructorReturn$2(this,(SemiOp.__proto__||Object.getPrototypeOf(SemiOp)).call(this));}_createClass$4(SemiOp,[{key:"emit",value:function emit(ts){ts.putOptionalSemi();}}]);return SemiOp;}(CodeRep);var coderep=/* @__PURE__ */_mergeNamespaces({__proto__:null,getPrecedence:getPrecedence_1,escapeStringLiteral:escapeStringLiteral_1,Precedence:Precedence_1,get CodeRep(){return CodeRep_1;},get Empty(){return Empty_1;},get Token(){return Token_1;},get RawToken(){return RawToken_1;},get NumberCodeRep(){return NumberCodeRep_1;},get Paren(){return Paren_1;},get Bracket(){return Bracket_1;},get Brace(){return Brace_1;},get NoIn(){return NoIn_1;},get ContainsIn(){return ContainsIn_1;},get Seq(){return Seq_1;},get Semi(){return Semi_1;},get CommaSep(){return CommaSep_1;},get SemiOp(){return SemiOp_1;},"default":coderep$1},[coderep$1]);var require$$2=/* @__PURE__ */getAugmentedNamespace(coderep);Object.defineProperty(minimalCodegen$1,"__esModule",{value:true});var _createClass$3=function(){function defineProperties(target,props){for(var i2=0;i2<props.length;i2++){var descriptor=props[i2];descriptor.enumerable=descriptor.enumerable||false;descriptor.configurable=true;if("value"in descriptor)descriptor.writable=true;Object.defineProperty(target,descriptor.key,descriptor);}}return function(Constructor,protoProps,staticProps){if(protoProps)defineProperties(Constructor.prototype,protoProps);if(staticProps)defineProperties(Constructor,staticProps);return Constructor;};}();var _objectAssign$1=require$$0$3;var _objectAssign2$1=_interopRequireDefault$2(_objectAssign$1);var _esutils$1=require$$1$1;var _coderep$1=require$$2;function _interopRequireDefault$2(obj){return obj&&obj.__esModule?obj:{default:obj};}function _toConsumableArray$2(arr){if(Array.isArray(arr)){for(var i2=0,arr2=Array(arr.length);i2<arr.length;i2++){arr2[i2]=arr[i2];}return arr2;}else{return Array.from(arr);}}function _classCallCheck$3(instance,Constructor){if(!(instance instanceof Constructor)){throw new TypeError("Cannot call a class as a function");}}function p(node,precedence,a){return(0,_coderep$1.getPrecedence)(node)<precedence?paren(a):a;}function t(token){var isRegExp=arguments.length>1&&arguments[1]!==void 0?arguments[1]:false;return new _coderep$1.Token(token,isRegExp);}function paren(rep){return new _coderep$1.Paren(rep);}function brace(rep){return new _coderep$1.Brace(rep);}function bracket(rep){return new _coderep$1.Bracket(rep);}function noIn$1(rep){return new _coderep$1.NoIn(rep);}function markContainsIn$1(state){return state.containsIn?new _coderep$1.ContainsIn(state):state;}function seq$1(){for(var _len=arguments.length,reps=Array(_len),_key=0;_key<_len;_key++){reps[_key]=arguments[_key];}return new _coderep$1.Seq(reps);}function semi(){return new _coderep$1.Semi();}function semiOp(){return new _coderep$1.SemiOp();}function empty$1(){return new _coderep$1.Empty();}function commaSep(pieces){return new _coderep$1.CommaSep(pieces);}function getAssignmentExpr(state){return state?state.containsGroup?paren(state):state:empty$1();}var MinimalCodeGen=function(){function MinimalCodeGen2(){_classCallCheck$3(this,MinimalCodeGen2);}_createClass$3(MinimalCodeGen2,[{key:"parenToAvoidBeingDirective",value:function parenToAvoidBeingDirective(element,original){if(element&&element.type==="ExpressionStatement"&&element.expression.type==="LiteralStringExpression"){return seq$1(paren(original.children[0]),semiOp());}return original;}},{key:"regenerateArrowParams",value:function regenerateArrowParams(element,original){if(element.rest==null&&element.items.length===1&&element.items[0].type==="BindingIdentifier"){return this.reduceBindingIdentifier(element.items[0]);}return original;}},{key:"reduceArrayExpression",value:function reduceArrayExpression(node,_ref){var elements=_ref.elements;if(elements.length===0){return bracket(empty$1());}var content=commaSep(elements.map(getAssignmentExpr));if(elements.length>0&&elements[elements.length-1]==null){content=seq$1(content,t(","));}return bracket(content);}},{key:"reduceAwaitExpression",value:function reduceAwaitExpression(node,_ref2){var expression=_ref2.expression;return seq$1(t("await"),p(node.expression,(0,_coderep$1.getPrecedence)(node),expression));}},{key:"reduceSpreadElement",value:function reduceSpreadElement(node,_ref3){var expression=_ref3.expression;return seq$1(t("..."),p(node.expression,_coderep$1.Precedence.Assignment,expression));}},{key:"reduceSpreadProperty",value:function reduceSpreadProperty(node,_ref4){var expression=_ref4.expression;return seq$1(t("..."),getAssignmentExpr(expression));}},{key:"reduceAssignmentExpression",value:function reduceAssignmentExpression(node,_ref5){var binding=_ref5.binding,expression=_ref5.expression;var leftCode=binding;var rightCode=expression;var containsIn=expression.containsIn;var startsWithCurly=binding.startsWithCurly;var startsWithLetSquareBracket=binding.startsWithLetSquareBracket;var startsWithFunctionOrClass=binding.startsWithFunctionOrClass;if((0,_coderep$1.getPrecedence)(node.expression)<(0,_coderep$1.getPrecedence)(node)){rightCode=paren(rightCode);containsIn=false;}return(0,_objectAssign2$1.default)(seq$1(leftCode,t("="),rightCode),{containsIn,startsWithCurly,startsWithLetSquareBracket,startsWithFunctionOrClass});}},{key:"reduceAssignmentTargetIdentifier",value:function reduceAssignmentTargetIdentifier(node){var a=t(node.name);if(node.name==="let"){a.startsWithLet=true;}return a;}},{key:"reduceAssignmentTargetWithDefault",value:function reduceAssignmentTargetWithDefault(node,_ref6){var binding=_ref6.binding,init=_ref6.init;return seq$1(binding,t("="),p(node.init,_coderep$1.Precedence.Assignment,init));}},{key:"reduceCompoundAssignmentExpression",value:function reduceCompoundAssignmentExpression(node,_ref7){var binding=_ref7.binding,expression=_ref7.expression;var leftCode=binding;var rightCode=expression;var containsIn=expression.containsIn;var startsWithCurly=binding.startsWithCurly;var startsWithLetSquareBracket=binding.startsWithLetSquareBracket;var startsWithFunctionOrClass=binding.startsWithFunctionOrClass;if((0,_coderep$1.getPrecedence)(node.expression)<(0,_coderep$1.getPrecedence)(node)){rightCode=paren(rightCode);containsIn=false;}return(0,_objectAssign2$1.default)(seq$1(leftCode,t(node.operator),rightCode),{containsIn,startsWithCurly,startsWithLetSquareBracket,startsWithFunctionOrClass});}},{key:"reduceBinaryExpression",value:function reduceBinaryExpression(node,_ref8){var left=_ref8.left,right=_ref8.right;var leftCode=left;var startsWithCurly=left.startsWithCurly;var startsWithLetSquareBracket=left.startsWithLetSquareBracket;var startsWithFunctionOrClass=left.startsWithFunctionOrClass;var leftContainsIn=left.containsIn;var isRightAssociative=node.operator==="**";if((0,_coderep$1.getPrecedence)(node.left)<(0,_coderep$1.getPrecedence)(node)||isRightAssociative&&((0,_coderep$1.getPrecedence)(node.left)===(0,_coderep$1.getPrecedence)(node)||node.left.type==="UnaryExpression")){leftCode=paren(leftCode);startsWithCurly=false;startsWithLetSquareBracket=false;startsWithFunctionOrClass=false;leftContainsIn=false;}var rightCode=right;var rightContainsIn=right.containsIn;if((0,_coderep$1.getPrecedence)(node.right)<(0,_coderep$1.getPrecedence)(node)||!isRightAssociative&&(0,_coderep$1.getPrecedence)(node.right)===(0,_coderep$1.getPrecedence)(node)){rightCode=paren(rightCode);rightContainsIn=false;}return(0,_objectAssign2$1.default)(seq$1(leftCode,t(node.operator),rightCode),{containsIn:leftContainsIn||rightContainsIn||node.operator==="in",containsGroup:node.operator===",",startsWithCurly,startsWithLetSquareBracket,startsWithFunctionOrClass});}},{key:"reduceBindingWithDefault",value:function reduceBindingWithDefault(node,_ref9){var binding=_ref9.binding,init=_ref9.init;return seq$1(binding,t("="),p(node.init,_coderep$1.Precedence.Assignment,init));}},{key:"reduceBindingIdentifier",value:function reduceBindingIdentifier(node){var a=t(node.name);if(node.name==="let"){a.startsWithLet=true;}return a;}},{key:"reduceArrayAssignmentTarget",value:function reduceArrayAssignmentTarget(node,_ref10){var elements=_ref10.elements,rest=_ref10.rest;var content=void 0;if(elements.length===0){content=rest==null?empty$1():seq$1(t("..."),rest);}else{elements=elements.concat(rest==null?[]:[seq$1(t("..."),rest)]);content=commaSep(elements.map(getAssignmentExpr));if(elements.length>0&&elements[elements.length-1]==null){content=seq$1(content,t(","));}}return bracket(content);}},{key:"reduceArrayBinding",value:function reduceArrayBinding(node,_ref11){var elements=_ref11.elements,rest=_ref11.rest;var content=void 0;if(elements.length===0){content=rest==null?empty$1():seq$1(t("..."),rest);}else{elements=elements.concat(rest==null?[]:[seq$1(t("..."),rest)]);content=commaSep(elements.map(getAssignmentExpr));if(elements.length>0&&elements[elements.length-1]==null){content=seq$1(content,t(","));}}return bracket(content);}},{key:"reduceObjectAssignmentTarget",value:function reduceObjectAssignmentTarget(node,_ref12){var properties=_ref12.properties,rest=_ref12.rest;var content=commaSep(properties);if(properties.length===0){content=rest==null?empty$1():seq$1(t("..."),rest);}else{content=rest==null?content:seq$1(content,t(","),t("..."),rest);}var state=brace(content);state.startsWithCurly=true;return state;}},{key:"reduceObjectBinding",value:function reduceObjectBinding(node,_ref13){var properties=_ref13.properties,rest=_ref13.rest;var content=commaSep(properties);if(properties.length===0){content=rest==null?empty$1():seq$1(t("..."),rest);}else{content=rest==null?content:seq$1(content,t(","),t("..."),rest);}var state=brace(content);state.startsWithCurly=true;return state;}},{key:"reduceAssignmentTargetPropertyIdentifier",value:function reduceAssignmentTargetPropertyIdentifier(node,_ref14){var binding=_ref14.binding,init=_ref14.init;if(node.init==null)return binding;return seq$1(binding,t("="),p(node.init,_coderep$1.Precedence.Assignment,init));}},{key:"reduceAssignmentTargetPropertyProperty",value:function reduceAssignmentTargetPropertyProperty(node,_ref15){var name=_ref15.name,binding=_ref15.binding;return seq$1(name,t(":"),binding);}},{key:"reduceBindingPropertyIdentifier",value:function reduceBindingPropertyIdentifier(node,_ref16){var binding=_ref16.binding,init=_ref16.init;if(node.init==null)return binding;return seq$1(binding,t("="),p(node.init,_coderep$1.Precedence.Assignment,init));}},{key:"reduceBindingPropertyProperty",value:function reduceBindingPropertyProperty(node,_ref17){var name=_ref17.name,binding=_ref17.binding;return seq$1(name,t(":"),binding);}},{key:"reduceBlock",value:function reduceBlock(node,_ref18){var statements=_ref18.statements;return brace(seq$1.apply(void 0,_toConsumableArray$2(statements)));}},{key:"reduceBlockStatement",value:function reduceBlockStatement(node,_ref19){var block=_ref19.block;return block;}},{key:"reduceBreakStatement",value:function reduceBreakStatement(node){return seq$1(t("break"),node.label?t(node.label):empty$1(),semiOp());}},{key:"reduceCallExpression",value:function reduceCallExpression(node,_ref20){var callee=_ref20.callee,args=_ref20.arguments;var parenthizedArgs=args.map(function(a,i2){return p(node.arguments[i2],_coderep$1.Precedence.Assignment,a);});return(0,_objectAssign2$1.default)(seq$1(p(node.callee,(0,_coderep$1.getPrecedence)(node),callee),paren(commaSep(parenthizedArgs))),{startsWithCurly:callee.startsWithCurly,startsWithLet:callee.startsWithLet,startsWithLetSquareBracket:callee.startsWithLetSquareBracket,startsWithFunctionOrClass:callee.startsWithFunctionOrClass});}},{key:"reduceCatchClause",value:function reduceCatchClause(node,_ref21){var binding=_ref21.binding,body=_ref21.body;return seq$1(t("catch"),paren(binding),body);}},{key:"reduceClassDeclaration",value:function reduceClassDeclaration(node,_ref22){var name=_ref22.name,_super=_ref22.super,elements=_ref22.elements;var state=seq$1(t("class"),node.name.name==="*default*"?empty$1():name);if(_super!=null){state=seq$1(state,t("extends"),p(node.super,_coderep$1.Precedence.New,_super));}state=seq$1.apply(void 0,[state,t("{")].concat(_toConsumableArray$2(elements),[t("}")]));return state;}},{key:"reduceClassExpression",value:function reduceClassExpression(node,_ref23){var name=_ref23.name,_super=_ref23.super,elements=_ref23.elements;var state=t("class");if(name!=null){state=seq$1(state,name);}if(_super!=null){state=seq$1(state,t("extends"),p(node.super,_coderep$1.Precedence.New,_super));}state=seq$1.apply(void 0,[state,t("{")].concat(_toConsumableArray$2(elements),[t("}")]));state.startsWithFunctionOrClass=true;return state;}},{key:"reduceClassElement",value:function reduceClassElement(node,_ref24){var method=_ref24.method;if(!node.isStatic)return method;return seq$1(t("static"),method);}},{key:"reduceComputedMemberAssignmentTarget",value:function reduceComputedMemberAssignmentTarget(node,_ref25){var object=_ref25.object,expression=_ref25.expression;var startsWithLetSquareBracket=object.startsWithLetSquareBracket||node.object.type==="IdentifierExpression"&&node.object.name==="let";return(0,_objectAssign2$1.default)(seq$1(p(node.object,(0,_coderep$1.getPrecedence)(node),object),bracket(expression)),{startsWithLet:object.startsWithLet,startsWithLetSquareBracket,startsWithCurly:object.startsWithCurly,startsWithFunctionOrClass:object.startsWithFunctionOrClass});}},{key:"reduceComputedMemberExpression",value:function reduceComputedMemberExpression(node,_ref26){var object=_ref26.object,expression=_ref26.expression;var startsWithLetSquareBracket=object.startsWithLetSquareBracket||node.object.type==="IdentifierExpression"&&node.object.name==="let";return(0,_objectAssign2$1.default)(seq$1(p(node.object,(0,_coderep$1.getPrecedence)(node),object),bracket(expression)),{startsWithLet:object.startsWithLet,startsWithLetSquareBracket,startsWithCurly:object.startsWithCurly,startsWithFunctionOrClass:object.startsWithFunctionOrClass});}},{key:"reduceComputedPropertyName",value:function reduceComputedPropertyName(node,_ref27){var expression=_ref27.expression;return bracket(p(node.expression,_coderep$1.Precedence.Assignment,expression));}},{key:"reduceConditionalExpression",value:function reduceConditionalExpression(node,_ref28){var test=_ref28.test,consequent=_ref28.consequent,alternate=_ref28.alternate;var containsIn=test.containsIn||alternate.containsIn;var startsWithCurly=test.startsWithCurly;var startsWithLetSquareBracket=test.startsWithLetSquareBracket;var startsWithFunctionOrClass=test.startsWithFunctionOrClass;return(0,_objectAssign2$1.default)(seq$1(p(node.test,_coderep$1.Precedence.LogicalOR,test),t("?"),p(node.consequent,_coderep$1.Precedence.Assignment,consequent),t(":"),p(node.alternate,_coderep$1.Precedence.Assignment,alternate)),{containsIn,startsWithCurly,startsWithLetSquareBracket,startsWithFunctionOrClass});}},{key:"reduceContinueStatement",value:function reduceContinueStatement(node){return seq$1(t("continue"),node.label?t(node.label):empty$1(),semiOp());}},{key:"reduceDataProperty",value:function reduceDataProperty(node,_ref29){var name=_ref29.name,expression=_ref29.expression;return seq$1(name,t(":"),getAssignmentExpr(expression));}},{key:"reduceDebuggerStatement",value:function reduceDebuggerStatement(){return seq$1(t("debugger"),semiOp());}},{key:"reduceDoWhileStatement",value:function reduceDoWhileStatement(node,_ref30){var body=_ref30.body,test=_ref30.test;return seq$1(t("do"),body,t("while"),paren(test),semiOp());}},{key:"reduceEmptyStatement",value:function reduceEmptyStatement(){return semi();}},{key:"reduceExpressionStatement",value:function reduceExpressionStatement(node,_ref31){var expression=_ref31.expression;var needsParens=expression.startsWithCurly||expression.startsWithLetSquareBracket||expression.startsWithFunctionOrClass;return seq$1(needsParens?paren(expression):expression,semiOp());}},{key:"reduceForInStatement",value:function reduceForInStatement(node,_ref32){var left=_ref32.left,right=_ref32.right,body=_ref32.body;left=node.left.type==="VariableDeclaration"?noIn$1(markContainsIn$1(left)):left;return(0,_objectAssign2$1.default)(seq$1(t("for"),paren(seq$1(left.startsWithLet?paren(left):left,t("in"),right)),body),{endsWithMissingElse:body.endsWithMissingElse});}},{key:"reduceForOfStatement",value:function reduceForOfStatement(node,_ref33){var left=_ref33.left,right=_ref33.right,body=_ref33.body;left=node.left.type==="VariableDeclaration"?noIn$1(markContainsIn$1(left)):left;return(0,_objectAssign2$1.default)(seq$1(t("for"),paren(seq$1(left.startsWithLet?paren(left):left,t("of"),p(node.right,_coderep$1.Precedence.Assignment,right))),body),{endsWithMissingElse:body.endsWithMissingElse});}},{key:"reduceForStatement",value:function reduceForStatement(node,_ref34){var init=_ref34.init,test=_ref34.test,update=_ref34.update,body=_ref34.body;if(init){if(init.startsWithLetSquareBracket){init=paren(init);}init=noIn$1(markContainsIn$1(init));}return(0,_objectAssign2$1.default)(seq$1(t("for"),paren(seq$1(init?init:empty$1(),semi(),test||empty$1(),semi(),update||empty$1())),body),{endsWithMissingElse:body.endsWithMissingElse});}},{key:"reduceForAwaitStatement",value:function reduceForAwaitStatement(node,_ref35){var left=_ref35.left,right=_ref35.right,body=_ref35.body;left=node.left.type==="VariableDeclaration"?noIn$1(markContainsIn$1(left)):left;return(0,_objectAssign2$1.default)(seq$1(t("for"),t("await"),paren(seq$1(left.startsWithLet?paren(left):left,t("of"),p(node.right,_coderep$1.Precedence.Assignment,right))),body),{endsWithMissingElse:body.endsWithMissingElse});}},{key:"reduceFunctionBody",value:function reduceFunctionBody(node,_ref36){var directives=_ref36.directives,statements=_ref36.statements;if(statements.length){statements[0]=this.parenToAvoidBeingDirective(node.statements[0],statements[0]);}return brace(seq$1.apply(void 0,_toConsumableArray$2(directives).concat(_toConsumableArray$2(statements))));}},{key:"reduceFunctionDeclaration",value:function reduceFunctionDeclaration(node,_ref37){var name=_ref37.name,params=_ref37.params,body=_ref37.body;return seq$1(node.isAsync?t("async"):empty$1(),t("function"),node.isGenerator?t("*"):empty$1(),node.name.name==="*default*"?empty$1():name,params,body);}},{key:"reduceFunctionExpression",value:function reduceFunctionExpression(node,_ref38){var name=_ref38.name,params=_ref38.params,body=_ref38.body;var state=seq$1(node.isAsync?t("async"):empty$1(),t("function"),node.isGenerator?t("*"):empty$1(),name?name:empty$1(),params,body);state.startsWithFunctionOrClass=true;return state;}},{key:"reduceFormalParameters",value:function reduceFormalParameters(node,_ref39){var items=_ref39.items,rest=_ref39.rest;return paren(commaSep(items.concat(rest==null?[]:[seq$1(t("..."),rest)])));}},{key:"reduceArrowExpression",value:function reduceArrowExpression(node,_ref40){var params=_ref40.params,body=_ref40.body;params=this.regenerateArrowParams(node.params,params);var containsIn=false;if(node.body.type!=="FunctionBody"){if(body.startsWithCurly){body=paren(body);}else if(body.containsIn){containsIn=true;}}return(0,_objectAssign2$1.default)(seq$1(node.isAsync?t("async"):empty$1(),params,t("=>"),p(node.body,_coderep$1.Precedence.Assignment,body)),{containsIn});}},{key:"reduceGetter",value:function reduceGetter(node,_ref41){var name=_ref41.name,body=_ref41.body;return seq$1(t("get"),name,paren(empty$1()),body);}},{key:"reduceIdentifierExpression",value:function reduceIdentifierExpression(node){var a=t(node.name);if(node.name==="let"){a.startsWithLet=true;}return a;}},{key:"reduceIfStatement",value:function reduceIfStatement(node,_ref42){var test=_ref42.test,consequent=_ref42.consequent,alternate=_ref42.alternate;if(alternate&&consequent.endsWithMissingElse){consequent=brace(consequent);}return(0,_objectAssign2$1.default)(seq$1(t("if"),paren(test),consequent,alternate?seq$1(t("else"),alternate):empty$1()),{endsWithMissingElse:alternate?alternate.endsWithMissingElse:true});}},{key:"reduceImport",value:function reduceImport(node,_ref43){var defaultBinding=_ref43.defaultBinding,namedImports=_ref43.namedImports;var bindings=[];if(defaultBinding!=null){bindings.push(defaultBinding);}if(namedImports.length>0){bindings.push(brace(commaSep(namedImports)));}if(bindings.length===0){return seq$1(t("import"),t((0,_coderep$1.escapeStringLiteral)(node.moduleSpecifier)),semiOp());}return seq$1(t("import"),commaSep(bindings),t("from"),t((0,_coderep$1.escapeStringLiteral)(node.moduleSpecifier)),semiOp());}},{key:"reduceImportNamespace",value:function reduceImportNamespace(node,_ref44){var defaultBinding=_ref44.defaultBinding,namespaceBinding=_ref44.namespaceBinding;return seq$1(t("import"),defaultBinding==null?empty$1():seq$1(defaultBinding,t(",")),t("*"),t("as"),namespaceBinding,t("from"),t((0,_coderep$1.escapeStringLiteral)(node.moduleSpecifier)),semiOp());}},{key:"reduceImportSpecifier",value:function reduceImportSpecifier(node,_ref45){var binding=_ref45.binding;if(node.name==null)return binding;return seq$1(t(node.name),t("as"),binding);}},{key:"reduceExportAllFrom",value:function reduceExportAllFrom(node){return seq$1(t("export"),t("*"),t("from"),t((0,_coderep$1.escapeStringLiteral)(node.moduleSpecifier)),semiOp());}},{key:"reduceExportFrom",value:function reduceExportFrom(node,_ref46){var namedExports=_ref46.namedExports;return seq$1(t("export"),brace(commaSep(namedExports)),t("from"),t((0,_coderep$1.escapeStringLiteral)(node.moduleSpecifier)),semiOp());}},{key:"reduceExportLocals",value:function reduceExportLocals(node,_ref47){var namedExports=_ref47.namedExports;return seq$1(t("export"),brace(commaSep(namedExports)),semiOp());}},{key:"reduceExport",value:function reduceExport(node,_ref48){var declaration=_ref48.declaration;switch(node.declaration.type){case"FunctionDeclaration":case"ClassDeclaration":break;default:declaration=seq$1(declaration,semiOp());}return seq$1(t("export"),declaration);}},{key:"reduceExportDefault",value:function reduceExportDefault(node,_ref49){var body=_ref49.body;body=body.startsWithFunctionOrClass?paren(body):body;switch(node.body.type){case"FunctionDeclaration":case"ClassDeclaration":return seq$1(t("export default"),body);default:return seq$1(t("export default"),p(node.body,_coderep$1.Precedence.Assignment,body),semiOp());}}},{key:"reduceExportFromSpecifier",value:function reduceExportFromSpecifier(node){if(node.exportedName==null)return t(node.name);return seq$1(t(node.name),t("as"),t(node.exportedName));}},{key:"reduceExportLocalSpecifier",value:function reduceExportLocalSpecifier(node,_ref50){var name=_ref50.name;if(node.exportedName==null)return name;return seq$1(name,t("as"),t(node.exportedName));}},{key:"reduceLabeledStatement",value:function reduceLabeledStatement(node,_ref51){var body=_ref51.body;return(0,_objectAssign2$1.default)(seq$1(t(node.label+":"),body),{endsWithMissingElse:body.endsWithMissingElse});}},{key:"reduceLiteralBooleanExpression",value:function reduceLiteralBooleanExpression(node){return t(node.value.toString());}},{key:"reduceLiteralNullExpression",value:function reduceLiteralNullExpression(){return t("null");}},{key:"reduceLiteralInfinityExpression",value:function reduceLiteralInfinityExpression(){return t("2e308");}},{key:"reduceLiteralNumericExpression",value:function reduceLiteralNumericExpression(node){return new _coderep$1.NumberCodeRep(node.value);}},{key:"reduceLiteralRegExpExpression",value:function reduceLiteralRegExpExpression(node){return t("/"+node.pattern+"/"+(node.global?"g":"")+(node.ignoreCase?"i":"")+(node.multiLine?"m":"")+(node.dotAll?"s":"")+(node.unicode?"u":"")+(node.sticky?"y":""),true);}},{key:"reduceLiteralStringExpression",value:function reduceLiteralStringExpression(node){return t((0,_coderep$1.escapeStringLiteral)(node.value));}},{key:"reduceMethod",value:function reduceMethod(node,_ref52){var name=_ref52.name,params=_ref52.params,body=_ref52.body;return seq$1(node.isAsync?t("async"):empty$1(),node.isGenerator?t("*"):empty$1(),name,params,body);}},{key:"reduceModule",value:function reduceModule(node,_ref53){var directives=_ref53.directives,items=_ref53.items;if(items.length){items[0]=this.parenToAvoidBeingDirective(node.items[0],items[0]);}return seq$1.apply(void 0,_toConsumableArray$2(directives).concat(_toConsumableArray$2(items)));}},{key:"reduceNewExpression",value:function reduceNewExpression(node,_ref54){var callee=_ref54.callee,args=_ref54.arguments;var parenthizedArgs=args.map(function(a,i2){return p(node.arguments[i2],_coderep$1.Precedence.Assignment,a);});var calleeRep=(0,_coderep$1.getPrecedence)(node.callee)===_coderep$1.Precedence.Call?paren(callee):p(node.callee,(0,_coderep$1.getPrecedence)(node),callee);return seq$1(t("new"),calleeRep,args.length===0?empty$1():paren(commaSep(parenthizedArgs)));}},{key:"reduceNewTargetExpression",value:function reduceNewTargetExpression(){return t("new.target");}},{key:"reduceObjectExpression",value:function reduceObjectExpression(node,_ref55){var properties=_ref55.properties;var state=brace(commaSep(properties));state.startsWithCurly=true;return state;}},{key:"reduceUpdateExpression",value:function reduceUpdateExpression(node,_ref56){var operand=_ref56.operand;if(node.isPrefix){return this.reduceUnaryExpression.apply(this,arguments);}return(0,_objectAssign2$1.default)(seq$1(p(node.operand,_coderep$1.Precedence.New,operand),t(node.operator)),{startsWithCurly:operand.startsWithCurly,startsWithLetSquareBracket:operand.startsWithLetSquareBracket,startsWithFunctionOrClass:operand.startsWithFunctionOrClass});}},{key:"reduceUnaryExpression",value:function reduceUnaryExpression(node,_ref57){var operand=_ref57.operand;return seq$1(t(node.operator),p(node.operand,(0,_coderep$1.getPrecedence)(node),operand));}},{key:"reduceReturnStatement",value:function reduceReturnStatement(node,_ref58){var expression=_ref58.expression;return seq$1(t("return"),expression||empty$1(),semiOp());}},{key:"reduceScript",value:function reduceScript(node,_ref59){var directives=_ref59.directives,statements=_ref59.statements;if(statements.length){statements[0]=this.parenToAvoidBeingDirective(node.statements[0],statements[0]);}return seq$1.apply(void 0,_toConsumableArray$2(directives).concat(_toConsumableArray$2(statements)));}},{key:"reduceSetter",value:function reduceSetter(node,_ref60){var name=_ref60.name,param=_ref60.param,body=_ref60.body;return seq$1(t("set"),name,paren(param),body);}},{key:"reduceShorthandProperty",value:function reduceShorthandProperty(node,_ref61){var name=_ref61.name;return name;}},{key:"reduceStaticMemberAssignmentTarget",value:function reduceStaticMemberAssignmentTarget(node,_ref62){var object=_ref62.object;var state=seq$1(p(node.object,(0,_coderep$1.getPrecedence)(node),object),t("."),t(node.property));state.startsWithLet=object.startsWithLet;state.startsWithCurly=object.startsWithCurly;state.startsWithLetSquareBracket=object.startsWithLetSquareBracket;state.startsWithFunctionOrClass=object.startsWithFunctionOrClass;return state;}},{key:"reduceStaticMemberExpression",value:function reduceStaticMemberExpression(node,_ref63){var object=_ref63.object;var state=seq$1(p(node.object,(0,_coderep$1.getPrecedence)(node),object),t("."),t(node.property));state.startsWithLet=object.startsWithLet;state.startsWithCurly=object.startsWithCurly;state.startsWithLetSquareBracket=object.startsWithLetSquareBracket;state.startsWithFunctionOrClass=object.startsWithFunctionOrClass;return state;}},{key:"reduceStaticPropertyName",value:function reduceStaticPropertyName(node){if(_esutils$1.keyword.isIdentifierNameES6(node.value)){return t(node.value);}var n=parseFloat(node.value);if(n>=0&&n.toString()===node.value){return new _coderep$1.NumberCodeRep(n);}return t((0,_coderep$1.escapeStringLiteral)(node.value));}},{key:"reduceSuper",value:function reduceSuper(){return t("super");}},{key:"reduceSwitchCase",value:function reduceSwitchCase(node,_ref64){var test=_ref64.test,consequent=_ref64.consequent;return seq$1(t("case"),test,t(":"),seq$1.apply(void 0,_toConsumableArray$2(consequent)));}},{key:"reduceSwitchDefault",value:function reduceSwitchDefault(node,_ref65){var consequent=_ref65.consequent;return seq$1(t("default:"),seq$1.apply(void 0,_toConsumableArray$2(consequent)));}},{key:"reduceSwitchStatement",value:function reduceSwitchStatement(node,_ref66){var discriminant=_ref66.discriminant,cases=_ref66.cases;return seq$1(t("switch"),paren(discriminant),brace(seq$1.apply(void 0,_toConsumableArray$2(cases))));}},{key:"reduceSwitchStatementWithDefault",value:function reduceSwitchStatementWithDefault(node,_ref67){var discriminant=_ref67.discriminant,preDefaultCases=_ref67.preDefaultCases,defaultCase=_ref67.defaultCase,postDefaultCases=_ref67.postDefaultCases;return seq$1(t("switch"),paren(discriminant),brace(seq$1.apply(void 0,_toConsumableArray$2(preDefaultCases).concat([defaultCase],_toConsumableArray$2(postDefaultCases)))));}},{key:"reduceTemplateExpression",value:function reduceTemplateExpression(node,_ref68){var tag=_ref68.tag,elements=_ref68.elements;var state=node.tag==null?empty$1():p(node.tag,(0,_coderep$1.getPrecedence)(node),tag);state=seq$1(state,t("`"));for(var i2=0,l=node.elements.length;i2<l;++i2){if(node.elements[i2].type==="TemplateElement"){state=seq$1(state,i2>0?t("}"):empty$1(),elements[i2],i2<l-1?t("${"):empty$1());}else{state=seq$1(state,elements[i2]);}}state=seq$1(state,t("`"));if(node.tag!=null){state.startsWithCurly=tag.startsWithCurly;state.startsWithLet=tag.startsWithLet;state.startsWithLetSquareBracket=tag.startsWithLetSquareBracket;state.startsWithFunctionOrClass=tag.startsWithFunctionOrClass;}return state;}},{key:"reduceTemplateElement",value:function reduceTemplateElement(node){return new _coderep$1.RawToken(node.rawValue);}},{key:"reduceThisExpression",value:function reduceThisExpression(){return t("this");}},{key:"reduceThrowStatement",value:function reduceThrowStatement(node,_ref69){var expression=_ref69.expression;return seq$1(t("throw"),expression,semiOp());}},{key:"reduceTryCatchStatement",value:function reduceTryCatchStatement(node,_ref70){var body=_ref70.body,catchClause=_ref70.catchClause;return seq$1(t("try"),body,catchClause);}},{key:"reduceTryFinallyStatement",value:function reduceTryFinallyStatement(node,_ref71){var body=_ref71.body,catchClause=_ref71.catchClause,finalizer=_ref71.finalizer;return seq$1(t("try"),body,catchClause||empty$1(),t("finally"),finalizer);}},{key:"reduceYieldExpression",value:function reduceYieldExpression(node,_ref72){var expression=_ref72.expression;if(node.expression==null)return t("yield");return(0,_objectAssign2$1.default)(seq$1(t("yield"),p(node.expression,(0,_coderep$1.getPrecedence)(node),expression)),{containsIn:expression.containsIn});}},{key:"reduceYieldGeneratorExpression",value:function reduceYieldGeneratorExpression(node,_ref73){var expression=_ref73.expression;return(0,_objectAssign2$1.default)(seq$1(t("yield"),t("*"),p(node.expression,(0,_coderep$1.getPrecedence)(node),expression)),{containsIn:expression.containsIn});}},{key:"reduceDirective",value:function reduceDirective(node){var delim=node.rawValue.match(/(^|[^\\])(\\\\)*"/)?"'":'"';return seq$1(t(delim+node.rawValue+delim),semiOp());}},{key:"reduceVariableDeclaration",value:function reduceVariableDeclaration(node,_ref74){var declarators=_ref74.declarators;return seq$1(t(node.kind),commaSep(declarators));}},{key:"reduceVariableDeclarationStatement",value:function reduceVariableDeclarationStatement(node,_ref75){var declaration=_ref75.declaration;return seq$1(declaration,semiOp());}},{key:"reduceVariableDeclarator",value:function reduceVariableDeclarator(node,_ref76){var binding=_ref76.binding,init=_ref76.init;var containsIn=init&&init.containsIn&&!init.containsGroup;if(init){if(init.containsGroup){init=paren(init);}else{init=markContainsIn$1(init);}}return(0,_objectAssign2$1.default)(init==null?binding:seq$1(binding,t("="),init),{containsIn});}},{key:"reduceWhileStatement",value:function reduceWhileStatement(node,_ref77){var test=_ref77.test,body=_ref77.body;return(0,_objectAssign2$1.default)(seq$1(t("while"),paren(test),body),{endsWithMissingElse:body.endsWithMissingElse});}},{key:"reduceWithStatement",value:function reduceWithStatement(node,_ref78){var object=_ref78.object,body=_ref78.body;return(0,_objectAssign2$1.default)(seq$1(t("with"),paren(object),body),{endsWithMissingElse:body.endsWithMissingElse});}}]);return MinimalCodeGen2;}();var _default$1=minimalCodegen$1["default"]=MinimalCodeGen;var minimalCodegen=/* @__PURE__ */_mergeNamespaces({__proto__:null,"default":_default$1},[minimalCodegen$1]);var require$$0$1=/* @__PURE__ */getAugmentedNamespace(minimalCodegen);var formattedCodegen$1={};var ExtensibleCodeGen_1;Object.defineProperty(formattedCodegen$1,"__esModule",{value:true});var FormattedCodeGen_1=formattedCodegen$1.FormattedCodeGen=ExtensibleCodeGen_1=formattedCodegen$1.ExtensibleCodeGen=Sep_1=formattedCodegen$1.Sep=void 0;var _createClass$2=function(){function defineProperties(target,props){for(var i2=0;i2<props.length;i2++){var descriptor=props[i2];descriptor.enumerable=descriptor.enumerable||false;descriptor.configurable=true;if("value"in descriptor)descriptor.writable=true;Object.defineProperty(target,descriptor.key,descriptor);}}return function(Constructor,protoProps,staticProps){if(protoProps)defineProperties(Constructor.prototype,protoProps);if(staticProps)defineProperties(Constructor,staticProps);return Constructor;};}();var _objectAssign=require$$0$3;var _objectAssign2=_interopRequireDefault$1(_objectAssign);var _esutils=require$$1$1;var _coderep=require$$2;function _interopRequireDefault$1(obj){return obj&&obj.__esModule?obj:{default:obj};}function _toConsumableArray$1(arr){if(Array.isArray(arr)){for(var i2=0,arr2=Array(arr.length);i2<arr.length;i2++){arr2[i2]=arr[i2];}return arr2;}else{return Array.from(arr);}}function _classCallCheck$2(instance,Constructor){if(!(instance instanceof Constructor)){throw new TypeError("Cannot call a class as a function");}}function _possibleConstructorReturn$1(self,call){if(!self){throw new ReferenceError("this hasn't been initialised - super() hasn't been called");}return call&&(typeof call==="object"||typeof call==="function")?call:self;}function _inherits$1(subClass,superClass){if(typeof superClass!=="function"&&superClass!==null){throw new TypeError("Super expression must either be null or a function, not "+typeof superClass);}subClass.prototype=Object.create(superClass&&superClass.prototype,{constructor:{value:subClass,enumerable:false,writable:true,configurable:true}});if(superClass)Object.setPrototypeOf?Object.setPrototypeOf(subClass,superClass):subClass.__proto__=superClass;}var INDENT="  ";var Linebreak=function(_CodeRep){_inherits$1(Linebreak2,_CodeRep);function Linebreak2(){_classCallCheck$2(this,Linebreak2);var _this=_possibleConstructorReturn$1(this,(Linebreak2.__proto__||Object.getPrototypeOf(Linebreak2)).call(this));_this.indentation=0;return _this;}_createClass$2(Linebreak2,[{key:"emit",value:function emit(ts){ts.put("\n");for(var i2=0;i2<this.indentation;++i2){ts.put(INDENT);}}}]);return Linebreak2;}(_coderep.CodeRep);function empty(){return new _coderep.Empty();}function noIn(rep){return new _coderep.NoIn(rep);}function markContainsIn(state){return state.containsIn?new _coderep.ContainsIn(state):state;}function seq(){for(var _len=arguments.length,reps=Array(_len),_key=0;_key<_len;_key++){reps[_key]=arguments[_key];}return new _coderep.Seq(reps);}function isEmpty(codeRep){return codeRep instanceof _coderep.Empty||codeRep instanceof Linebreak||codeRep instanceof _coderep.Seq&&codeRep.children.every(isEmpty);}var Sep={};var separatorNames=["ARRAY_EMPTY","ARRAY_BEFORE_COMMA","ARRAY_AFTER_COMMA","SPREAD","AWAIT","AFTER_FORAWAIT_AWAIT","BEFORE_DEFAULT_EQUALS","AFTER_DEFAULT_EQUALS","REST","OBJECT_BEFORE_COMMA","OBJECT_AFTER_COMMA","BEFORE_PROP","AFTER_PROP","BEFORE_JUMP_LABEL","ARGS_BEFORE_COMMA","ARGS_AFTER_COMMA","CALL","BEFORE_CATCH_BINDING","AFTER_CATCH_BINDING","BEFORE_CLASS_NAME","BEFORE_EXTENDS","AFTER_EXTENDS","BEFORE_CLASS_DECLARATION_ELEMENTS","BEFORE_CLASS_EXPRESSION_ELEMENTS","AFTER_STATIC","BEFORE_CLASS_ELEMENT","AFTER_CLASS_ELEMENT","BEFORE_TERNARY_QUESTION","AFTER_TERNARY_QUESTION","BEFORE_TERNARY_COLON","AFTER_TERNARY_COLON","COMPUTED_MEMBER_EXPRESSION","COMPUTED_MEMBER_ASSIGNMENT_TARGET","AFTER_DO","BEFORE_DOWHILE_WHILE","AFTER_DOWHILE_WHILE","AFTER_FORIN_FOR","BEFORE_FORIN_IN","AFTER_FORIN_FOR","BEFORE_FORIN_BODY","AFTER_FOROF_FOR","BEFORE_FOROF_OF","AFTER_FOROF_FOR","BEFORE_FOROF_BODY","AFTER_FOR_FOR","BEFORE_FOR_INIT","AFTER_FOR_INIT","EMPTY_FOR_INIT","BEFORE_FOR_TEST","AFTER_FOR_TEST","EMPTY_FOR_TEST","BEFORE_FOR_UPDATE","AFTER_FOR_UPDATE","EMPTY_FOR_UPDATE","BEFORE_FOR_BODY","BEFORE_GENERATOR_STAR","AFTER_GENERATOR_STAR","BEFORE_FUNCTION_PARAMS","BEFORE_FUNCTION_DECLARATION_BODY","BEFORE_FUNCTION_EXPRESSION_BODY","AFTER_FUNCTION_DIRECTIVES","BEFORE_ARROW","AFTER_ARROW","AFTER_GET","BEFORE_GET_PARAMS","BEFORE_GET_BODY","AFTER_IF","AFTER_IF_TEST","BEFORE_ELSE","AFTER_ELSE","PARAMETER_BEFORE_COMMA","PARAMETER_AFTER_COMMA","NAMED_IMPORT_BEFORE_COMMA","NAMED_IMPORT_AFTER_COMMA","IMPORT_BEFORE_COMMA","IMPORT_AFTER_COMMA","BEFORE_IMPORT_BINDINGS","BEFORE_IMPORT_MODULE","AFTER_IMPORT_BINDINGS","AFTER_FROM","BEFORE_IMPORT_NAMESPACE","BEFORE_IMPORT_STAR","AFTER_IMPORT_STAR","AFTER_IMPORT_AS","AFTER_NAMESPACE_BINDING","BEFORE_IMPORT_AS","AFTER_IMPORT_AS","EXPORTS_BEFORE_COMMA","EXPORTS_AFTER_COMMA","BEFORE_EXPORT_STAR","AFTER_EXPORT_STAR","BEFORE_EXPORT_BINDINGS","AFTER_EXPORT_FROM_BINDINGS","AFTER_EXPORT_LOCAL_BINDINGS","AFTER_EXPORT","EXPORT_DEFAULT","AFTER_EXPORT_DEFAULT","BEFORE_EXPORT_AS","AFTER_EXPORT_AS","BEFORE_LABEL_COLON","AFTER_LABEL_COLON","AFTER_METHOD_GENERATOR_STAR","AFTER_METHOD_ASYNC","AFTER_METHOD_NAME","BEFORE_METHOD_BODY","AFTER_MODULE_DIRECTIVES","AFTER_NEW","BEFORE_NEW_ARGS","EMPTY_NEW_CALL","NEW_TARGET_BEFORE_DOT","NEW_TARGET_AFTER_DOT","RETURN","AFTER_SET","BEFORE_SET_PARAMS","BEFORE_SET_BODY","AFTER_SCRIPT_DIRECTIVES","BEFORE_STATIC_MEMBER_DOT","AFTER_STATIC_MEMBER_DOT","BEFORE_STATIC_MEMBER_ASSIGNMENT_TARGET_DOT","AFTER_STATIC_MEMBER_ASSIGNMENT_TARGET_DOT","BEFORE_CASE_TEST","AFTER_CASE_TEST","BEFORE_CASE_BODY","AFTER_CASE_BODY","DEFAULT","AFTER_DEFAULT_BODY","BEFORE_SWITCH_DISCRIM","BEFORE_SWITCH_BODY","TEMPLATE_TAG","BEFORE_TEMPLATE_EXPRESSION","AFTER_TEMPLATE_EXPRESSION","THROW","AFTER_TRY","BEFORE_CATCH","BEFORE_FINALLY","AFTER_FINALLY","VARIABLE_DECLARATION","YIELD","BEFORE_YIELD_STAR","AFTER_YIELD_STAR","DECLARATORS_BEFORE_COMMA","DECLARATORS_AFTER_COMMA","BEFORE_INIT_EQUALS","AFTER_INIT_EQUALS","AFTER_WHILE","BEFORE_WHILE_BODY","AFTER_WITH","BEFORE_WITH_BODY","PAREN_AVOIDING_DIRECTIVE_BEFORE","PAREN_AVOIDING_DIRECTIVE_AFTER","PRECEDENCE_BEFORE","PRECEDENCE_AFTER","EXPRESSION_PAREN_BEFORE","EXPRESSION_PAREN_AFTER","CALL_PAREN_BEFORE","CALL_PAREN_AFTER","CALL_PAREN_EMPTY","CATCH_PAREN_BEFORE","CATCH_PAREN_AFTER","DO_WHILE_TEST_PAREN_BEFORE","DO_WHILE_TEST_PAREN_AFTER","EXPRESSION_STATEMENT_PAREN_BEFORE","EXPRESSION_STATEMENT_PAREN_AFTER","FOR_LET_PAREN_BEFORE","FOR_LET_PAREN_AFTER","FOR_IN_LET_PAREN_BEFORE","FOR_IN_LET_PAREN_AFTER","FOR_IN_PAREN_BEFORE","FOR_IN_PAREN_AFTER","FOR_OF_LET_PAREN_BEFORE","FOR_OF_LET_PAREN_AFTER","FOR_OF_PAREN_BEFORE","FOR_OF_PAREN_AFTER","PARAMETERS_PAREN_BEFORE","PARAMETERS_PAREN_AFTER","PARAMETERS_PAREN_EMPTY","ARROW_PARAMETERS_PAREN_BEFORE","ARROW_PARAMETERS_PAREN_AFTER","ARROW_PARAMETERS_PAREN_EMPTY","ARROW_BODY_PAREN_BEFORE","ARROW_BODY_PAREN_AFTER","BEFORE_ARROW_ASYNC_PARAMS","GETTER_PARAMS","IF_PAREN_BEFORE","IF_PAREN_AFTER","EXPORT_PAREN_BEFORE","EXPORT_PAREN_AFTER","NEW_CALLEE_PAREN_BEFORE","NEW_CALLEE_PAREN_AFTER","NEW_PAREN_BEFORE","NEW_PAREN_AFTER","NEW_PAREN_EMPTY","SETTER_PARAM_BEFORE","SETTER_PARAM_AFTER","SWITCH_DISCRIM_PAREN_BEFORE","SWITCH_DISCRIM_PAREN_AFTER","WHILE_TEST_PAREN_BEFORE","WHILE_TEST_PAREN_AFTER","WITH_PAREN_BEFORE","WITH_PAREN_AFTER","OBJECT_BRACE_INITIAL","OBJECT_BRACE_FINAL","OBJECT_EMPTY","BLOCK_BRACE_INITIAL","BLOCK_BRACE_FINAL","BLOCK_EMPTY","CLASS_BRACE_INITIAL","CLASS_BRACE_FINAL","CLASS_EMPTY","CLASS_EXPRESSION_BRACE_INITIAL","CLASS_EXPRESSION_BRACE_FINAL","CLASS_EXPRESSION_BRACE_EMPTY","FUNCTION_BRACE_INITIAL","FUNCTION_BRACE_FINAL","FUNCTION_EMPTY","FUNCTION_EXPRESSION_BRACE_INITIAL","FUNCTION_EXPRESSION_BRACE_FINAL","FUNCTION_EXPRESSION_EMPTY","ARROW_BRACE_INITIAL","ARROW_BRACE_FINAL","ARROW_BRACE_EMPTY","GET_BRACE_INTIAL","GET_BRACE_FINAL","GET_BRACE_EMPTY","MISSING_ELSE_INTIIAL","MISSING_ELSE_FINAL","MISSING_ELSE_EMPTY","IMPORT_BRACE_INTIAL","IMPORT_BRACE_FINAL","IMPORT_BRACE_EMPTY","EXPORT_BRACE_INITIAL","EXPORT_BRACE_FINAL","EXPORT_BRACE_EMPTY","METHOD_BRACE_INTIAL","METHOD_BRACE_FINAL","METHOD_BRACE_EMPTY","SET_BRACE_INTIIAL","SET_BRACE_FINAL","SET_BRACE_EMPTY","SWITCH_BRACE_INTIAL","SWITCH_BRACE_FINAL","SWITCH_BRACE_EMPTY","ARRAY_INITIAL","ARRAY_FINAL","COMPUTED_MEMBER_BRACKET_INTIAL","COMPUTED_MEMBER_BRACKET_FINAL","COMPUTED_MEMBER_ASSIGNMENT_TARGET_BRACKET_INTIAL","COMPUTED_MEMBER_ASSIGNMENT_TARGET_BRACKET_FINAL","COMPUTED_PROPERTY_BRACKET_INTIAL","COMPUTED_PROPERTY_BRACKET_FINAL"];for(var i=0;i<separatorNames.length;++i){Sep[separatorNames[i]]={type:separatorNames[i]};}Sep.BEFORE_ASSIGN_OP=function(op){return{type:"BEFORE_ASSIGN_OP",op};};Sep.AFTER_ASSIGN_OP=function(op){return{type:"AFTER_ASSIGN_OP",op};};Sep.BEFORE_BINOP=function(op){return{type:"BEFORE_BINOP",op};};Sep.AFTER_BINOP=function(op){return{type:"AFTER_BINOP",op};};Sep.BEFORE_POSTFIX=function(op){return{type:"BEFORE_POSTFIX",op};};Sep.UNARY=function(op){return{type:"UNARY",op};};Sep.AFTER_STATEMENT=function(node){return{type:"AFTER_STATEMENT",node};};Sep.BEFORE_FUNCTION_NAME=function(node){return{type:"BEFORE_FUNCTION_NAME",node};};var Sep_1=formattedCodegen$1.Sep=Sep;var ExtensibleCodeGen=ExtensibleCodeGen_1=formattedCodegen$1.ExtensibleCodeGen=function(){function ExtensibleCodeGen2(){_classCallCheck$2(this,ExtensibleCodeGen2);}_createClass$2(ExtensibleCodeGen2,[{key:"parenToAvoidBeingDirective",value:function parenToAvoidBeingDirective(element,original){if(element&&element.type==="ExpressionStatement"&&element.expression.type==="LiteralStringExpression"){return seq(this.paren(original.children[0],Sep.PAREN_AVOIDING_DIRECTIVE_BEFORE,Sep.PAREN_AVOIDING_DIRECTIVE_AFTER),this.semiOp());}return original;}},{key:"t",value:function t2(token){var isRegExp=arguments.length>1&&arguments[1]!==void 0?arguments[1]:false;return new _coderep.Token(token,isRegExp);}},{key:"p",value:function p2(node,precedence,a){return(0,_coderep.getPrecedence)(node)<precedence?this.paren(a,Sep.PRECEDENCE_BEFORE,Sep.PRECEDENCE_AFTER):a;}},{key:"getAssignmentExpr",value:function getAssignmentExpr2(state){return state?state.containsGroup?this.paren(state,Sep.EXPRESSION_PAREN_BEFORE,Sep.EXPRESSION_PAREN_AFTER):state:empty();}},{key:"paren",value:function paren2(rep,first,last,emptySep){if(isEmpty(rep)){return new _coderep.Paren(this.sep(emptySep));}return new _coderep.Paren(seq(first?this.sep(first):empty(),rep,last?this.sep(last):empty()));}},{key:"brace",value:function brace2(rep,node,first,last,emptySep){if(isEmpty(rep)){return new _coderep.Brace(this.sep(emptySep));}return new _coderep.Brace(seq(this.sep(first),rep,this.sep(last)));}},{key:"bracket",value:function bracket2(rep,first,last,emptySep){if(isEmpty(rep)){return new _coderep.Bracket(this.sep(emptySep));}return new _coderep.Bracket(seq(this.sep(first),rep,this.sep(last)));}},{key:"commaSep",value:function commaSep2(pieces,before,after){var _this2=this;var first=true;pieces=pieces.map(function(p2){if(first){first=false;return p2;}return seq(_this2.sep(before),_this2.t(","),_this2.sep(after),p2);});return seq.apply(void 0,_toConsumableArray$1(pieces));}},{key:"semiOp",value:function semiOp2(){return new _coderep.SemiOp();}},{key:"sep",value:function sep(){return empty();}},{key:"reduceArrayExpression",value:function reduceArrayExpression(node,_ref){var _this3=this;var elements=_ref.elements;if(elements.length===0){return this.bracket(empty(),null,null,Sep.ARRAY_EMPTY);}var content=this.commaSep(elements.map(function(e){return _this3.getAssignmentExpr(e);}),Sep.ARRAY_BEFORE_COMMA,Sep.ARRAY_AFTER_COMMA);if(elements.length>0&&elements[elements.length-1]==null){content=seq(content,this.sep(Sep.ARRAY_BEFORE_COMMA),this.t(","),this.sep(Sep.ARRAY_AFTER_COMMA));}return this.bracket(content,Sep.ARRAY_INITIAL,Sep.ARRAY_FINAL);}},{key:"reduceAwaitExpression",value:function reduceAwaitExpression(node,_ref2){var expression=_ref2.expression;return seq(this.t("await"),this.sep(Sep.AWAIT),this.p(node.expression,(0,_coderep.getPrecedence)(node),expression));}},{key:"reduceSpreadElement",value:function reduceSpreadElement(node,_ref3){var expression=_ref3.expression;return seq(this.t("..."),this.sep(Sep.SPREAD),this.p(node.expression,_coderep.Precedence.Assignment,expression));}},{key:"reduceSpreadProperty",value:function reduceSpreadProperty(node,_ref4){var expression=_ref4.expression;return seq(this.t("..."),this.sep(Sep.SPREAD),this.getAssignmentExpr(expression));}},{key:"reduceAssignmentExpression",value:function reduceAssignmentExpression(node,_ref5){var binding=_ref5.binding,expression=_ref5.expression;var leftCode=binding;var rightCode=expression;var containsIn=expression.containsIn;var startsWithCurly=binding.startsWithCurly;var startsWithLetSquareBracket=binding.startsWithLetSquareBracket;var startsWithFunctionOrClass=binding.startsWithFunctionOrClass;if((0,_coderep.getPrecedence)(node.expression)<(0,_coderep.getPrecedence)(node)){rightCode=this.paren(rightCode,Sep.EXPRESSION_PAREN_BEFORE,Sep.EXPRESSION_PAREN_AFTER);containsIn=false;}return(0,_objectAssign2.default)(seq(leftCode,this.sep(Sep.BEFORE_ASSIGN_OP("=")),this.t("="),this.sep(Sep.AFTER_ASSIGN_OP("=")),rightCode),{containsIn,startsWithCurly,startsWithLetSquareBracket,startsWithFunctionOrClass});}},{key:"reduceAssignmentTargetIdentifier",value:function reduceAssignmentTargetIdentifier(node){var a=this.t(node.name);if(node.name==="let"){a.startsWithLet=true;}return a;}},{key:"reduceAssignmentTargetWithDefault",value:function reduceAssignmentTargetWithDefault(node,_ref6){var binding=_ref6.binding,init=_ref6.init;return seq(binding,this.sep(Sep.BEFORE_DEFAULT_EQUALS),this.t("="),this.sep(Sep.AFTER_DEFAULT_EQUALS),this.p(node.init,_coderep.Precedence.Assignment,init));}},{key:"reduceCompoundAssignmentExpression",value:function reduceCompoundAssignmentExpression(node,_ref7){var binding=_ref7.binding,expression=_ref7.expression;var leftCode=binding;var rightCode=expression;var containsIn=expression.containsIn;var startsWithCurly=binding.startsWithCurly;var startsWithLetSquareBracket=binding.startsWithLetSquareBracket;var startsWithFunctionOrClass=binding.startsWithFunctionOrClass;if((0,_coderep.getPrecedence)(node.expression)<(0,_coderep.getPrecedence)(node)){rightCode=this.paren(rightCode,Sep.EXPRESSION_PAREN_BEFORE,Sep.EXPRESSION_PAREN_AFTER);containsIn=false;}return(0,_objectAssign2.default)(seq(leftCode,this.sep(Sep.BEFORE_ASSIGN_OP(node.operator)),this.t(node.operator),this.sep(Sep.AFTER_ASSIGN_OP(node.operator)),rightCode),{containsIn,startsWithCurly,startsWithLetSquareBracket,startsWithFunctionOrClass});}},{key:"reduceBinaryExpression",value:function reduceBinaryExpression(node,_ref8){var left=_ref8.left,right=_ref8.right;var leftCode=left;var startsWithCurly=left.startsWithCurly;var startsWithLetSquareBracket=left.startsWithLetSquareBracket;var startsWithFunctionOrClass=left.startsWithFunctionOrClass;var leftContainsIn=left.containsIn;var isRightAssociative=node.operator==="**";if((0,_coderep.getPrecedence)(node.left)<(0,_coderep.getPrecedence)(node)||isRightAssociative&&((0,_coderep.getPrecedence)(node.left)===(0,_coderep.getPrecedence)(node)||node.left.type==="UnaryExpression")){leftCode=this.paren(leftCode,Sep.EXPRESSION_PAREN_BEFORE,Sep.EXPRESSION_PAREN_AFTER);startsWithCurly=false;startsWithLetSquareBracket=false;startsWithFunctionOrClass=false;leftContainsIn=false;}var rightCode=right;var rightContainsIn=right.containsIn;if((0,_coderep.getPrecedence)(node.right)<(0,_coderep.getPrecedence)(node)||!isRightAssociative&&(0,_coderep.getPrecedence)(node.right)===(0,_coderep.getPrecedence)(node)){rightCode=this.paren(rightCode,Sep.EXPRESSION_PAREN_BEFORE,Sep.EXPRESSION_PAREN_AFTER);rightContainsIn=false;}return(0,_objectAssign2.default)(seq(leftCode,this.sep(Sep.BEFORE_BINOP(node.operator)),this.t(node.operator),this.sep(Sep.AFTER_BINOP(node.operator)),rightCode),{containsIn:leftContainsIn||rightContainsIn||node.operator==="in",containsGroup:node.operator===",",startsWithCurly,startsWithLetSquareBracket,startsWithFunctionOrClass});}},{key:"reduceBindingWithDefault",value:function reduceBindingWithDefault(node,_ref9){var binding=_ref9.binding,init=_ref9.init;return seq(binding,this.sep(Sep.BEFORE_DEFAULT_EQUALS),this.t("="),this.sep(Sep.AFTER_DEFAULT_EQUALS),this.p(node.init,_coderep.Precedence.Assignment,init));}},{key:"reduceBindingIdentifier",value:function reduceBindingIdentifier(node){var a=this.t(node.name);if(node.name==="let"){a.startsWithLet=true;}return a;}},{key:"reduceArrayAssignmentTarget",value:function reduceArrayAssignmentTarget(node,_ref10){var _this4=this;var elements=_ref10.elements,rest=_ref10.rest;var content=void 0;if(elements.length===0){content=rest==null?empty():seq(this.t("..."),this.sep(Sep.REST),rest);}else{elements=elements.concat(rest==null?[]:[seq(this.t("..."),this.sep(Sep.REST),rest)]);content=this.commaSep(elements.map(function(e){return _this4.getAssignmentExpr(e);}),Sep.ARRAY_BEFORE_COMMA,Sep.ARRAY_AFTER_COMMA);if(elements.length>0&&elements[elements.length-1]==null){content=seq(content,this.sep(Sep.ARRAY_BEFORE_COMMA),this.t(","),this.sep(Sep.ARRAY_AFTER_COMMA));}}return this.bracket(content,Sep.ARRAY_INITIAL,Sep.ARRAY_FINAL,Sep.ARRAY_EMPTY);}},{key:"reduceArrayBinding",value:function reduceArrayBinding(node,_ref11){var _this5=this;var elements=_ref11.elements,rest=_ref11.rest;var content=void 0;if(elements.length===0){content=rest==null?empty():seq(this.t("..."),this.sep(Sep.REST),rest);}else{elements=elements.concat(rest==null?[]:[seq(this.t("..."),this.sep(Sep.REST),rest)]);content=this.commaSep(elements.map(function(e){return _this5.getAssignmentExpr(e);}),Sep.ARRAY_BEFORE_COMMA,Sep.ARRAY_AFTER_COMMA);if(elements.length>0&&elements[elements.length-1]==null){content=seq(content,this.sep(Sep.ARRAY_BEFORE_COMMA),this.t(","),this.sep(Sep.ARRAY_AFTER_COMMA));}}return this.bracket(content,Sep.ARRAY_INITIAL,Sep.ARRAY_FINAL,Sep.ARRAY_EMPTY);}},{key:"reduceObjectAssignmentTarget",value:function reduceObjectAssignmentTarget(node,_ref12){var properties=_ref12.properties,rest=_ref12.rest;var content=void 0;if(properties.length===0){content=rest==null?empty():seq(this.t("..."),this.sep(Sep.REST),rest);}else{content=this.commaSep(properties,Sep.OBJECT_BEFORE_COMMA,Sep.OBJECT_AFTER_COMMA);content=rest==null?content:this.commaSep([content,seq(this.t("..."),this.sep(Sep.REST),rest)],Sep.OBJECT_BEFORE_COMMA,Sep.OBJECT_AFTER_COMMA);}var state=this.brace(content,node,Sep.OBJECT_BRACE_INITIAL,Sep.OBJECT_BRACE_FINAL,Sep.OBJECT_EMPTY);state.startsWithCurly=true;return state;}},{key:"reduceObjectBinding",value:function reduceObjectBinding(node,_ref13){var properties=_ref13.properties,rest=_ref13.rest;var content=void 0;if(properties.length===0){content=rest==null?empty():seq(this.t("..."),this.sep(Sep.REST),rest);}else{content=this.commaSep(properties,Sep.OBJECT_BEFORE_COMMA,Sep.OBJECT_AFTER_COMMA);content=rest==null?content:this.commaSep([content,seq(this.t("..."),this.sep(Sep.REST),rest)],Sep.OBJECT_BEFORE_COMMA,Sep.OBJECT_AFTER_COMMA);}var state=this.brace(content,node,Sep.OBJECT_BRACE_INITIAL,Sep.OBJECT_BRACE_FINAL,Sep.OBJECT_EMPTY);state.startsWithCurly=true;return state;}},{key:"reduceAssignmentTargetPropertyIdentifier",value:function reduceAssignmentTargetPropertyIdentifier(node,_ref14){var binding=_ref14.binding,init=_ref14.init;if(node.init==null)return binding;return seq(binding,this.sep(Sep.BEFORE_DEFAULT_EQUALS),this.t("="),this.sep(Sep.AFTER_DEFAULT_EQUALS),this.p(node.init,_coderep.Precedence.Assignment,init));}},{key:"reduceAssignmentTargetPropertyProperty",value:function reduceAssignmentTargetPropertyProperty(node,_ref15){var name=_ref15.name,binding=_ref15.binding;return seq(name,this.sep(Sep.BEFORE_PROP),this.t(":"),this.sep(Sep.AFTER_PROP),binding);}},{key:"reduceBindingPropertyIdentifier",value:function reduceBindingPropertyIdentifier(node,_ref16){var binding=_ref16.binding,init=_ref16.init;if(node.init==null)return binding;return seq(binding,this.sep(Sep.BEFORE_DEFAULT_EQUALS),this.t("="),this.sep(Sep.AFTER_DEFAULT_EQUALS),this.p(node.init,_coderep.Precedence.Assignment,init));}},{key:"reduceBindingPropertyProperty",value:function reduceBindingPropertyProperty(node,_ref17){var name=_ref17.name,binding=_ref17.binding;return seq(name,this.sep(Sep.BEFORE_PROP),this.t(":"),this.sep(Sep.AFTER_PROP),binding);}},{key:"reduceBlock",value:function reduceBlock(node,_ref18){var statements=_ref18.statements;return this.brace(seq.apply(void 0,_toConsumableArray$1(statements)),node,Sep.BLOCK_BRACE_INITIAL,Sep.BLOCK_BRACE_FINAL,Sep.BLOCK_EMPTY);}},{key:"reduceBlockStatement",value:function reduceBlockStatement(node,_ref19){var block=_ref19.block;return seq(block,this.sep(Sep.AFTER_STATEMENT(node)));}},{key:"reduceBreakStatement",value:function reduceBreakStatement(node){return seq(this.t("break"),node.label?seq(this.sep(Sep.BEFORE_JUMP_LABEL),this.t(node.label)):empty(),this.semiOp(),this.sep(Sep.AFTER_STATEMENT(node)));}},{key:"reduceCallExpression",value:function reduceCallExpression(node,_ref20){var _this6=this;var callee=_ref20.callee,args=_ref20.arguments;var parenthizedArgs=args.map(function(a,i2){return _this6.p(node.arguments[i2],_coderep.Precedence.Assignment,a);});return(0,_objectAssign2.default)(seq(this.p(node.callee,(0,_coderep.getPrecedence)(node),callee),this.sep(Sep.CALL),this.paren(this.commaSep(parenthizedArgs,Sep.ARGS_BEFORE_COMMA,Sep.ARGS_AFTER_COMMA),Sep.CALL_PAREN_BEFORE,Sep.CALL_PAREN_AFTER,Sep.CALL_PAREN_EMPTY)),{startsWithCurly:callee.startsWithCurly,startsWithLet:callee.startsWithLet,startsWithLetSquareBracket:callee.startsWithLetSquareBracket,startsWithFunctionOrClass:callee.startsWithFunctionOrClass});}},{key:"reduceCatchClause",value:function reduceCatchClause(node,_ref21){var binding=_ref21.binding,body=_ref21.body;return seq(this.t("catch"),this.sep(Sep.BEFORE_CATCH_BINDING),this.paren(binding,Sep.CATCH_PAREN_BEFORE,Sep.CATCH_PAREN_AFTER),this.sep(Sep.AFTER_CATCH_BINDING),body);}},{key:"reduceClassDeclaration",value:function reduceClassDeclaration(node,_ref22){var name=_ref22.name,_super=_ref22.super,elements=_ref22.elements;var state=seq(this.t("class"),node.name.name==="*default*"?empty():seq(this.sep(Sep.BEFORE_CLASS_NAME),name));if(_super!=null){state=seq(state,this.sep(Sep.BEFORE_EXTENDS),this.t("extends"),this.sep(Sep.AFTER_EXTENDS),this.p(node.super,_coderep.Precedence.New,_super));}state=seq(state,this.sep(Sep.BEFORE_CLASS_DECLARATION_ELEMENTS),this.brace(seq.apply(void 0,_toConsumableArray$1(elements)),node,Sep.CLASS_BRACE_INITIAL,Sep.CLASS_BRACE_FINAL,Sep.CLASS_EMPTY),this.sep(Sep.AFTER_STATEMENT(node)));return state;}},{key:"reduceClassExpression",value:function reduceClassExpression(node,_ref23){var name=_ref23.name,_super=_ref23.super,elements=_ref23.elements;var state=this.t("class");if(name!=null){state=seq(state,this.sep(Sep.BEFORE_CLASS_NAME),name);}if(_super!=null){state=seq(state,this.sep(Sep.BEFORE_EXTENDS),this.t("extends"),this.sep(Sep.AFTER_EXTENDS),this.p(node.super,_coderep.Precedence.New,_super));}state=seq(state,this.sep(Sep.BEFORE_CLASS_EXPRESSION_ELEMENTS),this.brace(seq.apply(void 0,_toConsumableArray$1(elements)),node,Sep.CLASS_EXPRESSION_BRACE_INITIAL,Sep.CLASS_EXPRESSION_BRACE_FINAL,Sep.CLASS_EXPRESSION_BRACE_EMPTY));state.startsWithFunctionOrClass=true;return state;}},{key:"reduceClassElement",value:function reduceClassElement(node,_ref24){var method=_ref24.method;method=seq(this.sep(Sep.BEFORE_CLASS_ELEMENT),method,this.sep(Sep.AFTER_CLASS_ELEMENT));if(!node.isStatic)return method;return seq(this.t("static"),this.sep(Sep.AFTER_STATIC),method);}},{key:"reduceComputedMemberAssignmentTarget",value:function reduceComputedMemberAssignmentTarget(node,_ref25){var object=_ref25.object,expression=_ref25.expression;var startsWithLetSquareBracket=object.startsWithLetSquareBracket||node.object.type==="IdentifierExpression"&&node.object.name==="let";return(0,_objectAssign2.default)(seq(this.p(node.object,(0,_coderep.getPrecedence)(node),object),this.sep(Sep.COMPUTED_MEMBER_ASSIGNMENT_TARGET),this.bracket(expression,Sep.COMPUTED_MEMBER_ASSIGNMENT_TARGET_BRACKET_INTIAL,Sep.COMPUTED_MEMBER_ASSIGNMENT_TARGET_BRACKET_FINAL)),{startsWithLet:object.startsWithLet,startsWithLetSquareBracket,startsWithCurly:object.startsWithCurly,startsWithFunctionOrClass:object.startsWithFunctionOrClass});}},{key:"reduceComputedMemberExpression",value:function reduceComputedMemberExpression(node,_ref26){var object=_ref26.object,expression=_ref26.expression;var startsWithLetSquareBracket=object.startsWithLetSquareBracket||node.object.type==="IdentifierExpression"&&node.object.name==="let";return(0,_objectAssign2.default)(seq(this.p(node.object,(0,_coderep.getPrecedence)(node),object),this.sep(Sep.COMPUTED_MEMBER_EXPRESSION),this.bracket(expression,Sep.COMPUTED_MEMBER_BRACKET_INTIAL,Sep.COMPUTED_MEMBER_BRACKET_FINAL)),{startsWithLet:object.startsWithLet,startsWithLetSquareBracket,startsWithCurly:object.startsWithCurly,startsWithFunctionOrClass:object.startsWithFunctionOrClass});}},{key:"reduceComputedPropertyName",value:function reduceComputedPropertyName(node,_ref27){var expression=_ref27.expression;return this.bracket(this.p(node.expression,_coderep.Precedence.Assignment,expression),Sep.COMPUTED_PROPERTY_BRACKET_INTIAL,Sep.COMPUTED_PROPERTY_BRACKET_FINAL);}},{key:"reduceConditionalExpression",value:function reduceConditionalExpression(node,_ref28){var test=_ref28.test,consequent=_ref28.consequent,alternate=_ref28.alternate;var containsIn=test.containsIn||alternate.containsIn;var startsWithCurly=test.startsWithCurly;var startsWithLetSquareBracket=test.startsWithLetSquareBracket;var startsWithFunctionOrClass=test.startsWithFunctionOrClass;return(0,_objectAssign2.default)(seq(this.p(node.test,_coderep.Precedence.LogicalOR,test),this.sep(Sep.BEFORE_TERNARY_QUESTION),this.t("?"),this.sep(Sep.AFTER_TERNARY_QUESTION),this.p(node.consequent,_coderep.Precedence.Assignment,consequent),this.sep(Sep.BEFORE_TERNARY_COLON),this.t(":"),this.sep(Sep.AFTER_TERNARY_COLON),this.p(node.alternate,_coderep.Precedence.Assignment,alternate)),{containsIn,startsWithCurly,startsWithLetSquareBracket,startsWithFunctionOrClass});}},{key:"reduceContinueStatement",value:function reduceContinueStatement(node){return seq(this.t("continue"),node.label?seq(this.sep(Sep.BEFORE_JUMP_LABEL),this.t(node.label)):empty(),this.semiOp(),this.sep(Sep.AFTER_STATEMENT(node)));}},{key:"reduceDataProperty",value:function reduceDataProperty(node,_ref29){var name=_ref29.name,expression=_ref29.expression;return seq(name,this.sep(Sep.BEFORE_PROP),this.t(":"),this.sep(Sep.AFTER_PROP),this.getAssignmentExpr(expression));}},{key:"reduceDebuggerStatement",value:function reduceDebuggerStatement(node){return seq(this.t("debugger"),this.semiOp(),this.sep(Sep.AFTER_STATEMENT(node)));}},{key:"reduceDoWhileStatement",value:function reduceDoWhileStatement(node,_ref30){var body=_ref30.body,test=_ref30.test;return seq(this.t("do"),this.sep(Sep.AFTER_DO),body,this.sep(Sep.BEFORE_DOWHILE_WHILE),this.t("while"),this.sep(Sep.AFTER_DOWHILE_WHILE),this.paren(test,Sep.DO_WHILE_TEST_PAREN_BEFORE,Sep.DO_WHILE_TEST_PAREN_AFTER),this.semiOp(),this.sep(Sep.AFTER_STATEMENT(node)));}},{key:"reduceEmptyStatement",value:function reduceEmptyStatement(node){return seq(this.t(";"),this.sep(Sep.AFTER_STATEMENT(node)));}},{key:"reduceExpressionStatement",value:function reduceExpressionStatement(node,_ref31){var expression=_ref31.expression;var needsParens=expression.startsWithCurly||expression.startsWithLetSquareBracket||expression.startsWithFunctionOrClass;return seq(needsParens?this.paren(expression,Sep.EXPRESSION_STATEMENT_PAREN_BEFORE,Sep.EXPRESSION_STATEMENT_PAREN_AFTER):expression,this.semiOp(),this.sep(Sep.AFTER_STATEMENT(node)));}},{key:"reduceForInStatement",value:function reduceForInStatement(node,_ref32){var left=_ref32.left,right=_ref32.right,body=_ref32.body;left=node.left.type==="VariableDeclaration"?noIn(markContainsIn(left)):left;return(0,_objectAssign2.default)(seq(this.t("for"),this.sep(Sep.AFTER_FORIN_FOR),this.paren(seq(left.startsWithLet?this.paren(left,Sep.FOR_IN_LET_PAREN_BEFORE,Sep.FOR_IN_LET_PAREN_AFTER):left,this.sep(Sep.BEFORE_FORIN_IN),this.t("in"),this.sep(Sep.AFTER_FORIN_FOR),right),Sep.FOR_IN_PAREN_BEFORE,Sep.FOR_IN_PAREN_AFTER),this.sep(Sep.BEFORE_FORIN_BODY),body,this.sep(Sep.AFTER_STATEMENT(node))),{endsWithMissingElse:body.endsWithMissingElse});}},{key:"reduceForOfStatement",value:function reduceForOfStatement(node,_ref33){var left=_ref33.left,right=_ref33.right,body=_ref33.body;left=node.left.type==="VariableDeclaration"?noIn(markContainsIn(left)):left;return(0,_objectAssign2.default)(seq(this.t("for"),this.sep(Sep.AFTER_FOROF_FOR),this.paren(seq(left.startsWithLet?this.paren(left,Sep.FOR_OF_LET_PAREN_BEFORE,Sep.FOR_OF_LET_PAREN_AFTER):left,this.sep(Sep.BEFORE_FOROF_OF),this.t("of"),this.sep(Sep.AFTER_FOROF_FOR),this.p(node.right,_coderep.Precedence.Assignment,right)),Sep.FOR_OF_PAREN_BEFORE,Sep.FOR_OF_PAREN_AFTER),this.sep(Sep.BEFORE_FOROF_BODY),body,this.sep(Sep.AFTER_STATEMENT(node))),{endsWithMissingElse:body.endsWithMissingElse});}},{key:"reduceForStatement",value:function reduceForStatement(node,_ref34){var init=_ref34.init,test=_ref34.test,update=_ref34.update,body=_ref34.body;if(init){if(init.startsWithLetSquareBracket){init=this.paren(init,Sep.FOR_LET_PAREN_BEFORE,Sep.FOR_LET_PAREN_AFTER);}init=noIn(markContainsIn(init));}return(0,_objectAssign2.default)(seq(this.t("for"),this.sep(Sep.AFTER_FOR_FOR),this.paren(seq(init?seq(this.sep(Sep.BEFORE_FOR_INIT),init,this.sep(Sep.AFTER_FOR_INIT)):this.sep(Sep.EMPTY_FOR_INIT),this.t(";"),test?seq(this.sep(Sep.BEFORE_FOR_TEST),test,this.sep(Sep.AFTER_FOR_TEST)):this.sep(Sep.EMPTY_FOR_TEST),this.t(";"),update?seq(this.sep(Sep.BEFORE_FOR_UPDATE),update,this.sep(Sep.AFTER_FOR_UPDATE)):this.sep(Sep.EMPTY_FOR_UPDATE))),this.sep(Sep.BEFORE_FOR_BODY),body,this.sep(Sep.AFTER_STATEMENT(node))),{endsWithMissingElse:body.endsWithMissingElse});}},{key:"reduceForAwaitStatement",value:function reduceForAwaitStatement(node,_ref35){var left=_ref35.left,right=_ref35.right,body=_ref35.body;left=node.left.type==="VariableDeclaration"?noIn(markContainsIn(left)):left;return(0,_objectAssign2.default)(seq(this.t("for"),this.sep(Sep.AFTER_FOROF_FOR),this.t("await"),this.sep(Sep.AFTER_FORAWAIT_AWAIT),this.paren(seq(left.startsWithLet?this.paren(left,Sep.FOR_OF_LET_PAREN_BEFORE,Sep.FOR_OF_LET_PAREN_AFTER):left,this.sep(Sep.BEFORE_FOROF_OF),this.t("of"),this.sep(Sep.AFTER_FOROF_FOR),this.p(node.right,_coderep.Precedence.Assignment,right)),Sep.FOR_OF_PAREN_BEFORE,Sep.FOR_OF_PAREN_AFTER),this.sep(Sep.BEFORE_FOROF_BODY),body,this.sep(Sep.AFTER_STATEMENT(node))),{endsWithMissingElse:body.endsWithMissingElse});}},{key:"reduceFunctionBody",value:function reduceFunctionBody(node,_ref36){var directives=_ref36.directives,statements=_ref36.statements;if(statements.length){statements[0]=this.parenToAvoidBeingDirective(node.statements[0],statements[0]);}return seq.apply(void 0,_toConsumableArray$1(directives).concat([directives.length?this.sep(Sep.AFTER_FUNCTION_DIRECTIVES):empty()],_toConsumableArray$1(statements)));}},{key:"reduceFunctionDeclaration",value:function reduceFunctionDeclaration(node,_ref37){var name=_ref37.name,params=_ref37.params,body=_ref37.body;return seq(node.isAsync?this.t("async"):empty(),this.t("function"),node.isGenerator?seq(this.sep(Sep.BEFORE_GENERATOR_STAR),this.t("*"),this.sep(Sep.AFTER_GENERATOR_STAR)):empty(),this.sep(Sep.BEFORE_FUNCTION_NAME(node)),node.name.name==="*default*"?empty():name,this.sep(Sep.BEFORE_FUNCTION_PARAMS),this.paren(params,Sep.PARAMETERS_PAREN_BEFORE,Sep.PARAMETERS_PAREN_AFTER,Sep.PARAMETERS_PAREN_EMPTY),this.sep(Sep.BEFORE_FUNCTION_DECLARATION_BODY),this.brace(body,node,Sep.FUNCTION_BRACE_INITIAL,Sep.FUNCTION_BRACE_FINAL,Sep.FUNCTION_EMPTY),this.sep(Sep.AFTER_STATEMENT(node)));}},{key:"reduceFunctionExpression",value:function reduceFunctionExpression(node,_ref38){var name=_ref38.name,params=_ref38.params,body=_ref38.body;var state=seq(node.isAsync?this.t("async"):empty(),this.t("function"),node.isGenerator?seq(this.sep(Sep.BEFORE_GENERATOR_STAR),this.t("*"),this.sep(Sep.AFTER_GENERATOR_STAR)):empty(),this.sep(Sep.BEFORE_FUNCTION_NAME(node)),name?name:empty(),this.sep(Sep.BEFORE_FUNCTION_PARAMS),this.paren(params,Sep.PARAMETERS_PAREN_BEFORE,Sep.PARAMETERS_PAREN_AFTER,Sep.PARAMETERS_PAREN_EMPTY),this.sep(Sep.BEFORE_FUNCTION_EXPRESSION_BODY),this.brace(body,node,Sep.FUNCTION_EXPRESSION_BRACE_INITIAL,Sep.FUNCTION_EXPRESSION_BRACE_FINAL,Sep.FUNCTION_EXPRESSION_EMPTY));state.startsWithFunctionOrClass=true;return state;}},{key:"reduceFormalParameters",value:function reduceFormalParameters(node,_ref39){var items=_ref39.items,rest=_ref39.rest;return this.commaSep(items.concat(rest==null?[]:[seq(this.t("..."),this.sep(Sep.REST),rest)]),Sep.PARAMETER_BEFORE_COMMA,Sep.PARAMETER_AFTER_COMMA);}},{key:"reduceArrowExpression",value:function reduceArrowExpression(node,_ref40){var params=_ref40.params,body=_ref40.body;if(node.params.rest!=null||node.params.items.length!==1||node.params.items[0].type!=="BindingIdentifier"){params=this.paren(params,Sep.ARROW_PARAMETERS_PAREN_BEFORE,Sep.ARROW_PARAMETERS_PAREN_AFTER,Sep.ARROW_PARAMETERS_PAREN_EMPTY);}var containsIn=false;if(node.body.type==="FunctionBody"){body=this.brace(body,node,Sep.ARROW_BRACE_INITIAL,Sep.ARROW_BRACE_FINAL,Sep.ARROW_BRACE_EMPTY);}else if(body.startsWithCurly){body=this.paren(body,Sep.ARROW_BODY_PAREN_BEFORE,Sep.ARROW_BODY_PAREN_AFTER);}else if(body.containsIn){containsIn=true;}return(0,_objectAssign2.default)(seq(node.isAsync?seq(this.t("async"),this.sep(Sep.BEFORE_ARROW_ASYNC_PARAMS)):empty(),params,this.sep(Sep.BEFORE_ARROW),this.t("=>"),this.sep(Sep.AFTER_ARROW),this.p(node.body,_coderep.Precedence.Assignment,body)),{containsIn});}},{key:"reduceGetter",value:function reduceGetter(node,_ref41){var name=_ref41.name,body=_ref41.body;return seq(this.t("get"),this.sep(Sep.AFTER_GET),name,this.sep(Sep.BEFORE_GET_PARAMS),this.paren(empty(),null,null,Sep.GETTER_PARAMS),this.sep(Sep.BEFORE_GET_BODY),this.brace(body,node,Sep.GET_BRACE_INTIAL,Sep.GET_BRACE_FINAL,Sep.GET_BRACE_EMPTY));}},{key:"reduceIdentifierExpression",value:function reduceIdentifierExpression(node){var a=this.t(node.name);if(node.name==="let"){a.startsWithLet=true;}return a;}},{key:"reduceIfStatement",value:function reduceIfStatement(node,_ref42){var test=_ref42.test,consequent=_ref42.consequent,alternate=_ref42.alternate;if(alternate&&consequent.endsWithMissingElse){consequent=this.brace(consequent,node,Sep.MISSING_ELSE_INTIIAL,Sep.MISSING_ELSE_FINAL,Sep.MISSING_ELSE_EMPTY);}return(0,_objectAssign2.default)(seq(this.t("if"),this.sep(Sep.AFTER_IF),this.paren(test,Sep.IF_PAREN_BEFORE,Sep.IF_PAREN_AFTER),this.sep(Sep.AFTER_IF_TEST),consequent,alternate?seq(this.sep(Sep.BEFORE_ELSE),this.t("else"),this.sep(Sep.AFTER_ELSE),alternate):empty(),this.sep(Sep.AFTER_STATEMENT(node))),{endsWithMissingElse:alternate?alternate.endsWithMissingElse:true});}},{key:"reduceImport",value:function reduceImport(node,_ref43){var defaultBinding=_ref43.defaultBinding,namedImports=_ref43.namedImports;var bindings=[];if(defaultBinding!=null){bindings.push(defaultBinding);}if(namedImports.length>0){bindings.push(this.brace(this.commaSep(namedImports,Sep.NAMED_IMPORT_BEFORE_COMMA,Sep.NAMED_IMPORT_AFTER_COMMA),node,Sep.IMPORT_BRACE_INTIAL,Sep.IMPORT_BRACE_FINAL,Sep.IMPORT_BRACE_EMPTY));}if(bindings.length===0){return seq(this.t("import"),this.sep(Sep.BEFORE_IMPORT_MODULE),this.t((0,_coderep.escapeStringLiteral)(node.moduleSpecifier)),this.semiOp(),this.sep(Sep.AFTER_STATEMENT(node)));}return seq(this.t("import"),this.sep(Sep.BEFORE_IMPORT_BINDINGS),this.commaSep(bindings,Sep.IMPORT_BEFORE_COMMA,Sep.IMPORT_AFTER_COMMA),this.sep(Sep.AFTER_IMPORT_BINDINGS),this.t("from"),this.sep(Sep.AFTER_FROM),this.t((0,_coderep.escapeStringLiteral)(node.moduleSpecifier)),this.semiOp(),this.sep(Sep.AFTER_STATEMENT(node)));}},{key:"reduceImportNamespace",value:function reduceImportNamespace(node,_ref44){var defaultBinding=_ref44.defaultBinding,namespaceBinding=_ref44.namespaceBinding;return seq(this.t("import"),this.sep(Sep.BEFORE_IMPORT_NAMESPACE),defaultBinding==null?empty():seq(defaultBinding,this.sep(Sep.IMPORT_BEFORE_COMMA),this.t(","),this.sep(Sep.IMPORT_AFTER_COMMA)),this.sep(Sep.BEFORE_IMPORT_STAR),this.t("*"),this.sep(Sep.AFTER_IMPORT_STAR),this.t("as"),this.sep(Sep.AFTER_IMPORT_AS),namespaceBinding,this.sep(Sep.AFTER_NAMESPACE_BINDING),this.t("from"),this.sep(Sep.AFTER_FROM),this.t((0,_coderep.escapeStringLiteral)(node.moduleSpecifier)),this.semiOp(),this.sep(Sep.AFTER_STATEMENT(node)));}},{key:"reduceImportSpecifier",value:function reduceImportSpecifier(node,_ref45){var binding=_ref45.binding;if(node.name==null)return binding;return seq(this.t(node.name),this.sep(Sep.BEFORE_IMPORT_AS),this.t("as"),this.sep(Sep.AFTER_IMPORT_AS),binding);}},{key:"reduceExportAllFrom",value:function reduceExportAllFrom(node){return seq(this.t("export"),this.sep(Sep.BEFORE_EXPORT_STAR),this.t("*"),this.sep(Sep.AFTER_EXPORT_STAR),this.t("from"),this.sep(Sep.AFTER_FROM),this.t((0,_coderep.escapeStringLiteral)(node.moduleSpecifier)),this.semiOp(),this.sep(Sep.AFTER_STATEMENT(node)));}},{key:"reduceExportFrom",value:function reduceExportFrom(node,_ref46){var namedExports=_ref46.namedExports;return seq(this.t("export"),this.sep(Sep.BEFORE_EXPORT_BINDINGS),this.brace(this.commaSep(namedExports,Sep.EXPORTS_BEFORE_COMMA,Sep.EXPORTS_AFTER_COMMA),node,Sep.EXPORT_BRACE_INITIAL,Sep.EXPORT_BRACE_FINAL,Sep.EXPORT_BRACE_EMPTY),this.sep(Sep.AFTER_EXPORT_FROM_BINDINGS),this.t("from"),this.sep(Sep.AFTER_FROM),this.t((0,_coderep.escapeStringLiteral)(node.moduleSpecifier)),this.semiOp(),this.sep(Sep.AFTER_STATEMENT(node)));}},{key:"reduceExportLocals",value:function reduceExportLocals(node,_ref47){var namedExports=_ref47.namedExports;return seq(this.t("export"),this.sep(Sep.BEFORE_EXPORT_BINDINGS),this.brace(this.commaSep(namedExports,Sep.EXPORTS_BEFORE_COMMA,Sep.EXPORTS_AFTER_COMMA),node,Sep.EXPORT_BRACE_INITIAL,Sep.EXPORT_BRACE_FINAL,Sep.EXPORT_BRACE_EMPTY),this.sep(Sep.AFTER_EXPORT_LOCAL_BINDINGS),this.semiOp(),this.sep(Sep.AFTER_STATEMENT(node)));}},{key:"reduceExport",value:function reduceExport(node,_ref48){var declaration=_ref48.declaration;switch(node.declaration.type){case"FunctionDeclaration":case"ClassDeclaration":break;default:declaration=seq(declaration,this.semiOp(),this.sep(Sep.AFTER_STATEMENT(node)));}return seq(this.t("export"),this.sep(Sep.AFTER_EXPORT),declaration);}},{key:"reduceExportDefault",value:function reduceExportDefault(node,_ref49){var body=_ref49.body;body=body.startsWithFunctionOrClass?this.paren(body,Sep.EXPORT_PAREN_BEFORE,Sep.EXPORT_PAREN_AFTER):body;switch(node.body.type){case"FunctionDeclaration":case"ClassDeclaration":return seq(this.t("export"),this.sep(Sep.EXPORT_DEFAULT),this.t("default"),this.sep(Sep.AFTER_EXPORT_DEFAULT),body);default:return seq(this.t("export"),this.sep(Sep.EXPORT_DEFAULT),this.t("default"),this.sep(Sep.AFTER_EXPORT_DEFAULT),this.p(node.body,_coderep.Precedence.Assignment,body),this.semiOp(),this.sep(Sep.AFTER_STATEMENT(node)));}}},{key:"reduceExportFromSpecifier",value:function reduceExportFromSpecifier(node){if(node.exportedName==null)return this.t(node.name);return seq(this.t(node.name),this.sep(Sep.BEFORE_EXPORT_AS),this.t("as"),this.sep(Sep.AFTER_EXPORT_AS),this.t(node.exportedName));}},{key:"reduceExportLocalSpecifier",value:function reduceExportLocalSpecifier(node,_ref50){var name=_ref50.name;if(node.exportedName==null)return name;return seq(name,this.sep(Sep.BEFORE_EXPORT_AS),this.t("as"),this.sep(Sep.AFTER_EXPORT_AS),this.t(node.exportedName));}},{key:"reduceLabeledStatement",value:function reduceLabeledStatement(node,_ref51){var body=_ref51.body;return(0,_objectAssign2.default)(seq(this.t(node.label),this.sep(Sep.BEFORE_LABEL_COLON),this.t(":"),this.sep(Sep.AFTER_LABEL_COLON),body),{endsWithMissingElse:body.endsWithMissingElse});}},{key:"reduceLiteralBooleanExpression",value:function reduceLiteralBooleanExpression(node){return this.t(node.value.toString());}},{key:"reduceLiteralNullExpression",value:function reduceLiteralNullExpression(){return this.t("null");}},{key:"reduceLiteralInfinityExpression",value:function reduceLiteralInfinityExpression(){return this.t("2e308");}},{key:"reduceLiteralNumericExpression",value:function reduceLiteralNumericExpression(node){return new _coderep.NumberCodeRep(node.value);}},{key:"reduceLiteralRegExpExpression",value:function reduceLiteralRegExpExpression(node){return this.t("/"+node.pattern+"/"+(node.global?"g":"")+(node.ignoreCase?"i":"")+(node.multiLine?"m":"")+(node.dotAll?"s":"")+(node.unicode?"u":"")+(node.sticky?"y":""),true);}},{key:"reduceLiteralStringExpression",value:function reduceLiteralStringExpression(node){return this.t((0,_coderep.escapeStringLiteral)(node.value));}},{key:"reduceMethod",value:function reduceMethod(node,_ref52){var name=_ref52.name,params=_ref52.params,body=_ref52.body;return seq(node.isAsync?seq(this.t("async"),this.sep(Sep.AFTER_METHOD_ASYNC)):empty(),node.isGenerator?seq(this.t("*"),this.sep(Sep.AFTER_METHOD_GENERATOR_STAR)):empty(),name,this.sep(Sep.AFTER_METHOD_NAME),this.paren(params,Sep.PARAMETERS_PAREN_BEFORE,Sep.PARAMETERS_PAREN_AFTER,Sep.PARAMETERS_PAREN_EMPTY),this.sep(Sep.BEFORE_METHOD_BODY),this.brace(body,node,Sep.METHOD_BRACE_INTIAL,Sep.METHOD_BRACE_FINAL,Sep.METHOD_BRACE_EMPTY));}},{key:"reduceModule",value:function reduceModule(node,_ref53){var directives=_ref53.directives,items=_ref53.items;if(items.length){items[0]=this.parenToAvoidBeingDirective(node.items[0],items[0]);}return seq.apply(void 0,_toConsumableArray$1(directives).concat([directives.length?this.sep(Sep.AFTER_MODULE_DIRECTIVES):empty()],_toConsumableArray$1(items)));}},{key:"reduceNewExpression",value:function reduceNewExpression(node,_ref54){var _this7=this;var callee=_ref54.callee,args=_ref54.arguments;var parenthizedArgs=args.map(function(a,i2){return _this7.p(node.arguments[i2],_coderep.Precedence.Assignment,a);});var calleeRep=(0,_coderep.getPrecedence)(node.callee)===_coderep.Precedence.Call?this.paren(callee,Sep.NEW_CALLEE_PAREN_BEFORE,Sep.NEW_CALLEE_PAREN_AFTER):this.p(node.callee,(0,_coderep.getPrecedence)(node),callee);return seq(this.t("new"),this.sep(Sep.AFTER_NEW),calleeRep,args.length===0?this.sep(Sep.EMPTY_NEW_CALL):seq(this.sep(Sep.BEFORE_NEW_ARGS),this.paren(this.commaSep(parenthizedArgs,Sep.ARGS_BEFORE_COMMA,Sep.ARGS_AFTER_COMMA),Sep.NEW_PAREN_BEFORE,Sep.NEW_PAREN_AFTER,Sep.NEW_PAREN_EMPTY)));}},{key:"reduceNewTargetExpression",value:function reduceNewTargetExpression(){return seq(this.t("new"),this.sep(Sep.NEW_TARGET_BEFORE_DOT),this.t("."),this.sep(Sep.NEW_TARGET_AFTER_DOT),this.t("target"));}},{key:"reduceObjectExpression",value:function reduceObjectExpression(node,_ref55){var properties=_ref55.properties;var state=this.brace(this.commaSep(properties,Sep.OBJECT_BEFORE_COMMA,Sep.OBJECT_AFTER_COMMA),node,Sep.OBJECT_BRACE_INITIAL,Sep.OBJECT_BRACE_FINAL,Sep.OBJECT_EMPTY);state.startsWithCurly=true;return state;}},{key:"reduceUpdateExpression",value:function reduceUpdateExpression(node,_ref56){var operand=_ref56.operand;if(node.isPrefix){return this.reduceUnaryExpression.apply(this,arguments);}return(0,_objectAssign2.default)(seq(this.p(node.operand,_coderep.Precedence.New,operand),this.sep(Sep.BEFORE_POSTFIX(node.operator)),this.t(node.operator)),{startsWithCurly:operand.startsWithCurly,startsWithLetSquareBracket:operand.startsWithLetSquareBracket,startsWithFunctionOrClass:operand.startsWithFunctionOrClass});}},{key:"reduceUnaryExpression",value:function reduceUnaryExpression(node,_ref57){var operand=_ref57.operand;return seq(this.t(node.operator),this.sep(Sep.UNARY(node.operator)),this.p(node.operand,(0,_coderep.getPrecedence)(node),operand));}},{key:"reduceReturnStatement",value:function reduceReturnStatement(node,_ref58){var expression=_ref58.expression;return seq(this.t("return"),expression?seq(this.sep(Sep.RETURN),expression):empty(),this.semiOp(),this.sep(Sep.AFTER_STATEMENT(node)));}},{key:"reduceScript",value:function reduceScript(node,_ref59){var directives=_ref59.directives,statements=_ref59.statements;if(statements.length){statements[0]=this.parenToAvoidBeingDirective(node.statements[0],statements[0]);}return seq.apply(void 0,_toConsumableArray$1(directives).concat([directives.length?this.sep(Sep.AFTER_SCRIPT_DIRECTIVES):empty()],_toConsumableArray$1(statements)));}},{key:"reduceSetter",value:function reduceSetter(node,_ref60){var name=_ref60.name,param=_ref60.param,body=_ref60.body;return seq(this.t("set"),this.sep(Sep.AFTER_SET),name,this.sep(Sep.BEFORE_SET_PARAMS),this.paren(param,Sep.SETTER_PARAM_BEFORE,Sep.SETTER_PARAM_AFTER),this.sep(Sep.BEFORE_SET_BODY),this.brace(body,node,Sep.SET_BRACE_INTIIAL,Sep.SET_BRACE_FINAL,Sep.SET_BRACE_EMPTY));}},{key:"reduceShorthandProperty",value:function reduceShorthandProperty(node,_ref61){var name=_ref61.name;return name;}},{key:"reduceStaticMemberAssignmentTarget",value:function reduceStaticMemberAssignmentTarget(node,_ref62){var object=_ref62.object;var state=seq(this.p(node.object,(0,_coderep.getPrecedence)(node),object),this.sep(Sep.BEFORE_STATIC_MEMBER_ASSIGNMENT_TARGET_DOT),this.t("."),this.sep(Sep.AFTER_STATIC_MEMBER_ASSIGNMENT_TARGET_DOT),this.t(node.property));state.startsWithLet=object.startsWithLet;state.startsWithCurly=object.startsWithCurly;state.startsWithLetSquareBracket=object.startsWithLetSquareBracket;state.startsWithFunctionOrClass=object.startsWithFunctionOrClass;return state;}},{key:"reduceStaticMemberExpression",value:function reduceStaticMemberExpression(node,_ref63){var object=_ref63.object;var state=seq(this.p(node.object,(0,_coderep.getPrecedence)(node),object),this.sep(Sep.BEFORE_STATIC_MEMBER_DOT),this.t("."),this.sep(Sep.AFTER_STATIC_MEMBER_DOT),this.t(node.property));state.startsWithLet=object.startsWithLet;state.startsWithCurly=object.startsWithCurly;state.startsWithLetSquareBracket=object.startsWithLetSquareBracket;state.startsWithFunctionOrClass=object.startsWithFunctionOrClass;return state;}},{key:"reduceStaticPropertyName",value:function reduceStaticPropertyName(node){if(_esutils.keyword.isIdentifierNameES6(node.value)){return this.t(node.value);}var n=parseFloat(node.value);if(n>=0&&n.toString()===node.value){return new _coderep.NumberCodeRep(n);}return this.t((0,_coderep.escapeStringLiteral)(node.value));}},{key:"reduceSuper",value:function reduceSuper(){return this.t("super");}},{key:"reduceSwitchCase",value:function reduceSwitchCase(node,_ref64){var test=_ref64.test,consequent=_ref64.consequent;return seq(this.t("case"),this.sep(Sep.BEFORE_CASE_TEST),test,this.sep(Sep.AFTER_CASE_TEST),this.t(":"),this.sep(Sep.BEFORE_CASE_BODY),seq.apply(void 0,_toConsumableArray$1(consequent)),this.sep(Sep.AFTER_CASE_BODY));}},{key:"reduceSwitchDefault",value:function reduceSwitchDefault(node,_ref65){var consequent=_ref65.consequent;return seq(this.t("default"),this.sep(Sep.DEFAULT),this.t(":"),this.sep(Sep.BEFORE_CASE_BODY),seq.apply(void 0,_toConsumableArray$1(consequent)),this.sep(Sep.AFTER_DEFAULT_BODY));}},{key:"reduceSwitchStatement",value:function reduceSwitchStatement(node,_ref66){var discriminant=_ref66.discriminant,cases=_ref66.cases;return seq(this.t("switch"),this.sep(Sep.BEFORE_SWITCH_DISCRIM),this.paren(discriminant,Sep.SWITCH_DISCRIM_PAREN_BEFORE,Sep.SWITCH_DISCRIM_PAREN_AFTER),this.sep(Sep.BEFORE_SWITCH_BODY),this.brace(seq.apply(void 0,_toConsumableArray$1(cases)),node,Sep.SWITCH_BRACE_INTIAL,Sep.SWITCH_BRACE_FINAL,Sep.SWITCH_BRACE_EMPTY),this.sep(Sep.AFTER_STATEMENT(node)));}},{key:"reduceSwitchStatementWithDefault",value:function reduceSwitchStatementWithDefault(node,_ref67){var discriminant=_ref67.discriminant,preDefaultCases=_ref67.preDefaultCases,defaultCase=_ref67.defaultCase,postDefaultCases=_ref67.postDefaultCases;return seq(this.t("switch"),this.sep(Sep.BEFORE_SWITCH_DISCRIM),this.paren(discriminant,Sep.SWITCH_DISCRIM_PAREN_BEFORE,Sep.SWITCH_DISCRIM_PAREN_AFTER),this.sep(Sep.BEFORE_SWITCH_BODY),this.brace(seq.apply(void 0,_toConsumableArray$1(preDefaultCases).concat([defaultCase],_toConsumableArray$1(postDefaultCases))),node,Sep.SWITCH_BRACE_INTIAL,Sep.SWITCH_BRACE_FINAL,Sep.SWITCH_BRACE_EMPTY),this.sep(Sep.AFTER_STATEMENT(node)));}},{key:"reduceTemplateExpression",value:function reduceTemplateExpression(node,_ref68){var tag=_ref68.tag,elements=_ref68.elements;var state=node.tag==null?empty():seq(this.p(node.tag,(0,_coderep.getPrecedence)(node),tag),this.sep(Sep.TEMPLATE_TAG));state=seq(state,this.t("`"));for(var _i=0,l=node.elements.length;_i<l;++_i){if(node.elements[_i].type==="TemplateElement"){var d="";if(_i>0)d+="}";d+=node.elements[_i].rawValue;if(_i<l-1)d+="${";state=seq(state,this.t(d));}else{state=seq(state,this.sep(Sep.BEFORE_TEMPLATE_EXPRESSION),elements[_i],this.sep(Sep.AFTER_TEMPLATE_EXPRESSION));}}state=seq(state,this.t("`"));if(node.tag!=null){state.startsWithCurly=tag.startsWithCurly;state.startsWithLet=tag.startsWithLet;state.startsWithLetSquareBracket=tag.startsWithLetSquareBracket;state.startsWithFunctionOrClass=tag.startsWithFunctionOrClass;}return state;}},{key:"reduceTemplateElement",value:function reduceTemplateElement(node){return this.t(node.rawValue);}},{key:"reduceThisExpression",value:function reduceThisExpression(){return this.t("this");}},{key:"reduceThrowStatement",value:function reduceThrowStatement(node,_ref69){var expression=_ref69.expression;return seq(this.t("throw"),this.sep(Sep.THROW),expression,this.semiOp(),this.sep(Sep.AFTER_STATEMENT(node)));}},{key:"reduceTryCatchStatement",value:function reduceTryCatchStatement(node,_ref70){var body=_ref70.body,catchClause=_ref70.catchClause;return seq(this.t("try"),this.sep(Sep.AFTER_TRY),body,this.sep(Sep.BEFORE_CATCH),catchClause,this.sep(Sep.AFTER_STATEMENT(node)));}},{key:"reduceTryFinallyStatement",value:function reduceTryFinallyStatement(node,_ref71){var body=_ref71.body,catchClause=_ref71.catchClause,finalizer=_ref71.finalizer;return seq(this.t("try"),this.sep(Sep.AFTER_TRY),body,catchClause?seq(this.sep(Sep.BEFORE_CATCH),catchClause):empty(),this.sep(Sep.BEFORE_FINALLY),this.t("finally"),this.sep(Sep.AFTER_FINALLY),finalizer,this.sep(Sep.AFTER_STATEMENT(node)));}},{key:"reduceYieldExpression",value:function reduceYieldExpression(node,_ref72){var expression=_ref72.expression;if(node.expression==null)return this.t("yield");return(0,_objectAssign2.default)(seq(this.t("yield"),this.sep(Sep.YIELD),this.p(node.expression,(0,_coderep.getPrecedence)(node),expression)),{containsIn:expression.containsIn});}},{key:"reduceYieldGeneratorExpression",value:function reduceYieldGeneratorExpression(node,_ref73){var expression=_ref73.expression;return(0,_objectAssign2.default)(seq(this.t("yield"),this.sep(Sep.BEFORE_YIELD_STAR),this.t("*"),this.sep(Sep.AFTER_YIELD_STAR),this.p(node.expression,(0,_coderep.getPrecedence)(node),expression)),{containsIn:expression.containsIn});}},{key:"reduceDirective",value:function reduceDirective(node){var delim=node.rawValue.match(/(^|[^\\])(\\\\)*"/)?"'":'"';return seq(this.t(delim+node.rawValue+delim),this.semiOp(),this.sep(Sep.AFTER_STATEMENT(node)));}},{key:"reduceVariableDeclaration",value:function reduceVariableDeclaration(node,_ref74){var declarators=_ref74.declarators;return seq(this.t(node.kind),this.sep(Sep.VARIABLE_DECLARATION),this.commaSep(declarators,Sep.DECLARATORS_BEFORE_COMMA,Sep.DECLARATORS_AFTER_COMMA));}},{key:"reduceVariableDeclarationStatement",value:function reduceVariableDeclarationStatement(node,_ref75){var declaration=_ref75.declaration;return seq(declaration,this.semiOp(),this.sep(Sep.AFTER_STATEMENT(node)));}},{key:"reduceVariableDeclarator",value:function reduceVariableDeclarator(node,_ref76){var binding=_ref76.binding,init=_ref76.init;var containsIn=init&&init.containsIn&&!init.containsGroup;if(init){if(init.containsGroup){init=this.paren(init,Sep.EXPRESSION_PAREN_BEFORE,Sep.EXPRESSION_PAREN_AFTER);}else{init=markContainsIn(init);}}return(0,_objectAssign2.default)(init==null?binding:seq(binding,this.sep(Sep.BEFORE_INIT_EQUALS),this.t("="),this.sep(Sep.AFTER_INIT_EQUALS),init),{containsIn});}},{key:"reduceWhileStatement",value:function reduceWhileStatement(node,_ref77){var test=_ref77.test,body=_ref77.body;return(0,_objectAssign2.default)(seq(this.t("while"),this.sep(Sep.AFTER_WHILE),this.paren(test,Sep.WHILE_TEST_PAREN_BEFORE,Sep.WHILE_TEST_PAREN_AFTER),this.sep(Sep.BEFORE_WHILE_BODY),body,this.sep(Sep.AFTER_STATEMENT(node))),{endsWithMissingElse:body.endsWithMissingElse});}},{key:"reduceWithStatement",value:function reduceWithStatement(node,_ref78){var object=_ref78.object,body=_ref78.body;return(0,_objectAssign2.default)(seq(this.t("with"),this.sep(Sep.AFTER_WITH),this.paren(object,Sep.WITH_PAREN_BEFORE,Sep.WITH_PAREN_AFTER),this.sep(Sep.BEFORE_WITH_BODY),body,this.sep(Sep.AFTER_STATEMENT(node))),{endsWithMissingElse:body.endsWithMissingElse});}}]);return ExtensibleCodeGen2;}();function withoutTrailingLinebreak(state){if(state&&state instanceof _coderep.Seq){var lastChild=state.children[state.children.length-1];while(lastChild instanceof _coderep.Empty){state.children.pop();lastChild=state.children[state.children.length-1];}if(lastChild instanceof _coderep.Seq){withoutTrailingLinebreak(lastChild);}else if(lastChild instanceof Linebreak){state.children.pop();}}return state;}function indent(rep,includingFinal){var finalLinebreak=void 0;function indentNode(node){if(node instanceof Linebreak){finalLinebreak=node;++node.indentation;}}rep.forEach(indentNode);if(!includingFinal){--finalLinebreak.indentation;}return rep;}FormattedCodeGen_1=formattedCodegen$1.FormattedCodeGen=function(_ExtensibleCodeGen){_inherits$1(FormattedCodeGen,_ExtensibleCodeGen);function FormattedCodeGen(){_classCallCheck$2(this,FormattedCodeGen);return _possibleConstructorReturn$1(this,(FormattedCodeGen.__proto__||Object.getPrototypeOf(FormattedCodeGen)).apply(this,arguments));}_createClass$2(FormattedCodeGen,[{key:"parenToAvoidBeingDirective",value:function parenToAvoidBeingDirective(element,original){if(element&&element.type==="ExpressionStatement"&&element.expression.type==="LiteralStringExpression"){return seq(this.paren(original.children[0],Sep.PAREN_AVOIDING_DIRECTIVE_BEFORE,Sep.PAREN_AVOIDING_DIRECTIVE_AFTER),this.semiOp(),this.sep(Sep.AFTER_STATEMENT(element)));}return original;}},{key:"brace",value:function brace2(rep,node){if(isEmpty(rep)){return this.t("{}");}switch(node.type){case"ObjectAssignmentTarget":case"ObjectBinding":case"Import":case"ExportFrom":case"ExportLocals":case"ObjectExpression":return new _coderep.Brace(rep);}rep=seq(new Linebreak(),rep);indent(rep,false);return new _coderep.Brace(rep);}},{key:"reduceDoWhileStatement",value:function reduceDoWhileStatement(node,_ref79){var body=_ref79.body,test=_ref79.test;return seq(this.t("do"),this.sep(Sep.AFTER_DO),withoutTrailingLinebreak(body),this.sep(Sep.BEFORE_DOWHILE_WHILE),this.t("while"),this.sep(Sep.AFTER_DOWHILE_WHILE),this.paren(test,Sep.DO_WHILE_TEST_PAREN_BEFORE,Sep.DO_WHILE_TEST_PAREN_AFTER),this.semiOp(),this.sep(Sep.AFTER_STATEMENT(node)));}},{key:"reduceIfStatement",value:function reduceIfStatement(node,_ref80){var test=_ref80.test,consequent=_ref80.consequent,alternate=_ref80.alternate;if(alternate&&consequent.endsWithMissingElse){consequent=this.brace(consequent,node);}return(0,_objectAssign2.default)(seq(this.t("if"),this.sep(Sep.AFTER_IF),this.paren(test,Sep.IF_PAREN_BEFORE,Sep.IF_PAREN_AFTER),this.sep(Sep.AFTER_IF_TEST),withoutTrailingLinebreak(consequent),alternate?seq(this.sep(Sep.BEFORE_ELSE),this.t("else"),this.sep(Sep.AFTER_ELSE),withoutTrailingLinebreak(alternate)):empty(),this.sep(Sep.AFTER_STATEMENT(node))),{endsWithMissingElse:alternate?alternate.endsWithMissingElse:true});}},{key:"reduceSwitchCase",value:function reduceSwitchCase(node,_ref81){var test=_ref81.test,consequent=_ref81.consequent;consequent=indent(withoutTrailingLinebreak(seq.apply(void 0,[this.sep(Sep.BEFORE_CASE_BODY)].concat(_toConsumableArray$1(consequent)))),true);return seq(this.t("case"),this.sep(Sep.BEFORE_CASE_TEST),test,this.sep(Sep.AFTER_CASE_TEST),this.t(":"),consequent,this.sep(Sep.AFTER_CASE_BODY));}},{key:"reduceSwitchDefault",value:function reduceSwitchDefault(node,_ref82){var consequent=_ref82.consequent;consequent=indent(withoutTrailingLinebreak(seq.apply(void 0,[this.sep(Sep.BEFORE_CASE_BODY)].concat(_toConsumableArray$1(consequent)))),true);return seq(this.t("default"),this.sep(Sep.DEFAULT),this.t(":"),consequent,this.sep(Sep.AFTER_DEFAULT_BODY));}},{key:"sep",value:function sep(separator){switch(separator.type){case"AWAIT":case"AFTER_FORAWAIT_AWAIT":case"ARRAY_AFTER_COMMA":case"OBJECT_AFTER_COMMA":case"ARGS_AFTER_COMMA":case"PARAMETER_AFTER_COMMA":case"DECLARATORS_AFTER_COMMA":case"NAMED_IMPORT_AFTER_COMMA":case"IMPORT_AFTER_COMMA":case"BEFORE_DEFAULT_EQUALS":case"AFTER_DEFAULT_EQUALS":case"AFTER_PROP":case"BEFORE_JUMP_LABEL":case"BEFORE_CATCH_BINDING":case"AFTER_CATCH_BINDING":case"BEFORE_CLASS_NAME":case"BEFORE_EXTENDS":case"AFTER_EXTENDS":case"BEFORE_CLASS_DECLARATION_ELEMENTS":case"BEFORE_CLASS_EXPRESSION_ELEMENTS":case"AFTER_STATIC":case"BEFORE_TERNARY_QUESTION":case"AFTER_TERNARY_QUESTION":case"BEFORE_TERNARY_COLON":case"AFTER_TERNARY_COLON":case"AFTER_DO":case"BEFORE_DOWHILE_WHILE":case"AFTER_DOWHILE_WHILE":case"AFTER_FORIN_FOR":case"BEFORE_FORIN_IN":case"BEFORE_FORIN_BODY":case"BEFORE_FOROF_OF":case"AFTER_FOROF_FOR":case"BEFORE_FOROF_BODY":case"AFTER_FOR_FOR":case"BEFORE_FOR_TEST":case"BEFORE_FOR_UPDATE":case"BEFORE_FOR_BODY":case"BEFORE_FUNCTION_DECLARATION_BODY":case"BEFORE_FUNCTION_EXPRESSION_BODY":case"BEFORE_ARROW":case"AFTER_ARROW":case"BEFORE_ARROW_ASYNC_PARAMS":case"AFTER_GET":case"BEFORE_GET_BODY":case"AFTER_IF":case"AFTER_IF_TEST":case"BEFORE_ELSE":case"AFTER_ELSE":case"BEFORE_IMPORT_BINDINGS":case"BEFORE_IMPORT_MODULE":case"AFTER_IMPORT_BINDINGS":case"AFTER_FROM":case"BEFORE_IMPORT_NAMESPACE":case"BEFORE_IMPORT_STAR":case"AFTER_IMPORT_STAR":case"AFTER_NAMESPACE_BINDING":case"BEFORE_IMPORT_AS":case"AFTER_IMPORT_AS":case"EXPORTS_AFTER_COMMA":case"BEFORE_EXPORT_STAR":case"AFTER_EXPORT_STAR":case"BEFORE_EXPORT_BINDINGS":case"AFTER_EXPORT_FROM_BINDINGS":case"AFTER_EXPORT":case"AFTER_EXPORT_DEFAULT":case"BEFORE_EXPORT_AS":case"AFTER_EXPORT_AS":case"AFTER_LABEL_COLON":case"AFTER_METHOD_ASYNC":case"BEFORE_METHOD_BODY":case"AFTER_NEW":case"RETURN":case"AFTER_SET":case"BEFORE_SET_BODY":case"BEFORE_SET_PARAMS":case"BEFORE_CASE_TEST":case"BEFORE_SWITCH_DISCRIM":case"BEFORE_SWITCH_BODY":case"THROW":case"AFTER_TRY":case"BEFORE_CATCH":case"BEFORE_FINALLY":case"AFTER_FINALLY":case"VARIABLE_DECLARATION":case"YIELD":case"AFTER_YIELD_STAR":case"BEFORE_INIT_EQUALS":case"AFTER_INIT_EQUALS":case"AFTER_WHILE":case"BEFORE_WHILE_BODY":case"AFTER_WITH":case"BEFORE_WITH_BODY":case"BEFORE_FUNCTION_NAME":case"AFTER_BINOP":case"BEFORE_ASSIGN_OP":case"AFTER_ASSIGN_OP":return this.t(" ");case"AFTER_STATEMENT":switch(separator.node.type){case"ForInStatement":case"ForOfStatement":case"ForStatement":case"WhileStatement":case"WithStatement":return empty();default:return new Linebreak();}case"AFTER_CLASS_ELEMENT":case"BEFORE_CASE_BODY":case"AFTER_CASE_BODY":case"AFTER_DEFAULT_BODY":return new Linebreak();case"BEFORE_BINOP":return separator.op===","?empty():this.t(" ");case"UNARY":return separator.op==="delete"||separator.op==="void"||separator.op==="typeof"?this.t(" "):empty();default:return empty();}}}]);return FormattedCodeGen;}(ExtensibleCodeGen);var formattedCodegen=/* @__PURE__ */_mergeNamespaces({__proto__:null,get FormattedCodeGen(){return FormattedCodeGen_1;},get ExtensibleCodeGen(){return ExtensibleCodeGen_1;},get Sep(){return Sep_1;},"default":formattedCodegen$1},[formattedCodegen$1]);var require$$1=/* @__PURE__ */getAugmentedNamespace(formattedCodegen);var withLocation$1={};var tokenStream$1={};var unicode$1={};var idContinueBool_1;var idContinueLargeRegex_1;var idStartBool_1;var idStartLargeRegex_1;var whitespaceBool_1;var whitespaceArray_1;Object.defineProperty(unicode$1,"__esModule",{value:true});whitespaceArray_1=unicode$1.whitespaceArray=[5760,8192,8193,8194,8195,8196,8197,8198,8199,8200,8201,8202,8239,8287,12288,65279];whitespaceBool_1=unicode$1.whitespaceBool=[false,false,false,false,false,false,false,false,false,true,false,true,true,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,true,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false];idStartLargeRegex_1=unicode$1.idStartLargeRegex=/^[\xAA\xB5\xBA\xC0-\xD6\xD8-\xF6\xF8-\u02C1\u02C6-\u02D1\u02E0-\u02E4\u02EC\u02EE\u0370-\u0374\u0376\u0377\u037A-\u037D\u037F\u0386\u0388-\u038A\u038C\u038E-\u03A1\u03A3-\u03F5\u03F7-\u0481\u048A-\u052F\u0531-\u0556\u0559\u0561-\u0587\u05D0-\u05EA\u05F0-\u05F2\u0620-\u064A\u066E\u066F\u0671-\u06D3\u06D5\u06E5\u06E6\u06EE\u06EF\u06FA-\u06FC\u06FF\u0710\u0712-\u072F\u074D-\u07A5\u07B1\u07CA-\u07EA\u07F4\u07F5\u07FA\u0800-\u0815\u081A\u0824\u0828\u0840-\u0858\u08A0-\u08B4\u0904-\u0939\u093D\u0950\u0958-\u0961\u0971-\u0980\u0985-\u098C\u098F\u0990\u0993-\u09A8\u09AA-\u09B0\u09B2\u09B6-\u09B9\u09BD\u09CE\u09DC\u09DD\u09DF-\u09E1\u09F0\u09F1\u0A05-\u0A0A\u0A0F\u0A10\u0A13-\u0A28\u0A2A-\u0A30\u0A32\u0A33\u0A35\u0A36\u0A38\u0A39\u0A59-\u0A5C\u0A5E\u0A72-\u0A74\u0A85-\u0A8D\u0A8F-\u0A91\u0A93-\u0AA8\u0AAA-\u0AB0\u0AB2\u0AB3\u0AB5-\u0AB9\u0ABD\u0AD0\u0AE0\u0AE1\u0AF9\u0B05-\u0B0C\u0B0F\u0B10\u0B13-\u0B28\u0B2A-\u0B30\u0B32\u0B33\u0B35-\u0B39\u0B3D\u0B5C\u0B5D\u0B5F-\u0B61\u0B71\u0B83\u0B85-\u0B8A\u0B8E-\u0B90\u0B92-\u0B95\u0B99\u0B9A\u0B9C\u0B9E\u0B9F\u0BA3\u0BA4\u0BA8-\u0BAA\u0BAE-\u0BB9\u0BD0\u0C05-\u0C0C\u0C0E-\u0C10\u0C12-\u0C28\u0C2A-\u0C39\u0C3D\u0C58-\u0C5A\u0C60\u0C61\u0C85-\u0C8C\u0C8E-\u0C90\u0C92-\u0CA8\u0CAA-\u0CB3\u0CB5-\u0CB9\u0CBD\u0CDE\u0CE0\u0CE1\u0CF1\u0CF2\u0D05-\u0D0C\u0D0E-\u0D10\u0D12-\u0D3A\u0D3D\u0D4E\u0D5F-\u0D61\u0D7A-\u0D7F\u0D85-\u0D96\u0D9A-\u0DB1\u0DB3-\u0DBB\u0DBD\u0DC0-\u0DC6\u0E01-\u0E30\u0E32\u0E33\u0E40-\u0E46\u0E81\u0E82\u0E84\u0E87\u0E88\u0E8A\u0E8D\u0E94-\u0E97\u0E99-\u0E9F\u0EA1-\u0EA3\u0EA5\u0EA7\u0EAA\u0EAB\u0EAD-\u0EB0\u0EB2\u0EB3\u0EBD\u0EC0-\u0EC4\u0EC6\u0EDC-\u0EDF\u0F00\u0F40-\u0F47\u0F49-\u0F6C\u0F88-\u0F8C\u1000-\u102A\u103F\u1050-\u1055\u105A-\u105D\u1061\u1065\u1066\u106E-\u1070\u1075-\u1081\u108E\u10A0-\u10C5\u10C7\u10CD\u10D0-\u10FA\u10FC-\u1248\u124A-\u124D\u1250-\u1256\u1258\u125A-\u125D\u1260-\u1288\u128A-\u128D\u1290-\u12B0\u12B2-\u12B5\u12B8-\u12BE\u12C0\u12C2-\u12C5\u12C8-\u12D6\u12D8-\u1310\u1312-\u1315\u1318-\u135A\u1380-\u138F\u13A0-\u13F5\u13F8-\u13FD\u1401-\u166C\u166F-\u167F\u1681-\u169A\u16A0-\u16EA\u16EE-\u16F8\u1700-\u170C\u170E-\u1711\u1720-\u1731\u1740-\u1751\u1760-\u176C\u176E-\u1770\u1780-\u17B3\u17D7\u17DC\u1820-\u1877\u1880-\u18A8\u18AA\u18B0-\u18F5\u1900-\u191E\u1950-\u196D\u1970-\u1974\u1980-\u19AB\u19B0-\u19C9\u1A00-\u1A16\u1A20-\u1A54\u1AA7\u1B05-\u1B33\u1B45-\u1B4B\u1B83-\u1BA0\u1BAE\u1BAF\u1BBA-\u1BE5\u1C00-\u1C23\u1C4D-\u1C4F\u1C5A-\u1C7D\u1CE9-\u1CEC\u1CEE-\u1CF1\u1CF5\u1CF6\u1D00-\u1DBF\u1E00-\u1F15\u1F18-\u1F1D\u1F20-\u1F45\u1F48-\u1F4D\u1F50-\u1F57\u1F59\u1F5B\u1F5D\u1F5F-\u1F7D\u1F80-\u1FB4\u1FB6-\u1FBC\u1FBE\u1FC2-\u1FC4\u1FC6-\u1FCC\u1FD0-\u1FD3\u1FD6-\u1FDB\u1FE0-\u1FEC\u1FF2-\u1FF4\u1FF6-\u1FFC\u2071\u207F\u2090-\u209C\u2102\u2107\u210A-\u2113\u2115\u2118-\u211D\u2124\u2126\u2128\u212A-\u2139\u213C-\u213F\u2145-\u2149\u214E\u2160-\u2188\u2C00-\u2C2E\u2C30-\u2C5E\u2C60-\u2CE4\u2CEB-\u2CEE\u2CF2\u2CF3\u2D00-\u2D25\u2D27\u2D2D\u2D30-\u2D67\u2D6F\u2D80-\u2D96\u2DA0-\u2DA6\u2DA8-\u2DAE\u2DB0-\u2DB6\u2DB8-\u2DBE\u2DC0-\u2DC6\u2DC8-\u2DCE\u2DD0-\u2DD6\u2DD8-\u2DDE\u3005-\u3007\u3021-\u3029\u3031-\u3035\u3038-\u303C\u3041-\u3096\u309B-\u309F\u30A1-\u30FA\u30FC-\u30FF\u3105-\u312D\u3131-\u318E\u31A0-\u31BA\u31F0-\u31FF\u3400-\u4DB5\u4E00-\u9FD5\uA000-\uA48C\uA4D0-\uA4FD\uA500-\uA60C\uA610-\uA61F\uA62A\uA62B\uA640-\uA66E\uA67F-\uA69D\uA6A0-\uA6EF\uA717-\uA71F\uA722-\uA788\uA78B-\uA7AD\uA7B0-\uA7B7\uA7F7-\uA801\uA803-\uA805\uA807-\uA80A\uA80C-\uA822\uA840-\uA873\uA882-\uA8B3\uA8F2-\uA8F7\uA8FB\uA8FD\uA90A-\uA925\uA930-\uA946\uA960-\uA97C\uA984-\uA9B2\uA9CF\uA9E0-\uA9E4\uA9E6-\uA9EF\uA9FA-\uA9FE\uAA00-\uAA28\uAA40-\uAA42\uAA44-\uAA4B\uAA60-\uAA76\uAA7A\uAA7E-\uAAAF\uAAB1\uAAB5\uAAB6\uAAB9-\uAABD\uAAC0\uAAC2\uAADB-\uAADD\uAAE0-\uAAEA\uAAF2-\uAAF4\uAB01-\uAB06\uAB09-\uAB0E\uAB11-\uAB16\uAB20-\uAB26\uAB28-\uAB2E\uAB30-\uAB5A\uAB5C-\uAB65\uAB70-\uABE2\uAC00-\uD7A3\uD7B0-\uD7C6\uD7CB-\uD7FB\uF900-\uFA6D\uFA70-\uFAD9\uFB00-\uFB06\uFB13-\uFB17\uFB1D\uFB1F-\uFB28\uFB2A-\uFB36\uFB38-\uFB3C\uFB3E\uFB40\uFB41\uFB43\uFB44\uFB46-\uFBB1\uFBD3-\uFD3D\uFD50-\uFD8F\uFD92-\uFDC7\uFDF0-\uFDFB\uFE70-\uFE74\uFE76-\uFEFC\uFF21-\uFF3A\uFF41-\uFF5A\uFF66-\uFFBE\uFFC2-\uFFC7\uFFCA-\uFFCF\uFFD2-\uFFD7\uFFDA-\uFFDC]|\uD800[\uDC00-\uDC0B\uDC0D-\uDC26\uDC28-\uDC3A\uDC3C\uDC3D\uDC3F-\uDC4D\uDC50-\uDC5D\uDC80-\uDCFA\uDD40-\uDD74\uDE80-\uDE9C\uDEA0-\uDED0\uDF00-\uDF1F\uDF30-\uDF4A\uDF50-\uDF75\uDF80-\uDF9D\uDFA0-\uDFC3\uDFC8-\uDFCF\uDFD1-\uDFD5]|\uD801[\uDC00-\uDC9D\uDD00-\uDD27\uDD30-\uDD63\uDE00-\uDF36\uDF40-\uDF55\uDF60-\uDF67]|\uD802[\uDC00-\uDC05\uDC08\uDC0A-\uDC35\uDC37\uDC38\uDC3C\uDC3F-\uDC55\uDC60-\uDC76\uDC80-\uDC9E\uDCE0-\uDCF2\uDCF4\uDCF5\uDD00-\uDD15\uDD20-\uDD39\uDD80-\uDDB7\uDDBE\uDDBF\uDE00\uDE10-\uDE13\uDE15-\uDE17\uDE19-\uDE33\uDE60-\uDE7C\uDE80-\uDE9C\uDEC0-\uDEC7\uDEC9-\uDEE4\uDF00-\uDF35\uDF40-\uDF55\uDF60-\uDF72\uDF80-\uDF91]|\uD803[\uDC00-\uDC48\uDC80-\uDCB2\uDCC0-\uDCF2]|\uD804[\uDC03-\uDC37\uDC83-\uDCAF\uDCD0-\uDCE8\uDD03-\uDD26\uDD50-\uDD72\uDD76\uDD83-\uDDB2\uDDC1-\uDDC4\uDDDA\uDDDC\uDE00-\uDE11\uDE13-\uDE2B\uDE80-\uDE86\uDE88\uDE8A-\uDE8D\uDE8F-\uDE9D\uDE9F-\uDEA8\uDEB0-\uDEDE\uDF05-\uDF0C\uDF0F\uDF10\uDF13-\uDF28\uDF2A-\uDF30\uDF32\uDF33\uDF35-\uDF39\uDF3D\uDF50\uDF5D-\uDF61]|\uD805[\uDC80-\uDCAF\uDCC4\uDCC5\uDCC7\uDD80-\uDDAE\uDDD8-\uDDDB\uDE00-\uDE2F\uDE44\uDE80-\uDEAA\uDF00-\uDF19]|\uD806[\uDCA0-\uDCDF\uDCFF\uDEC0-\uDEF8]|\uD808[\uDC00-\uDF99]|\uD809[\uDC00-\uDC6E\uDC80-\uDD43]|[\uD80C\uD840-\uD868\uD86A-\uD86C\uD86F-\uD872][\uDC00-\uDFFF]|\uD80D[\uDC00-\uDC2E]|\uD811[\uDC00-\uDE46]|\uD81A[\uDC00-\uDE38\uDE40-\uDE5E\uDED0-\uDEED\uDF00-\uDF2F\uDF40-\uDF43\uDF63-\uDF77\uDF7D-\uDF8F]|\uD81B[\uDF00-\uDF44\uDF50\uDF93-\uDF9F]|\uD82C[\uDC00\uDC01]|\uD82F[\uDC00-\uDC6A\uDC70-\uDC7C\uDC80-\uDC88\uDC90-\uDC99]|\uD835[\uDC00-\uDC54\uDC56-\uDC9C\uDC9E\uDC9F\uDCA2\uDCA5\uDCA6\uDCA9-\uDCAC\uDCAE-\uDCB9\uDCBB\uDCBD-\uDCC3\uDCC5-\uDD05\uDD07-\uDD0A\uDD0D-\uDD14\uDD16-\uDD1C\uDD1E-\uDD39\uDD3B-\uDD3E\uDD40-\uDD44\uDD46\uDD4A-\uDD50\uDD52-\uDEA5\uDEA8-\uDEC0\uDEC2-\uDEDA\uDEDC-\uDEFA\uDEFC-\uDF14\uDF16-\uDF34\uDF36-\uDF4E\uDF50-\uDF6E\uDF70-\uDF88\uDF8A-\uDFA8\uDFAA-\uDFC2\uDFC4-\uDFCB]|\uD83A[\uDC00-\uDCC4]|\uD83B[\uDE00-\uDE03\uDE05-\uDE1F\uDE21\uDE22\uDE24\uDE27\uDE29-\uDE32\uDE34-\uDE37\uDE39\uDE3B\uDE42\uDE47\uDE49\uDE4B\uDE4D-\uDE4F\uDE51\uDE52\uDE54\uDE57\uDE59\uDE5B\uDE5D\uDE5F\uDE61\uDE62\uDE64\uDE67-\uDE6A\uDE6C-\uDE72\uDE74-\uDE77\uDE79-\uDE7C\uDE7E\uDE80-\uDE89\uDE8B-\uDE9B\uDEA1-\uDEA3\uDEA5-\uDEA9\uDEAB-\uDEBB]|\uD869[\uDC00-\uDED6\uDF00-\uDFFF]|\uD86D[\uDC00-\uDF34\uDF40-\uDFFF]|\uD86E[\uDC00-\uDC1D\uDC20-\uDFFF]|\uD873[\uDC00-\uDEA1]|\uD87E[\uDC00-\uDE1D]$/;idStartBool_1=unicode$1.idStartBool=[false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,true,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,false,false,false,false,true,false,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,false,false,false,false,false];idContinueLargeRegex_1=unicode$1.idContinueLargeRegex=/^[\xAA\xB5\xB7\xBA\xC0-\xD6\xD8-\xF6\xF8-\u02C1\u02C6-\u02D1\u02E0-\u02E4\u02EC\u02EE\u0300-\u0374\u0376\u0377\u037A-\u037D\u037F\u0386-\u038A\u038C\u038E-\u03A1\u03A3-\u03F5\u03F7-\u0481\u0483-\u0487\u048A-\u052F\u0531-\u0556\u0559\u0561-\u0587\u0591-\u05BD\u05BF\u05C1\u05C2\u05C4\u05C5\u05C7\u05D0-\u05EA\u05F0-\u05F2\u0610-\u061A\u0620-\u0669\u066E-\u06D3\u06D5-\u06DC\u06DF-\u06E8\u06EA-\u06FC\u06FF\u0710-\u074A\u074D-\u07B1\u07C0-\u07F5\u07FA\u0800-\u082D\u0840-\u085B\u08A0-\u08B4\u08E3-\u0963\u0966-\u096F\u0971-\u0983\u0985-\u098C\u098F\u0990\u0993-\u09A8\u09AA-\u09B0\u09B2\u09B6-\u09B9\u09BC-\u09C4\u09C7\u09C8\u09CB-\u09CE\u09D7\u09DC\u09DD\u09DF-\u09E3\u09E6-\u09F1\u0A01-\u0A03\u0A05-\u0A0A\u0A0F\u0A10\u0A13-\u0A28\u0A2A-\u0A30\u0A32\u0A33\u0A35\u0A36\u0A38\u0A39\u0A3C\u0A3E-\u0A42\u0A47\u0A48\u0A4B-\u0A4D\u0A51\u0A59-\u0A5C\u0A5E\u0A66-\u0A75\u0A81-\u0A83\u0A85-\u0A8D\u0A8F-\u0A91\u0A93-\u0AA8\u0AAA-\u0AB0\u0AB2\u0AB3\u0AB5-\u0AB9\u0ABC-\u0AC5\u0AC7-\u0AC9\u0ACB-\u0ACD\u0AD0\u0AE0-\u0AE3\u0AE6-\u0AEF\u0AF9\u0B01-\u0B03\u0B05-\u0B0C\u0B0F\u0B10\u0B13-\u0B28\u0B2A-\u0B30\u0B32\u0B33\u0B35-\u0B39\u0B3C-\u0B44\u0B47\u0B48\u0B4B-\u0B4D\u0B56\u0B57\u0B5C\u0B5D\u0B5F-\u0B63\u0B66-\u0B6F\u0B71\u0B82\u0B83\u0B85-\u0B8A\u0B8E-\u0B90\u0B92-\u0B95\u0B99\u0B9A\u0B9C\u0B9E\u0B9F\u0BA3\u0BA4\u0BA8-\u0BAA\u0BAE-\u0BB9\u0BBE-\u0BC2\u0BC6-\u0BC8\u0BCA-\u0BCD\u0BD0\u0BD7\u0BE6-\u0BEF\u0C00-\u0C03\u0C05-\u0C0C\u0C0E-\u0C10\u0C12-\u0C28\u0C2A-\u0C39\u0C3D-\u0C44\u0C46-\u0C48\u0C4A-\u0C4D\u0C55\u0C56\u0C58-\u0C5A\u0C60-\u0C63\u0C66-\u0C6F\u0C81-\u0C83\u0C85-\u0C8C\u0C8E-\u0C90\u0C92-\u0CA8\u0CAA-\u0CB3\u0CB5-\u0CB9\u0CBC-\u0CC4\u0CC6-\u0CC8\u0CCA-\u0CCD\u0CD5\u0CD6\u0CDE\u0CE0-\u0CE3\u0CE6-\u0CEF\u0CF1\u0CF2\u0D01-\u0D03\u0D05-\u0D0C\u0D0E-\u0D10\u0D12-\u0D3A\u0D3D-\u0D44\u0D46-\u0D48\u0D4A-\u0D4E\u0D57\u0D5F-\u0D63\u0D66-\u0D6F\u0D7A-\u0D7F\u0D82\u0D83\u0D85-\u0D96\u0D9A-\u0DB1\u0DB3-\u0DBB\u0DBD\u0DC0-\u0DC6\u0DCA\u0DCF-\u0DD4\u0DD6\u0DD8-\u0DDF\u0DE6-\u0DEF\u0DF2\u0DF3\u0E01-\u0E3A\u0E40-\u0E4E\u0E50-\u0E59\u0E81\u0E82\u0E84\u0E87\u0E88\u0E8A\u0E8D\u0E94-\u0E97\u0E99-\u0E9F\u0EA1-\u0EA3\u0EA5\u0EA7\u0EAA\u0EAB\u0EAD-\u0EB9\u0EBB-\u0EBD\u0EC0-\u0EC4\u0EC6\u0EC8-\u0ECD\u0ED0-\u0ED9\u0EDC-\u0EDF\u0F00\u0F18\u0F19\u0F20-\u0F29\u0F35\u0F37\u0F39\u0F3E-\u0F47\u0F49-\u0F6C\u0F71-\u0F84\u0F86-\u0F97\u0F99-\u0FBC\u0FC6\u1000-\u1049\u1050-\u109D\u10A0-\u10C5\u10C7\u10CD\u10D0-\u10FA\u10FC-\u1248\u124A-\u124D\u1250-\u1256\u1258\u125A-\u125D\u1260-\u1288\u128A-\u128D\u1290-\u12B0\u12B2-\u12B5\u12B8-\u12BE\u12C0\u12C2-\u12C5\u12C8-\u12D6\u12D8-\u1310\u1312-\u1315\u1318-\u135A\u135D-\u135F\u1369-\u1371\u1380-\u138F\u13A0-\u13F5\u13F8-\u13FD\u1401-\u166C\u166F-\u167F\u1681-\u169A\u16A0-\u16EA\u16EE-\u16F8\u1700-\u170C\u170E-\u1714\u1720-\u1734\u1740-\u1753\u1760-\u176C\u176E-\u1770\u1772\u1773\u1780-\u17D3\u17D7\u17DC\u17DD\u17E0-\u17E9\u180B-\u180D\u1810-\u1819\u1820-\u1877\u1880-\u18AA\u18B0-\u18F5\u1900-\u191E\u1920-\u192B\u1930-\u193B\u1946-\u196D\u1970-\u1974\u1980-\u19AB\u19B0-\u19C9\u19D0-\u19DA\u1A00-\u1A1B\u1A20-\u1A5E\u1A60-\u1A7C\u1A7F-\u1A89\u1A90-\u1A99\u1AA7\u1AB0-\u1ABD\u1B00-\u1B4B\u1B50-\u1B59\u1B6B-\u1B73\u1B80-\u1BF3\u1C00-\u1C37\u1C40-\u1C49\u1C4D-\u1C7D\u1CD0-\u1CD2\u1CD4-\u1CF6\u1CF8\u1CF9\u1D00-\u1DF5\u1DFC-\u1F15\u1F18-\u1F1D\u1F20-\u1F45\u1F48-\u1F4D\u1F50-\u1F57\u1F59\u1F5B\u1F5D\u1F5F-\u1F7D\u1F80-\u1FB4\u1FB6-\u1FBC\u1FBE\u1FC2-\u1FC4\u1FC6-\u1FCC\u1FD0-\u1FD3\u1FD6-\u1FDB\u1FE0-\u1FEC\u1FF2-\u1FF4\u1FF6-\u1FFC\u200C\u200D\u203F\u2040\u2054\u2071\u207F\u2090-\u209C\u20D0-\u20DC\u20E1\u20E5-\u20F0\u2102\u2107\u210A-\u2113\u2115\u2118-\u211D\u2124\u2126\u2128\u212A-\u2139\u213C-\u213F\u2145-\u2149\u214E\u2160-\u2188\u2C00-\u2C2E\u2C30-\u2C5E\u2C60-\u2CE4\u2CEB-\u2CF3\u2D00-\u2D25\u2D27\u2D2D\u2D30-\u2D67\u2D6F\u2D7F-\u2D96\u2DA0-\u2DA6\u2DA8-\u2DAE\u2DB0-\u2DB6\u2DB8-\u2DBE\u2DC0-\u2DC6\u2DC8-\u2DCE\u2DD0-\u2DD6\u2DD8-\u2DDE\u2DE0-\u2DFF\u3005-\u3007\u3021-\u302F\u3031-\u3035\u3038-\u303C\u3041-\u3096\u3099-\u309F\u30A1-\u30FA\u30FC-\u30FF\u3105-\u312D\u3131-\u318E\u31A0-\u31BA\u31F0-\u31FF\u3400-\u4DB5\u4E00-\u9FD5\uA000-\uA48C\uA4D0-\uA4FD\uA500-\uA60C\uA610-\uA62B\uA640-\uA66F\uA674-\uA67D\uA67F-\uA6F1\uA717-\uA71F\uA722-\uA788\uA78B-\uA7AD\uA7B0-\uA7B7\uA7F7-\uA827\uA840-\uA873\uA880-\uA8C4\uA8D0-\uA8D9\uA8E0-\uA8F7\uA8FB\uA8FD\uA900-\uA92D\uA930-\uA953\uA960-\uA97C\uA980-\uA9C0\uA9CF-\uA9D9\uA9E0-\uA9FE\uAA00-\uAA36\uAA40-\uAA4D\uAA50-\uAA59\uAA60-\uAA76\uAA7A-\uAAC2\uAADB-\uAADD\uAAE0-\uAAEF\uAAF2-\uAAF6\uAB01-\uAB06\uAB09-\uAB0E\uAB11-\uAB16\uAB20-\uAB26\uAB28-\uAB2E\uAB30-\uAB5A\uAB5C-\uAB65\uAB70-\uABEA\uABEC\uABED\uABF0-\uABF9\uAC00-\uD7A3\uD7B0-\uD7C6\uD7CB-\uD7FB\uF900-\uFA6D\uFA70-\uFAD9\uFB00-\uFB06\uFB13-\uFB17\uFB1D-\uFB28\uFB2A-\uFB36\uFB38-\uFB3C\uFB3E\uFB40\uFB41\uFB43\uFB44\uFB46-\uFBB1\uFBD3-\uFD3D\uFD50-\uFD8F\uFD92-\uFDC7\uFDF0-\uFDFB\uFE00-\uFE0F\uFE20-\uFE2F\uFE33\uFE34\uFE4D-\uFE4F\uFE70-\uFE74\uFE76-\uFEFC\uFF10-\uFF19\uFF21-\uFF3A\uFF3F\uFF41-\uFF5A\uFF66-\uFFBE\uFFC2-\uFFC7\uFFCA-\uFFCF\uFFD2-\uFFD7\uFFDA-\uFFDC]|\uD800[\uDC00-\uDC0B\uDC0D-\uDC26\uDC28-\uDC3A\uDC3C\uDC3D\uDC3F-\uDC4D\uDC50-\uDC5D\uDC80-\uDCFA\uDD40-\uDD74\uDDFD\uDE80-\uDE9C\uDEA0-\uDED0\uDEE0\uDF00-\uDF1F\uDF30-\uDF4A\uDF50-\uDF7A\uDF80-\uDF9D\uDFA0-\uDFC3\uDFC8-\uDFCF\uDFD1-\uDFD5]|\uD801[\uDC00-\uDC9D\uDCA0-\uDCA9\uDD00-\uDD27\uDD30-\uDD63\uDE00-\uDF36\uDF40-\uDF55\uDF60-\uDF67]|\uD802[\uDC00-\uDC05\uDC08\uDC0A-\uDC35\uDC37\uDC38\uDC3C\uDC3F-\uDC55\uDC60-\uDC76\uDC80-\uDC9E\uDCE0-\uDCF2\uDCF4\uDCF5\uDD00-\uDD15\uDD20-\uDD39\uDD80-\uDDB7\uDDBE\uDDBF\uDE00-\uDE03\uDE05\uDE06\uDE0C-\uDE13\uDE15-\uDE17\uDE19-\uDE33\uDE38-\uDE3A\uDE3F\uDE60-\uDE7C\uDE80-\uDE9C\uDEC0-\uDEC7\uDEC9-\uDEE6\uDF00-\uDF35\uDF40-\uDF55\uDF60-\uDF72\uDF80-\uDF91]|\uD803[\uDC00-\uDC48\uDC80-\uDCB2\uDCC0-\uDCF2]|\uD804[\uDC00-\uDC46\uDC66-\uDC6F\uDC7F-\uDCBA\uDCD0-\uDCE8\uDCF0-\uDCF9\uDD00-\uDD34\uDD36-\uDD3F\uDD50-\uDD73\uDD76\uDD80-\uDDC4\uDDCA-\uDDCC\uDDD0-\uDDDA\uDDDC\uDE00-\uDE11\uDE13-\uDE37\uDE80-\uDE86\uDE88\uDE8A-\uDE8D\uDE8F-\uDE9D\uDE9F-\uDEA8\uDEB0-\uDEEA\uDEF0-\uDEF9\uDF00-\uDF03\uDF05-\uDF0C\uDF0F\uDF10\uDF13-\uDF28\uDF2A-\uDF30\uDF32\uDF33\uDF35-\uDF39\uDF3C-\uDF44\uDF47\uDF48\uDF4B-\uDF4D\uDF50\uDF57\uDF5D-\uDF63\uDF66-\uDF6C\uDF70-\uDF74]|\uD805[\uDC80-\uDCC5\uDCC7\uDCD0-\uDCD9\uDD80-\uDDB5\uDDB8-\uDDC0\uDDD8-\uDDDD\uDE00-\uDE40\uDE44\uDE50-\uDE59\uDE80-\uDEB7\uDEC0-\uDEC9\uDF00-\uDF19\uDF1D-\uDF2B\uDF30-\uDF39]|\uD806[\uDCA0-\uDCE9\uDCFF\uDEC0-\uDEF8]|\uD808[\uDC00-\uDF99]|\uD809[\uDC00-\uDC6E\uDC80-\uDD43]|[\uD80C\uD840-\uD868\uD86A-\uD86C\uD86F-\uD872][\uDC00-\uDFFF]|\uD80D[\uDC00-\uDC2E]|\uD811[\uDC00-\uDE46]|\uD81A[\uDC00-\uDE38\uDE40-\uDE5E\uDE60-\uDE69\uDED0-\uDEED\uDEF0-\uDEF4\uDF00-\uDF36\uDF40-\uDF43\uDF50-\uDF59\uDF63-\uDF77\uDF7D-\uDF8F]|\uD81B[\uDF00-\uDF44\uDF50-\uDF7E\uDF8F-\uDF9F]|\uD82C[\uDC00\uDC01]|\uD82F[\uDC00-\uDC6A\uDC70-\uDC7C\uDC80-\uDC88\uDC90-\uDC99\uDC9D\uDC9E]|\uD834[\uDD65-\uDD69\uDD6D-\uDD72\uDD7B-\uDD82\uDD85-\uDD8B\uDDAA-\uDDAD\uDE42-\uDE44]|\uD835[\uDC00-\uDC54\uDC56-\uDC9C\uDC9E\uDC9F\uDCA2\uDCA5\uDCA6\uDCA9-\uDCAC\uDCAE-\uDCB9\uDCBB\uDCBD-\uDCC3\uDCC5-\uDD05\uDD07-\uDD0A\uDD0D-\uDD14\uDD16-\uDD1C\uDD1E-\uDD39\uDD3B-\uDD3E\uDD40-\uDD44\uDD46\uDD4A-\uDD50\uDD52-\uDEA5\uDEA8-\uDEC0\uDEC2-\uDEDA\uDEDC-\uDEFA\uDEFC-\uDF14\uDF16-\uDF34\uDF36-\uDF4E\uDF50-\uDF6E\uDF70-\uDF88\uDF8A-\uDFA8\uDFAA-\uDFC2\uDFC4-\uDFCB\uDFCE-\uDFFF]|\uD836[\uDE00-\uDE36\uDE3B-\uDE6C\uDE75\uDE84\uDE9B-\uDE9F\uDEA1-\uDEAF]|\uD83A[\uDC00-\uDCC4\uDCD0-\uDCD6]|\uD83B[\uDE00-\uDE03\uDE05-\uDE1F\uDE21\uDE22\uDE24\uDE27\uDE29-\uDE32\uDE34-\uDE37\uDE39\uDE3B\uDE42\uDE47\uDE49\uDE4B\uDE4D-\uDE4F\uDE51\uDE52\uDE54\uDE57\uDE59\uDE5B\uDE5D\uDE5F\uDE61\uDE62\uDE64\uDE67-\uDE6A\uDE6C-\uDE72\uDE74-\uDE77\uDE79-\uDE7C\uDE7E\uDE80-\uDE89\uDE8B-\uDE9B\uDEA1-\uDEA3\uDEA5-\uDEA9\uDEAB-\uDEBB]|\uD869[\uDC00-\uDED6\uDF00-\uDFFF]|\uD86D[\uDC00-\uDF34\uDF40-\uDFFF]|\uD86E[\uDC00-\uDC1D\uDC20-\uDFFF]|\uD873[\uDC00-\uDEA1]|\uD87E[\uDC00-\uDE1D]|\uDB40[\uDD00-\uDDEF]$/;idContinueBool_1=unicode$1.idContinueBool=[false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,true,false,false,false,false,false,false,false,false,false,false,false,true,true,true,true,true,true,true,true,true,true,false,false,false,false,false,false,false,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,false,false,false,false,true,false,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,false,false,false,false,false];var unicode=/* @__PURE__ */_mergeNamespaces({__proto__:null,get whitespaceArray(){return whitespaceArray_1;},get whitespaceBool(){return whitespaceBool_1;},get idStartLargeRegex(){return idStartLargeRegex_1;},get idStartBool(){return idStartBool_1;},get idContinueLargeRegex(){return idContinueLargeRegex_1;},get idContinueBool(){return idContinueBool_1;},"default":unicode$1},[unicode$1]);var require$$0=/* @__PURE__ */getAugmentedNamespace(unicode);Object.defineProperty(tokenStream$1,"__esModule",{value:true});var TokenStream_1=tokenStream$1.TokenStream=void 0;var _createClass$1=function(){function defineProperties(target,props){for(var i2=0;i2<props.length;i2++){var descriptor=props[i2];descriptor.enumerable=descriptor.enumerable||false;descriptor.configurable=true;if("value"in descriptor)descriptor.writable=true;Object.defineProperty(target,descriptor.key,descriptor);}}return function(Constructor,protoProps,staticProps){if(protoProps)defineProperties(Constructor.prototype,protoProps);if(staticProps)defineProperties(Constructor,staticProps);return Constructor;};}();var needsDoubleDot_1=tokenStream$1.needsDoubleDot=needsDoubleDot;var _unicode=require$$0;function _toConsumableArray(arr){if(Array.isArray(arr)){for(var i2=0,arr2=Array(arr.length);i2<arr.length;i2++){arr2[i2]=arr[i2];}return arr2;}else{return Array.from(arr);}}function _classCallCheck$1(instance,Constructor){if(!(instance instanceof Constructor)){throw new TypeError("Cannot call a class as a function");}}function isIdentifierPartES6(char){var charCode=char.charCodeAt(0);if(charCode<128){return _unicode.idContinueBool[charCode];}return _unicode.idContinueLargeRegex.test(char);}function needsDoubleDot(fragment){return fragment.indexOf(".")<0&&fragment.indexOf("e")<0&&fragment.indexOf("x")<0;}function renderNumber(n){var s=void 0;if(n>=1e3&&n%10===0){s=n.toString(10);if(/[eE]/.test(s)){return s.replace(/[eE]\+/,"e");}return n.toString(10).replace(/0{3,}$/,function(match){return"e"+match.length;});}else if(n%1===0){if(n>1e15&&n<1e20){return"0x"+n.toString(16).toUpperCase();}return n.toString(10).replace(/[eE]\+/,"e");}return n.toString(10).replace(/^0\./,".").replace(/[eE]\+/,"e");}TokenStream_1=tokenStream$1.TokenStream=function(){function TokenStream(){_classCallCheck$1(this,TokenStream);this.result="";this.lastNumber=null;this.lastCodePoint=null;this.lastTokenStr="";this.optionalSemi=false;this.previousWasRegExp=false;this.partialHtmlComment=false;}_createClass$1(TokenStream,[{key:"putNumber",value:function putNumber(number){var tokenStr=renderNumber(number);this.put(tokenStr);this.lastNumber=tokenStr;}},{key:"putOptionalSemi",value:function putOptionalSemi(){this.optionalSemi=true;}},{key:"putRaw",value:function putRaw(tokenStr){this.result+=tokenStr;this.lastTokenStr=tokenStr;}},{key:"put",value:function put(tokenStr,isRegExp){if(this.optionalSemi){this.optionalSemi=false;if(tokenStr!=="}"){this.result+=";";this.lastCodePoint=";";this.previousWasRegExp=false;}}if(this.lastNumber!==null&&tokenStr.length===1){if(tokenStr==="."){this.result+=needsDoubleDot(this.lastNumber)?"..":".";this.lastNumber=null;this.lastCodePoint=".";return;}}var tokenStrCodePointCount=[].concat(_toConsumableArray(tokenStr)).length;if(tokenStrCodePointCount>0){this.lastNumber=null;var rightCodePoint=String.fromCodePoint(tokenStr.codePointAt(0));var lastCodePoint=this.lastCodePoint;this.lastCodePoint=String.fromCodePoint(tokenStr.codePointAt(tokenStrCodePointCount-1));var previousWasRegExp=this.previousWasRegExp;this.previousWasRegExp=isRegExp;if(lastCodePoint&&((lastCodePoint==="+"||lastCodePoint==="-")&&lastCodePoint===rightCodePoint||isIdentifierPartES6(lastCodePoint)&&isIdentifierPartES6(rightCodePoint)||lastCodePoint==="/"&&rightCodePoint==="/"||previousWasRegExp&&rightCodePoint==="i"||this.partialHtmlComment&&tokenStr.startsWith("--"))){this.result+=" ";}}this.partialHtmlComment=this.lastTokenStr.endsWith("<")&&tokenStr==="!";this.result+=tokenStr;this.lastTokenStr=tokenStr;}}]);return TokenStream;}();var tokenStream=/* @__PURE__ */_mergeNamespaces({__proto__:null,get TokenStream(){return TokenStream_1;},needsDoubleDot:needsDoubleDot_1,"default":tokenStream$1},[tokenStream$1]);var require$$5=/* @__PURE__ */getAugmentedNamespace(tokenStream);Object.defineProperty(withLocation$1,"__esModule",{value:true});var _createClass=function(){function defineProperties(target,props){for(var i2=0;i2<props.length;i2++){var descriptor=props[i2];descriptor.enumerable=descriptor.enumerable||false;descriptor.configurable=true;if("value"in descriptor)descriptor.writable=true;Object.defineProperty(target,descriptor.key,descriptor);}}return function(Constructor,protoProps,staticProps){if(protoProps)defineProperties(Constructor.prototype,protoProps);if(staticProps)defineProperties(Constructor,staticProps);return Constructor;};}();var _get=function get4(object,property,receiver){if(object===null)object=Function.prototype;var desc=Object.getOwnPropertyDescriptor(object,property);if(desc===void 0){var parent=Object.getPrototypeOf(object);if(parent===null){return void 0;}else{return get4(parent,property,receiver);}}else if("value"in desc){return desc.value;}else{var getter=desc.get;if(getter===void 0){return void 0;}return getter.call(receiver);}};var _default=withLocation$1["default"]=codeGenWithLocation;var _shiftReducer=require$$4;var _tokenStream=require$$5;var _minimalCodegen=require$$0$1;var _minimalCodegen2=_interopRequireDefault(_minimalCodegen);function _interopRequireDefault(obj){return obj&&obj.__esModule?obj:{default:obj};}function _classCallCheck(instance,Constructor){if(!(instance instanceof Constructor)){throw new TypeError("Cannot call a class as a function");}}function _possibleConstructorReturn(self,call){if(!self){throw new ReferenceError("this hasn't been initialised - super() hasn't been called");}return call&&(typeof call==="object"||typeof call==="function")?call:self;}function _inherits(subClass,superClass){if(typeof superClass!=="function"&&superClass!==null){throw new TypeError("Super expression must either be null or a function, not "+typeof superClass);}subClass.prototype=Object.create(superClass&&superClass.prototype,{constructor:{value:subClass,enumerable:false,writable:true,configurable:true}});if(superClass)Object.setPrototypeOf?Object.setPrototypeOf(subClass,superClass):subClass.__proto__=superClass;}function mightHaveSemi(type){return /(Import)|(Export)|(Statement)|(Directive)|(SwitchCase)|(SwitchDefault)/.test(type);}var TokenStreamWithLocation=function(_TokenStream){_inherits(TokenStreamWithLocation2,_TokenStream);function TokenStreamWithLocation2(){_classCallCheck(this,TokenStreamWithLocation2);var _this=_possibleConstructorReturn(this,(TokenStreamWithLocation2.__proto__||Object.getPrototypeOf(TokenStreamWithLocation2)).call(this));_this.line=1;_this.column=0;_this.startingNodes=[];_this.finishingStatements=[];_this.lastNumberNode=null;_this.locations=/* @__PURE__ */new WeakMap();return _this;}_createClass(TokenStreamWithLocation2,[{key:"putRaw",value:function putRaw(tokenStr){var previousLength=this.result.length;_get(TokenStreamWithLocation2.prototype.__proto__||Object.getPrototypeOf(TokenStreamWithLocation2.prototype),"putRaw",this).call(this,tokenStr);this.startNodes(tokenStr,previousLength);}},{key:"put",value:function put(tokenStr,isRegExp){if(this.optionalSemi&&tokenStr!=="}"){var _iteratorNormalCompletion=true;var _didIteratorError=false;var _iteratorError=void 0;try{for(var _iterator=this.finishingStatements[Symbol.iterator](),_step;!(_iteratorNormalCompletion=(_step=_iterator.next()).done);_iteratorNormalCompletion=true){var obj=_step.value;++obj.end.column;++obj.end.offset;}}catch(err){_didIteratorError=true;_iteratorError=err;}finally{try{if(!_iteratorNormalCompletion&&_iterator.return){_iterator.return();}}finally{if(_didIteratorError){throw _iteratorError;}}}}this.finishingStatements=[];if(this.lastNumber!==null&&tokenStr==="."&&(0,_tokenStream.needsDoubleDot)(this.lastNumber)){var loc=this.locations.get(this.lastNumberNode).end;++loc.column;++loc.offset;}this.lastNumberNode=null;var previousLength=this.result.length;_get(TokenStreamWithLocation2.prototype.__proto__||Object.getPrototypeOf(TokenStreamWithLocation2.prototype),"put",this).call(this,tokenStr,isRegExp);this.startNodes(tokenStr,previousLength);}},{key:"startNodes",value:function startNodes(tokenStr,previousLength){var linebreakRegex=/\r\n?|[\n\u2028\u2029]/g;var matched=false;var match=void 0;var startLine=this.line;var startColumn=this.column;while(match=linebreakRegex.exec(tokenStr)){++this.line;this.column=tokenStr.length-match.index-match[0].length;matched=true;}if(!matched){this.column+=this.result.length-previousLength;startColumn=this.column-tokenStr.length;}var _iteratorNormalCompletion2=true;var _didIteratorError2=false;var _iteratorError2=void 0;try{for(var _iterator2=this.startingNodes[Symbol.iterator](),_step2;!(_iteratorNormalCompletion2=(_step2=_iterator2.next()).done);_iteratorNormalCompletion2=true){var node=_step2.value;this.locations.set(node,{start:{line:startLine,column:startColumn,offset:this.result.length-tokenStr.length},end:null});}}catch(err){_didIteratorError2=true;_iteratorError2=err;}finally{try{if(!_iteratorNormalCompletion2&&_iterator2.return){_iterator2.return();}}finally{if(_didIteratorError2){throw _iteratorError2;}}}this.startingNodes=[];}},{key:"startEmit",value:function startEmit(node){this.startingNodes.push(node);}},{key:"finishEmit",value:function finishEmit(node){this.locations.get(node).end={line:this.line,column:this.column,offset:this.result.length};if(mightHaveSemi(node.type)){this.finishingStatements.push(this.locations.get(node));}}}]);return TokenStreamWithLocation2;}(_tokenStream.TokenStream);function addLocation(rep,node){var originalEmit=rep.emit.bind(rep);if(node.type==="Script"||node.type==="Module"){rep.emit=function(ts){for(var _len=arguments.length,args=Array(_len>1?_len-1:0),_key=1;_key<_len;_key++){args[_key-1]=arguments[_key];}ts.locations.set(node,{start:{line:1,column:0,offset:0},end:null});originalEmit.apply(void 0,[ts].concat(args));ts.locations.get(node).end={line:ts.line,column:ts.column,offset:ts.result.length};};}else if(node.type==="LiteralNumericExpression"){rep.emit=function(ts){for(var _len2=arguments.length,args=Array(_len2>1?_len2-1:0),_key2=1;_key2<_len2;_key2++){args[_key2-1]=arguments[_key2];}ts.startEmit(node);originalEmit.apply(void 0,[ts].concat(args));ts.finishEmit(node);ts.lastNumberNode=node;};}else{rep.emit=function(ts){for(var _len3=arguments.length,args=Array(_len3>1?_len3-1:0),_key3=1;_key3<_len3;_key3++){args[_key3-1]=arguments[_key3];}ts.startEmit(node);originalEmit.apply(void 0,[ts].concat(args));ts.finishEmit(node);};}return rep;}function addLocationToReducer(reducer){var wrapped=(0,_shiftReducer.adapt)(addLocation,reducer);var originalRegenerate=wrapped.regenerateArrowParams.bind(wrapped);wrapped.regenerateArrowParams=function(element,original){var out=originalRegenerate(element,original);if(out!==original){addLocation(out,element);}return out;};var originalDirective=wrapped.parenToAvoidBeingDirective.bind(wrapped);wrapped.parenToAvoidBeingDirective=function(element,original){var out=originalDirective(element,original);if(out!==original){addLocation(out,element);}return out;};return wrapped;}function codeGenWithLocation(program){var generator=arguments.length>1&&arguments[1]!==void 0?arguments[1]:new _minimalCodegen2.default();var ts=new TokenStreamWithLocation();var rep=(0,_shiftReducer.reduce)(addLocationToReducer(generator),program);rep.emit(ts);return{source:ts.result,locations:ts.locations};}var withLocation=/* @__PURE__ */_mergeNamespaces({__proto__:null,"default":_default},[withLocation$1]);var require$$3=/* @__PURE__ */getAugmentedNamespace(withLocation);(function(exports2){Object.defineProperty(exports2,"__esModule",{value:true});exports2.codeGenWithLocation=exports2.SemiOp=exports2.CommaSep=exports2.Semi=exports2.Seq=exports2.ContainsIn=exports2.NoIn=exports2.Brace=exports2.Bracket=exports2.Paren=exports2.NumberCodeRep=exports2.Token=exports2.Empty=exports2.CodeRep=exports2.escapeStringLiteral=exports2.getPrecedence=exports2.Precedence=exports2.Sep=exports2.FormattedCodeGen=exports2.ExtensibleCodeGen=exports2.MinimalCodeGen=void 0;exports2.default=codeGen;var _minimalCodegen3=require$$0$1;Object.defineProperty(exports2,"MinimalCodeGen",{enumerable:true,get:function get5(){return _interopRequireDefault2(_minimalCodegen3).default;}});var _formattedCodegen=require$$1;Object.defineProperty(exports2,"ExtensibleCodeGen",{enumerable:true,get:function get5(){return _formattedCodegen.ExtensibleCodeGen;}});Object.defineProperty(exports2,"FormattedCodeGen",{enumerable:true,get:function get5(){return _formattedCodegen.FormattedCodeGen;}});Object.defineProperty(exports2,"Sep",{enumerable:true,get:function get5(){return _formattedCodegen.Sep;}});var _coderep2=require$$2;Object.defineProperty(exports2,"Precedence",{enumerable:true,get:function get5(){return _coderep2.Precedence;}});Object.defineProperty(exports2,"getPrecedence",{enumerable:true,get:function get5(){return _coderep2.getPrecedence;}});Object.defineProperty(exports2,"escapeStringLiteral",{enumerable:true,get:function get5(){return _coderep2.escapeStringLiteral;}});Object.defineProperty(exports2,"CodeRep",{enumerable:true,get:function get5(){return _coderep2.CodeRep;}});Object.defineProperty(exports2,"Empty",{enumerable:true,get:function get5(){return _coderep2.Empty;}});Object.defineProperty(exports2,"Token",{enumerable:true,get:function get5(){return _coderep2.Token;}});Object.defineProperty(exports2,"NumberCodeRep",{enumerable:true,get:function get5(){return _coderep2.NumberCodeRep;}});Object.defineProperty(exports2,"Paren",{enumerable:true,get:function get5(){return _coderep2.Paren;}});Object.defineProperty(exports2,"Bracket",{enumerable:true,get:function get5(){return _coderep2.Bracket;}});Object.defineProperty(exports2,"Brace",{enumerable:true,get:function get5(){return _coderep2.Brace;}});Object.defineProperty(exports2,"NoIn",{enumerable:true,get:function get5(){return _coderep2.NoIn;}});Object.defineProperty(exports2,"ContainsIn",{enumerable:true,get:function get5(){return _coderep2.ContainsIn;}});Object.defineProperty(exports2,"Seq",{enumerable:true,get:function get5(){return _coderep2.Seq;}});Object.defineProperty(exports2,"Semi",{enumerable:true,get:function get5(){return _coderep2.Semi;}});Object.defineProperty(exports2,"CommaSep",{enumerable:true,get:function get5(){return _coderep2.CommaSep;}});Object.defineProperty(exports2,"SemiOp",{enumerable:true,get:function get5(){return _coderep2.SemiOp;}});var _withLocation=require$$3;Object.defineProperty(exports2,"codeGenWithLocation",{enumerable:true,get:function get5(){return _interopRequireDefault2(_withLocation).default;}});var _shiftReducer3=require$$4;var _shiftReducer22=_interopRequireDefault2(_shiftReducer3);var _tokenStream2=require$$5;var _minimalCodegen22=_interopRequireDefault2(_minimalCodegen3);function _interopRequireDefault2(obj){return obj&&obj.__esModule?obj:{default:obj};}function codeGen(script){var generator=arguments.length>1&&arguments[1]!==void 0?arguments[1]:new _minimalCodegen22.default();var ts=new _tokenStream2.TokenStream();var rep=(0,_shiftReducer22.default)(generator,script);rep.emit(ts);return ts.result;}})(dist);var shiftCodegen=/* @__PURE__ */getDefaultExportFromCjs(dist);shiftCodegen["default"]||shiftCodegen;var Pattern$1=strudel.Pattern;Object.keys(Pattern$1.prototype.factories).concat(["mini"]);var pure=strudel.pure,Pattern=strudel.Pattern,Fraction=strudel.Fraction,stack=strudel.stack,slowcat=strudel.slowcat,sequence=strudel.sequence,timeCat=strudel.timeCat,silence=strudel.silence,reify$1=strudel.reify;var _seedState=0;var randOffset=2e-4;function _nextSeed(){return _seedState++;}var applyOptions=parent=>(pat,i2)=>{const ast2=parent.source_[i2];const options=ast2.options_;const operator=options==null?void 0:options.operator;if(operator){switch(operator.type_){case"stretch":const speed=Fraction(operator.arguments_.amount).inverse();return reify$1(pat).fast(speed);case"bjorklund":return pat.euclid(operator.arguments_.pulse,operator.arguments_.step,operator.arguments_.rotation);case"degradeBy":return reify$1(pat)._degradeByWith(rand.early(randOffset*_nextSeed()).segment(1),operator.arguments_.amount);}console.warn(`operator "${operator.type_}" not implemented`);}if(options==null?void 0:options.weight){return pat;}const unimplemented=Object.keys(options||{}).filter(key=>key!=="operator");if(unimplemented.length){console.warn(`option${unimplemented.length>1?"s":""} ${unimplemented.map(o=>`"${o}"`).join(", ")} not implemented`);}return pat;};function resolveReplications(ast2){ast2.source_=ast2.source_.map(child=>{const{replicate,...options}=child.options_||{};if(replicate){return{...child,options_:{...options,weight:replicate},source_:{type_:"pattern",arguments_:{alignment:"h"},source_:[{type_:"element",source_:child.source_,location_:child.location_,options_:{operator:{type_:"stretch",arguments_:{amount:Fraction(replicate).inverse().toString()}}}}]}};}return child;});}function patternifyAST(ast2){switch(ast2.type_){case"pattern":resolveReplications(ast2);const children=ast2.source_.map(patternifyAST).map(applyOptions(ast2));const alignment=ast2.arguments_.alignment;if(alignment==="v"){return stack(...children);}if(alignment==="r"){return chooseInWith(rand.early(randOffset*_nextSeed()).segment(1),children);}const weightedChildren=ast2.source_.some(child=>{var _a;return!!((_a=child.options_)==null?void 0:_a.weight);});if(!weightedChildren&&alignment==="t"){return slowcat(...children);}if(weightedChildren){const pat=timeCat(...ast2.source_.map((child,i2)=>{var _a;return[((_a=child.options_)==null?void 0:_a.weight)||1,children[i2]];}));if(alignment==="t"){const weightSum=ast2.source_.reduce((sum,child)=>{var _a;return sum+(((_a=child.options_)==null?void 0:_a.weight)||1);},0);return pat._slow(weightSum);}return pat;}return sequence(...children);case"element":if(ast2.source_==="~"){return silence;}if(typeof ast2.source_!=="object"){if(!ast2.location_){console.warn("no location for",ast2);return ast2.source_;}const{start,end}=ast2.location_;const value=!isNaN(Number(ast2.source_))?Number(ast2.source_):ast2.source_;return pure(value).withLocation([start.line,start.column,start.offset],[end.line,end.column,end.offset]);}return patternifyAST(ast2.source_);case"stretch":return patternifyAST(ast2.source_).slow(ast2.arguments_.amount);default:console.warn(`node type "${ast2.type_}" not implemented -> returning silence`);return silence;}}var mini=(...strings)=>{const pats=strings.map(str=>{const ast2=peg$parse(`"${str}"`);return patternifyAST(ast2);});return sequence(...pats);};var h=string=>{const ast2=peg$parse(string);return patternifyAST(ast2);};Pattern.prototype.define("mini",mini,{composable:true});Pattern.prototype.define("m",mini,{composable:true});Pattern.prototype.define("h",h,{composable:true});function minify(thing){if(typeof thing==="string"){return mini(thing);}return reify$1(thing);}exports.SyntaxError=peg$SyntaxError;exports.h=h;exports.mini=mini;exports.minify=minify;exports.parse=peg$parse;exports.patternifyAST=patternifyAST;
 
-},{}],11:[function(require,module,exports){
+},{}],92:[function(require,module,exports){
 "use strict";
 
 /*
@@ -803,7 +5608,7 @@ HeapQueue.prototype.pop = function () {
 
 module.exports = HeapQueue;
 
-},{}],12:[function(require,module,exports){
+},{}],93:[function(require,module,exports){
 "use strict";
 
 /**
@@ -850,7 +5655,7 @@ module.exports = function Realm(scope, parentElement) {
   this.exec = win.$hook.call(scope, scope, console);
 };
 
-},{}],13:[function(require,module,exports){
+},{}],94:[function(require,module,exports){
 "use strict";
 
 var __proxy = require('./workletProxy.js');
@@ -1022,7 +5827,7 @@ module.exports = function (Gibberish) {
   return factory;
 };
 
-},{"./fx/effect.js":28,"./workletProxy.js":74}],14:[function(require,module,exports){
+},{"./fx/effect.js":109,"./workletProxy.js":155}],95:[function(require,module,exports){
 "use strict";
 
 var g = require('genish.js'); // constructor for schroeder allpass filters
@@ -1042,7 +5847,7 @@ var allPass = function (_input, length = 500, feedback = .5) {
 
 module.exports = allPass;
 
-},{"genish.js":114}],15:[function(require,module,exports){
+},{"genish.js":40}],96:[function(require,module,exports){
 "use strict";
 
 var g = require('genish.js'),
@@ -1203,7 +6008,7 @@ module.exports = function (Gibberish) {
   return Biquad;
 };
 
-},{"./filter.js":18,"genish.js":114}],16:[function(require,module,exports){
+},{"./filter.js":99,"genish.js":40}],97:[function(require,module,exports){
 "use strict";
 
 var g = require('genish.js');
@@ -1224,7 +6029,7 @@ var combFilter = function (_input, combLength, damping = .5 * .4, feedbackCoeff 
 
 module.exports = combFilter;
 
-},{"genish.js":114}],17:[function(require,module,exports){
+},{"genish.js":40}],98:[function(require,module,exports){
 "use strict";
 
 var g = require('genish.js'),
@@ -1386,7 +6191,7 @@ module.exports = function (Gibberish) {
   return DiodeZDF;
 };
 
-},{"./filter.js":18,"genish.js":114}],18:[function(require,module,exports){
+},{"./filter.js":99,"genish.js":40}],99:[function(require,module,exports){
 "use strict";
 
 var ugen = require('../ugen.js')();
@@ -1399,7 +6204,7 @@ Object.assign(filter, {
 });
 module.exports = filter;
 
-},{"../ugen.js":72}],19:[function(require,module,exports){
+},{"../ugen.js":153}],100:[function(require,module,exports){
 "use strict";
 
 var g = require('genish.js'),
@@ -1463,7 +6268,7 @@ module.exports = function (Gibberish) {
   return Filter24;
 };
 
-},{"./filter.js":18,"genish.js":114}],20:[function(require,module,exports){
+},{"./filter.js":99,"genish.js":40}],101:[function(require,module,exports){
 "use strict";
 
 module.exports = function (Gibberish) {
@@ -1534,7 +6339,7 @@ module.exports = function (Gibberish) {
   return filters;
 };
 
-},{"./allpass.js":14,"./biquad.dsp.js":15,"./combfilter.js":16,"./diodeFilterZDF.js":17,"./filter24.js":19,"./ladder.dsp.js":21,"./svf.js":22}],21:[function(require,module,exports){
+},{"./allpass.js":95,"./biquad.dsp.js":96,"./combfilter.js":97,"./diodeFilterZDF.js":98,"./filter24.js":100,"./ladder.dsp.js":102,"./svf.js":103}],102:[function(require,module,exports){
 "use strict";
 
 var genish = require('genish.js'),
@@ -1636,7 +6441,7 @@ module.exports = function (Gibberish) {
   return Zd24;
 };
 
-},{"./filter.js":18,"genish.js":114}],22:[function(require,module,exports){
+},{"./filter.js":99,"genish.js":40}],103:[function(require,module,exports){
 "use strict";
 
 var g = require('genish.js'),
@@ -1713,7 +6518,7 @@ module.exports = function (Gibberish) {
   return SVF;
 };
 
-},{"./filter.js":18,"genish.js":114}],23:[function(require,module,exports){
+},{"./filter.js":99,"genish.js":40}],104:[function(require,module,exports){
 "use strict";
 
 var g = require('genish.js'),
@@ -1774,7 +6579,7 @@ module.exports = function (Gibberish) {
   return BitCrusher;
 };
 
-},{"./effect.js":28,"genish.js":114}],24:[function(require,module,exports){
+},{"./effect.js":109,"genish.js":40}],105:[function(require,module,exports){
 "use strict";
 
 var g = require('genish.js'),
@@ -1876,7 +6681,7 @@ module.exports = function (Gibberish) {
   return Shuffler;
 };
 
-},{"./effect.js":28,"genish.js":114}],25:[function(require,module,exports){
+},{"./effect.js":109,"genish.js":40}],106:[function(require,module,exports){
 "use strict";
 
 var g = require('genish.js'),
@@ -1975,7 +6780,7 @@ module.exports = function (Gibberish) {
   return __Chorus;
 };
 
-},{"./effect.js":28,"genish.js":114}],26:[function(require,module,exports){
+},{"./effect.js":109,"genish.js":40}],107:[function(require,module,exports){
 "use strict";
 
 var g = require('genish.js'),
@@ -2044,7 +6849,7 @@ module.exports = function (Gibberish) {
   return Delay;
 };
 
-},{"./effect.js":28,"genish.js":114}],27:[function(require,module,exports){
+},{"./effect.js":109,"genish.js":40}],108:[function(require,module,exports){
 "use strict";
 
 var g = require('genish.js'),
@@ -2123,7 +6928,7 @@ module.exports = function (Gibberish) {
   return Distortion;
 };
 
-},{"./effect.js":28,"genish.js":114}],28:[function(require,module,exports){
+},{"./effect.js":109,"genish.js":40}],109:[function(require,module,exports){
 "use strict";
 
 var ugen = require('../ugen.js')();
@@ -2138,7 +6943,7 @@ Object.assign(effect, {
 });
 module.exports = effect;
 
-},{"../ugen.js":72}],29:[function(require,module,exports){
+},{"../ugen.js":153}],110:[function(require,module,exports){
 "use strict";
 
 module.exports = function (Gibberish) {
@@ -2169,7 +6974,7 @@ module.exports = function (Gibberish) {
   return effects;
 };
 
-},{"./bitCrusher.js":23,"./bufferShuffler.js":24,"./chorus.js":25,"./delay.js":26,"./distortion.dsp.js":27,"./flanger.js":30,"./freeverb.js":31,"./ringMod.js":32,"./tremolo.js":33,"./vibrato.js":34,"./wavefolder.dsp.js":35}],30:[function(require,module,exports){
+},{"./bitCrusher.js":104,"./bufferShuffler.js":105,"./chorus.js":106,"./delay.js":107,"./distortion.dsp.js":108,"./flanger.js":111,"./freeverb.js":112,"./ringMod.js":113,"./tremolo.js":114,"./vibrato.js":115,"./wavefolder.dsp.js":116}],111:[function(require,module,exports){
 "use strict";
 
 var g = require('genish.js'),
@@ -2249,7 +7054,7 @@ module.exports = function (Gibberish) {
   return Flanger;
 };
 
-},{"./effect.js":28,"genish.js":114}],31:[function(require,module,exports){
+},{"./effect.js":109,"genish.js":40}],112:[function(require,module,exports){
 "use strict";
 
 var g = require('genish.js'),
@@ -2337,7 +7142,7 @@ module.exports = function (Gibberish) {
   return Freeverb;
 };
 
-},{"./effect.js":28,"genish.js":114}],32:[function(require,module,exports){
+},{"./effect.js":109,"genish.js":40}],113:[function(require,module,exports){
 "use strict";
 
 var g = require('genish.js'),
@@ -2393,7 +7198,7 @@ module.exports = function (Gibberish) {
   return RingMod;
 };
 
-},{"./effect.js":28,"genish.js":114}],33:[function(require,module,exports){
+},{"./effect.js":109,"genish.js":40}],114:[function(require,module,exports){
 "use strict";
 
 var g = require('genish.js'),
@@ -2458,7 +7263,7 @@ module.exports = function (Gibberish) {
   return Tremolo;
 };
 
-},{"./effect.js":28,"genish.js":114}],34:[function(require,module,exports){
+},{"./effect.js":109,"genish.js":40}],115:[function(require,module,exports){
 "use strict";
 
 var g = require('genish.js'),
@@ -2534,7 +7339,7 @@ module.exports = function (Gibberish) {
   return Vibrato;
 };
 
-},{"./effect.js":28,"genish.js":114}],35:[function(require,module,exports){
+},{"./effect.js":109,"genish.js":40}],116:[function(require,module,exports){
 "use strict";
 
 var g = require('genish.js'),
@@ -2660,7 +7465,7 @@ module.exports = function (Gibberish) {
   return [Wavefolder, wavestage];
 };
 
-},{"./effect.js":28,"genish.js":114}],36:[function(require,module,exports){
+},{"./effect.js":109,"genish.js":40}],117:[function(require,module,exports){
 "use strict";
 
 var MemoryHelper = require('memory-helper'),
@@ -3123,7 +7928,7 @@ Gibberish.prototypes.Ugen = Gibberish.prototypes.ugen = require('./ugen.js')(Gib
 Gibberish.utilities = require('./utilities.js')(Gibberish);
 module.exports = Gibberish;
 
-},{"./analysis/analyzer.js":1,"./analysis/analyzers.js":2,"./envelopes/envelopes.js":7,"./factory.js":13,"./filters/filters.js":20,"./fx/effect.js":28,"./fx/effects.js":29,"./instruments/instrument.js":43,"./instruments/instruments.js":44,"./instruments/polyMixin.js":49,"./instruments/polytemplate.js":50,"./misc/binops.js":56,"./misc/bus.js":57,"./misc/bus2.js":58,"./misc/monops.js":59,"./misc/panner.js":60,"./misc/time.js":61,"./oscillators/oscillators.js":64,"./scheduling/scheduler.js":68,"./scheduling/seq2.js":69,"./scheduling/sequencer.js":70,"./scheduling/tidal.js":71,"./ugen.js":72,"./utilities.js":73,"./workletProxy.js":74,"genish.js":114,"memory-helper":153}],37:[function(require,module,exports){
+},{"./analysis/analyzer.js":82,"./analysis/analyzers.js":83,"./envelopes/envelopes.js":88,"./factory.js":94,"./filters/filters.js":101,"./fx/effect.js":109,"./fx/effects.js":110,"./instruments/instrument.js":124,"./instruments/instruments.js":125,"./instruments/polyMixin.js":130,"./instruments/polytemplate.js":131,"./misc/binops.js":137,"./misc/bus.js":138,"./misc/bus2.js":139,"./misc/monops.js":140,"./misc/panner.js":141,"./misc/time.js":142,"./oscillators/oscillators.js":145,"./scheduling/scheduler.js":149,"./scheduling/seq2.js":150,"./scheduling/sequencer.js":151,"./scheduling/tidal.js":152,"./ugen.js":153,"./utilities.js":154,"./workletProxy.js":155,"genish.js":40,"memory-helper":157}],118:[function(require,module,exports){
 "use strict";
 
 var g = require('genish.js'),
@@ -3200,7 +8005,7 @@ module.exports = function (Gibberish) {
   return Clap;
 };
 
-},{"./instrument.js":43,"genish.js":114}],38:[function(require,module,exports){
+},{"./instrument.js":124,"genish.js":40}],119:[function(require,module,exports){
 "use strict";
 
 var g = require('genish.js'),
@@ -3308,7 +8113,7 @@ module.exports = function (Gibberish) {
   return [Complex, PolyComplex];
 };
 
-},{"../fx/wavefolder.dsp.js":35,"./instrument.js":43,"genish.js":114}],39:[function(require,module,exports){
+},{"../fx/wavefolder.dsp.js":116,"./instrument.js":124,"genish.js":40}],120:[function(require,module,exports){
 "use strict";
 
 var g = require('genish.js'),
@@ -3348,7 +8153,7 @@ module.exports = function (Gibberish) {
   return [Conga, PolyConga];
 };
 
-},{"./instrument.js":43,"genish.js":114}],40:[function(require,module,exports){
+},{"./instrument.js":124,"genish.js":40}],121:[function(require,module,exports){
 "use strict";
 
 var g = require('genish.js'),
@@ -3386,7 +8191,7 @@ module.exports = function (Gibberish) {
   return Cowbell;
 };
 
-},{"./instrument.js":43,"genish.js":114}],41:[function(require,module,exports){
+},{"./instrument.js":124,"genish.js":40}],122:[function(require,module,exports){
 "use strict";
 
 var g = require('genish.js'),
@@ -3496,7 +8301,7 @@ module.exports = function (Gibberish) {
   return [FM, PolyFM];
 };
 
-},{"./instrument.js":43,"genish.js":114}],42:[function(require,module,exports){
+},{"./instrument.js":124,"genish.js":40}],123:[function(require,module,exports){
 "use strict";
 
 var g = require('genish.js'),
@@ -3548,7 +8353,7 @@ module.exports = function (Gibberish) {
   return Hat;
 };
 
-},{"./instrument.js":43,"genish.js":114}],43:[function(require,module,exports){
+},{"./instrument.js":124,"genish.js":40}],124:[function(require,module,exports){
 "use strict";
 
 var ugen = require('../ugen.js')();
@@ -3599,7 +8404,7 @@ Object.assign(instrument, {
 });
 module.exports = instrument;
 
-},{"../ugen.js":72}],44:[function(require,module,exports){
+},{"../ugen.js":153}],125:[function(require,module,exports){
 "use strict";
 
 module.exports = function (Gibberish) {
@@ -3636,7 +8441,7 @@ module.exports = function (Gibberish) {
   return instruments;
 };
 
-},{"./clap.dsp.js":37,"./complex.dsp.js":38,"./conga.js":39,"./cowbell.js":40,"./fm.dsp.js":41,"./hat.js":42,"./karplusstrong.js":45,"./kick.js":46,"./monosynth.dsp.js":47,"./multisampler.dsp.js":48,"./sampler.js":51,"./snare.js":52,"./soundfont.js":53,"./synth.dsp.js":54,"./tom.js":55}],45:[function(require,module,exports){
+},{"./clap.dsp.js":118,"./complex.dsp.js":119,"./conga.js":120,"./cowbell.js":121,"./fm.dsp.js":122,"./hat.js":123,"./karplusstrong.js":126,"./kick.js":127,"./monosynth.dsp.js":128,"./multisampler.dsp.js":129,"./sampler.js":132,"./snare.js":133,"./soundfont.js":134,"./synth.dsp.js":135,"./tom.js":136}],126:[function(require,module,exports){
 "use strict";
 
 var g = require('genish.js'),
@@ -3725,7 +8530,7 @@ module.exports = function (Gibberish) {
   return [Karplus, PolyKarplus];
 };
 
-},{"./instrument.js":43,"genish.js":114}],46:[function(require,module,exports){
+},{"./instrument.js":124,"genish.js":40}],127:[function(require,module,exports){
 "use strict";
 
 var g = require('genish.js'),
@@ -3772,7 +8577,7 @@ module.exports = function (Gibberish) {
   return Kick;
 };
 
-},{"./instrument.js":43,"genish.js":114}],47:[function(require,module,exports){
+},{"./instrument.js":124,"genish.js":40}],128:[function(require,module,exports){
 "use strict";
 
 var g = require('genish.js'),
@@ -3885,7 +8690,7 @@ module.exports = function (Gibberish) {
   return [Mono, PolyMono];
 };
 
-},{"../oscillators/fmfeedbackosc.js":63,"./instrument.js":43,"genish.js":114}],48:[function(require,module,exports){
+},{"../oscillators/fmfeedbackosc.js":144,"./instrument.js":124,"genish.js":40}],129:[function(require,module,exports){
 "use strict";
 
 var g = require('genish.js'),
@@ -4195,7 +9000,7 @@ module.exports = function (Gibberish) {
   return Sampler;
 };
 
-},{"./instrument.js":43,"genish.js":114}],49:[function(require,module,exports){
+},{"./instrument.js":124,"genish.js":40}],130:[function(require,module,exports){
 "use strict";
 
 // XXX TOO MANY GLOBAL GIBBERISH VALUES
@@ -4291,7 +9096,7 @@ module.exports = {
   triggerNote: null
 };
 
-},{"../index.js":36}],50:[function(require,module,exports){
+},{"../index.js":117}],131:[function(require,module,exports){
 "use strict";
 
 /*
@@ -4403,7 +9208,7 @@ module.exports = function (Gibberish) {
   return TemplateFactory;
 };
 
-},{"../workletProxy.js":74,"genish.js":114}],51:[function(require,module,exports){
+},{"../workletProxy.js":155,"genish.js":40}],132:[function(require,module,exports){
 "use strict";
 
 var g = require('genish.js'),
@@ -4613,7 +9418,7 @@ module.exports = function (Gibberish) {
   return [Sampler, PolySampler];
 };
 
-},{"./instrument.js":43,"genish.js":114}],52:[function(require,module,exports){
+},{"./instrument.js":124,"genish.js":40}],133:[function(require,module,exports){
 "use strict";
 
 var g = require('genish.js'),
@@ -4666,7 +9471,7 @@ module.exports = function (Gibberish) {
   return Snare;
 };
 
-},{"./instrument.js":43,"genish.js":114}],53:[function(require,module,exports){
+},{"./instrument.js":124,"genish.js":40}],134:[function(require,module,exports){
 "use strict";
 
 /*fetch( '0000_Aspirin_sf2_file.json' )
@@ -5125,7 +9930,7 @@ module.exports = function (Gibberish) {
   return Soundfont;
 };
 
-},{"./instrument.js":43,"genish.js":114}],54:[function(require,module,exports){
+},{"./instrument.js":124,"genish.js":40}],135:[function(require,module,exports){
 "use strict";
 
 var g = require('genish.js'),
@@ -5229,7 +10034,7 @@ module.exports = function (Gibberish) {
   return [Synth, PolySynth];
 };
 
-},{"./instrument.js":43,"genish.js":114}],55:[function(require,module,exports){
+},{"./instrument.js":124,"genish.js":40}],136:[function(require,module,exports){
 "use strict";
 
 var g = require('genish.js'),
@@ -5276,7 +10081,7 @@ module.exports = function (Gibberish) {
   return Tom;
 };
 
-},{"./instrument.js":43,"genish.js":114}],56:[function(require,module,exports){
+},{"./instrument.js":124,"genish.js":40}],137:[function(require,module,exports){
 "use strict";
 
 var ugenproto = require('../ugen.js')(),
@@ -5457,7 +10262,7 @@ module.exports = function (Gibberish) {
   return Binops;
 };
 
-},{"../ugen.js":72,"../workletProxy.js":74,"genish.js":114}],57:[function(require,module,exports){
+},{"../ugen.js":153,"../workletProxy.js":155,"genish.js":40}],138:[function(require,module,exports){
 "use strict";
 
 var g = require('genish.js'),
@@ -5552,7 +10357,7 @@ module.exports = function (Gibberish) {
   return constructor;
 };
 
-},{"../ugen.js":72,"../workletProxy.js":74,"genish.js":114}],58:[function(require,module,exports){
+},{"../ugen.js":153,"../workletProxy.js":155,"genish.js":40}],139:[function(require,module,exports){
 "use strict";
 
 var g = require('genish.js'),
@@ -5675,7 +10480,7 @@ module.exports = function (Gibberish) {
   return constructor;
 };
 
-},{"../ugen.js":72,"../workletProxy.js":74,"genish.js":114}],59:[function(require,module,exports){
+},{"../ugen.js":153,"../workletProxy.js":155,"genish.js":40}],140:[function(require,module,exports){
 "use strict";
 
 var g = require('genish.js'),
@@ -5753,7 +10558,7 @@ module.exports = function (Gibberish) {
   return Monops;
 };
 
-},{"../ugen.js":72,"genish.js":114}],60:[function(require,module,exports){
+},{"../ugen.js":153,"genish.js":40}],141:[function(require,module,exports){
 "use strict";
 
 var g = require('genish.js');
@@ -5786,7 +10591,7 @@ module.exports = function (Gibberish) {
   return Panner;
 };
 
-},{"../ugen.js":72,"genish.js":114}],61:[function(require,module,exports){
+},{"../ugen.js":153,"genish.js":40}],142:[function(require,module,exports){
 "use strict";
 
 module.exports = function (Gibberish) {
@@ -5811,7 +10616,7 @@ module.exports = function (Gibberish) {
   return Time;
 };
 
-},{}],62:[function(require,module,exports){
+},{}],143:[function(require,module,exports){
 "use strict";
 
 var genish = require('genish.js'),
@@ -5829,7 +10634,7 @@ module.exports = function () {
   return out;
 };
 
-},{"genish.js":114}],63:[function(require,module,exports){
+},{"genish.js":40}],144:[function(require,module,exports){
 "use strict";
 
 var g = require('genish.js');
@@ -5881,7 +10686,7 @@ var feedbackOsc = function (frequency, filter, pulsewidth = .5, argumentProps) {
 
 module.exports = feedbackOsc;
 
-},{"genish.js":114}],64:[function(require,module,exports){
+},{"genish.js":40}],145:[function(require,module,exports){
 "use strict";
 
 var g = require('genish.js'),
@@ -6088,7 +10893,7 @@ module.exports = function (Gibberish) {
   return Oscillators;
 };
 
-},{"../ugen.js":72,"./brownnoise.dsp.js":62,"./fmfeedbackosc.js":63,"./pinknoise.dsp.js":65,"./polyblep.dsp.js":66,"./wavetable.js":67,"genish.js":114}],65:[function(require,module,exports){
+},{"../ugen.js":153,"./brownnoise.dsp.js":143,"./fmfeedbackosc.js":144,"./pinknoise.dsp.js":146,"./polyblep.dsp.js":147,"./wavetable.js":148,"genish.js":40}],146:[function(require,module,exports){
 "use strict";
 
 var genish = require('genish.js'),
@@ -6114,7 +10919,7 @@ module.exports = function () {
   return out;
 };
 
-},{"genish.js":114}],66:[function(require,module,exports){
+},{"genish.js":40}],147:[function(require,module,exports){
 "use strict";
 
 var genish = require('genish.js');
@@ -6172,7 +10977,7 @@ var polyBlep = function (__frequency, argumentProps) {
 
 module.exports = polyBlep;
 
-},{"genish.js":114}],67:[function(require,module,exports){
+},{"genish.js":40}],148:[function(require,module,exports){
 "use strict";
 
 var g = require('genish.js'),
@@ -6203,7 +11008,7 @@ module.exports = function (Gibberish) {
   return Wavetable;
 };
 
-},{"../ugen.js":72,"genish.js":114}],68:[function(require,module,exports){
+},{"../ugen.js":153,"genish.js":40}],149:[function(require,module,exports){
 "use strict";
 
 var Queue = require('../external/priorityqueue.js');
@@ -6289,7 +11094,7 @@ Object.defineProperty(Scheduler, 'shouldSync', {
 });
 module.exports = Scheduler;
 
-},{"../external/priorityqueue.js":11}],69:[function(require,module,exports){
+},{"../external/priorityqueue.js":92}],150:[function(require,module,exports){
 "use strict";
 
 var g = require('genish.js'),
@@ -6514,7 +11319,7 @@ module.exports = function (Gibberish) {
   return Seq2.create;
 };
 
-},{"../ugen.js":72,"../workletProxy.js":74,"genish.js":114}],70:[function(require,module,exports){
+},{"../ugen.js":153,"../workletProxy.js":155,"genish.js":40}],151:[function(require,module,exports){
 (function (global){
 "use strict";
 
@@ -6755,16 +11560,12 @@ module.exports = function (Gibberish) {
 };
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../workletProxy.js":74}],71:[function(require,module,exports){
+},{"../workletProxy.js":155}],152:[function(require,module,exports){
 "use strict";
 
-var __proxy = require('../workletProxy.js'); //const { mini } = require( '../../node_modules/@strudel.cycles/mini/index.mjs' )
-//const { mini } = req( 'https://cdn.skypack.dev/@strudel.cycles/mini' )
+var __proxy = require('../workletProxy.js');
 
-
-var mini = require('../external/mini.js'); //confetti();
-//import { mini } from '@strudel.cycles/mini';
-//const Pattern = require( 'tidal.pegjs' )
+var mini = require('../external/mini.js'); //const Pattern = require( 'tidal.pegjs' )
 
 
 module.exports = function (Gibberish) {
@@ -6816,7 +11617,7 @@ module.exports = function (Gibberish) {
                 value = value();
               }
 
-              Gibberish.processor.messages.push(seq.mainthreadonly, seq.key, value);
+              +Gibberish.processor.messages.push(seq.mainthreadonly, seq.key, value);
             } else if (typeof seq.target[seq.key] === 'function') {
               seq.target[seq.key](value);
             } else {
@@ -6852,35 +11653,15 @@ module.exports = function (Gibberish) {
             let time = 0;
 
             while (seq.__events.length <= 0) {
-              //seq.__events = seq.__pattern.query( seq.__phase++, 1 )
-              seq.__events = seq.__pattern.queryArc(seq.__phase++, 1);
-              time++;
-            } //seq.__events.forEach( evt => {
-            //  evt.arc.start = evt.arc.start.add( 1 ).sub( startTime ) 
-            //  evt.arc.end   = evt.arc.end.add( 1 ).sub( startTime )
-            //})
-
-
-            timing = time - startTime.valueOf();
-          } else {
-            timing = seq.__events[0].whole.begin.sub(startTime).valueOf();
+              seq.__events = seq.__pattern.queryArc(seq.__phase, ++seq.__phase);
+            }
           }
 
-          timing *= Math.ceil(Gibberish.ctx.sampleRate / Sequencer.clock.cps) + 1;
+          timing = seq.__events[0].whole.begin.sub(startTime).valueOf(); //console.log( 'timings:', timing, startTime.valueOf(), seq.__events[0].whole.begin.valueOf() )
+
+          timing *= Math.ceil(Gibberish.ctx.sampleRate / Sequencer.clock.cps) + 1; //console.log( 'timing:', timing, startTime.valueOf(), seq.__events[0].whole.begin.valueOf() )
 
           if (seq.__isRunning === true && !isNaN(timing) && timing > 0) {
-            // XXX this supports an edge case in Gibber, where patterns like Euclid / Hex return
-            // objects indicating both whether or not they should should trigger values as well
-            // as the next time they should run. perhaps this could be made more generalizable?
-            //if( typeof timing === 'object' ) {
-            //  if( timing.shouldExecute === 1 ) {
-            //    shouldRun = true
-            //  }else{
-            //    shouldRun = false
-            //  }
-            //  timing = timing.time 
-            //}
-            //timing *= seq.rate
             Gibberish.scheduler.add(timing, seq.tick, seq.priority);
           }
         }
@@ -6979,7 +11760,7 @@ module.exports = function (Gibberish) {
   return Sequencer;
 };
 
-},{"../external/mini.js":10,"../workletProxy.js":74}],72:[function(require,module,exports){
+},{"../external/mini.js":91,"../workletProxy.js":155}],153:[function(require,module,exports){
 "use strict";
 
 var Gibberish = null;
@@ -7111,7 +11892,7 @@ var __ugen = function (__Gibberish) {
 
 module.exports = __ugen;
 
-},{}],73:[function(require,module,exports){
+},{}],154:[function(require,module,exports){
 "use strict";
 
 var genish = require('genish.js'),
@@ -7456,7 +12237,7 @@ module.exports = function (Gibberish) {
   return utilities;
 };
 
-},{"./external/audioworklet-polyfill.js":9,"genish.js":114}],74:[function(require,module,exports){
+},{"./external/audioworklet-polyfill.js":90,"genish.js":40}],155:[function(require,module,exports){
 "use strict";
 
 var serialize = require('serialize-javascript');
@@ -7620,7 +12401,7 @@ module.exports = function (Gibberish) {
   return __proxy;
 };
 
-},{"serialize-javascript":154}],75:[function(require,module,exports){
+},{"serialize-javascript":158}],156:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -8145,4603 +12926,9 @@ function functionBindPolyfill(context) {
   };
 }
 
-},{}],76:[function(require,module,exports){
-'use strict'
-
-let gen  = require('./gen.js')
-
-let proto = {
-  name:'abs',
-
-  gen() {
-    let out,
-        inputs = gen.getInputs( this )
-
-    const isWorklet = gen.mode === 'worklet'
-    const ref = isWorklet ? '' : 'gen.'
-
-    if( isNaN( inputs[0] ) ) {
-      gen.closures.add({ [ this.name ]: isWorklet ? 'Math.abs' : Math.abs })
-
-      out = `${ref}abs( ${inputs[0]} )`
-
-    } else {
-      out = Math.abs( parseFloat( inputs[0] ) )
-    }
-    
-    return out
-  }
-}
-
-module.exports = x => {
-  let abs = Object.create( proto )
-
-  abs.inputs = [ x ]
-
-  return abs
-}
-
-},{"./gen.js":107}],77:[function(require,module,exports){
-'use strict'
-
-let gen  = require('./gen.js')
-
-let proto = {
-  basename:'accum',
-
-  gen() {
-    let code,
-        inputs = gen.getInputs( this ),
-        genName = 'gen.' + this.name,
-        functionBody
-
-    gen.requestMemory( this.memory )
-
-    gen.memory.heap[ this.memory.value.idx ] = this.initialValue
-
-    functionBody = this.callback( genName, inputs[0], inputs[1], `memory[${this.memory.value.idx}]` )
-
-    //gen.closures.add({ [ this.name ]: this }) 
-
-    gen.memo[ this.name ] = this.name + '_value'
-    
-    return [ this.name + '_value', functionBody ]
-  },
-
-  callback( _name, _incr, _reset, valueRef ) {
-    let diff = this.max - this.min,
-        out = '',
-        wrap = ''
-    
-    /* three different methods of wrapping, third is most expensive:
-     *
-     * 1: range {0,1}: y = x - (x | 0)
-     * 2: log2(this.max) == integer: y = x & (this.max - 1)
-     * 3: all others: if( x >= this.max ) y = this.max -x
-     *
-     */
-
-    // must check for reset before storing value for output
-    if( !(typeof this.inputs[1] === 'number' && this.inputs[1] < 1) ) { 
-      if( this.resetValue !== this.min ) {
-
-        out += `  if( ${_reset} >=1 ) ${valueRef} = ${this.resetValue}\n\n`
-        //out += `  if( ${_reset} >=1 ) ${valueRef} = ${this.min}\n\n`
-      }else{
-        out += `  if( ${_reset} >=1 ) ${valueRef} = ${this.min}\n\n`
-        //out += `  if( ${_reset} >=1 ) ${valueRef} = ${this.initialValue}\n\n`
-      }
-    }
-
-    out += `  var ${this.name}_value = ${valueRef}\n`
-    
-    if( this.shouldWrap === false && this.shouldClamp === true ) {
-      out += `  if( ${valueRef} < ${this.max } ) ${valueRef} += ${_incr}\n`
-    }else{
-      out += `  ${valueRef} += ${_incr}\n` // store output value before accumulating  
-    }
-
-    if( this.max !== Infinity  && this.shouldWrapMax ) wrap += `  if( ${valueRef} >= ${this.max} ) ${valueRef} -= ${diff}\n`
-    if( this.min !== -Infinity && this.shouldWrapMin ) wrap += `  if( ${valueRef} < ${this.min} ) ${valueRef} += ${diff}\n`
-
-    //if( this.min === 0 && this.max === 1 ) { 
-    //  wrap =  `  ${valueRef} = ${valueRef} - (${valueRef} | 0)\n\n`
-    //} else if( this.min === 0 && ( Math.log2( this.max ) | 0 ) === Math.log2( this.max ) ) {
-    //  wrap =  `  ${valueRef} = ${valueRef} & (${this.max} - 1)\n\n`
-    //} else if( this.max !== Infinity ){
-    //  wrap = `  if( ${valueRef} >= ${this.max} ) ${valueRef} -= ${diff}\n\n`
-    //}
-
-    out = out + wrap + '\n'
-
-    return out
-  },
-
-  defaults : { min:0, max:1, resetValue:0, initialValue:0, shouldWrap:true, shouldWrapMax: true, shouldWrapMin:true, shouldClamp:false }
-}
-
-module.exports = ( incr, reset=0, properties ) => {
-  const ugen = Object.create( proto )
-      
-  Object.assign( ugen, 
-    { 
-      uid:    gen.getUID(),
-      inputs: [ incr, reset ],
-      memory: {
-        value: { length:1, idx:null }
-      }
-    },
-    proto.defaults,
-    properties 
-  )
-
-  if( properties !== undefined && properties.shouldWrapMax === undefined && properties.shouldWrapMin === undefined ) {
-    if( properties.shouldWrap !== undefined ) {
-      ugen.shouldWrapMin = ugen.shouldWrapMax = properties.shouldWrap
-    }
-  }
-
-  if( properties !== undefined && properties.resetValue === undefined ) {
-    ugen.resetValue = ugen.min
-  }
-
-  if( ugen.initialValue === undefined ) ugen.initialValue = ugen.min
-
-  Object.defineProperty( ugen, 'value', {
-    get()  { 
-      //console.log( 'gen:', gen, gen.memory )
-      return gen.memory.heap[ this.memory.value.idx ] 
-    },
-    set(v) { gen.memory.heap[ this.memory.value.idx ] = v }
-  })
-
-  ugen.name = `${ugen.basename}${ugen.uid}`
-
-  return ugen
-}
-
-},{"./gen.js":107}],78:[function(require,module,exports){
-'use strict'
-
-let gen  = require('./gen.js')
-
-let proto = {
-  basename:'acos',
-
-  gen() {
-    let out,
-        inputs = gen.getInputs( this )
-    
-
-    const isWorklet = gen.mode === 'worklet'
-    const ref = isWorklet ? '' : 'gen.'
-
-    if( isNaN( inputs[0] ) ) {
-      gen.closures.add({ 'acos': isWorklet ? 'Math.acos' :Math.acos })
-
-      out = `${ref}acos( ${inputs[0]} )` 
-
-    } else {
-      out = Math.acos( parseFloat( inputs[0] ) )
-    }
-    
-    return out
-  }
-}
-
-module.exports = x => {
-  let acos = Object.create( proto )
-
-  acos.inputs = [ x ]
-  acos.id = gen.getUID()
-  acos.name = `${acos.basename}{acos.id}`
-
-  return acos
-}
-
-},{"./gen.js":107}],79:[function(require,module,exports){
-'use strict'
-
-let gen      = require( './gen.js' ),
-    mul      = require( './mul.js' ),
-    sub      = require( './sub.js' ),
-    div      = require( './div.js' ),
-    data     = require( './data.js' ),
-    peek     = require( './peek.js' ),
-    accum    = require( './accum.js' ),
-    ifelse   = require( './ifelseif.js' ),
-    lt       = require( './lt.js' ),
-    bang     = require( './bang.js' ),
-    env      = require( './env.js' ),
-    add      = require( './add.js' ),
-    poke     = require( './poke.js' ),
-    neq      = require( './neq.js' ),
-    and      = require( './and.js' ),
-    gte      = require( './gte.js' ),
-    memo     = require( './memo.js' ),
-    utilities= require( './utilities.js' )
-
-module.exports = ( attackTime = 44100, decayTime = 44100, _props ) => {
-  const props = Object.assign({}, { shape:'exponential', alpha:5, trigger:null }, _props )
-  const _bang = props.trigger !== null ? props.trigger : bang(),
-        phase = accum( 1, _bang, { min:0, max: Infinity, initialValue:-Infinity, shouldWrap:false })
-      
-  let bufferData, bufferDataReverse, decayData, out, buffer
-
-  //console.log( 'shape:', props.shape, 'attack time:', attackTime, 'decay time:', decayTime )
-  let completeFlag = data( [0] )
-  
-  // slightly more efficient to use existing phase accumulator for linear envelopes
-  if( props.shape === 'linear' ) {
-    out = ifelse( 
-      and( gte( phase, 0), lt( phase, attackTime )),
-      div( phase, attackTime ),
-
-      and( gte( phase, 0),  lt( phase, add( attackTime, decayTime ) ) ),
-      sub( 1, div( sub( phase, attackTime ), decayTime ) ),
-      
-      neq( phase, -Infinity),
-      poke( completeFlag, 1, 0, { inline:0 }),
-
-      0 
-    )
-  } else {
-    bufferData = env({ length:1024, type:props.shape, alpha:props.alpha })
-    bufferDataReverse = env({ length:1024, type:props.shape, alpha:props.alpha, reverse:true })
-
-    out = ifelse( 
-      and( gte( phase, 0), lt( phase, attackTime ) ), 
-      peek( bufferData, div( phase, attackTime ), { boundmode:'clamp' } ), 
-
-      and( gte(phase,0), lt( phase, add( attackTime, decayTime ) ) ), 
-      peek( bufferDataReverse, div( sub( phase, attackTime ), decayTime ), { boundmode:'clamp' }),
-
-      neq( phase, -Infinity ),
-      poke( completeFlag, 1, 0, { inline:0 }),
-
-      0
-    )
-  }
-
-  const usingWorklet = gen.mode === 'worklet'
-  if( usingWorklet === true ) {
-    out.node = null
-    utilities.register( out )
-  }
-
-  // needed for gibberish... getting this to work right with worklets
-  // via promises will probably be tricky
-  out.isComplete = ()=> {
-    if( usingWorklet === true && out.node !== null ) {
-      const p = new Promise( resolve => {
-        out.node.getMemoryValue( completeFlag.memory.values.idx, resolve )
-      })
-
-      return p
-    }else{
-      return gen.memory.heap[ completeFlag.memory.values.idx ]
-    }
-  }
-
-  out.trigger = ()=> {
-    if( usingWorklet === true && out.node !== null ) {
-      out.node.port.postMessage({ key:'set', idx:completeFlag.memory.values.idx, value:0 })
-    }else{
-      gen.memory.heap[ completeFlag.memory.values.idx ] = 0
-    }
-    _bang.trigger()
-  }
-
-  return out 
-}
-
-},{"./accum.js":77,"./add.js":80,"./and.js":82,"./bang.js":86,"./data.js":93,"./div.js":98,"./env.js":99,"./gen.js":107,"./gte.js":109,"./ifelseif.js":112,"./lt.js":115,"./memo.js":119,"./mul.js":125,"./neq.js":126,"./peek.js":131,"./poke.js":133,"./sub.js":144,"./utilities.js":150}],80:[function(require,module,exports){
-'use strict'
-
-const gen = require('./gen.js')
-
-const proto = { 
-  basename:'add',
-  gen() {
-    let inputs = gen.getInputs( this ),
-        out='',
-        sum = 0, numCount = 0, adderAtEnd = false, alreadyFullSummed = true
-
-    if( inputs.length === 0 ) return 0
-
-    out = `  var ${this.name} = `
-
-    inputs.forEach( (v,i) => {
-      if( isNaN( v ) ) {
-        out += v
-        if( i < inputs.length -1 ) {
-          adderAtEnd = true
-          out += ' + '
-        }
-        alreadyFullSummed = false
-      }else{
-        sum += parseFloat( v )
-        numCount++
-      }
-    })
-
-    if( numCount > 0 ) {
-      out += adderAtEnd || alreadyFullSummed ? sum : ' + ' + sum
-    }
-
-    out += '\n'
-
-    gen.memo[ this.name ] = this.name
-
-    return [ this.name, out ]
-  }
-}
-
-module.exports = ( ...args ) => {
-  const add = Object.create( proto )
-  add.id = gen.getUID()
-  add.name = add.basename + add.id
-  add.inputs = args
-
-  return add
-}
-
-},{"./gen.js":107}],81:[function(require,module,exports){
-'use strict'
-
-let gen      = require( './gen.js' ),
-    mul      = require( './mul.js' ),
-    sub      = require( './sub.js' ),
-    div      = require( './div.js' ),
-    data     = require( './data.js' ),
-    peek     = require( './peek.js' ),
-    accum    = require( './accum.js' ),
-    ifelse   = require( './ifelseif.js' ),
-    lt       = require( './lt.js' ),
-    bang     = require( './bang.js' ),
-    env      = require( './env.js' ),
-    param    = require( './param.js' ),
-    add      = require( './add.js' ),
-    gtp      = require( './gtp.js' ),
-    not      = require( './not.js' ),
-    and      = require( './and.js' ),
-    neq      = require( './neq.js' ),
-    poke     = require( './poke.js' )
-
-module.exports = ( attackTime=44, decayTime=22050, sustainTime=44100, sustainLevel=.6, releaseTime=44100, _props ) => {
-  let envTrigger = bang(),
-      phase = accum( 1, envTrigger, { max: Infinity, shouldWrap:false, initialValue:Infinity }),
-      shouldSustain = param( 1 ),
-      defaults = {
-         shape: 'exponential',
-         alpha: 5,
-         triggerRelease: false,
-      },
-      props = Object.assign({}, defaults, _props ),
-      bufferData, decayData, out, buffer, sustainCondition, releaseAccum, releaseCondition
-
-
-  const completeFlag = data( [0] )
-
-  bufferData = env({ length:1024, alpha:props.alpha, shift:0, type:props.shape })
-
-  sustainCondition = props.triggerRelease 
-    ? shouldSustain
-    : lt( phase, add( attackTime, decayTime, sustainTime ) )
-
-  releaseAccum = props.triggerRelease
-    ? gtp( sub( sustainLevel, accum( div( sustainLevel, releaseTime ) , 0, { shouldWrap:false }) ), 0 )
-    : sub( sustainLevel, mul( div( sub( phase, add( attackTime, decayTime, sustainTime ) ), releaseTime ), sustainLevel ) ), 
-
-  releaseCondition = props.triggerRelease
-    ? not( shouldSustain )
-    : lt( phase, add( attackTime, decayTime, sustainTime, releaseTime ) )
-
-  out = ifelse(
-    // attack 
-    lt( phase,  attackTime ), 
-    peek( bufferData, div( phase, attackTime ), { boundmode:'clamp' } ), 
-
-    // decay
-    lt( phase, add( attackTime, decayTime ) ), 
-    peek( bufferData, sub( 1, mul( div( sub( phase,  attackTime ),  decayTime ), sub( 1,  sustainLevel ) ) ), { boundmode:'clamp' }),
-
-    // sustain
-    and( sustainCondition, neq( phase, Infinity ) ),
-    peek( bufferData,  sustainLevel ),
-
-    // release
-    releaseCondition, //lt( phase,  attackTime +  decayTime +  sustainTime +  releaseTime ),
-    peek( 
-      bufferData,
-      releaseAccum, 
-      //sub(  sustainLevel, mul( div( sub( phase,  attackTime +  decayTime +  sustainTime),  releaseTime ),  sustainLevel ) ), 
-      { boundmode:'clamp' }
-    ),
-
-    neq( phase, Infinity ),
-    poke( completeFlag, 1, 0, { inline:0 }),
-
-    0
-  )
-   
-  const usingWorklet = gen.mode === 'worklet'
-  if( usingWorklet === true ) {
-    out.node = null
-    utilities.register( out )
-  }
-
-  out.trigger = ()=> {
-    shouldSustain.value = 1
-    envTrigger.trigger()
-  }
- 
-  // needed for gibberish... getting this to work right with worklets
-  // via promises will probably be tricky
-  out.isComplete = ()=> {
-    if( usingWorklet === true && out.node !== null ) {
-      const p = new Promise( resolve => {
-        out.node.getMemoryValue( completeFlag.memory.values.idx, resolve )
-      })
-
-      return p
-    }else{
-      return gen.memory.heap[ completeFlag.memory.values.idx ]
-    }
-  }
-
-
-  out.release = ()=> {
-    shouldSustain.value = 0
-    // XXX pretty nasty... grabs accum inside of gtp and resets value manually
-    // unfortunately envTrigger won't work as it's back to 0 by the time the release block is triggered...
-    if( usingWorklet && out.node !== null ) {
-      out.node.port.postMessage({ key:'set', idx:releaseAccum.inputs[0].inputs[1].memory.value.idx, value:0 })
-    }else{
-      gen.memory.heap[ releaseAccum.inputs[0].inputs[1].memory.value.idx ] = 0
-    }
-  }
-
-  return out 
-}
-
-},{"./accum.js":77,"./add.js":80,"./and.js":82,"./bang.js":86,"./data.js":93,"./div.js":98,"./env.js":99,"./gen.js":107,"./gtp.js":110,"./ifelseif.js":112,"./lt.js":115,"./mul.js":125,"./neq.js":126,"./not.js":128,"./param.js":130,"./peek.js":131,"./poke.js":133,"./sub.js":144}],82:[function(require,module,exports){
-'use strict'
-
-let gen = require( './gen.js' )
-
-let proto = {
-  basename:'and',
-
-  gen() {
-    let inputs = gen.getInputs( this ), out
-
-    out = `  var ${this.name} = (${inputs[0]} !== 0 && ${inputs[1]} !== 0) | 0\n\n`
-
-    gen.memo[ this.name ] = `${this.name}`
-
-    return [ `${this.name}`, out ]
-  },
-
-}
-
-module.exports = ( in1, in2 ) => {
-  let ugen = Object.create( proto )
-  Object.assign( ugen, {
-    uid:     gen.getUID(),
-    inputs:  [ in1, in2 ],
-  })
-  
-  ugen.name = `${ugen.basename}${ugen.uid}`
-
-  return ugen
-}
-
-},{"./gen.js":107}],83:[function(require,module,exports){
-'use strict'
-
-let gen  = require('./gen.js')
-
-let proto = {
-  basename:'asin',
-
-  gen() {
-    let out,
-        inputs = gen.getInputs( this )
-    
-    const isWorklet = gen.mode === 'worklet'
-    const ref = isWorklet ? '' : 'gen.'
-
-    if( isNaN( inputs[0] ) ) {
-      gen.closures.add({ 'asin': isWorklet ? 'Math.sin' : Math.asin })
-
-      out = `${ref}asin( ${inputs[0]} )` 
-
-    } else {
-      out = Math.asin( parseFloat( inputs[0] ) )
-    }
-    
-    return out
-  }
-}
-
-module.exports = x => {
-  let asin = Object.create( proto )
-
-  asin.inputs = [ x ]
-  asin.id = gen.getUID()
-  asin.name = `${asin.basename}{asin.id}`
-
-  return asin
-}
-
-},{"./gen.js":107}],84:[function(require,module,exports){
-'use strict'
-
-let gen  = require('./gen.js')
-
-let proto = {
-  basename:'atan',
-
-  gen() {
-    let out,
-        inputs = gen.getInputs( this )
-    
-    const isWorklet = gen.mode === 'worklet'
-    const ref = isWorklet ? '' : 'gen.'
-
-    if( isNaN( inputs[0] ) ) {
-      gen.closures.add({ 'atan': isWorklet ? 'Math.atan' : Math.atan })
-
-      out = `${ref}atan( ${inputs[0]} )` 
-
-    } else {
-      out = Math.atan( parseFloat( inputs[0] ) )
-    }
-    
-    return out
-  }
-}
-
-module.exports = x => {
-  let atan = Object.create( proto )
-
-  atan.inputs = [ x ]
-  atan.id = gen.getUID()
-  atan.name = `${atan.basename}{atan.id}`
-
-  return atan
-}
-
-},{"./gen.js":107}],85:[function(require,module,exports){
-'use strict'
-
-let gen     = require( './gen.js' ),
-    history = require( './history.js' ),
-    mul     = require( './mul.js' ),
-    sub     = require( './sub.js' )
-
-module.exports = ( decayTime = 44100 ) => {
-  let ssd = history ( 1 ),
-      t60 = Math.exp( -6.907755278921 / decayTime )
-
-  ssd.in( mul( ssd.out, t60 ) )
-
-  ssd.out.trigger = ()=> {
-    ssd.value = 1
-  }
-
-  return sub( 1, ssd.out )
-}
-
-},{"./gen.js":107,"./history.js":111,"./mul.js":125,"./sub.js":144}],86:[function(require,module,exports){
-'use strict'
-
-let gen = require('./gen.js')
-
-let proto = {
-  gen() {
-    gen.requestMemory( this.memory )
-    
-    let out = 
-`  var ${this.name} = memory[${this.memory.value.idx}]
-  if( ${this.name} === 1 ) memory[${this.memory.value.idx}] = 0      
-      
-`
-    gen.memo[ this.name ] = this.name
-
-    return [ this.name, out ]
-  } 
-}
-
-module.exports = ( _props ) => {
-  let ugen = Object.create( proto ),
-      props = Object.assign({}, { min:0, max:1 }, _props )
-
-  ugen.name = 'bang' + gen.getUID()
-
-  ugen.min = props.min
-  ugen.max = props.max
-
-  const usingWorklet = gen.mode === 'worklet'
-  if( usingWorklet === true ) {
-    ugen.node = null
-    utilities.register( ugen )
-  }
-
-  ugen.trigger = () => {
-    if( usingWorklet === true && ugen.node !== null ) {
-      ugen.node.port.postMessage({ key:'set', idx:ugen.memory.value.idx, value:ugen.max })
-    }else{
-      gen.memory.heap[ ugen.memory.value.idx ] = ugen.max 
-    }
-  }
-
-  ugen.memory = {
-    value: { length:1, idx:null }
-  }
-
-  return ugen
-}
-
-},{"./gen.js":107}],87:[function(require,module,exports){
-'use strict'
-
-let gen = require( './gen.js' )
-
-let proto = {
-  basename:'bool',
-
-  gen() {
-    let inputs = gen.getInputs( this ), out
-
-    out = `${inputs[0]} === 0 ? 0 : 1`
-    
-    //gen.memo[ this.name ] = `gen.data.${this.name}`
-
-    //return [ `gen.data.${this.name}`, ' ' +out ]
-    return out
-  }
-}
-
-module.exports = ( in1 ) => {
-  let ugen = Object.create( proto )
-
-  Object.assign( ugen, { 
-    uid:        gen.getUID(),
-    inputs:     [ in1 ],
-  })
-  
-  ugen.name = `${ugen.basename}${ugen.uid}`
-
-  return ugen
-}
-
-
-},{"./gen.js":107}],88:[function(require,module,exports){
-'use strict'
-
-let gen  = require('./gen.js')
-
-let proto = {
-  name:'ceil',
-
-  gen() {
-    let out,
-        inputs = gen.getInputs( this )
-
-    
-    const isWorklet = gen.mode === 'worklet'
-    const ref = isWorklet ? '' : 'gen.'
-
-    if( isNaN( inputs[0] ) ) {
-      gen.closures.add({ [ this.name ]: isWorklet ? 'Math.ceil' : Math.ceil })
-
-      out = `${ref}ceil( ${inputs[0]} )`
-
-    } else {
-      out = Math.ceil( parseFloat( inputs[0] ) )
-    }
-    
-    return out
-  }
-}
-
-module.exports = x => {
-  let ceil = Object.create( proto )
-
-  ceil.inputs = [ x ]
-
-  return ceil
-}
-
-},{"./gen.js":107}],89:[function(require,module,exports){
-'use strict'
-
-let gen  = require('./gen.js'),
-    floor= require('./floor.js'),
-    sub  = require('./sub.js'),
-    memo = require('./memo.js')
-
-let proto = {
-  basename:'clip',
-
-  gen() {
-    let code,
-        inputs = gen.getInputs( this ),
-        out
-
-    out =
-
-` var ${this.name} = ${inputs[0]}
-  if( ${this.name} > ${inputs[2]} ) ${this.name} = ${inputs[2]}
-  else if( ${this.name} < ${inputs[1]} ) ${this.name} = ${inputs[1]}
-`
-    out = ' ' + out
-    
-    gen.memo[ this.name ] = this.name
-
-    return [ this.name, out ]
-  },
-}
-
-module.exports = ( in1, min=-1, max=1 ) => {
-  let ugen = Object.create( proto )
-
-  Object.assign( ugen, { 
-    min, 
-    max,
-    uid:    gen.getUID(),
-    inputs: [ in1, min, max ],
-  })
-  
-  ugen.name = `${ugen.basename}${ugen.uid}`
-
-  return ugen
-}
-
-},{"./floor.js":104,"./gen.js":107,"./memo.js":119,"./sub.js":144}],90:[function(require,module,exports){
-'use strict'
-
-let gen  = require('./gen.js')
-
-let proto = {
-  basename:'cos',
-
-  gen() {
-    let out,
-        inputs = gen.getInputs( this )
-    
-    
-    const isWorklet = gen.mode === 'worklet'
-
-    const ref = isWorklet ? '' : 'gen.'
-
-    if( isNaN( inputs[0] ) ) {
-      gen.closures.add({ 'cos': isWorklet ? 'Math.cos' : Math.cos })
-
-      out = `${ref}cos( ${inputs[0]} )` 
-
-    } else {
-      out = Math.cos( parseFloat( inputs[0] ) )
-    }
-    
-    return out
-  }
-}
-
-module.exports = x => {
-  let cos = Object.create( proto )
-
-  cos.inputs = [ x ]
-  cos.id = gen.getUID()
-  cos.name = `${cos.basename}{cos.id}`
-
-  return cos
-}
-
-},{"./gen.js":107}],91:[function(require,module,exports){
-'use strict'
-
-let gen  = require('./gen.js')
-
-let proto = {
-  basename:'counter',
-
-  gen() {
-    let code,
-        inputs = gen.getInputs( this ),
-        genName = 'gen.' + this.name,
-        functionBody
-       
-    if( this.memory.value.idx === null ) gen.requestMemory( this.memory )
-    gen.memory.heap[ this.memory.value.idx ] = this.initialValue
-    
-    functionBody  = this.callback( genName, inputs[0], inputs[1], inputs[2], inputs[3], inputs[4],  `memory[${this.memory.value.idx}]`, `memory[${this.memory.wrap.idx}]`  )
-
-    gen.memo[ this.name ] = this.name + '_value'
-   
-    if( gen.memo[ this.wrap.name ] === undefined ) this.wrap.gen()
-
-    return [ this.name + '_value', functionBody ]
-  },
-
-  callback( _name, _incr, _min, _max, _reset, loops, valueRef, wrapRef ) {
-    let diff = this.max - this.min,
-        out = '',
-        wrap = ''
-    // must check for reset before storing value for output
-    if( !(typeof this.inputs[3] === 'number' && this.inputs[3] < 1) ) { 
-      out += `  if( ${_reset} >= 1 ) ${valueRef} = ${_min}\n`
-    }
-
-    out += `  var ${this.name}_value = ${valueRef};\n  ${valueRef} += ${_incr}\n` // store output value before accumulating  
-    
-    if( typeof this.max === 'number' && this.max !== Infinity && typeof this.min !== 'number' ) {
-      wrap = 
-`  if( ${valueRef} >= ${this.max} &&  ${loops} > 0) {
-    ${valueRef} -= ${diff}
-    ${wrapRef} = 1
-  }else{
-    ${wrapRef} = 0
-  }\n`
-    }else if( this.max !== Infinity && this.min !== Infinity ) {
-      wrap = 
-`  if( ${valueRef} >= ${_max} &&  ${loops} > 0) {
-    ${valueRef} -= ${_max} - ${_min}
-    ${wrapRef} = 1
-  }else if( ${valueRef} < ${_min} &&  ${loops} > 0) {
-    ${valueRef} += ${_max} - ${_min}
-    ${wrapRef} = 1
-  }else{
-    ${wrapRef} = 0
-  }\n`
-    }else{
-      out += '\n'
-    }
-
-    out = out + wrap
-
-    return out
-  }
-}
-
-module.exports = ( incr=1, min=0, max=Infinity, reset=0, loops=1,  properties ) => {
-  let ugen = Object.create( proto ),
-      defaults = Object.assign( { initialValue: 0, shouldWrap:true }, properties )
-
-  Object.assign( ugen, { 
-    min:    min, 
-    max:    max,
-    initialValue: defaults.initialValue,
-    value:  defaults.initialValue,
-    uid:    gen.getUID(),
-    inputs: [ incr, min, max, reset, loops ],
-    memory: {
-      value: { length:1, idx: null },
-      wrap:  { length:1, idx: null } 
-    },
-    wrap : {
-      gen() { 
-        if( ugen.memory.wrap.idx === null ) {
-          gen.requestMemory( ugen.memory )
-        }
-        gen.getInputs( this )
-        gen.memo[ this.name ] = `memory[ ${ugen.memory.wrap.idx} ]`
-        return `memory[ ${ugen.memory.wrap.idx} ]` 
-      }
-    }
-  },
-  defaults )
- 
-  Object.defineProperty( ugen, 'value', {
-    get() {
-      if( this.memory.value.idx !== null ) {
-        return gen.memory.heap[ this.memory.value.idx ]
-      }
-    },
-    set( v ) {
-      if( this.memory.value.idx !== null ) {
-        gen.memory.heap[ this.memory.value.idx ] = v 
-      }
-    }
-  })
-  
-  ugen.wrap.inputs = [ ugen ]
-  ugen.name = `${ugen.basename}${ugen.uid}`
-  ugen.wrap.name = ugen.name + '_wrap'
-  return ugen
-} 
-
-},{"./gen.js":107}],92:[function(require,module,exports){
-'use strict'
-
-let gen  = require( './gen.js' ),
-    accum= require( './phasor.js' ),
-    data = require( './data.js' ),
-    peek = require( './peek.js' ),
-    mul  = require( './mul.js' ),
-    phasor=require( './phasor.js')
-
-let proto = {
-  basename:'cycle',
-
-  initTable() {    
-    let buffer = new Float32Array( 1024 )
-
-    for( let i = 0, l = buffer.length; i < l; i++ ) {
-      buffer[ i ] = Math.sin( ( i / l ) * ( Math.PI * 2 ) )
-    }
-
-    gen.globals.cycle = data( buffer, 1, { immutable:true } )
-  }
-
-}
-
-module.exports = ( frequency=1, reset=0, _props ) => {
-  if( typeof gen.globals.cycle === 'undefined' ) proto.initTable() 
-  const props = Object.assign({}, { min:0 }, _props )
-
-  const ugen = peek( gen.globals.cycle, phasor( frequency, reset, props ))
-  ugen.name = 'cycle' + gen.getUID()
-
-  return ugen
-}
-
-},{"./data.js":93,"./gen.js":107,"./mul.js":125,"./peek.js":131,"./phasor.js":132}],93:[function(require,module,exports){
-'use strict'
-
-const gen  = require('./gen.js'),
-      utilities = require( './utilities.js' ),
-      peek = require('./peek.js'),
-      poke = require('./poke.js')
-
-const proto = {
-  basename:'data',
-  globals: {},
-  memo:{},
-
-  gen() {
-    let idx
-    //console.log( 'data name:', this.name, proto.memo )
-    //debugger
-    if( gen.memo[ this.name ] === undefined ) {
-      let ugen = this
-      gen.requestMemory( this.memory, this.immutable ) 
-      idx = this.memory.values.idx
-      if( this.buffer !== undefined ) {
-        try {
-          gen.memory.heap.set( this.buffer, idx )
-        }catch( e ) {
-          console.log( e )
-          throw Error( 'error with request. asking for ' + this.buffer.length +'. current index: ' + gen.memoryIndex + ' of ' + gen.memory.heap.length )
-        }
-      }
-      //gen.data[ this.name ] = this
-      //return 'gen.memory' + this.name + '.buffer'
-      if( this.name.indexOf('data') === -1 ) {
-        proto.memo[ this.name ] = idx
-      }else{
-        gen.memo[ this.name ] = idx
-      }
-    }else{
-      //console.log( 'using gen data memo', proto.memo[ this.name ] )
-      idx = gen.memo[ this.name ]
-    }
-    return idx
-  },
-}
-
-module.exports = ( x, y=1, properties ) => {
-  let ugen, buffer, shouldLoad = false
-  
-  if( properties !== undefined && properties.global !== undefined ) {
-    if( gen.globals[ properties.global ] ) {
-      return gen.globals[ properties.global ]
-    }
-  }
-
-  if( typeof x === 'number' ) {
-    if( y !== 1 ) {
-      buffer = []
-      for( let i = 0; i < y; i++ ) {
-        buffer[ i ] = new Float32Array( x )
-      }
-    }else{
-      buffer = new Float32Array( x )
-    }
-  }else if( Array.isArray( x ) ) { //! (x instanceof Float32Array ) ) {
-    let size = x.length
-    buffer = new Float32Array( size )
-    for( let i = 0; i < x.length; i++ ) {
-      buffer[ i ] = x[ i ]
-    }
-  }else if( typeof x === 'string' ) {
-    //buffer = { length: y > 1 ? y : gen.samplerate * 60 } // XXX what???
-    //if( proto.memo[ x ] === undefined ) {
-      buffer = { length: y > 1 ? y : 1 } // XXX what???
-      shouldLoad = true
-    //}else{
-      //buffer = proto.memo[ x ]
-    //}
-  }else if( x instanceof Float32Array ) {
-    buffer = x
-  }
-  
-  ugen = Object.create( proto ) 
-
-  Object.assign( ugen, 
-  { 
-    buffer,
-    name: proto.basename + gen.getUID(),
-    dim:  buffer !== undefined ? buffer.length : 1, // XXX how do we dynamically allocate this?
-    channels : 1,
-    onload: null,
-    //then( fnc ) {
-    //  ugen.onload = fnc
-    //  return ugen
-    //},
-    immutable: properties !== undefined && properties.immutable === true ? true : false,
-    load( filename, __resolve ) {
-      let promise = utilities.loadSample( filename, ugen )
-      promise.then( _buffer => { 
-        proto.memo[ x ] = _buffer
-        ugen.name = filename
-        ugen.memory.values.length = ugen.dim = _buffer.length
-
-        gen.requestMemory( ugen.memory, ugen.immutable ) 
-        gen.memory.heap.set( _buffer, ugen.memory.values.idx )
-        if( typeof ugen.onload === 'function' ) ugen.onload( _buffer ) 
-        __resolve( ugen )
-      })
-    },
-    memory : {
-      values: { length:buffer !== undefined ? buffer.length : 1, idx:null }
-    }
-  },
-  properties
-  )
-
-  
-  if( properties !== undefined ) {
-    if( properties.global !== undefined ) {
-      gen.globals[ properties.global ] = ugen
-    }
-    if( properties.meta === true ) {
-      for( let i = 0, length = ugen.buffer.length; i < length; i++ ) {
-        Object.defineProperty( ugen, i, {
-          get () {
-            return peek( ugen, i, { mode:'simple', interp:'none' } )
-          },
-          set( v ) {
-            return poke( ugen, v, i )
-          }
-        })
-      }
-    }
-  }
-
-  let returnValue
-  if( shouldLoad === true ) {
-    returnValue = new Promise( (resolve,reject) => {
-      //ugen.load( x, resolve )
-      let promise = utilities.loadSample( x, ugen )
-      promise.then( _buffer => { 
-        proto.memo[ x ] = _buffer
-        ugen.memory.values.length = ugen.dim = _buffer.length
-
-        ugen.buffer = _buffer
-        //gen.once( 'memory init', ()=> {
-        //  console.log( "CALLED", ugen.memory )
-        //  gen.requestMemory( ugen.memory, ugen.immutable ) 
-        //  gen.memory.heap.set( _buffer, ugen.memory.values.idx )
-        //  if( typeof ugen.onload === 'function' ) ugen.onload( _buffer ) 
-        //})
-        
-        resolve( ugen )
-      })     
-    })
-  }else if( proto.memo[ x ] !== undefined ) {
-
-    gen.once( 'memory init', ()=> {
-      gen.requestMemory( ugen.memory, ugen.immutable ) 
-      gen.memory.heap.set( ugen.buffer, ugen.memory.values.idx )
-      if( typeof ugen.onload === 'function' ) ugen.onload( ugen.buffer ) 
-    })
-
-    returnValue = ugen
-  }else{
-    returnValue = ugen
-  }
-
-  return returnValue 
-}
-
-
-},{"./gen.js":107,"./peek.js":131,"./poke.js":133,"./utilities.js":150}],94:[function(require,module,exports){
-'use strict'
-
-let gen     = require( './gen.js' ),
-    history = require( './history.js' ),
-    sub     = require( './sub.js' ),
-    add     = require( './add.js' ),
-    mul     = require( './mul.js' ),
-    memo    = require( './memo.js' )
-
-module.exports = ( in1 ) => {
-  let x1 = history(),
-      y1 = history(),
-      filter
-
-  //History x1, y1; y = in1 - x1 + y1*0.9997; x1 = in1; y1 = y; out1 = y;
-  filter = memo( add( sub( in1, x1.out ), mul( y1.out, .9997 ) ) )
-  x1.in( in1 )
-  y1.in( filter )
-
-  return filter
-}
-
-},{"./add.js":80,"./gen.js":107,"./history.js":111,"./memo.js":119,"./mul.js":125,"./sub.js":144}],95:[function(require,module,exports){
-'use strict'
-
-let gen     = require( './gen.js' ),
-    history = require( './history.js' ),
-    mul     = require( './mul.js' ),
-    t60     = require( './t60.js' )
-
-module.exports = ( decayTime = 44100, props ) => {
-  let properties = Object.assign({}, { initValue:1 }, props ),
-      ssd = history ( properties.initValue )
-
-  ssd.in( mul( ssd.out, t60( decayTime ) ) )
-
-  ssd.out.trigger = ()=> {
-    ssd.value = 1
-  }
-
-  return ssd.out 
-}
-
-},{"./gen.js":107,"./history.js":111,"./mul.js":125,"./t60.js":146}],96:[function(require,module,exports){
-'use strict'
-
-const gen  = require( './gen.js'  ),
-      data = require( './data.js' ),
-      poke = require( './poke.js' ),
-      peek = require( './peek.js' ),
-      sub  = require( './sub.js'  ),
-      wrap = require( './wrap.js' ),
-      accum= require( './accum.js'),
-      memo = require( './memo.js' )
-
-const proto = {
-  basename:'delay',
-
-  gen() {
-    let inputs = gen.getInputs( this )
-    
-    gen.memo[ this.name ] = inputs[0]
-    
-    return inputs[0]
-  },
-}
-
-const defaults = { size: 512, interp:'none' }
-
-module.exports = ( in1, taps, properties ) => {
-  const ugen = Object.create( proto )
-  let writeIdx, readIdx, delaydata
-
-  if( Array.isArray( taps ) === false ) taps = [ taps ]
-  
-  const props = Object.assign( {}, defaults, properties )
-
-  const maxTapSize = Math.max( ...taps )
-  if( props.size < maxTapSize ) props.size = maxTapSize
-
-  delaydata = data( props.size )
-  
-  ugen.inputs = []
-
-  writeIdx = accum( 1, 0, { max:props.size, min:0 })
-  
-  for( let i = 0; i < taps.length; i++ ) {
-    ugen.inputs[ i ] = peek( delaydata, wrap( sub( writeIdx, taps[i] ), 0, props.size ),{ mode:'samples', interp:props.interp })
-  }
-  
-  ugen.outputs = ugen.inputs // XXX ugh, Ugh, UGH! but i guess it works.
-
-  poke( delaydata, in1, writeIdx )
-
-  ugen.name = `${ugen.basename}${gen.getUID()}`
-
-  return ugen
-}
-
-},{"./accum.js":77,"./data.js":93,"./gen.js":107,"./memo.js":119,"./peek.js":131,"./poke.js":133,"./sub.js":144,"./wrap.js":152}],97:[function(require,module,exports){
-'use strict'
-
-let gen     = require( './gen.js' ),
-    history = require( './history.js' ),
-    sub     = require( './sub.js' )
-
-module.exports = ( in1 ) => {
-  let n1 = history()
-    
-  n1.in( in1 )
-
-  let ugen = sub( in1, n1.out )
-  ugen.name = 'delta'+gen.getUID()
-
-  return ugen
-}
-
-},{"./gen.js":107,"./history.js":111,"./sub.js":144}],98:[function(require,module,exports){
-'use strict'
-
-let gen = require('./gen.js')
-
-const proto = {
-  basename:'div',
-  gen() {
-    let inputs = gen.getInputs( this ),
-        out=`  var ${this.name} = `,
-        diff = 0, 
-        numCount = 0,
-        lastNumber = inputs[ 0 ],
-        lastNumberIsUgen = isNaN( lastNumber ), 
-        divAtEnd = false
-
-    inputs.forEach( (v,i) => {
-      if( i === 0 ) return
-
-      let isNumberUgen = isNaN( v ),
-        isFinalIdx   = i === inputs.length - 1
-
-      if( !lastNumberIsUgen && !isNumberUgen ) {
-        lastNumber = lastNumber / v
-        out += lastNumber
-      }else{
-        out += `${lastNumber} / ${v}`
-      }
-
-      if( !isFinalIdx ) out += ' / ' 
-    })
-
-    out += '\n'
-
-    gen.memo[ this.name ] = this.name
-
-    return [ this.name, out ]
-  }
-}
-
-module.exports = (...args) => {
-  const div = Object.create( proto )
-  
-  Object.assign( div, {
-    id:     gen.getUID(),
-    inputs: args,
-  })
-
-  div.name = div.basename + div.id
-  
-  return div
-}
-
-},{"./gen.js":107}],99:[function(require,module,exports){
-'use strict'
-
-let gen     = require( './gen' ),
-    windows = require( './windows' ),
-    data    = require( './data' ),
-    peek    = require( './peek' ),
-    phasor  = require( './phasor' ),
-    defaults = {
-      type:'triangular', length:1024, alpha:.15, shift:0, reverse:false 
-    }
-
-module.exports = props => {
-  
-  let properties = Object.assign( {}, defaults, props )
-  let buffer = new Float32Array( properties.length )
-
-  let name = properties.type + '_' + properties.length + '_' + properties.shift + '_' + properties.reverse + '_' + properties.alpha
-  if( typeof gen.globals.windows[ name ] === 'undefined' ) { 
-
-    for( let i = 0; i < properties.length; i++ ) {
-      buffer[ i ] = windows[ properties.type ]( properties.length, i, properties.alpha, properties.shift )
-    }
-
-    if( properties.reverse === true ) { 
-      buffer.reverse()
-    }
-    gen.globals.windows[ name ] = data( buffer )
-  }
-
-  let ugen = gen.globals.windows[ name ] 
-  ugen.name = 'env' + gen.getUID()
-
-  return ugen
-}
-
-},{"./data":93,"./gen":107,"./peek":131,"./phasor":132,"./windows":151}],100:[function(require,module,exports){
-'use strict'
-
-let gen = require( './gen.js' )
-
-let proto = {
-  basename:'eq',
-
-  gen() {
-    let inputs = gen.getInputs( this ), out
-
-    out = this.inputs[0] === this.inputs[1] ? 1 : `  var ${this.name} = (${inputs[0]} === ${inputs[1]}) | 0\n\n`
-
-    gen.memo[ this.name ] = `${this.name}`
-
-    return [ `${this.name}`, out ]
-  },
-
-}
-
-module.exports = ( in1, in2 ) => {
-  let ugen = Object.create( proto )
-  Object.assign( ugen, {
-    uid:     gen.getUID(),
-    inputs:  [ in1, in2 ],
-  })
-  
-  ugen.name = `${ugen.basename}${ugen.uid}`
-
-  return ugen
-}
-
-},{"./gen.js":107}],101:[function(require,module,exports){
-'use strict'
-
-let gen  = require('./gen.js')
-
-let proto = {
-  name:'exp',
-
-  gen() {
-    let out,
-        inputs = gen.getInputs( this )
-
-    
-    const isWorklet = gen.mode === 'worklet'
-    const ref = isWorklet? '' : 'gen.'
-
-    if( isNaN( inputs[0] ) ) {
-      gen.closures.add({ [ this.name ]: isWorklet ? 'Math.exp' : Math.exp })
-
-      out = `${ref}exp( ${inputs[0]} )`
-
-    } else {
-      out = Math.exp( parseFloat( inputs[0] ) )
-    }
-    
-    return out
-  }
-}
-
-module.exports = x => {
-  let exp = Object.create( proto )
-
-  exp.inputs = [ x ]
-
-  return exp
-}
-
-},{"./gen.js":107}],102:[function(require,module,exports){
-/**
- * Copyright 2018 Google LLC
- *
- * Licensed under the Apache License, Version 2.0 (the "License"); you may not
- * use this file except in compliance with the License. You may obtain a copy of
- * the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations under
- * the License.
- */
-
-// originally from:
-// https://github.com/GoogleChromeLabs/audioworklet-polyfill
-// I am modifying it to accept variable buffer sizes
-// and to get rid of some strange global initialization that seems required to use it
-// with browserify. Also, I added changes to fix a bug in Safari for the AudioWorkletProcessor
-// property not having a prototype (see:https://github.com/GoogleChromeLabs/audioworklet-polyfill/pull/25)
-// TODO: Why is there an iframe involved? (realm.js)
-
-const Realm = require( './realm.js' )
-
-const AWPF = function( self = window, bufferSize = 4096 ) {
-  const PARAMS = []
-  let nextPort
-
-  if (typeof AudioWorkletNode !== 'function' || !("audioWorklet" in AudioContext.prototype)) {
-    self.AudioWorkletNode = function AudioWorkletNode (context, name, options) {
-      const processor = getProcessorsForContext(context)[name];
-      const outputChannels = options && options.outputChannelCount ? options.outputChannelCount[0] : 2;
-      const scriptProcessor = context.createScriptProcessor( bufferSize, 2, outputChannels);
-
-      scriptProcessor.parameters = new Map();
-      if (processor.properties) {
-        for (let i = 0; i < processor.properties.length; i++) {
-          const prop = processor.properties[i];
-          const node = context.createGain().gain;
-          node.value = prop.defaultValue;
-          // @TODO there's no good way to construct the proxy AudioParam here
-          scriptProcessor.parameters.set(prop.name, node);
-        }
-      }
-
-      const mc = new MessageChannel();
-      nextPort = mc.port2;
-      const inst = new processor.Processor(options || {});
-      nextPort = null;
-
-      scriptProcessor.port = mc.port1;
-      scriptProcessor.processor = processor;
-      scriptProcessor.instance = inst;
-      scriptProcessor.onaudioprocess = onAudioProcess;
-      return scriptProcessor;
-    };
-
-    Object.defineProperty((self.AudioContext || self.webkitAudioContext).prototype, 'audioWorklet', {
-      get () {
-        return this.$$audioWorklet || (this.$$audioWorklet = new self.AudioWorklet(this));
-      }
-    });
-
-    /* XXX - ADDED TO OVERCOME PROBLEM IN SAFARI WHERE AUDIOWORKLETPROCESSOR PROTOTYPE IS NOT AN OBJECT */
-    const AudioWorkletProcessor = function() {
-      this.port = nextPort
-    }
-    AudioWorkletProcessor.prototype = {}
-
-    self.AudioWorklet = class AudioWorklet {
-      constructor (audioContext) {
-        this.$$context = audioContext;
-      }
-
-      addModule (url, options) {
-        return fetch(url).then(r => {
-          if (!r.ok) throw Error(r.status);
-          return r.text();
-        }).then( code => {
-          const context = {
-            sampleRate: this.$$context.sampleRate,
-            currentTime: this.$$context.currentTime,
-            AudioWorkletProcessor,
-            registerProcessor: (name, Processor) => {
-              const processors = getProcessorsForContext(this.$$context);
-              processors[name] = {
-                realm,
-                context,
-                Processor,
-                properties: Processor.parameterDescriptors || []
-              };
-            }
-          };
-
-          context.self = context;
-          const realm = new Realm(context, document.documentElement);
-          realm.exec(((options && options.transpile) || String)(code));
-          return null;
-        });
-      }
-    };
-  }
-
-  function onAudioProcess (e) {
-    const parameters = {};
-    let index = -1;
-    this.parameters.forEach((value, key) => {
-      const arr = PARAMS[++index] || (PARAMS[index] = new Float32Array(this.bufferSize));
-      // @TODO proper values here if possible
-      arr.fill(value.value);
-      parameters[key] = arr;
-    });
-    this.processor.realm.exec(
-      'self.sampleRate=sampleRate=' + this.context.sampleRate + ';' +
-      'self.currentTime=currentTime=' + this.context.currentTime
-    );
-    const inputs = channelToArray(e.inputBuffer);
-    const outputs = channelToArray(e.outputBuffer);
-    this.instance.process([inputs], [outputs], parameters);
-  }
-
-  function channelToArray (ch) {
-    const out = [];
-    for (let i = 0; i < ch.numberOfChannels; i++) {
-      out[i] = ch.getChannelData(i);
-    }
-    return out;
-  }
-
-  function getProcessorsForContext (audioContext) {
-    return audioContext.$$processors || (audioContext.$$processors = {});
-  }
-}
-
-module.exports = AWPF
-
-},{"./realm.js":103}],103:[function(require,module,exports){
-/**
- * Copyright 2018 Google LLC
- *
- * Licensed under the Apache License, Version 2.0 (the "License"); you may not
- * use this file except in compliance with the License. You may obtain a copy of
- * the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations under
- * the License.
- */
-
-module.exports = function Realm (scope, parentElement) {
-  const frame = document.createElement('iframe');
-  frame.style.cssText = 'position:absolute;left:0;top:-999px;width:1px;height:1px;';
-  parentElement.appendChild(frame);
-  const win = frame.contentWindow;
-  const doc = win.document;
-  let vars = 'var window,$hook';
-  for (const i in win) {
-    if (!(i in scope) && i !== 'eval') {
-      vars += ',';
-      vars += i;
-    }
-  }
-  for (const i in scope) {
-    vars += ',';
-    vars += i;
-    vars += '=self.';
-    vars += i;
-  }
-  const script = doc.createElement('script');
-  script.appendChild(doc.createTextNode(
-    `function $hook(self,console) {"use strict";
-        ${vars};return function() {return eval(arguments[0])}}`
-  ));
-  doc.body.appendChild(script);
-  this.exec = win.$hook.call(scope, scope, console);
-}
-
-},{}],104:[function(require,module,exports){
-'use strict'
-
-let gen  = require('./gen.js')
-
-let proto = {
-  name:'floor',
-
-  gen() {
-    let out,
-        inputs = gen.getInputs( this )
-
-    if( isNaN( inputs[0] ) ) {
-      //gen.closures.add({ [ this.name ]: Math.floor })
-
-      out = `( ${inputs[0]} | 0 )`
-
-    } else {
-      out = inputs[0] | 0
-    }
-    
-    return out
-  }
-}
-
-module.exports = x => {
-  let floor = Object.create( proto )
-
-  floor.inputs = [ x ]
-
-  return floor
-}
-
-},{"./gen.js":107}],105:[function(require,module,exports){
-'use strict'
-
-let gen  = require('./gen.js')
-
-let proto = {
-  basename:'fold',
-
-  gen() {
-    let code,
-        inputs = gen.getInputs( this ),
-        out
-
-    out = this.createCallback( inputs[0], this.min, this.max ) 
-
-    gen.memo[ this.name ] = this.name + '_value'
-
-    return [ this.name + '_value', out ]
-  },
-
-  createCallback( v, lo, hi ) {
-    let out =
-` var ${this.name}_value = ${v},
-      ${this.name}_range = ${hi} - ${lo},
-      ${this.name}_numWraps = 0
-
-  if(${this.name}_value >= ${hi}){
-    ${this.name}_value -= ${this.name}_range
-    if(${this.name}_value >= ${hi}){
-      ${this.name}_numWraps = ((${this.name}_value - ${lo}) / ${this.name}_range) | 0
-      ${this.name}_value -= ${this.name}_range * ${this.name}_numWraps
-    }
-    ${this.name}_numWraps++
-  } else if(${this.name}_value < ${lo}){
-    ${this.name}_value += ${this.name}_range
-    if(${this.name}_value < ${lo}){
-      ${this.name}_numWraps = ((${this.name}_value - ${lo}) / ${this.name}_range- 1) | 0
-      ${this.name}_value -= ${this.name}_range * ${this.name}_numWraps
-    }
-    ${this.name}_numWraps--
-  }
-  if(${this.name}_numWraps & 1) ${this.name}_value = ${hi} + ${lo} - ${this.name}_value
-`
-    return ' ' + out
-  }
-}
-
-module.exports = ( in1, min=0, max=1 ) => {
-  let ugen = Object.create( proto )
-
-  Object.assign( ugen, { 
-    min, 
-    max,
-    uid:    gen.getUID(),
-    inputs: [ in1 ],
-  })
-  
-  ugen.name = `${ugen.basename}${ugen.uid}`
-
-  return ugen
-}
-
-},{"./gen.js":107}],106:[function(require,module,exports){
-'use strict'
-
-let gen = require( './gen.js' )
-
-let proto = {
-  basename:'gate',
-  controlString:null, // insert into output codegen for determining indexing
-  gen() {
-    let inputs = gen.getInputs( this ), out
-    
-    gen.requestMemory( this.memory )
-    
-    let lastInputMemoryIdx = 'memory[ ' + this.memory.lastInput.idx + ' ]',
-        outputMemoryStartIdx = this.memory.lastInput.idx + 1,
-        inputSignal = inputs[0],
-        controlSignal = inputs[1]
-    
-    /* 
-     * we check to see if the current control inputs equals our last input
-     * if so, we store the signal input in the memory associated with the currently
-     * selected index. If not, we put 0 in the memory associated with the last selected index,
-     * change the selected index, and then store the signal in put in the memery assoicated
-     * with the newly selected index
-     */
-    
-    out =
-
-` if( ${controlSignal} !== ${lastInputMemoryIdx} ) {
-    memory[ ${lastInputMemoryIdx} + ${outputMemoryStartIdx}  ] = 0 
-    ${lastInputMemoryIdx} = ${controlSignal}
-  }
-  memory[ ${outputMemoryStartIdx} + ${controlSignal} ] = ${inputSignal}
-
-`
-    this.controlString = inputs[1]
-    this.initialized = true
-
-    gen.memo[ this.name ] = this.name
-
-    this.outputs.forEach( v => v.gen() )
-
-    return [ null, ' ' + out ]
-  },
-
-  childgen() {
-    if( this.parent.initialized === false ) {
-      gen.getInputs( this ) // parent gate is only input of a gate output, should only be gen'd once.
-    }
-
-    if( gen.memo[ this.name ] === undefined ) {
-      gen.requestMemory( this.memory )
-
-      gen.memo[ this.name ] = `memory[ ${this.memory.value.idx} ]`
-    }
-    
-    return  `memory[ ${this.memory.value.idx} ]`
-  }
-}
-
-module.exports = ( control, in1, properties ) => {
-  let ugen = Object.create( proto ),
-      defaults = { count: 2 }
-
-  if( typeof properties !== undefined ) Object.assign( defaults, properties )
-
-  Object.assign( ugen, {
-    outputs: [],
-    uid:     gen.getUID(),
-    inputs:  [ in1, control ],
-    memory: {
-      lastInput: { length:1, idx:null }
-    },
-    initialized:false
-  },
-  defaults )
-  
-  ugen.name = `${ugen.basename}${gen.getUID()}`
-
-  for( let i = 0; i < ugen.count; i++ ) {
-    ugen.outputs.push({
-      index:i,
-      gen: proto.childgen,
-      parent:ugen,
-      inputs: [ ugen ],
-      memory: {
-        value: { length:1, idx:null }
-      },
-      initialized:false,
-      name: `${ugen.name}_out${gen.getUID()}`
-    })
-  }
-
-  return ugen
-}
-
-},{"./gen.js":107}],107:[function(require,module,exports){
-'use strict'
-
-/* gen.js
- *
- * low-level code generation for unit generators
- *
- */
-const MemoryHelper = require( 'memory-helper' )
-const EE = require( 'events' ).EventEmitter
-
-const gen = {
-
-  accum:0,
-  getUID() { return this.accum++ },
-  debug:false,
-  samplerate: 44100, // change on audiocontext creation
-  shouldLocalize: false,
-  graph:null,
-  globals:{
-    windows: {},
-  },
-  mode:'worklet',
-  
-  /* closures
-   *
-   * Functions that are included as arguments to master callback. Examples: Math.abs, Math.random etc.
-   * XXX Should probably be renamed callbackProperties or something similar... closures are no longer used.
-   */
-
-  closures: new Set(),
-  params:   new Set(),
-  inputs:   new Set(),
-
-  parameters: new Set(),
-  endBlock: new Set(),
-  histories: new Map(),
-
-  memo: {},
-
-  //data: {},
-  
-  /* export
-   *
-   * place gen functions into another object for easier reference
-   */
-
-  export( obj ) {},
-
-  addToEndBlock( v ) {
-    this.endBlock.add( '  ' + v )
-  },
-  
-  requestMemory( memorySpec, immutable=false ) {
-    for( let key in memorySpec ) {
-      let request = memorySpec[ key ]
-
-      //console.log( 'requesting ' + key + ':' , JSON.stringify( request ) )
-
-      if( request.length === undefined ) {
-        console.log( 'undefined length for:', key )
-
-        continue
-      }
-
-      request.idx = gen.memory.alloc( request.length, immutable )
-    }
-  },
-
-  createMemory( amount=4096, type ) {
-    const mem = MemoryHelper.create( amount, type )
-    return mem
-  },
-
-  createCallback( ugen, mem, debug = false, shouldInlineMemory=false, memType = Float64Array ) {
-    let isStereo = Array.isArray( ugen ) && ugen.length > 1,
-        callback, 
-        channel1, channel2
-
-    if( typeof mem === 'number' || mem === undefined ) {
-      this.memory = this.createMemory( mem, memType )
-    }else{
-      this.memory = mem
-    }
-    
-    this.outputIdx = this.memory.alloc( 2, true )
-    this.emit( 'memory init' )
-
-    //console.log( 'cb memory:', mem )
-    this.graph = ugen
-    this.memo = {} 
-    this.endBlock.clear()
-    this.closures.clear()
-    this.inputs.clear()
-    this.params.clear()
-    this.globals = { windows:{} }
-    
-    this.parameters.clear()
-    
-    this.functionBody = "  'use strict'\n"
-    if( shouldInlineMemory===false ) {
-      this.functionBody += this.mode === 'worklet' ? 
-        "  var memory = this.memory\n\n" :
-        "  var memory = gen.memory\n\n"
-    }
-
-    // call .gen() on the head of the graph we are generating the callback for
-    //console.log( 'HEAD', ugen )
-    for( let i = 0; i < 1 + isStereo; i++ ) {
-      if( typeof ugen[i] === 'number' ) continue
-
-      //let channel = isStereo ? ugen[i].gen() : ugen.gen(),
-      let channel = isStereo ? this.getInput( ugen[i] ) : this.getInput( ugen ), 
-          body = ''
-
-      // if .gen() returns array, add ugen callback (graphOutput[1]) to our output functions body
-      // and then return name of ugen. If .gen() only generates a number (for really simple graphs)
-      // just return that number (graphOutput[0]).
-      body += Array.isArray( channel ) ? channel[1] + '\n' + channel[0] : channel
-
-      // split body to inject return keyword on last line
-      body = body.split('\n')
-     
-      //if( debug ) console.log( 'functionBody length', body )
-      
-      // next line is to accommodate memo as graph head
-      if( body[ body.length -1 ].trim().indexOf('let') > -1 ) { body.push( '\n' ) } 
-
-      // get index of last line
-      let lastidx = body.length - 1
-
-      // insert return keyword
-      body[ lastidx ] = '  memory[' + (this.outputIdx + i) + ']  = ' + body[ lastidx ] + '\n'
-
-      this.functionBody += body.join('\n')
-    }
-    
-    this.histories.forEach( value => {
-      if( value !== null )
-        value.gen()      
-    })
-
-    const returnStatement = isStereo ? `  return [ memory[${this.outputIdx}], memory[${this.outputIdx + 1}] ]` : `  return memory[${this.outputIdx}]`
-    
-    this.functionBody = this.functionBody.split('\n')
-
-    if( this.endBlock.size ) { 
-      this.functionBody = this.functionBody.concat( Array.from( this.endBlock ) )
-      this.functionBody.push( returnStatement )
-    }else{
-      this.functionBody.push( returnStatement )
-    }
-    // reassemble function body
-    this.functionBody = this.functionBody.join('\n')
-
-    // we can only dynamically create a named function by dynamically creating another function
-    // to construct the named function! sheesh...
-    //
-    if( shouldInlineMemory === true ) {
-      this.parameters.add( 'memory' )
-    }
-
-    let paramString = ''
-    if( this.mode === 'worklet' ) {
-      for( let name of this.parameters.values() ) {
-        paramString += name + ','
-      }
-      paramString = paramString.slice(0,-1)
-    }
-
-    const separator = this.parameters.size !== 0 && this.inputs.size > 0 ? ', ' : ''
-
-    let inputString = ''
-    if( this.mode === 'worklet' ) {
-      for( let ugen of this.inputs.values() ) {
-        inputString += ugen.name + ','
-      }
-      inputString = inputString.slice(0,-1)
-    }
-
-    let buildString = this.mode === 'worklet'
-      ? `return function( ${inputString} ${separator} ${paramString} ){ \n${ this.functionBody }\n}`
-      : `return function gen( ${ [...this.parameters].join(',') } ){ \n${ this.functionBody }\n}`
-    
-    if( this.debug || debug ) console.log( buildString ) 
-
-    callback = new Function( buildString )()
-
-    // assign properties to named function
-    for( let dict of this.closures.values() ) {
-      let name = Object.keys( dict )[0],
-          value = dict[ name ]
-
-      callback[ name ] = value
-    }
-
-    for( let dict of this.params.values() ) {
-      let name = Object.keys( dict )[0],
-          ugen = dict[ name ]
-      
-      Object.defineProperty( callback, name, {
-        configurable: true,
-        get() { return ugen.value },
-        set(v){ ugen.value = v }
-      })
-      //callback[ name ] = value
-    }
-
-    callback.members = this.closures
-    callback.data = this.data
-    callback.params = this.params
-    callback.inputs = this.inputs
-    callback.parameters = this.parameters//.slice( 0 )
-    callback.out = this.memory.heap.subarray( this.outputIdx, this.outputIdx + 2 )
-    callback.isStereo = isStereo
-
-    //if( MemoryHelper.isPrototypeOf( this.memory ) ) 
-    callback.memory = this.memory.heap
-
-    this.histories.clear()
-
-    return callback
-  },
-  
-  /* getInputs
-   *
-   * Called by each individual ugen when their .gen() method is called to resolve their various inputs.
-   * If an input is a number, return the number. If
-   * it is an ugen, call .gen() on the ugen, memoize the result and return the result. If the
-   * ugen has previously been memoized return the memoized value.
-   *
-   */
-  getInputs( ugen ) {
-    return ugen.inputs.map( gen.getInput ) 
-  },
-
-  getInput( input ) {
-    let isObject = typeof input === 'object',
-        processedInput
-
-    if( isObject ) { // if input is a ugen... 
-      //console.log( input.name, gen.memo[ input.name ] )
-      if( gen.memo[ input.name ] ) { // if it has been memoized...
-        processedInput = gen.memo[ input.name ]
-      }else if( Array.isArray( input ) ) {
-        gen.getInput( input[0] )
-        gen.getInput( input[1] )
-      }else{ // if not memoized generate code  
-        if( typeof input.gen !== 'function' ) {
-          console.log( 'no gen found:', input, input.gen )
-          input = input.graph
-        }
-        let code = input.gen()
-        //if( code.indexOf( 'Object' ) > -1 ) console.log( 'bad input:', input, code )
-        
-        if( Array.isArray( code ) ) {
-          if( !gen.shouldLocalize ) {
-            gen.functionBody += code[1]
-          }else{
-            gen.codeName = code[0]
-            gen.localizedCode.push( code[1] )
-          }
-          //console.log( 'after GEN' , this.functionBody )
-          processedInput = code[0]
-        }else{
-          processedInput = code
-        }
-      }
-    }else{ // it input is a number
-      processedInput = input
-    }
-
-    return processedInput
-  },
-
-  startLocalize() {
-    this.localizedCode = []
-    this.shouldLocalize = true
-  },
-  endLocalize() {
-    this.shouldLocalize = false
-
-    return [ this.codeName, this.localizedCode.slice(0) ]
-  },
-
-  free( graph ) {
-    if( Array.isArray( graph ) ) { // stereo ugen
-      for( let channel of graph ) {
-        this.free( channel )
-      }
-    } else {
-      if( typeof graph === 'object' ) {
-        if( graph.memory !== undefined ) {
-          for( let memoryKey in graph.memory ) {
-            this.memory.free( graph.memory[ memoryKey ].idx )
-          }
-        }
-        if( Array.isArray( graph.inputs ) ) {
-          for( let ugen of graph.inputs ) {
-            this.free( ugen )
-          }
-        }
-      }
-    }
-  }
-}
-
-gen.__proto__ = new EE()
-
-module.exports = gen
-
-},{"events":75,"memory-helper":153}],108:[function(require,module,exports){
-'use strict'
-
-let gen  = require('./gen.js')
-
-let proto = {
-  basename:'gt',
-
-  gen() {
-    let out,
-        inputs = gen.getInputs( this )
-    
-    out = `  var ${this.name} = `  
-
-    if( isNaN( this.inputs[0] ) || isNaN( this.inputs[1] ) ) {
-      out += `(( ${inputs[0]} > ${inputs[1]}) | 0 )`
-    } else {
-      out += inputs[0] > inputs[1] ? 1 : 0 
-    }
-    out += '\n\n'
-
-    gen.memo[ this.name ] = this.name
-
-    return [this.name, out]
-  }
-}
-
-module.exports = (x,y) => {
-  let gt = Object.create( proto )
-
-  gt.inputs = [ x,y ]
-  gt.name = gt.basename + gen.getUID()
-
-  return gt
-}
-
-},{"./gen.js":107}],109:[function(require,module,exports){
-'use strict'
-
-let gen = require('./gen.js')
-
-let proto = {
-  name:'gte',
-
-  gen() {
-    let out,
-        inputs = gen.getInputs( this )
-    
-    out = `  var ${this.name} = `  
-
-    if( isNaN( this.inputs[0] ) || isNaN( this.inputs[1] ) ) {
-      out += `( ${inputs[0]} >= ${inputs[1]} | 0 )`
-    } else {
-      out += inputs[0] >= inputs[1] ? 1 : 0 
-    }
-    out += '\n\n'
-
-    gen.memo[ this.name ] = this.name
-
-    return [this.name, out]
-  }
-}
-
-module.exports = (x,y) => {
-  let gt = Object.create( proto )
-
-  gt.inputs = [ x,y ]
-  gt.name = 'gte' + gen.getUID()
-
-  return gt
-}
-
-},{"./gen.js":107}],110:[function(require,module,exports){
-'use strict'
-
-let gen  = require('./gen.js')
-
-let proto = {
-  name:'gtp',
-
-  gen() {
-    let out,
-        inputs = gen.getInputs( this )
-
-    if( isNaN( this.inputs[0] ) || isNaN( this.inputs[1] ) ) {
-      out = `(${inputs[ 0 ]} * ( ( ${inputs[0]} > ${inputs[1]} ) | 0 ) )` 
-    } else {
-      out = inputs[0] * ( ( inputs[0] > inputs[1] ) | 0 )
-    }
-    
-    return out
-  }
-}
-
-module.exports = (x,y) => {
-  let gtp = Object.create( proto )
-
-  gtp.inputs = [ x,y ]
-
-  return gtp
-}
-
-},{"./gen.js":107}],111:[function(require,module,exports){
-'use strict'
-
-let gen  = require('./gen.js')
-
-module.exports = ( in1=0 ) => {
-  let ugen = {
-    inputs: [ in1 ],
-    memory: { value: { length:1, idx: null } },
-    recorder: null,
-
-    in( v ) {
-      if( gen.histories.has( v ) ){
-        let memoHistory = gen.histories.get( v )
-        ugen.name = memoHistory.name
-        return memoHistory
-      }
-
-      let obj = {
-        gen() {
-          let inputs = gen.getInputs( ugen )
-
-          if( ugen.memory.value.idx === null ) {
-            gen.requestMemory( ugen.memory )
-            gen.memory.heap[ ugen.memory.value.idx ] = in1
-          }
-
-          let idx = ugen.memory.value.idx
-          
-          gen.addToEndBlock( 'memory[ ' + idx + ' ] = ' + inputs[ 0 ] )
-          
-          // return ugen that is being recorded instead of ssd.
-          // this effectively makes a call to ssd.record() transparent to the graph.
-          // recording is triggered by prior call to gen.addToEndBlock.
-          gen.histories.set( v, obj )
-
-          return inputs[ 0 ]
-        },
-        name: ugen.name + '_in'+gen.getUID(),
-        memory: ugen.memory
-      }
-
-      this.inputs[ 0 ] = v
-      
-      ugen.recorder = obj
-
-      return obj
-    },
-    
-    out: {
-            
-      gen() {
-        if( ugen.memory.value.idx === null ) {
-          if( gen.histories.get( ugen.inputs[0] ) === undefined ) {
-            gen.histories.set( ugen.inputs[0], ugen.recorder )
-          }
-          gen.requestMemory( ugen.memory )
-          gen.memory.heap[ ugen.memory.value.idx ] = parseFloat( in1 )
-        }
-        let idx = ugen.memory.value.idx
-         
-        return 'memory[ ' + idx + ' ] '
-      },
-    },
-
-    uid: gen.getUID(),
-  }
-  
-  ugen.out.memory = ugen.memory 
-
-  ugen.name = 'history' + ugen.uid
-  ugen.out.name = ugen.name + '_out'
-  ugen.in._name  = ugen.name = '_in'
-
-  Object.defineProperty( ugen, 'value', {
-    get() {
-      if( this.memory.value.idx !== null ) {
-        return gen.memory.heap[ this.memory.value.idx ]
-      }
-    },
-    set( v ) {
-      if( this.memory.value.idx !== null ) {
-        gen.memory.heap[ this.memory.value.idx ] = v 
-      }
-    }
-  })
-
-  return ugen
-}
-
-},{"./gen.js":107}],112:[function(require,module,exports){
-'use strict'
-
-let gen = require( './gen.js' )
-
-let proto = {
-  basename:'ifelse',
-
-  gen() {
-    let conditionals = this.inputs[0],
-        defaultValue = gen.getInput( conditionals[ conditionals.length - 1] ),
-        out = `  var ${this.name}_out = ${defaultValue}\n` 
-
-    //console.log( 'conditionals:', this.name, conditionals )
-
-    //console.log( 'defaultValue:', defaultValue )
-
-    for( let i = 0; i < conditionals.length - 2; i+= 2 ) {
-      let isEndBlock = i === conditionals.length - 3,
-          cond  = gen.getInput( conditionals[ i ] ),
-          preblock = conditionals[ i+1 ],
-          block, blockName, output
-
-      //console.log( 'pb', preblock )
-
-      if( typeof preblock === 'number' ){
-        block = preblock
-        blockName = null
-      }else{
-        if( gen.memo[ preblock.name ] === undefined ) {
-          // used to place all code dependencies in appropriate blocks
-          gen.startLocalize()
-
-          gen.getInput( preblock )
-
-          block = gen.endLocalize()
-          blockName = block[0]
-          block = block[ 1 ].join('')
-          block = '  ' + block.replace( /\n/gi, '\n  ' )
-        }else{
-          block = ''
-          blockName = gen.memo[ preblock.name ]
-        }
-      }
-
-      output = blockName === null ? 
-        `  ${this.name}_out = ${block}` :
-        `${block}  ${this.name}_out = ${blockName}`
-      
-      if( i===0 ) out += ' '
-      out += 
-` if( ${cond} === 1 ) {
-${output}
-  }`
-
-      if( !isEndBlock ) {
-        out += ` else`
-      }else{
-        out += `\n`
-      }
-    }
-
-    gen.memo[ this.name ] = `${this.name}_out`
-
-    return [ `${this.name}_out`, out ]
-  }
-}
-
-module.exports = ( ...args  ) => {
-  let ugen = Object.create( proto ),
-      conditions = Array.isArray( args[0] ) ? args[0] : args
-
-  Object.assign( ugen, {
-    uid:     gen.getUID(),
-    inputs:  [ conditions ],
-  })
-  
-  ugen.name = `${ugen.basename}${ugen.uid}`
-
-  return ugen
-}
-
-},{"./gen.js":107}],113:[function(require,module,exports){
-'use strict'
-
-let gen = require('./gen.js')
-
-let proto = {
-  basename:'in',
-
-  gen() {
-    const isWorklet = gen.mode === 'worklet'
-
-    if( isWorklet ) {
-      gen.inputs.add( this )
-    }else{
-      gen.parameters.add( this.name )
-    }
-
-    gen.memo[ this.name ] = isWorklet === true ? this.name + '[i]' : this.name
-
-    return gen.memo[ this.name ]
-  } 
-}
-
-module.exports = ( name, inputNumber=0, channelNumber=0, defaultValue=0, min=0, max=1 ) => {
-  let input = Object.create( proto )
-
-  input.id   = gen.getUID()
-  input.name = name !== undefined ? name : `${input.basename}${input.id}`
-  Object.assign( input, { defaultValue, min, max, inputNumber, channelNumber })
-
-  input[0] = {
-    gen() {
-      if( ! gen.parameters.has( input.name ) ) gen.parameters.add( input.name )
-      return input.name + '[0]'
-    }
-  }
-  input[1] = {
-    gen() {
-      if( ! gen.parameters.has( input.name ) ) gen.parameters.add( input.name )
-      return input.name + '[1]'
-    }
-  }
-
-
-  return input
-}
-
-},{"./gen.js":107}],114:[function(require,module,exports){
-'use strict'
-
-const library = {
-  export( destination ) {
-    if( destination === window ) {
-      destination.ssd = library.history    // history is window object property, so use ssd as alias
-      destination.input = library.in       // in is a keyword in javascript
-      destination.ternary = library.switch // switch is a keyword in javascript
-
-      delete library.history
-      delete library.in
-      delete library.switch
-    }
-
-    Object.assign( destination, library )
-
-    Object.defineProperty( library, 'samplerate', {
-      get() { return library.gen.samplerate },
-      set(v) {}
-    })
-
-    library.in = destination.input
-    library.history = destination.ssd
-    library.switch = destination.ternary
-
-    destination.clip = library.clamp
-  },
-
-  gen:      require( './gen.js' ),
-  
-  abs:      require( './abs.js' ),
-  round:    require( './round.js' ),
-  param:    require( './param.js' ),
-  add:      require( './add.js' ),
-  sub:      require( './sub.js' ),
-  mul:      require( './mul.js' ),
-  div:      require( './div.js' ),
-  accum:    require( './accum.js' ),
-  counter:  require( './counter.js' ),
-  sin:      require( './sin.js' ),
-  cos:      require( './cos.js' ),
-  tan:      require( './tan.js' ),
-  tanh:     require( './tanh.js' ),
-  asin:     require( './asin.js' ),
-  acos:     require( './acos.js' ),
-  atan:     require( './atan.js' ),  
-  phasor:   require( './phasor.js' ),
-  data:     require( './data.js' ),
-  peek:     require( './peek.js' ),
-  cycle:    require( './cycle.js' ),
-  history:  require( './history.js' ),
-  delta:    require( './delta.js' ),
-  floor:    require( './floor.js' ),
-  ceil:     require( './ceil.js' ),
-  min:      require( './min.js' ),
-  max:      require( './max.js' ),
-  sign:     require( './sign.js' ),
-  dcblock:  require( './dcblock.js' ),
-  memo:     require( './memo.js' ),
-  rate:     require( './rate.js' ),
-  wrap:     require( './wrap.js' ),
-  mix:      require( './mix.js' ),
-  clamp:    require( './clamp.js' ),
-  poke:     require( './poke.js' ),
-  delay:    require( './delay.js' ),
-  fold:     require( './fold.js' ),
-  mod :     require( './mod.js' ),
-  sah :     require( './sah.js' ),
-  noise:    require( './noise.js' ),
-  not:      require( './not.js' ),
-  gt:       require( './gt.js' ),
-  gte:      require( './gte.js' ),
-  lt:       require( './lt.js' ), 
-  lte:      require( './lte.js' ), 
-  bool:     require( './bool.js' ),
-  gate:     require( './gate.js' ),
-  train:    require( './train.js' ),
-  slide:    require( './slide.js' ),
-  in:       require( './in.js' ),
-  t60:      require( './t60.js'),
-  mtof:     require( './mtof.js'),
-  ltp:      require( './ltp.js'),        // TODO: test
-  gtp:      require( './gtp.js'),        // TODO: test
-  switch:   require( './switch.js' ),
-  mstosamps:require( './mstosamps.js' ), // TODO: needs test,
-  selector: require( './selector.js' ),
-  utilities:require( './utilities.js' ),
-  pow:      require( './pow.js' ),
-  attack:   require( './attack.js' ),
-  decay:    require( './decay.js' ),
-  windows:  require( './windows.js' ),
-  env:      require( './env.js' ),
-  ad:       require( './ad.js'  ),
-  adsr:     require( './adsr.js' ),
-  ifelse:   require( './ifelseif.js' ),
-  bang:     require( './bang.js' ),
-  and:      require( './and.js' ),
-  pan:      require( './pan.js' ),
-  eq:       require( './eq.js' ),
-  neq:      require( './neq.js' ),
-  exp:      require( './exp.js' ),
-  process:  require( './process.js' ),
-  seq:      require( './seq.js' )
-}
-
-library.gen.lib = library
-
-module.exports = library
-
-},{"./abs.js":76,"./accum.js":77,"./acos.js":78,"./ad.js":79,"./add.js":80,"./adsr.js":81,"./and.js":82,"./asin.js":83,"./atan.js":84,"./attack.js":85,"./bang.js":86,"./bool.js":87,"./ceil.js":88,"./clamp.js":89,"./cos.js":90,"./counter.js":91,"./cycle.js":92,"./data.js":93,"./dcblock.js":94,"./decay.js":95,"./delay.js":96,"./delta.js":97,"./div.js":98,"./env.js":99,"./eq.js":100,"./exp.js":101,"./floor.js":104,"./fold.js":105,"./gate.js":106,"./gen.js":107,"./gt.js":108,"./gte.js":109,"./gtp.js":110,"./history.js":111,"./ifelseif.js":112,"./in.js":113,"./lt.js":115,"./lte.js":116,"./ltp.js":117,"./max.js":118,"./memo.js":119,"./min.js":120,"./mix.js":121,"./mod.js":122,"./mstosamps.js":123,"./mtof.js":124,"./mul.js":125,"./neq.js":126,"./noise.js":127,"./not.js":128,"./pan.js":129,"./param.js":130,"./peek.js":131,"./phasor.js":132,"./poke.js":133,"./pow.js":134,"./process.js":135,"./rate.js":136,"./round.js":137,"./sah.js":138,"./selector.js":139,"./seq.js":140,"./sign.js":141,"./sin.js":142,"./slide.js":143,"./sub.js":144,"./switch.js":145,"./t60.js":146,"./tan.js":147,"./tanh.js":148,"./train.js":149,"./utilities.js":150,"./windows.js":151,"./wrap.js":152}],115:[function(require,module,exports){
-'use strict'
-
-let gen  = require('./gen.js')
-
-let proto = {
-  basename:'lt',
-
-  gen() {
-    let out,
-        inputs = gen.getInputs( this )
-
-    out = `  var ${this.name} = `  
-
-    if( isNaN( this.inputs[0] ) || isNaN( this.inputs[1] ) ) {
-      out += `(( ${inputs[0]} < ${inputs[1]}) | 0  )`
-    } else {
-      out += inputs[0] < inputs[1] ? 1 : 0 
-    }
-    out += '\n'
-
-    gen.memo[ this.name ] = this.name
-
-    return [this.name, out]
-    
-    return out
-  }
-}
-
-module.exports = (x,y) => {
-  let lt = Object.create( proto )
-
-  lt.inputs = [ x,y ]
-  lt.name = lt.basename + gen.getUID()
-
-  return lt
-}
-
-},{"./gen.js":107}],116:[function(require,module,exports){
-'use strict'
-
-let gen  = require('./gen.js')
-
-let proto = {
-  name:'lte',
-
-  gen() {
-    let out,
-        inputs = gen.getInputs( this )
-
-    out = `  var ${this.name} = `  
-
-    if( isNaN( this.inputs[0] ) || isNaN( this.inputs[1] ) ) {
-      out += `( ${inputs[0]} <= ${inputs[1]} | 0  )`
-    } else {
-      out += inputs[0] <= inputs[1] ? 1 : 0 
-    }
-    out += '\n'
-
-    gen.memo[ this.name ] = this.name
-
-    return [this.name, out]
-    
-    return out
-  }
-}
-
-module.exports = (x,y) => {
-  let lt = Object.create( proto )
-
-  lt.inputs = [ x,y ]
-  lt.name = 'lte' + gen.getUID()
-
-  return lt
-}
-
-},{"./gen.js":107}],117:[function(require,module,exports){
-'use strict'
-
-let gen  = require('./gen.js')
-
-let proto = {
-  name:'ltp',
-
-  gen() {
-    let out,
-        inputs = gen.getInputs( this )
-
-    if( isNaN( this.inputs[0] ) || isNaN( this.inputs[1] ) ) {
-      out = `(${inputs[ 0 ]} * (( ${inputs[0]} < ${inputs[1]} ) | 0 ) )` 
-    } else {
-      out = inputs[0] * (( inputs[0] < inputs[1] ) | 0 )
-    }
-    
-    return out
-  }
-}
-
-module.exports = (x,y) => {
-  let ltp = Object.create( proto )
-
-  ltp.inputs = [ x,y ]
-
-  return ltp
-}
-
-},{"./gen.js":107}],118:[function(require,module,exports){
-'use strict'
-
-let gen  = require('./gen.js')
-
-let proto = {
-  name:'max',
-
-  gen() {
-    let out,
-        inputs = gen.getInputs( this )
-
-    
-    const isWorklet = gen.mode === 'worklet'
-    const ref = isWorklet? '' : 'gen.'
-
-    if( isNaN( inputs[0] ) || isNaN( inputs[1] ) ) {
-      gen.closures.add({ [ this.name ]: isWorklet ? 'Math.max' : Math.max })
-
-      out = `${ref}max( ${inputs[0]}, ${inputs[1]} )`
-
-    } else {
-      out = Math.max( parseFloat( inputs[0] ), parseFloat( inputs[1] ) )
-    }
-    
-    return out
-  }
-}
-
-module.exports = (x,y) => {
-  let max = Object.create( proto )
-
-  max.inputs = [ x,y ]
-
-  return max
-}
-
-},{"./gen.js":107}],119:[function(require,module,exports){
-'use strict'
-
-let gen = require('./gen.js')
-
-let proto = {
-  basename:'memo',
-
-  gen() {
-    let out,
-        inputs = gen.getInputs( this )
-    
-    out = `  var ${this.name} = ${inputs[0]}\n`
-
-    gen.memo[ this.name ] = this.name
-
-    return [ this.name, out ]
-  } 
-}
-
-module.exports = (in1,memoName) => {
-  let memo = Object.create( proto )
-  
-  memo.inputs = [ in1 ]
-  memo.id   = gen.getUID()
-  memo.name = memoName !== undefined ? memoName + '_' + gen.getUID() : `${memo.basename}${memo.id}`
-
-  return memo
-}
-
-},{"./gen.js":107}],120:[function(require,module,exports){
-'use strict'
-
-let gen  = require('./gen.js')
-
-let proto = {
-  name:'min',
-
-  gen() {
-    let out,
-        inputs = gen.getInputs( this )
-
-    
-    const isWorklet = gen.mode === 'worklet'
-    const ref = isWorklet? '' : 'gen.'
-
-    if( isNaN( inputs[0] ) || isNaN( inputs[1] ) ) {
-      gen.closures.add({ [ this.name ]: isWorklet ? 'Math.min' : Math.min })
-
-      out = `${ref}min( ${inputs[0]}, ${inputs[1]} )`
-
-    } else {
-      out = Math.min( parseFloat( inputs[0] ), parseFloat( inputs[1] ) )
-    }
-    
-    return out
-  }
-}
-
-module.exports = (x,y) => {
-  let min = Object.create( proto )
-
-  min.inputs = [ x,y ]
-
-  return min
-}
-
-},{"./gen.js":107}],121:[function(require,module,exports){
-'use strict'
-
-let gen = require('./gen.js'),
-    add = require('./add.js'),
-    mul = require('./mul.js'),
-    sub = require('./sub.js'),
-    memo= require('./memo.js')
-
-module.exports = ( in1, in2, t=.5 ) => {
-  let ugen = memo( add( mul(in1, sub(1,t ) ), mul( in2, t ) ) )
-  ugen.name = 'mix' + gen.getUID()
-
-  return ugen
-}
-
-},{"./add.js":80,"./gen.js":107,"./memo.js":119,"./mul.js":125,"./sub.js":144}],122:[function(require,module,exports){
-'use strict'
-
-let gen = require('./gen.js')
-
-module.exports = (...args) => {
-  let mod = {
-    id:     gen.getUID(),
-    inputs: args,
-
-    gen() {
-      let inputs = gen.getInputs( this ),
-          out='(',
-          diff = 0, 
-          numCount = 0,
-          lastNumber = inputs[ 0 ],
-          lastNumberIsUgen = isNaN( lastNumber ), 
-          modAtEnd = false
-
-      inputs.forEach( (v,i) => {
-        if( i === 0 ) return
-
-        let isNumberUgen = isNaN( v ),
-            isFinalIdx   = i === inputs.length - 1
-
-        if( !lastNumberIsUgen && !isNumberUgen ) {
-          lastNumber = lastNumber % v
-          out += lastNumber
-        }else{
-          out += `${lastNumber} % ${v}`
-        }
-
-        if( !isFinalIdx ) out += ' % ' 
-      })
-
-      out += ')'
-
-      return out
-    }
-  }
-  
-  return mod
-}
-
-},{"./gen.js":107}],123:[function(require,module,exports){
-'use strict'
-
-let gen  = require('./gen.js')
-
-let proto = {
-  basename:'mstosamps',
-
-  gen() {
-    let out,
-        inputs = gen.getInputs( this ),
-        returnValue
-
-    if( isNaN( inputs[0] ) ) {
-      out = `  var ${this.name } = ${gen.samplerate} / 1000 * ${inputs[0]} \n\n`
-     
-      gen.memo[ this.name ] = out
-      
-      returnValue = [ this.name, out ]
-    } else {
-      out = gen.samplerate / 1000 * this.inputs[0]
-
-      returnValue = out
-    }    
-
-    return returnValue
-  }
-}
-
-module.exports = x => {
-  let mstosamps = Object.create( proto )
-
-  mstosamps.inputs = [ x ]
-  mstosamps.name = proto.basename + gen.getUID()
-
-  return mstosamps
-}
-
-},{"./gen.js":107}],124:[function(require,module,exports){
-'use strict'
-
-let gen  = require('./gen.js')
-
-let proto = {
-  name:'mtof',
-
-  gen() {
-    let out,
-        inputs = gen.getInputs( this )
-
-    if( isNaN( inputs[0] ) ) {
-      gen.closures.add({ [ this.name ]: Math.exp })
-
-      out = `( ${this.tuning} * gen.exp( .057762265 * (${inputs[0]} - 69) ) )`
-
-    } else {
-      out = this.tuning * Math.exp( .057762265 * ( inputs[0] - 69) )
-    }
-    
-    return out
-  }
-}
-
-module.exports = ( x, props ) => {
-  let ugen = Object.create( proto ),
-      defaults = { tuning:440 }
-  
-  if( props !== undefined ) Object.assign( props.defaults )
-
-  Object.assign( ugen, defaults )
-  ugen.inputs = [ x ]
-  
-
-  return ugen
-}
-
-},{"./gen.js":107}],125:[function(require,module,exports){
-'use strict'
-
-const gen = require('./gen.js')
-
-const proto = {
-  basename: 'mul',
-
-  gen() {
-    let inputs = gen.getInputs( this ),
-        out = `  var ${this.name} = `,
-        sum = 1, numCount = 0, mulAtEnd = false, alreadyFullSummed = true
-
-    inputs.forEach( (v,i) => {
-      if( isNaN( v ) ) {
-        out += v
-        if( i < inputs.length -1 ) {
-          mulAtEnd = true
-          out += ' * '
-        }
-        alreadyFullSummed = false
-      }else{
-        if( i === 0 ) {
-          sum = v
-        }else{
-          sum *= parseFloat( v )
-        }
-        numCount++
-      }
-    })
-
-    if( numCount > 0 ) {
-      out += mulAtEnd || alreadyFullSummed ? sum : ' * ' + sum
-    }
-
-    out += '\n'
-
-    gen.memo[ this.name ] = this.name
-
-    return [ this.name, out ]
-  }
-}
-
-module.exports = ( ...args ) => {
-  const mul = Object.create( proto )
-  
-  Object.assign( mul, {
-      id:     gen.getUID(),
-      inputs: args,
-  })
-  
-  mul.name = mul.basename + mul.id
-
-  return mul
-}
-
-},{"./gen.js":107}],126:[function(require,module,exports){
-'use strict'
-
-let gen = require( './gen.js' )
-
-let proto = {
-  basename:'neq',
-
-  gen() {
-    let inputs = gen.getInputs( this ), out
-
-    out = /*this.inputs[0] !== this.inputs[1] ? 1 :*/ `  var ${this.name} = (${inputs[0]} !== ${inputs[1]}) | 0\n\n`
-
-    gen.memo[ this.name ] = this.name
-
-    return [ this.name, out ]
-  },
-
-}
-
-module.exports = ( in1, in2 ) => {
-  let ugen = Object.create( proto )
-  Object.assign( ugen, {
-    uid:     gen.getUID(),
-    inputs:  [ in1, in2 ],
-  })
-  
-  ugen.name = `${ugen.basename}${ugen.uid}`
-
-  return ugen
-}
-
-},{"./gen.js":107}],127:[function(require,module,exports){
-'use strict'
-
-let gen  = require('./gen.js')
-
-let proto = {
-  name:'noise',
-
-  gen() {
-    let out
-
-    const isWorklet = gen.mode === 'worklet'
-    const ref = isWorklet? '' : 'gen.'
-
-    gen.closures.add({ 'noise' : isWorklet ? 'Math.random' : Math.random })
-
-    out = `  var ${this.name} = ${ref}noise()\n`
-    
-    gen.memo[ this.name ] = this.name
-
-    return [ this.name, out ]
-  }
-}
-
-module.exports = x => {
-  let noise = Object.create( proto )
-  noise.name = proto.name + gen.getUID()
-
-  return noise
-}
-
-},{"./gen.js":107}],128:[function(require,module,exports){
-'use strict'
-
-let gen  = require('./gen.js')
-
-let proto = {
-  name:'not',
-
-  gen() {
-    let out,
-        inputs = gen.getInputs( this )
-
-    if( isNaN( this.inputs[0] ) ) {
-      out = `( ${inputs[0]} === 0 ? 1 : 0 )`
-    } else {
-      out = !inputs[0] === 0 ? 1 : 0
-    }
-    
-    return out
-  }
-}
-
-module.exports = x => {
-  let not = Object.create( proto )
-
-  not.inputs = [ x ]
-
-  return not
-}
-
-},{"./gen.js":107}],129:[function(require,module,exports){
-'use strict'
-
-let gen = require( './gen.js' ),
-    data = require( './data.js' ),
-    peek = require( './peek.js' ),
-    mul  = require( './mul.js' )
-
-let proto = {
-  basename:'pan', 
-  initTable() {    
-    let bufferL = new Float32Array( 1024 ),
-        bufferR = new Float32Array( 1024 )
-
-    const angToRad = Math.PI / 180
-    for( let i = 0; i < 1024; i++ ) { 
-      let pan = i * ( 90 / 1024 )
-      bufferL[i] = Math.cos( pan * angToRad ) 
-      bufferR[i] = Math.sin( pan * angToRad )
-    }
-
-    gen.globals.panL = data( bufferL, 1, { immutable:true })
-    gen.globals.panR = data( bufferR, 1, { immutable:true })
-  }
-
-}
-
-module.exports = ( leftInput, rightInput, pan =.5, properties ) => {
-  if( gen.globals.panL === undefined ) proto.initTable()
-
-  let ugen = Object.create( proto )
-
-  Object.assign( ugen, {
-    uid:     gen.getUID(),
-    inputs:  [ leftInput, rightInput ],
-    left:    mul( leftInput, peek( gen.globals.panL, pan, { boundmode:'clamp' }) ),
-    right:   mul( rightInput, peek( gen.globals.panR, pan, { boundmode:'clamp' }) )
-  })
-  
-  ugen.name = `${ugen.basename}${ugen.uid}`
-
-  return ugen
-}
-
-},{"./data.js":93,"./gen.js":107,"./mul.js":125,"./peek.js":131}],130:[function(require,module,exports){
-'use strict'
-
-let gen = require('./gen.js')
-
-let proto = {
-  basename: 'param',
-
-  gen() {
-    gen.requestMemory( this.memory )
-    
-    gen.params.add( this )
-
-    const isWorklet = gen.mode === 'worklet'
-
-    if( isWorklet ) gen.parameters.add( this.name )
-
-    this.value = this.initialValue
-
-    gen.memo[ this.name ] = isWorklet ? this.name : `memory[${this.memory.value.idx}]`
-
-    return gen.memo[ this.name ]
-  } 
-}
-
-module.exports = ( propName=0, value=0, min=0, max=1 ) => {
-  let ugen = Object.create( proto )
-  
-  if( typeof propName !== 'string' ) {
-    ugen.name = ugen.basename + gen.getUID()
-    ugen.initialValue = propName
-  }else{
-    ugen.name = propName
-    ugen.initialValue = value
-  }
-
-  ugen.min = min
-  ugen.max = max
-  ugen.defaultValue = ugen.initialValue
-
-  // for storing worklet nodes once they're instantiated
-  ugen.waapi = null
-
-  ugen.isWorklet = gen.mode === 'worklet'
-
-  Object.defineProperty( ugen, 'value', {
-    get() {
-      if( this.memory.value.idx !== null ) {
-        return gen.memory.heap[ this.memory.value.idx ]
-      }else{
-        return this.initialValue
-      }
-    },
-    set( v ) {
-      if( this.memory.value.idx !== null ) {
-        if( this.isWorklet && this.waapi !== null ) {
-          this.waapi.value = v
-        }else{
-          gen.memory.heap[ this.memory.value.idx ] = v
-        } 
-      }
-    }
-  })
-
-  ugen.memory = {
-    value: { length:1, idx:null }
-  }
-
-  return ugen
-}
-
-},{"./gen.js":107}],131:[function(require,module,exports){
-
-const gen  = require('./gen.js'),
-      dataUgen = require('./data.js')
-
-let proto = {
-  basename:'peek',
-
-  gen() {
-    let genName = 'gen.' + this.name,
-        inputs = gen.getInputs( this ),
-        out, functionBody, next, lengthIsLog2, idx
-    
-    idx = inputs[1]
-    lengthIsLog2 = (Math.log2( this.data.buffer.length ) | 0)  === Math.log2( this.data.buffer.length )
-
-    if( this.mode !== 'simple' ) {
-
-    functionBody = `  var ${this.name}_dataIdx  = ${idx}, 
-      ${this.name}_phase = ${this.mode === 'samples' ? inputs[0] : inputs[0] + ' * ' + (this.data.buffer.length) }, 
-      ${this.name}_index = ${this.name}_phase | 0,\n`
-
-    if( this.boundmode === 'wrap' ) {
-      next = lengthIsLog2 ?
-      `( ${this.name}_index + 1 ) & (${this.data.buffer.length} - 1)` :
-      `${this.name}_index + 1 >= ${this.data.buffer.length} ? ${this.name}_index + 1 - ${this.data.buffer.length} : ${this.name}_index + 1`
-    }else if( this.boundmode === 'clamp' ) {
-      next = 
-        `${this.name}_index + 1 >= ${this.data.buffer.length - 1} ? ${this.data.buffer.length - 1} : ${this.name}_index + 1`
-    } else if( this.boundmode === 'fold' || this.boundmode === 'mirror' ) {
-      next = 
-        `${this.name}_index + 1 >= ${this.data.buffer.length - 1} ? ${this.name}_index - ${this.data.buffer.length - 1} : ${this.name}_index + 1`
-    }else{
-       next = 
-      `${this.name}_index + 1`     
-    }
-
-    if( this.interp === 'linear' ) {      
-    functionBody += `      ${this.name}_frac  = ${this.name}_phase - ${this.name}_index,
-      ${this.name}_base  = memory[ ${this.name}_dataIdx +  ${this.name}_index ],
-      ${this.name}_next  = ${next},`
-      
-      if( this.boundmode === 'ignore' ) {
-        functionBody += `
-      ${this.name}_out   = ${this.name}_index >= ${this.data.buffer.length - 1} || ${this.name}_index < 0 ? 0 : ${this.name}_base + ${this.name}_frac * ( memory[ ${this.name}_dataIdx + ${this.name}_next ] - ${this.name}_base )\n\n`
-      }else{
-        functionBody += `
-      ${this.name}_out   = ${this.name}_base + ${this.name}_frac * ( memory[ ${this.name}_dataIdx + ${this.name}_next ] - ${this.name}_base )\n\n`
-      }
-    }else{
-      functionBody += `      ${this.name}_out = memory[ ${this.name}_dataIdx + ${this.name}_index ]\n\n`
-    }
-
-    } else { // mode is simple
-      functionBody = `memory[ ${idx} + ${ inputs[0] } ]`
-      
-      return functionBody
-    }
-
-    gen.memo[ this.name ] = this.name + '_out'
-
-    return [ this.name+'_out', functionBody ]
-  },
-
-  defaults : { channels:1, mode:'phase', interp:'linear', boundmode:'wrap' }
-}
-
-module.exports = ( input_data, index=0, properties ) => {
-  let ugen = Object.create( proto )
-
-  //console.log( dataUgen, gen.data )
-
-  // XXX why is dataUgen not the actual function? some type of browserify nonsense...
-  const finalData = typeof input_data.basename === 'undefined' ? gen.lib.data( input_data ) : input_data
-
-  Object.assign( ugen, 
-    { 
-      'data':     finalData,
-      dataName:   finalData.name,
-      uid:        gen.getUID(),
-      inputs:     [ index, finalData ],
-    },
-    proto.defaults,
-    properties 
-  )
-  
-  ugen.name = ugen.basename + ugen.uid
-
-  return ugen
-}
-
-
-},{"./data.js":93,"./gen.js":107}],132:[function(require,module,exports){
-'use strict'
-
-let gen   = require( './gen.js' ),
-    accum = require( './accum.js' ),
-    mul   = require( './mul.js' ),
-    proto = { basename:'phasor' },
-    div   = require( './div.js' )
-
-const defaults = { min: -1, max: 1 }
-
-module.exports = ( frequency = 1, reset = 0, _props ) => {
-  const props = Object.assign( {}, defaults, _props )
-
-  const range = props.max - props.min
-
-  const ugen = typeof frequency === 'number' 
-    ? accum( (frequency * range) / gen.samplerate, reset, props ) 
-    : accum( 
-        div( 
-          mul( frequency, range ),
-          gen.samplerate
-        ), 
-        reset, props 
-    )
-
-  ugen.name = proto.basename + gen.getUID()
-
-  return ugen
-}
-
-},{"./accum.js":77,"./div.js":98,"./gen.js":107,"./mul.js":125}],133:[function(require,module,exports){
-'use strict'
-
-let gen  = require('./gen.js'),
-    mul  = require('./mul.js'),
-    wrap = require('./wrap.js')
-
-let proto = {
-  basename:'poke',
-
-  gen() {
-    let dataName = 'memory',
-        inputs = gen.getInputs( this ),
-        idx, out, wrapped
-    
-    idx = this.data.gen()
-
-    //gen.requestMemory( this.memory )
-    //wrapped = wrap( this.inputs[1], 0, this.dataLength ).gen()
-    //idx = wrapped[0]
-    //gen.functionBody += wrapped[1]
-    let outputStr = this.inputs[1] === 0 ?
-      `  ${dataName}[ ${idx} ] = ${inputs[0]}\n` :
-      `  ${dataName}[ ${idx} + ${inputs[1]} ] = ${inputs[0]}\n`
-
-    if( this.inline === undefined ) {
-      gen.functionBody += outputStr
-    }else{
-      return [ this.inline, outputStr ]
-    }
-  }
-}
-module.exports = ( data, value, index, properties ) => {
-  let ugen = Object.create( proto ),
-      defaults = { channels:1 } 
-
-  if( properties !== undefined ) Object.assign( defaults, properties )
-
-  Object.assign( ugen, { 
-    data,
-    dataName:   data.name,
-    dataLength: data.buffer.length,
-    uid:        gen.getUID(),
-    inputs:     [ value, index ],
-  },
-  defaults )
-
-
-  ugen.name = ugen.basename + ugen.uid
-  
-  gen.histories.set( ugen.name, ugen )
-
-  return ugen
-}
-
-},{"./gen.js":107,"./mul.js":125,"./wrap.js":152}],134:[function(require,module,exports){
-'use strict'
-
-let gen  = require('./gen.js')
-
-let proto = {
-  basename:'pow',
-
-  gen() {
-    let out,
-        inputs = gen.getInputs( this )
-    
-    
-    const isWorklet = gen.mode === 'worklet'
-    const ref = isWorklet? '' : 'gen.'
-
-    if( isNaN( inputs[0] ) || isNaN( inputs[1] ) ) {
-      gen.closures.add({ 'pow': isWorklet ? 'Math.pow' : Math.pow })
-
-      out = `${ref}pow( ${inputs[0]}, ${inputs[1]} )` 
-
-    } else {
-      if( typeof inputs[0] === 'string' && inputs[0][0] === '(' ) {
-        inputs[0] = inputs[0].slice(1,-1)
-      }
-      if( typeof inputs[1] === 'string' && inputs[1][0] === '(' ) {
-        inputs[1] = inputs[1].slice(1,-1)
-      }
-
-      out = Math.pow( parseFloat( inputs[0] ), parseFloat( inputs[1]) )
-    }
-    
-    return out
-  }
-}
-
-module.exports = (x,y) => {
-  let pow = Object.create( proto )
-
-  pow.inputs = [ x,y ]
-  pow.id = gen.getUID()
-  pow.name = `${pow.basename}{pow.id}`
-
-  return pow
-}
-
-},{"./gen.js":107}],135:[function(require,module,exports){
-'use strict'
-
-let gen  = require('./gen.js')
-const proto = {
-  basename:'process',
-
-  gen() {
-    let out,
-        inputs = gen.getInputs( this )
-
-    gen.closures.add({ [''+this.funcname] : this.func })
-
-    out = `  var ${this.name} = gen['${this.funcname}'](`
-
-    inputs.forEach( (v,i,arr ) => {
-      out += arr[ i ]
-      if( i < arr.length - 1 ) out += ','
-    })
-
-    out += ')\n'
-
-    gen.memo[ this.name ] = this.name
-
-    return [this.name, out]
-    
-    return out
-  }
-}
-
-module.exports = (...args) => {
-  const process = {}// Object.create( proto )
-  const id = gen.getUID()
-  process.name = 'process' + id 
-
-  process.func = new Function( ...args )
-
-  //gen.globals[ process.name ] = process.func
-
-  process.call = function( ...args  ) {
-    const output = Object.create( proto )
-    output.funcname = process.name
-    output.func = process.func
-    output.name = 'process_out_' + id
-    output.process = process
-
-    output.inputs = args
-
-    return output
-  }
-
-  return process 
-}
-
-},{"./gen.js":107}],136:[function(require,module,exports){
-'use strict'
-
-let gen     = require( './gen.js' ),
-    history = require( './history.js' ),
-    sub     = require( './sub.js' ),
-    add     = require( './add.js' ),
-    mul     = require( './mul.js' ),
-    memo    = require( './memo.js' ),
-    delta   = require( './delta.js' ),
-    wrap    = require( './wrap.js' )
-
-let proto = {
-  basename:'rate',
-
-  gen() {
-    let inputs = gen.getInputs( this ),
-        phase  = history(),
-        inMinus1 = history(),
-        genName = 'gen.' + this.name,
-        filter, sum, out
-
-    gen.closures.add({ [ this.name ]: this }) 
-
-    out = 
-` var ${this.name}_diff = ${inputs[0]} - ${genName}.lastSample
-  if( ${this.name}_diff < -.5 ) ${this.name}_diff += 1
-  ${genName}.phase += ${this.name}_diff * ${inputs[1]}
-  if( ${genName}.phase > 1 ) ${genName}.phase -= 1
-  ${genName}.lastSample = ${inputs[0]}
-`
-    out = ' ' + out
-
-    return [ genName + '.phase', out ]
-  }
-}
-
-module.exports = ( in1, rate ) => {
-  let ugen = Object.create( proto )
-
-  Object.assign( ugen, { 
-    phase:      0,
-    lastSample: 0,
-    uid:        gen.getUID(),
-    inputs:     [ in1, rate ],
-  })
-  
-  ugen.name = `${ugen.basename}${ugen.uid}`
-
-  return ugen
-}
-
-},{"./add.js":80,"./delta.js":97,"./gen.js":107,"./history.js":111,"./memo.js":119,"./mul.js":125,"./sub.js":144,"./wrap.js":152}],137:[function(require,module,exports){
-'use strict'
-
-let gen  = require('./gen.js')
-
-let proto = {
-  name:'round',
-
-  gen() {
-    let out,
-        inputs = gen.getInputs( this )
-
-    
-    const isWorklet = gen.mode === 'worklet'
-    const ref = isWorklet? '' : 'gen.'
-
-    if( isNaN( inputs[0] ) ) {
-      gen.closures.add({ [ this.name ]: isWorklet ? 'Math.round' : Math.round })
-
-      out = `${ref}round( ${inputs[0]} )`
-
-    } else {
-      out = Math.round( parseFloat( inputs[0] ) )
-    }
-    
-    return out
-  }
-}
-
-module.exports = x => {
-  let round = Object.create( proto )
-
-  round.inputs = [ x ]
-
-  return round
-}
-
-},{"./gen.js":107}],138:[function(require,module,exports){
-'use strict'
-
-let gen     = require( './gen.js' )
-
-let proto = {
-  basename:'sah',
-
-  gen() {
-    let inputs = gen.getInputs( this ), out
-
-    //gen.data[ this.name ] = 0
-    //gen.data[ this.name + '_control' ] = 0
-
-    gen.requestMemory( this.memory )
-
-
-    out = 
-` var ${this.name}_control = memory[${this.memory.control.idx}],
-      ${this.name}_trigger = ${inputs[1]} > ${inputs[2]} ? 1 : 0
-
-  if( ${this.name}_trigger !== ${this.name}_control  ) {
-    if( ${this.name}_trigger === 1 ) 
-      memory[${this.memory.value.idx}] = ${inputs[0]}
-    
-    memory[${this.memory.control.idx}] = ${this.name}_trigger
-  }
-`
-    
-    gen.memo[ this.name ] = `memory[${this.memory.value.idx}]`//`gen.data.${this.name}`
-
-    return [ `memory[${this.memory.value.idx}]`, ' ' +out ]
-  }
-}
-
-module.exports = ( in1, control, threshold=0, properties ) => {
-  let ugen = Object.create( proto ),
-      defaults = { init:0 }
-
-  if( properties !== undefined ) Object.assign( defaults, properties )
-
-  Object.assign( ugen, { 
-    lastSample: 0,
-    uid:        gen.getUID(),
-    inputs:     [ in1, control,threshold ],
-    memory: {
-      control: { idx:null, length:1 },
-      value:   { idx:null, length:1 },
-    }
-  },
-  defaults )
-  
-  ugen.name = `${ugen.basename}${ugen.uid}`
-
-  return ugen
-}
-
-},{"./gen.js":107}],139:[function(require,module,exports){
-'use strict'
-
-let gen = require( './gen.js' )
-
-let proto = {
-  basename:'selector',
-
-  gen() {
-    let inputs = gen.getInputs( this ), out, returnValue = 0
-    
-    switch( inputs.length ) {
-      case 2 :
-        returnValue = inputs[1]
-        break;
-      case 3 :
-        out = `  var ${this.name}_out = ${inputs[0]} === 1 ? ${inputs[1]} : ${inputs[2]}\n\n`;
-        returnValue = [ this.name + '_out', out ]
-        break;  
-      default:
-        out = 
-` var ${this.name}_out = 0
-  switch( ${inputs[0]} + 1 ) {\n`
-
-        for( let i = 1; i < inputs.length; i++ ){
-          out +=`    case ${i}: ${this.name}_out = ${inputs[i]}; break;\n` 
-        }
-
-        out += '  }\n\n'
-        
-        returnValue = [ this.name + '_out', ' ' + out ]
-    }
-
-    gen.memo[ this.name ] = this.name + '_out'
-
-    return returnValue
-  },
-}
-
-module.exports = ( ...inputs ) => {
-  let ugen = Object.create( proto )
-  
-  Object.assign( ugen, {
-    uid:     gen.getUID(),
-    inputs
-  })
-  
-  ugen.name = `${ugen.basename}${ugen.uid}`
-
-  return ugen
-}
-
-},{"./gen.js":107}],140:[function(require,module,exports){
-'use strict'
-
-let gen   = require( './gen.js' ),
-    accum = require( './accum.js' ),
-    counter= require( './counter.js' ),
-    peek  = require( './peek.js' ),
-    ssd   = require( './history.js' ),
-    data  = require( './data.js' ),
-    proto = { basename:'seq' }
-
-module.exports = ( durations = 11025, values = [0,1], phaseIncrement = 1) => {
-  let clock
-  
-  if( Array.isArray( durations ) ) {
-    // we want a counter that is using our current
-    // rate value, but we want the rate value to be derived from
-    // the counter. must insert a single-sample dealy to avoid
-    // infinite loop.
-    const clock2 = counter( 0, 0, durations.length )
-    const __durations = peek( data( durations ), clock2, { mode:'simple' }) 
-    clock = counter( phaseIncrement, 0, __durations )
-    
-    // add one sample delay to avoid codegen loop
-    const s = ssd()
-    s.in( clock.wrap )
-    clock2.inputs[0] = s.out
-  }else{
-    // if the rate argument is a single value we don't need to
-    // do anything tricky.
-    clock = counter( phaseIncrement, 0, durations )
-  }
-  
-  const stepper = accum( clock.wrap, 0, { min:0, max:values.length })
-   
-  const ugen = peek( data( values ), stepper, { mode:'simple' })
-
-  ugen.name = proto.basename + gen.getUID()
-  ugen.trigger = clock.wrap
-
-  return ugen
-}
-
-},{"./accum.js":77,"./counter.js":91,"./data.js":93,"./gen.js":107,"./history.js":111,"./peek.js":131}],141:[function(require,module,exports){
-'use strict'
-
-let gen  = require('./gen.js')
-
-let proto = {
-  name:'sign',
-
-  gen() {
-    let out,
-        inputs = gen.getInputs( this )
-
-    
-    const isWorklet = gen.mode === 'worklet'
-    const ref = isWorklet? '' : 'gen.'
-
-    if( isNaN( inputs[0] ) ) {
-      gen.closures.add({ [ this.name ]: isWorklet ? 'Math.sign' : Math.sign })
-
-      out = `${ref}sign( ${inputs[0]} )`
-
-    } else {
-      out = Math.sign( parseFloat( inputs[0] ) )
-    }
-    
-    return out
-  }
-}
-
-module.exports = x => {
-  let sign = Object.create( proto )
-
-  sign.inputs = [ x ]
-
-  return sign
-}
-
-},{"./gen.js":107}],142:[function(require,module,exports){
-'use strict'
-
-let gen  = require('./gen.js')
-
-let proto = {
-  basename:'sin',
-
-  gen() {
-    let out,
-        inputs = gen.getInputs( this )
-    
-    
-    const isWorklet = gen.mode === 'worklet'
-    const ref = isWorklet? '' : 'gen.'
-
-    if( isNaN( inputs[0] ) ) {
-      gen.closures.add({ 'sin': isWorklet ? 'Math.sin' : Math.sin })
-
-      out = `${ref}sin( ${inputs[0]} )` 
-
-    } else {
-      out = Math.sin( parseFloat( inputs[0] ) )
-    }
-    
-    return out
-  }
-}
-
-module.exports = x => {
-  let sin = Object.create( proto )
-
-  sin.inputs = [ x ]
-  sin.id = gen.getUID()
-  sin.name = `${sin.basename}{sin.id}`
-
-  return sin
-}
-
-},{"./gen.js":107}],143:[function(require,module,exports){
-'use strict'
-
-let gen     = require( './gen.js' ),
-    history = require( './history.js' ),
-    sub     = require( './sub.js' ),
-    add     = require( './add.js' ),
-    mul     = require( './mul.js' ),
-    memo    = require( './memo.js' ),
-    gt      = require( './gt.js' ),
-    div     = require( './div.js' ),
-    _switch = require( './switch.js' )
-
-module.exports = ( in1, slideUp = 1, slideDown = 1 ) => {
-  let y1 = history(0),
-      filter, slideAmount
-
-  //y (n) = y (n-1) + ((x (n) - y (n-1))/slide) 
-  slideAmount = _switch( gt(in1,y1.out), slideUp, slideDown )
-
-  filter = memo( add( y1.out, div( sub( in1, y1.out ), slideAmount ) ) )
-
-  y1.in( filter )
-
-  return filter
-}
-
-},{"./add.js":80,"./div.js":98,"./gen.js":107,"./gt.js":108,"./history.js":111,"./memo.js":119,"./mul.js":125,"./sub.js":144,"./switch.js":145}],144:[function(require,module,exports){
-'use strict'
-
-const gen = require('./gen.js')
-
-const proto = {
-  basename:'sub',
-  gen() {
-    let inputs = gen.getInputs( this ),
-        out=0,
-        diff = 0,
-        needsParens = false, 
-        numCount = 0,
-        lastNumber = inputs[ 0 ],
-        lastNumberIsUgen = isNaN( lastNumber ), 
-        subAtEnd = false,
-        hasUgens = false,
-        returnValue = 0
-
-    this.inputs.forEach( value => { if( isNaN( value ) ) hasUgens = true })
-
-    out = '  var ' + this.name + ' = '
-
-    inputs.forEach( (v,i) => {
-      if( i === 0 ) return
-
-      let isNumberUgen = isNaN( v ),
-          isFinalIdx   = i === inputs.length - 1
-
-      if( !lastNumberIsUgen && !isNumberUgen ) {
-        lastNumber = lastNumber - v
-        out += lastNumber
-        return
-      }else{
-        needsParens = true
-        out += `${lastNumber} - ${v}`
-      }
-
-      if( !isFinalIdx ) out += ' - ' 
-    })
-
-    out += '\n'
-
-    returnValue = [ this.name, out ]
-
-    gen.memo[ this.name ] = this.name
-
-    return returnValue
-  }
-
-}
-
-module.exports = ( ...args ) => {
-  let sub = Object.create( proto )
-
-  Object.assign( sub, {
-    id:     gen.getUID(),
-    inputs: args
-  })
-       
-  sub.name = 'sub' + sub.id
-
-  return sub
-}
-
-},{"./gen.js":107}],145:[function(require,module,exports){
-'use strict'
-
-let gen = require( './gen.js' )
-
-let proto = {
-  basename:'switch',
-
-  gen() {
-    let inputs = gen.getInputs( this ), out
-
-    if( inputs[1] === inputs[2] ) return inputs[1] // if both potential outputs are the same just return one of them
-    
-    out = `  var ${this.name}_out = ${inputs[0]} === 1 ? ${inputs[1]} : ${inputs[2]}\n`
-
-    gen.memo[ this.name ] = `${this.name}_out`
-
-    return [ `${this.name}_out`, out ]
-  },
-
-}
-
-module.exports = ( control, in1 = 1, in2 = 0 ) => {
-  let ugen = Object.create( proto )
-  Object.assign( ugen, {
-    uid:     gen.getUID(),
-    inputs:  [ control, in1, in2 ],
-  })
-  
-  ugen.name = `${ugen.basename}${ugen.uid}`
-
-  return ugen
-}
-
-},{"./gen.js":107}],146:[function(require,module,exports){
-'use strict'
-
-let gen  = require('./gen.js')
-
-let proto = {
-  basename:'t60',
-
-  gen() {
-    let out,
-        inputs = gen.getInputs( this ),
-        returnValue
-
-    const isWorklet = gen.mode === 'worklet'
-    const ref = isWorklet? '' : 'gen.'
-
-    if( isNaN( inputs[0] ) ) {
-      gen.closures.add({ [ 'exp' ]: isWorklet ? 'Math.exp' : Math.exp })
-
-      out = `  var ${this.name} = ${ref}exp( -6.907755278921 / ${inputs[0]} )\n\n`
-     
-      gen.memo[ this.name ] = out
-      
-      returnValue = [ this.name, out ]
-    } else {
-      out = Math.exp( -6.907755278921 / inputs[0] )
-
-      returnValue = out
-    }    
-
-    return returnValue
-  }
-}
-
-module.exports = x => {
-  let t60 = Object.create( proto )
-
-  t60.inputs = [ x ]
-  t60.name = proto.basename + gen.getUID()
-
-  return t60
-}
-
-},{"./gen.js":107}],147:[function(require,module,exports){
-'use strict'
-
-let gen  = require('./gen.js')
-
-let proto = {
-  basename:'tan',
-
-  gen() {
-    let out,
-        inputs = gen.getInputs( this )
-    
-    
-    const isWorklet = gen.mode === 'worklet'
-    const ref = isWorklet? '' : 'gen.'
-
-    if( isNaN( inputs[0] ) ) {
-      gen.closures.add({ 'tan': isWorklet ? 'Math.tan' : Math.tan })
-
-      out = `${ref}tan( ${inputs[0]} )` 
-
-    } else {
-      out = Math.tan( parseFloat( inputs[0] ) )
-    }
-    
-    return out
-  }
-}
-
-module.exports = x => {
-  let tan = Object.create( proto )
-
-  tan.inputs = [ x ]
-  tan.id = gen.getUID()
-  tan.name = `${tan.basename}{tan.id}`
-
-  return tan
-}
-
-},{"./gen.js":107}],148:[function(require,module,exports){
-'use strict'
-
-let gen  = require('./gen.js')
-
-let proto = {
-  basename:'tanh',
-
-  gen() {
-    let out,
-        inputs = gen.getInputs( this )
-    
-    
-    const isWorklet = gen.mode === 'worklet'
-    const ref = isWorklet? '' : 'gen.'
-
-    if( isNaN( inputs[0] ) ) {
-      gen.closures.add({ 'tanh': isWorklet ? 'Math.tan' : Math.tanh })
-
-      out = `${ref}tanh( ${inputs[0]} )` 
-
-    } else {
-      out = Math.tanh( parseFloat( inputs[0] ) )
-    }
-    
-    return out
-  }
-}
-
-module.exports = x => {
-  let tanh = Object.create( proto )
-
-  tanh.inputs = [ x ]
-  tanh.id = gen.getUID()
-  tanh.name = `${tanh.basename}{tanh.id}`
-
-  return tanh
-}
-
-},{"./gen.js":107}],149:[function(require,module,exports){
-'use strict'
-
-let gen     = require( './gen.js' ),
-    lt      = require( './lt.js' ),
-    accum   = require( './accum.js' ),
-    div     = require( './div.js' )
-
-module.exports = ( frequency=440, pulsewidth=.5 ) => {
-  let graph = lt( accum( div( frequency, 44100 ) ), pulsewidth )
-
-  graph.name = `train${gen.getUID()}`
-
-  return graph
-}
-
-
-},{"./accum.js":77,"./div.js":98,"./gen.js":107,"./lt.js":115}],150:[function(require,module,exports){
-'use strict'
-
-const AWPF = require( './external/audioworklet-polyfill.js' ),
-      gen  = require( './gen.js' ),
-      data = require( './data.js' )
-
-let isStereo = false
-
-const utilities = {
-  ctx: null,
-  buffers: {},
-  isStereo:false,
-
-  clear() {
-    if( this.workletNode !== undefined ) {
-      this.workletNode.disconnect()
-    }else{
-      this.callback = () => 0
-    }
-    this.clear.callbacks.forEach( v => v() )
-    this.clear.callbacks.length = 0
-
-    this.isStereo = false
-
-    if( gen.graph !== null ) gen.free( gen.graph )
-  },
-
-  createContext( bufferSize = 2048 ) {
-    const AC = typeof AudioContext === 'undefined' ? webkitAudioContext : AudioContext
-    
-    // tell polyfill global object and buffersize
-    AWPF( window, bufferSize )
-
-    const start = () => {
-      if( typeof AC !== 'undefined' ) {
-        this.ctx = new AC({ latencyHint:.0125 })
-
-        gen.samplerate = this.ctx.sampleRate
-
-        if( document && document.documentElement && 'ontouchstart' in document.documentElement ) {
-          window.removeEventListener( 'touchstart', start )
-        }else{
-          window.removeEventListener( 'mousedown', start )
-          window.removeEventListener( 'keydown', start )
-        }
-
-        const mySource = utilities.ctx.createBufferSource()
-        mySource.connect( utilities.ctx.destination )
-        mySource.start()
-      }
-    }
-
-    if( document && document.documentElement && 'ontouchstart' in document.documentElement ) {
-      window.addEventListener( 'touchstart', start )
-    }else{
-      window.addEventListener( 'mousedown', start )
-      window.addEventListener( 'keydown', start )
-    }
-
-    return this
-  },
-
-  createScriptProcessor() {
-    this.node = this.ctx.createScriptProcessor( 1024, 0, 2 )
-    this.clearFunction = function() { return 0 }
-    if( typeof this.callback === 'undefined' ) this.callback = this.clearFunction
-
-    this.node.onaudioprocess = function( audioProcessingEvent ) {
-      var outputBuffer = audioProcessingEvent.outputBuffer;
-
-      var left = outputBuffer.getChannelData( 0 ),
-          right= outputBuffer.getChannelData( 1 ),
-          isStereo = utilities.isStereo
-
-     for( var sample = 0; sample < left.length; sample++ ) {
-        var out = utilities.callback()
-
-        if( isStereo === false ) {
-          left[ sample ] = right[ sample ] = out 
-        }else{
-          left[ sample  ] = out[0]
-          right[ sample ] = out[1]
-        }
-      }
-    }
-
-    this.node.connect( this.ctx.destination )
-
-    return this
-  },
-
-  // remove starting stuff and add tabs
-  prettyPrintCallback( cb ) {
-    // get rid of "function gen" and start with parenthesis
-    // const shortendCB = cb.toString().slice(9)
-    const cbSplit = cb.toString().split('\n')
-    const cbTrim = cbSplit.slice( 3, -2 )
-    const cbTabbed = cbTrim.map( v => '      ' + v ) 
-    
-    return cbTabbed.join('\n')
-  },
-
-  createParameterDescriptors( cb ) {
-    // [{name: 'amplitude', defaultValue: 0.25, minValue: 0, maxValue: 1}];
-    let paramStr = ''
-
-    //for( let ugen of cb.params.values() ) {
-    //  paramStr += `{ name:'${ugen.name}', defaultValue:${ugen.value}, minValue:${ugen.min}, maxValue:${ugen.max} },\n      `
-    //}
-    for( let ugen of cb.params.values() ) {
-      paramStr += `{ name:'${ugen.name}', automationRate:'k-rate', defaultValue:${ugen.defaultValue}, minValue:${ugen.min}, maxValue:${ugen.max} },\n      `
-    }
-    return paramStr
-  },
-
-  createParameterDereferences( cb ) {
-    let str = cb.params.size > 0 ? '\n      ' : ''
-    for( let ugen of cb.params.values() ) {
-      str += `const ${ugen.name} = parameters.${ugen.name}[0]\n      `
-    }
-
-    return str
-  },
-
-  createParameterArguments( cb ) {
-    let  paramList = ''
-    for( let ugen of cb.params.values() ) {
-      paramList += ugen.name + '[i],'
-    }
-    paramList = paramList.slice( 0, -1 )
-
-    return paramList
-  },
-
-  createInputDereferences( cb ) {
-    let str = cb.inputs.size > 0 ? '\n' : ''
-    for( let input of  cb.inputs.values() ) {
-      str += `const ${input.name} = inputs[ ${input.inputNumber} ][ ${input.channelNumber} ]\n      `
-    }
-
-    return str
-  },
-
-
-  createInputArguments( cb ) {
-    let  paramList = ''
-    for( let input of cb.inputs.values() ) {
-      paramList += input.name + '[i],'
-    }
-    paramList = paramList.slice( 0, -1 )
-
-    return paramList
-  },
-      
-  createFunctionDereferences( cb ) {
-    let memberString = cb.members.size > 0 ? '\n' : ''
-    let memo = {}
-    for( let dict of cb.members.values() ) {
-      const name = Object.keys( dict )[0],
-            value = dict[ name ]
-
-      if( memo[ name ] !== undefined ) continue
-      memo[ name ] = true
-
-      memberString += `      const ${name} = ${value}\n`
-    }
-
-    return memberString
-  },
-
-  createWorkletProcessor( graph, name, debug, mem=44100*10 ) {
-    //const mem = MemoryHelper.create( 4096, Float64Array )
-    const cb = gen.createCallback( graph, mem, debug )
-    const inputs = cb.inputs
-
-    // get all inputs and create appropriate audioparam initializers
-    const parameterDescriptors = this.createParameterDescriptors( cb )
-    const parameterDereferences = this.createParameterDereferences( cb )
-    const paramList = this.createParameterArguments( cb )
-    const inputDereferences = this.createInputDereferences( cb )
-    const inputList = this.createInputArguments( cb )   
-    const memberString = this.createFunctionDereferences( cb )
-
-    // change output based on number of channels.
-    const genishOutputLine = cb.isStereo === false
-      ? `left[ i ] = memory[0]`
-      : `left[ i ] = memory[0];\n\t\tright[ i ] = memory[1]\n`
-
-    const prettyCallback = this.prettyPrintCallback( cb )
-
-    /***** begin callback code ****/
-    // note that we have to check to see that memory has been passed
-    // to the worker before running the callback function, otherwise
-    // it can be passed too slowly and fail on occassion
-
-    const workletCode = `
-class ${name}Processor extends AudioWorkletProcessor {
-
-  static get parameterDescriptors() {
-    const params = [
-      ${ parameterDescriptors }      
-    ]
-    return params
-  }
- 
-  constructor( options ) {
-    super( options )
-    this.port.onmessage = this.handleMessage.bind( this )
-    this.initialized = false
-  }
-
-  handleMessage( event ) {
-    if( event.data.key === 'init' ) {
-      this.memory = event.data.memory
-      this.initialized = true
-    }else if( event.data.key === 'set' ) {
-      this.memory[ event.data.idx ] = event.data.value
-    }else if( event.data.key === 'get' ) {
-      this.port.postMessage({ key:'return', idx:event.data.idx, value:this.memory[event.data.idx] })     
-    }
-  }
-
-  process( inputs, outputs, parameters ) {
-    if( this.initialized === true ) {
-      const output = outputs[0]
-      const left   = output[ 0 ]
-      const right  = output[ 1 ]
-      const len    = left.length
-      const memory = this.memory ${parameterDereferences}${inputDereferences}${memberString}
-
-      for( let i = 0; i < len; ++i ) {
-        ${prettyCallback}
-        ${genishOutputLine}
-      }
-    }
-    return true
-  }
-}
-    
-registerProcessor( '${name}', ${name}Processor)`
-
-    
-    /***** end callback code *****/
-
-
-    if( debug === true ) console.log( workletCode )
-
-    const url = window.URL.createObjectURL(
-      new Blob(
-        [ workletCode ], 
-        { type: 'text/javascript' }
-      )
-    )
-
-    return [ url, workletCode, inputs, cb.params, cb.isStereo ] 
-  },
-
-  registeredForNodeAssignment: [],
-  register( ugen ) {
-    if( this.registeredForNodeAssignment.indexOf( ugen ) === -1 ) {
-      this.registeredForNodeAssignment.push( ugen )
-    }
-  },
-
-  playWorklet( graph, name, debug=false, mem=44100 * 60 ) {
-    utilities.clear()
-
-    const [ url, codeString, inputs, params, isStereo ] = utilities.createWorkletProcessor( graph, name, debug, mem )
-
-    const nodePromise = new Promise( (resolve,reject) => {
-   
-      utilities.ctx.audioWorklet.addModule( url ).then( ()=> {
-        const workletNode = new AudioWorkletNode( utilities.ctx, name, { outputChannelCount:[ isStereo ? 2 : 1 ] })
-
-        workletNode.callbacks = {}
-        workletNode.onmessage = function( event ) {
-          if( event.data.message === 'return' ) {
-            workletNode.callbacks[ event.data.idx ]( event.data.value )
-            delete workletNode.callbacks[ event.data.idx ]
-          }
-        }
-
-        workletNode.getMemoryValue = function( idx, cb ) {
-          this.workletCallbacks[ idx ] = cb
-          this.workletNode.port.postMessage({ key:'get', idx: idx })
-        }
-        
-        workletNode.port.postMessage({ key:'init', memory:gen.memory.heap })
-        utilities.workletNode = workletNode
-
-        utilities.registeredForNodeAssignment.forEach( ugen => ugen.node = workletNode )
-        utilities.registeredForNodeAssignment.length = 0
-
-        // assign all params as properties of node for easier reference 
-        for( let dict of inputs.values() ) {
-          const name = Object.keys( dict )[0]
-          const param = workletNode.parameters.get( name )
-      
-          Object.defineProperty( workletNode, name, {
-            set( v ) {
-              param.value = v
-            },
-            get() {
-              return param.value
-            }
-          })
-        }
-
-        for( let ugen of params.values() ) {
-          const name = ugen.name
-          const param = workletNode.parameters.get( name )
-          ugen.waapi = param 
-          // initialize?
-          param.value = ugen.defaultValue
-
-          Object.defineProperty( workletNode, name, {
-            set( v ) {
-              param.value = v
-            },
-            get() {
-              return param.value
-            }
-          })
-        }
-
-        if( utilities.console ) utilities.console.setValue( codeString )
-
-        workletNode.connect( utilities.ctx.destination )
-
-        resolve( workletNode )
-      })
-
-    })
-
-    return nodePromise
-  },
-  
-  playGraph( graph, debug, mem=44100*10, memType=Float32Array ) {
-    utilities.clear()
-    if( debug === undefined ) debug = false
-          
-    this.isStereo = Array.isArray( graph )
-
-    utilities.callback = gen.createCallback( graph, mem, debug, false, memType )
-    
-    if( utilities.console ) utilities.console.setValue( utilities.callback.toString() )
-
-    return utilities.callback
-  },
-
-  loadSample( soundFilePath, data ) {
-    const isLoaded = utilities.buffers[ soundFilePath ] !== undefined
-
-    let req = new XMLHttpRequest()
-    req.open( 'GET', soundFilePath, true )
-    req.responseType = 'arraybuffer' 
-    
-    let promise = new Promise( (resolve,reject) => {
-      if( !isLoaded ) {
-        req.onload = function() {
-          var audioData = req.response
-
-          utilities.ctx.decodeAudioData( audioData, (buffer) => {
-            data.buffer = buffer.getChannelData(0)
-            utilities.buffers[ soundFilePath ] = data.buffer
-            resolve( data.buffer )
-          })
-        }
-      }else{
-        setTimeout( ()=> resolve( utilities.buffers[ soundFilePath ] ), 0 )
-      }
-    })
-
-    if( !isLoaded ) req.send()
-
-    return promise
-  }
-
-}
-
-utilities.clear.callbacks = []
-
-module.exports = utilities
-
-},{"./data.js":93,"./external/audioworklet-polyfill.js":102,"./gen.js":107}],151:[function(require,module,exports){
-'use strict'
-
-/*
- * many windows here adapted from https://github.com/corbanbrook/dsp.js/blob/master/dsp.js
- * starting at line 1427
- * taken 8/15/16
-*/ 
-
-const windows = module.exports = { 
-  bartlett( length, index ) {
-    return 2 / (length - 1) * ((length - 1) / 2 - Math.abs(index - (length - 1) / 2)) 
-  },
-
-  bartlettHann( length, index ) {
-    return 0.62 - 0.48 * Math.abs(index / (length - 1) - 0.5) - 0.38 * Math.cos( 2 * Math.PI * index / (length - 1))
-  },
-
-  blackman( length, index, alpha ) {
-    let a0 = (1 - alpha) / 2,
-        a1 = 0.5,
-        a2 = alpha / 2
-
-    return a0 - a1 * Math.cos(2 * Math.PI * index / (length - 1)) + a2 * Math.cos(4 * Math.PI * index / (length - 1))
-  },
-
-  cosine( length, index ) {
-    return Math.cos(Math.PI * index / (length - 1) - Math.PI / 2)
-  },
-
-  gauss( length, index, alpha ) {
-    return Math.pow(Math.E, -0.5 * Math.pow((index - (length - 1) / 2) / (alpha * (length - 1) / 2), 2))
-  },
-
-  hamming( length, index ) {
-    return 0.54 - 0.46 * Math.cos( Math.PI * 2 * index / (length - 1))
-  },
-
-  hann( length, index ) {
-    return 0.5 * (1 - Math.cos( Math.PI * 2 * index / (length - 1)) )
-  },
-
-  lanczos( length, index ) {
-    let x = 2 * index / (length - 1) - 1;
-    return Math.sin(Math.PI * x) / (Math.PI * x)
-  },
-
-  rectangular( length, index ) {
-    return 1
-  },
-
-  triangular( length, index ) {
-    return 2 / length * (length / 2 - Math.abs(index - (length - 1) / 2))
-  },
-
-  // parabola
-  welch( length, _index, ignore, shift=0 ) {
-    //w[n] = 1 - Math.pow( ( n - ( (N-1) / 2 ) ) / (( N-1 ) / 2 ), 2 )
-    const index = shift === 0 ? _index : (_index + Math.floor( shift * length )) % length
-    const n_1_over2 = (length - 1) / 2 
-
-    return 1 - Math.pow( ( index - n_1_over2 ) / n_1_over2, 2 )
-  },
-  inversewelch( length, _index, ignore, shift=0 ) {
-    //w[n] = 1 - Math.pow( ( n - ( (N-1) / 2 ) ) / (( N-1 ) / 2 ), 2 )
-    let index = shift === 0 ? _index : (_index + Math.floor( shift * length )) % length
-    const n_1_over2 = (length - 1) / 2
-
-    return Math.pow( ( index - n_1_over2 ) / n_1_over2, 2 )
-  },
-
-  parabola( length, index ) {
-    if( index <= length / 2 ) {
-      return windows.inversewelch( length / 2, index ) - 1
-    }else{
-      return 1 - windows.inversewelch( length / 2, index - length / 2 )
-    }
-  },
-
-  exponential( length, index, alpha ) {
-    return Math.pow( index / length, alpha )
-  },
-
-  linear( length, index ) {
-    return index / length
-  }
-}
-
-},{}],152:[function(require,module,exports){
-'use strict'
-
-let gen  = require('./gen.js'),
-    floor= require('./floor.js'),
-    sub  = require('./sub.js'),
-    memo = require('./memo.js')
-
-let proto = {
-  basename:'wrap',
-
-  gen() {
-    let code,
-        inputs = gen.getInputs( this ),
-        signal = inputs[0], min = inputs[1], max = inputs[2],
-        out, diff
-
-    //out = `(((${inputs[0]} - ${this.min}) % ${diff}  + ${diff}) % ${diff} + ${this.min})`
-    //const long numWraps = long((v-lo)/range) - (v < lo);
-    //return v - range * double(numWraps);   
-    
-    if( this.min === 0 ) {
-      diff = max
-    }else if ( isNaN( max ) || isNaN( min ) ) {
-      diff = `${max} - ${min}`
-    }else{
-      diff = max - min
-    }
-
-    out =
-` var ${this.name} = ${inputs[0]}
-  if( ${this.name} < ${this.min} ) ${this.name} += ${diff}
-  else if( ${this.name} > ${this.max} ) ${this.name} -= ${diff}
-
-`
-
-    return [ this.name, ' ' + out ]
-  },
-}
-
-module.exports = ( in1, min=0, max=1 ) => {
-  let ugen = Object.create( proto )
-
-  Object.assign( ugen, { 
-    min, 
-    max,
-    uid:    gen.getUID(),
-    inputs: [ in1, min, max ],
-  })
-  
-  ugen.name = `${ugen.basename}${ugen.uid}`
-
-  return ugen
-}
-
-},{"./floor.js":104,"./gen.js":107,"./memo.js":119,"./sub.js":144}],153:[function(require,module,exports){
-'use strict';
-
-var MemoryHelper = {
-  create: function create() {
-    var size = arguments.length <= 0 || arguments[0] === undefined ? 4096 : arguments[0];
-    var memtype = arguments.length <= 1 || arguments[1] === undefined ? Float32Array : arguments[1];
-
-    var helper = Object.create(this);
-
-    Object.assign(helper, {
-      heap: new memtype(size),
-      list: {},
-      freeList: {}
-    });
-
-    return helper;
-  },
-  alloc: function alloc(amount) {
-    var idx = -1;
-
-    if (amount > this.heap.length) {
-      throw Error('Allocation request is larger than heap size of ' + this.heap.length);
-    }
-
-    for (var key in this.freeList) {
-      var candidateSize = this.freeList[key];
-
-      if (candidateSize >= amount) {
-        idx = key;
-
-        this.list[idx] = amount;
-
-        if (candidateSize !== amount) {
-          var newIndex = idx + amount,
-              newFreeSize = void 0;
-
-          for (var _key in this.list) {
-            if (_key > newIndex) {
-              newFreeSize = _key - newIndex;
-              this.freeList[newIndex] = newFreeSize;
-            }
-          }
-        }
-        
-        break;
-      }
-    }
-    
-    if( idx !== -1 ) delete this.freeList[ idx ]
-
-    if (idx === -1) {
-      var keys = Object.keys(this.list),
-          lastIndex = void 0;
-
-      if (keys.length) {
-        // if not first allocation...
-        lastIndex = parseInt(keys[keys.length - 1]);
-
-        idx = lastIndex + this.list[lastIndex];
-      } else {
-        idx = 0;
-      }
-
-      this.list[idx] = amount;
-    }
-
-    if (idx + amount >= this.heap.length) {
-      throw Error('No available blocks remain sufficient for allocation request.');
-    }
-    return idx;
-  },
-  free: function free(index) {
-    if (typeof this.list[index] !== 'number') {
-      throw Error('Calling free() on non-existing block.');
-    }
-
-    this.list[index] = 0;
-
-    var size = 0;
-    for (var key in this.list) {
-      if (key > index) {
-        size = key - index;
-        break;
-      }
-    }
-
-    this.freeList[index] = size;
-  }
-};
-
-module.exports = MemoryHelper;
-
-},{}],154:[function(require,module,exports){
+},{}],157:[function(require,module,exports){
+arguments[4][81][0].apply(exports,arguments)
+},{"dup":81}],158:[function(require,module,exports){
 /*
 Copyright (c) 2014, Yahoo! Inc. All rights reserved.
 Copyrights licensed under the New BSD License.
@@ -12916,5 +13103,5 @@ module.exports = function serialize(obj, options) {
     });
 }
 
-},{}]},{},[36])(36)
+},{}]},{},[117])(117)
 });
