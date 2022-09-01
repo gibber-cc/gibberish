@@ -1,5 +1,11 @@
 const __proxy = require( '../workletProxy.js' )
-const Pattern = require( 'tidal.pegjs' )
+//const { mini } = require( '../../node_modules/@strudel.cycles/mini/index.mjs' )
+//const { mini } = req( 'https://cdn.skypack.dev/@strudel.cycles/mini' )
+const mini = require( '../external/mini.js' )
+//confetti();
+//import { mini } from '@strudel.cycles/mini';
+
+//const Pattern = require( 'tidal.pegjs' )
 
 module.exports = function( Gibberish ) {
 
@@ -12,13 +18,14 @@ const Sequencer = props => {
 
     __phase:  0,
     __type:'seq',
-    __pattern: Pattern( props.pattern, { addLocations:true, addUID:true, enclose:true }),
+    __pattern: mini.mini( props.pattern ),//Pattern( props.pattern, { addLocations:true, addUID:true, enclose:true }),
     __events: null,
 
     tick( priority ) {
       // running for first time, perform a query
       if( seq.__events === null || seq.__events.length === 0 ) {
-        seq.__events = seq.__pattern.query( seq.__phase++, 1 )
+        //seq.__events = seq.__pattern.query( seq.__phase++, 1 )
+        seq.__events = seq.__pattern.queryArc( seq.__phase++, 1 )
       }
 
       // used when scheduling events that are very far apart
@@ -33,10 +40,10 @@ const Sequencer = props => {
         return
       }
 
-      const startTime = seq.__events[ 0 ].arc.start
+      const startTime = seq.__events[ 0 ].whole.begin
 
       if( seq.key !== 'chord' ) {
-        while( seq.__events.length > 0 && startTime.valueOf() === seq.__events[0].arc.start.valueOf() ) {
+        while( seq.__events.length > 0 && startTime.valueOf() === seq.__events[0].whole.begin.valueOf() ) {
           let event  = seq.__events.shift(),
               value  = event.value,
               uid    = event.uid
@@ -57,7 +64,7 @@ const Sequencer = props => {
           }
         }
       }else{
-        let value = seq.__events.filter( evt => startTime.valueOf() === evt.arc.start.valueOf() ).map( evt => evt.value )
+        let value = seq.__events.filter( evt => startTime.valueOf() === evt.whole.begin.valueOf() ).map( evt => evt.value )
         let uid = seq.__events[0].uid
 
         const events = seq.__events.splice( 0, value.length )
@@ -82,7 +89,8 @@ const Sequencer = props => {
         if( seq.__events.length <= 0 ) {
           let time = 0
           while( seq.__events.length <= 0 ) {
-            seq.__events = seq.__pattern.query( seq.__phase++, 1 )
+            //seq.__events = seq.__pattern.query( seq.__phase++, 1 )
+            seq.__events = seq.__pattern.queryArc( seq.__phase++, 1 )
             time++
           }
           //seq.__events.forEach( evt => {
@@ -92,7 +100,7 @@ const Sequencer = props => {
 
           timing = time - startTime.valueOf() 
         }else{
-          timing = seq.__events[0].arc.start.sub( startTime ).valueOf() 
+          timing = seq.__events[0].whole.begin.sub( startTime ).valueOf() 
         }
         
         timing *= Math.ceil( Gibberish.ctx.sampleRate / Sequencer.clock.cps ) + 1 
@@ -165,7 +173,7 @@ Sequencer.getUID = ()=> {
   return __uid++
 }
 
-Sequencer.Pattern = Pattern
+Sequencer.Pattern = mini.mini
 
 Sequencer.clock = { cps: 1 }
 

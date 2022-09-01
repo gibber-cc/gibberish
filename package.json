@@ -7,10 +7,14 @@
     "node": ">=0.10.26"
   },
   "devDependencies": {
-    "babelify": "^7.2.0",
+    "@babel/core": "^7.18.13",
+    "@babel/preset-env": "^7.18.10",
+    "babel-core": "^6.26.3",
+    "babel-preset-env": "^1.7.0",
+    "babelify": "^10.0.0",
     "browserify": "^16.5.2",
     "gulp": "^4.0.2",
-    "gulp-babel": "^6.1.2",
+    "gulp-babel": "^7.0.1",
     "gulp-buffer": "^0.0.2",
     "gulp-clean": "^0.4.0",
     "gulp-gzip": "^1.4.2",
@@ -21,10 +25,13 @@
     "vinyl-source-stream": "^2.0.0"
   },
   "dependencies": {
+    "@strudel.cycles/mini": "^0.2.0",
+    "babel": "^6.23.0",
     "big.js": "^3.1.3",
     "codemirror": "^5.47.0",
     "genish.js": "^1.0.2",
     "memory-helper": "latest",
+    "require-from-url": "^3.1.3",
     "serialize-javascript": "1.9.1",
     "tidal.pegjs": "latest"
   },

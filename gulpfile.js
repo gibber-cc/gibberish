@@ -31,8 +31,10 @@ const { src, task, dest, series, watch } = require( 'gulp' ),
 
         let initialized = false;\n`,
 
-        postfix:`global.Gibberish.workletProcessor = GibberishProcessor 
-           registerProcessor( 'gibberish', global.Gibberish.workletProcessor );\n`
+        postfix:`
+global.Gibberish.workletProcessor = GibberishProcessor 
+registerProcessor( 'gibberish', global.Gibberish.workletProcessor );
+`
       }
 
 let workletBlob = workletStr.prefix
@@ -53,8 +55,15 @@ const workletFnc = cb => {
 const jsFunc = cb => {
   const out = browserify({ standalone:'Gibberish' })
     .require( './js/index.js', { entry: true } )
-    .transform( babelify, { plugins:[jsdsp] }) 
+    .transform( babelify, {
+      presets: ["@babel/env"],
+      plugins: [ jsdsp ],
+      //global: true, 
+      //only: [/\/node_modules\/(\@strudel.cycles\/)/]
+    }) 
+    .on( 'error', e=>console.log('transform error',e ) )
     .bundle()
+    .on( 'error', e=>console.log('bundle error', e.toString() ) )
     .pipe( source( 'gibberish.js' ) )
     .pipe( dest( './dist' ) )
   
@@ -85,6 +94,7 @@ const minifyWorklet = ()=> {
 //gulp.task( 'workletblob', gulp.series('js'), workletFnc ) 
 
 exports.default = series( jsFunc, workletFnc )
+exports.worklet = workletFnc
 
 //gulp.task( 'clean', ()=> {
 //  return gulp.src( './dist/*.js*', { read:false  })
