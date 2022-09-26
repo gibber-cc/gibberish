@@ -63,29 +63,30 @@ module.exports = function( Gibberish ) {
         // set voice data index
         g.gen.memory.heap[ voice.bufferLoc.memory.values.idx ] = sampler.dataIdx
 
-        //if( rate !== null ) g.gen.memory.heap[ voice.rate.memory.values.idx ] = rate
-        if( rate !== null ) voice.rate = rate
-        if( rate > 0 ) {
+        
+        // assume voice plays forward if no rate is provided
+        // global rate for sampler can still be used to reverse
+        voice.rate = rate !== null ? rate : 1
+
+        // determine direction voice will play at by checking sign
+        // of voice.rate and sampler.rate. If both are the same,
+        // then the direction will be forward, as they are multiplied
+        // ... two positives or two negatives will both create a 
+        // positive value
+
+        // assume positive value if a modulation is applied to rate
+        const samplerRate = typeof this.rate === 'object' ? 1 : this.rate
+        const dir = Math.sign( voice.rate ) === Math.sign( samplerRate ) ? 1 : 0
+
+        if( dir === 1 ) {
+          // trigger the bang assigned to the reset property of the 
+          // counter object representing phase for the voice
           voice.trigger()
         }else{
-          //console.log( 'reverse?', rate )
-          voice.bang.trigger()
-          //voice.phase.value = 0
+          // reset the value of the phase counter to the 
+          // end of the sample for reverse playback
           voice.phase.value = sampler.dataLength - 1
-          //console.log( 'phase', voice.phase.value )
         }
-        //if( rate < 0 ) {
-        //  const phase = sampler.dataIdx + Math.round((sampler.dataLength/2)) - 1
-        //  console.log( 'phase:', phase, 'length:', sampler.dataLength, 'start:', sampler.dataIdx )
-        //  //voice.phase.value = phase
-        //  //g.gen.memory.heap[ voice.phase.memory.value.idx ] = phase
-        //}else{
-        //  // will reset phase to 0
-        //  voice.trigger()
-        //}
-        
-        //voice.trigger()
-        //g.gen.memory.heap[ voice.rate.memory.values.idx ] = rate
       }
 
       return voice
@@ -149,6 +150,9 @@ module.exports = function( Gibberish ) {
         },
         set rate(v) {
           g.gen.memory.heap[ this.__rate.memory.values.idx ] = v
+        },
+        get rate() {
+          return g.gen.memory.heap[ this.__rate.memory.values.idx ]
         },
       }
 
