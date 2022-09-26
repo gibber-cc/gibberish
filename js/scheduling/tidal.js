@@ -1,105 +1,118 @@
-const __proxy = require( '../workletProxy.js' )
-const mini = require( '../external/mini.js' )
+const __proxy = require( '../workletProxy.js' ),
+      mini    = require( '../external/mini.js' )
 
-//const Pattern = require( 'tidal.pegjs' )
-
-module.exports = function (Gibberish) {
-  const proxy = __proxy(Gibberish);
+module.exports = function( Gibberish ) {
+  const proxy = __proxy( Gibberish )
 
   const Sequencer = props => {
-    let __seq;
-
+    let __seq, i = 0
+ 
     const seq = {
       __isRunning: false,
       __phase: 0,
       __type: 'seq',
-      __pattern: mini.mini(props.pattern),
+      __pattern: mini.mini( props.pattern ),
       //Pattern( props.pattern, { addLocations:true, addUID:true, enclose:true }),
       __events: null,
 
       tick(priority) {
+        let startTime
         // running for first time, perform a query
         if (seq.__events === null || seq.__events.length === 0) {
-          //seq.__events = seq.__pattern.query( seq.__phase++, 1 )
-          seq.__events = seq.__pattern.queryArc(seq.__phase++, 1);
-        } // used when scheduling events that are very far apart
-
+          startTime = seq.__phase
+          seq.__events = seq.__pattern.queryArc(seq.__phase++, 1)
+          seq.__events.sort( (a,b) => a.whole.begin.valueOf() > b.whole.begin.valueOf() )
+        }else{
+          startTime = seq.__events[0].whole.begin
+        }
 
         if (seq.__events.length <= 0) {
           if (Gibberish.mode === 'processor') {
             if (seq.__isRunning === true) {
-              Gibberish.scheduler.add(Gibberish.ctx.sampleRate / Sequencer.clock.cps, seq.tick, seq.priority);
+              Gibberish.scheduler.add(Gibberish.ctx.sampleRate / Sequencer.clock.cps, seq.tick, seq.priority)
             }
           }
 
           return;
         }
 
-        const startTime = seq.__events[0].whole.begin;
-
         if (seq.key !== 'chord') {
-          while (seq.__events.length > 0 && startTime.valueOf() === seq.__events[0].whole.begin.valueOf()) {
-            let event = seq.__events.shift(),
-                value = event.value,
-                uid = event.uid; // for bjorklund etc.
+          while (seq.__events.length > 0 && startTime.valueOf() >= seq.__events[0].whole.begin.valueOf()) {
+            let event = seq.__events.shift()
+            
+            // make sure we should trigger sound
+            if( !event.hasOnset() ) continue
 
+            let value = event.value,
+                uid   = event.context.locations[0].start.column 
 
-            if (typeof value === 'object') value = value.value;
-            if (seq.filters !== null) value = seq.filters.reduce((currentValue, filter) => filter(currentValue, seq, uid), value);
+            //console.log( 'evt', uid, event.context.locations )
 
-            if (seq.mainthreadonly !== undefined) {
-              if (typeof value === 'function') {
-                value = value();
+            if ( typeof value === 'object' ) value = value.value;
+            if ( seq.filters !== null ) 
+              value = seq.filters.reduce( (currentValue, filter) => filter(currentValue, seq, uid), value)
+
+            if ( seq.mainthreadonly !== undefined ) {
+              if ( typeof value === 'function' ) {
+                value = value()
               }
-+
-              Gibberish.processor.messages.push(seq.mainthreadonly, seq.key, value);
-            } else if (typeof seq.target[seq.key] === 'function') {
-              seq.target[seq.key](value);
+              
+              Gibberish.processor.messages.push( seq.mainthreadonly, seq.key, value )
+            } else if ( typeof seq.target[seq.key] === 'function' ) {
+              seq.target [seq.key ]( value )
             } else {
-              seq.target[seq.key] = value;
+              seq.target[ seq.key ] = value
             }
           }
         } else {
           let value = seq.__events.filter(evt => startTime.valueOf() === evt.whole.begin.valueOf()).map(evt => evt.value);
 
-          let uid = seq.__events[0].uid;
+          let uid = seq.__events[0].context.locations[0].start.column
 
           const events = seq.__events.splice(0, value.length);
 
-          if (seq.filters !== null) {
-            if (value.length === 1) {
-              value = seq.filters.reduce((currentValue, filter) => filter(currentValue, seq, uid), value);
+          if( seq.filters !== null ) {
+            if( value.length === 1 ) {
+              value = seq.filters.reduce( (currentValue, filter) => filter( currentValue, seq, uid ), value )
             } else {
-              value.forEach((v, i) => seq.filters.reduce((currentValue, filter) => filter(currentValue, seq, events[i].uid), v));
+              value.forEach((v, i) => { 
+                return seq.filters.reduce( (currentValue, filter) => filter( currentValue, seq, events[i].uid ), v )
+              })
             }
           }
 
           if (typeof seq.target[seq.key] === 'function') {
-            seq.target[seq.key](value);
+            seq.target[ seq.key ]( value )
           } else {
-            seq.target[seq.key] = value;
+            seq.target[ seq.key ] = value
           }
         }
 
         if (Gibberish.mode === 'processor') {
-          let timing;
+          let timing
 
-          if (seq.__events.length <= 0) {
-            let time = 0;
+          if(seq.__events.length <= 0) {
+            let time = 0
 
             while (seq.__events.length <= 0) {
-              seq.__events = seq.__pattern.queryArc(seq.__phase, ++seq.__phase  );
+              seq.__events = seq.__pattern.queryArc(seq.__phase, ++seq.__phase  )
             } 
 
+            seq.__events.sort( (a,b) => a.whole.begin.valueOf() > b.whole.begin.valueOf() )
           } 
 
-          timing = seq.__events[0].whole.begin.sub(startTime).valueOf();
+          timing = seq.__events[0].whole.begin.sub( startTime ).valueOf()
+          if( timing.valueOf() < 0 ) timing += 1
+
+          //if( timing <= 0 ) timing = Math.abs( timing )
+
+          //console.log( seq.__events[0].whole.begin.toString(), startTime.toString(), timing  )
 
           //console.log( 'timings:', timing, startTime.valueOf(), seq.__events[0].whole.begin.valueOf() )
-          timing *= Math.ceil(Gibberish.ctx.sampleRate / Sequencer.clock.cps) + 1;
+          timing *= Math.ceil( Gibberish.ctx.sampleRate / Sequencer.clock.cps )
           //console.log( 'timing:', timing, startTime.valueOf(), seq.__events[0].whole.begin.valueOf() )
-          if (seq.__isRunning === true && !isNaN(timing) && timing > 0) {
-            Gibberish.scheduler.add(timing, seq.tick, seq.priority);
+          if( seq.__isRunning === true && !isNaN( timing ) ) {
+            Gibberish.scheduler.add( timing, seq.tick, seq.priority )
           }
         }
       },
@@ -166,6 +179,7 @@ module.exports = function (Gibberish) {
     cps: 1
   };
   Sequencer.id = Gibberish.utilities.getUID();
+  Sequencer.mini = mini.mini
 
   if (Gibberish.mode === 'worklet') {
     Gibberish.worklet.port.postMessage({
