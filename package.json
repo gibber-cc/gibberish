@@ -1,6 +1,6 @@
 {
   "name": "gibberish-dsp",
-  "version": "3.3.2",
+  "version": "3.4.0",
   "description": "Gibberish is designed to be an optimized API for audio synthesis using per-sample techniques.",
   "main": "./js/index.js",
   "engines": {
