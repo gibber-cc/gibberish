@@ -177,6 +177,7 @@ const utilities = {
           const propSplit = propName.split('.')
           if( obj[ propSplit[ 0 ] ] !== undefined ) {
             if( propSplit[1] !== undefined ) {
+              //console.log( obj, propSplit[0], propSplit[1], value )
               if( typeof obj[ propSplit[ 0 ] ][ propSplit[ 1 ] ] !== 'function' ) {
                 obj[ propSplit[ 0 ] ][ propSplit[ 1 ] ] = value
               }else{
