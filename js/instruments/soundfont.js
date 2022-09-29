@@ -448,7 +448,7 @@ module.exports = function( Gibberish ) {
     gain: 1,
     pan: .5,
     rate: 1,
-    panVoices:false,
+    panVoices:true,
     shouldLoop:false,
     loops: 0,
     start:0,
