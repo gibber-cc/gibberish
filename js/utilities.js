@@ -33,14 +33,16 @@ const utilities = {
     return Gibberish[ name ]
   },
 
-  createContext( ctx, cb, resolve, bufferSize=2048 ) {
+  createContext( ctx=null, cb, resolve, options ) {
     let AC = typeof AudioContext === 'undefined' ? webkitAudioContext : AudioContext
 
-    AWPF( window, bufferSize )
-
+    if( options === undefined ) options = { latencyHint:.025 }
+    if( options.bufferSize === undefined ) options.bufferSize = 2048
+    AWPF( window, options.bufferSize )
+    
     const start = () => {
       if( typeof AC !== 'undefined' ) {
-        this.ctx = Gibberish.ctx = ctx === undefined ? new AC({ latencyHint:.025 }) : ctx
+        this.ctx = Gibberish.ctx = ctx === null ? new AC({ latencyHint:options.latencyHint }) : ctx
 
         genish.gen.samplerate = this.ctx.sampleRate
         genish.utilities.ctx = this.ctx
