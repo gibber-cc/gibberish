@@ -15,7 +15,7 @@ module.exports = function( Gibberish ) {
 
     const trigger = g.bang(),
           impulse = g.mul( trigger, 60 ),
-          _decay =  g.sub( .101, g.div( decay, 10 ) ), // create range of .001 - .099
+          _decay =  g.sub( .101, g.div( g.min( decay, 1), 10 ) ), // create range of .001 - .099
           bpf = g.svf( impulse, frequency, _decay, 2, false ),
           out = g.mul( bpf, g.mul( g.mul( triggerLoudness,loudness ), gain ) )
     
