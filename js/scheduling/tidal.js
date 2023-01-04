@@ -43,8 +43,10 @@ module.exports = function( Gibberish ) {
             // make sure we should trigger sound
             if( !event.hasOnset() ) continue
 
+            const idx = event.context.locations.length - 1
+
             let value = event.value,
-                uid   = event.context.locations[0].start.column 
+                uid   = event.context.locations[ idx ].start.column 
 
             //console.log( 'evt', uid, event.context.locations )
 
