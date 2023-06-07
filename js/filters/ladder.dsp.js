@@ -91,7 +91,8 @@ module.exports = function( Gibberish ) {
         out.isStereo = isStereo
       }
 
-      filter.graph = Gibberish.genish.zd24( genish.in('input'), genish.in('Q'), genish.in('cutoff'), isStereo ) 
+      // cutoff frequency limit handled near top of makeChannel function
+      filter.graph = Gibberish.genish.zd24( genish.in('input'), genish.min( 1, genish.in('Q') ), genish.in('cutoff'), isStereo ) 
     } 
 
     filter.__createGraph()
