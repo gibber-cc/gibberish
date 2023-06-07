@@ -15423,7 +15423,7 @@ module.exports = function (Gibberish) {
       'no jsdsp';
 
       const midinote = 69 + 12 * Math.log2(freq / 440);
-      this.midinote(midinote, loudness);
+      return this.midinote(midinote, loudness);
     },
 
     midipick(midinote, loudness) {
@@ -15450,7 +15450,7 @@ module.exports = function (Gibberish) {
       const samplePitch = this.midipick(midinote);
       const pitch = Math.pow(2, (100 * midinote - samplePitch) / 1200); //const pitch = 1//Math.pow( 2, (samplePitch ) ) 
 
-      this.__note(pitch, loudness);
+      return this.__note(pitch, loudness);
     },
 
     midichord(frequencies) {
@@ -17586,11 +17586,7 @@ module.exports = function (Gibberish) {
       },
 
       set(patternString) {
-        seq.__pattern = Pattern(patternString, {
-          addLocations: true,
-          addUID: true,
-          enclose: true
-        });
+        seq.__pattern = Sequencer.Pattern(patternString);
       }
 
     };
