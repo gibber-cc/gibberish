@@ -61,7 +61,7 @@ module.exports = function( Gibberish ) {
     note( freq, loudness=null ) {
       'no jsdsp'
       const midinote = 69 + 12 * Math.log2( freq/440 )
-      this.midinote( midinote, loudness )
+      return this.midinote( midinote, loudness )
     },
     midipick( midinote, loudness ) {
       // loop through zones to find correct sample #
@@ -81,7 +81,7 @@ module.exports = function( Gibberish ) {
       const samplePitch = this.midipick( midinote )
       const pitch = Math.pow( 2, (100 * midinote - samplePitch ) / 1200 ) 
       //const pitch = 1//Math.pow( 2, (samplePitch ) ) 
-      this.__note( pitch, loudness )
+      return this.__note( pitch, loudness )
     }, 
     midichord( frequencies ) {
       if( Gibberish !== undefined && Gibberish.mode !== 'worklet' ) {
@@ -135,7 +135,7 @@ module.exports = function( Gibberish ) {
         g.gen.memory.heap[ voice.__loopEnd.memory.values.idx   ] = sampler.zone.loopEnd
 
         if( volume !== null )
-          g.gen.memory.heap[ voice.loudness.memory.values.idx   ] = volume
+          g.gen.memory.heap[ voice.__loudness.memory.values.idx   ] = volume
 
         if( rate !== null ) voice.rate = rate 
         
