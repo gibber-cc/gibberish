@@ -5,10 +5,13 @@ module.exports = function( Gibberish ) {
   const proxy = __proxy( Gibberish )
   
   const factory = function( ugen, graph, __name, values, cb=null, shouldProxy = true ) {
-    if( Gibberish.mode === 'processor' )
-      ugen.callback = cb === null ? Gibberish.genish.gen.createCallback( graph, Gibberish.memory, false, true ) : cb
-    else
+    if( Gibberish.mode === 'processor' ) {
+      ugen.callback = cb === null 
+        ? Gibberish.genish.gen.createCallback( graph, Gibberish.memory, false, true ) 
+        : cb
+    }else{
       ugen.callback = { out:[] }
+    }
 
     let name = Array.isArray( __name ) ? __name[ __name.length - 1 ] : __name
 
