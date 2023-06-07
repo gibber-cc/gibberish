@@ -136,11 +136,7 @@ module.exports = function( Gibberish ) {
       },
 
       set(patternString) {
-        seq.__pattern = Pattern(patternString, {
-          addLocations: true,
-          addUID: true,
-          enclose: true
-        });
+        seq.__pattern = Sequencer.Pattern(patternString);
       }
 
     };
