@@ -150,7 +150,7 @@ module.exports = function( Gibberish ) {
         // set voice data index
         g.gen.memory.heap[ voice.bufferLoc.memory.values.idx ] = sampler.dataIdx
 
-        g.gen.memory.heap[ voice.__decaying.memory.values.idx  ] = 1
+        g.gen.memory.heap[ voice.__decaying.memory.values.idx  ] = 0
         g.gen.memory.heap[ voice.__playing.memory.values.idx   ] = 1
         g.gen.memory.heap[ voice.__loopStart.memory.values.idx ] = loopStart
         g.gen.memory.heap[ voice.__loopEnd.memory.values.idx   ] = loopEnd
@@ -162,23 +162,21 @@ module.exports = function( Gibberish ) {
           Gibberish.scheduler.remove( voice.cb )
 
         voice.__decay.trigger() 
-        //voice.cb = ()=> {
-        //  if( voice.phase.value > loopStart ) {
-        //    const loopPos = (voice.phase.value - loopStart) % (loopEnd - loopStart)
-        //    voice.phase.value = loopStart + loopPos
-        //  }
+        voice.cb = ()=> {
+          //if( voice.phase.value > loopStart ) {
+          //  const loopPos = (voice.phase.value - loopStart) % (loopEnd - loopStart)
+          //  voice.phase.value = loopStart + loopPos
+          //}
 
-        //  voice.__decaying[0] = 1 
-        //  voice.__decay.trigger() 
-        //}
+          voice.__decaying[0] = 1 
+          voice.__decay.trigger() 
+        }
         
-        //console.log( 'sustain:', this.sustain )
-
-        //Gibberish.scheduler.add( 
-        //  this.sustain, 
-        //  voice.cb,
-        //  0
-        //)
+        Gibberish.scheduler.add( 
+          this.sustain, 
+          voice.cb,
+          0
+        )
         
         voice.trigger()
       }
@@ -309,7 +307,7 @@ module.exports = function( Gibberish ) {
       )
       
       voice.graph = state
-      * voice.__decay
+      * env
       * loudness 
       * voice.__loudness[0]
       
