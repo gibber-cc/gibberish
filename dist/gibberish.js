@@ -15362,6 +15362,8 @@ genish.utilities.ctx.decodeAudioData( ab, buffer => {
 _d = data( __ab )
 play( peek( _d, phasor(1,0,{min:0}) ) )
 */
+var SHOULD_SUSTAIN = false;
+
 var g = require('genish.js'),
     instrument = require('./instrument.js');
 
@@ -15412,7 +15414,11 @@ module.exports = function (Gibberish) {
           pitch = 0;
 
       for (let zone of this.zones) {
-        if (midinote >= zone.keyRangeLow && midinote <= zone.keyRangeHigh) {
+        const inzone = midinote >= zone.keyRangeLow && midinote <= zone.keyRangeHigh; // in case floating-point "midinote" falls between two zones, which are integers
+
+        const rounded = midinote - zone.keyRangeHigh < 1;
+
+        if (inzone || rounded) {
           pitch = zone.originalPitch;
           break;
         }
@@ -15473,16 +15479,42 @@ module.exports = function (Gibberish) {
       if (Gibberish.mode === 'processor') {
         const sampler = this.samplers[this.currentSample]; // if sample isn't loaded...
 
-        if (sampler === undefined) return;
-        voice = this.__getVoice__(); // set voice buffer length
+        if (sampler === undefined) {
+          console.warn('no sampler found...', sampler, this.currentSample, this.samplers);
+          return;
+        }
+
+        voice = this.__getVoice__();
+        const sampleRateRatio = Gibberish.ctx.sampleRate / sampler.zone.sampleRate;
+        const loopStart = sampler.zone.loopStart * sampleRateRatio;
+        const loopEnd = sampler.zone.loopEnd * sampleRateRatio;
+
+        if (rate !== null) {
+          voice.rate = rate;
+        } // set voice buffer length
+
 
         g.gen.memory.heap[voice.bufferLength.memory.values.idx] = sampler.dataLength; // set voice data index
 
         g.gen.memory.heap[voice.bufferLoc.memory.values.idx] = sampler.dataIdx;
-        g.gen.memory.heap[voice.__loopStart.memory.values.idx] = sampler.zone.loopStart;
-        g.gen.memory.heap[voice.__loopEnd.memory.values.idx] = sampler.zone.loopEnd;
-        if (volume !== null) g.gen.memory.heap[voice.loudness.memory.values.idx] = volume;
-        if (rate !== null) voice.rate = rate;
+        g.gen.memory.heap[voice.__playing.memory.values.idx] = 1;
+        g.gen.memory.heap[voice.__loopStart.memory.values.idx] = loopStart;
+        g.gen.memory.heap[voice.__loopEnd.memory.values.idx] = loopEnd;
+        if (volume !== null) g.gen.memory.heap[voice.__loudness.memory.values.idx] = volume;
+        if (voice.cb !== null) Gibberish.scheduler.remove(voice.cb); // don't trigger this immediately if sustain
+        // is being attempted
+
+        if (!SHOULD_SUSTAIN) voice.__decay.trigger(); // XXX re-enable callback for sustain
+        // have to also set it up in envelope later in code
+
+        if (SHOULD_SUSTAIN) {
+          voice.cb = () => {
+            voice.__decay.trigger();
+          };
+
+          Gibberish.scheduler.add(this.sustain, voice.cb, 0);
+        }
+
         voice.trigger();
       }
 
@@ -15508,6 +15540,8 @@ module.exports = function (Gibberish) {
           rate = g.in('rate'),
           shouldLoop = g.in('loops'),
           loudness = g.in('loudness'),
+          sustain = g.in('sustain'),
+          decay = g.in('decay'),
           triggerLoudness = g.in('__triggerLoudness'),
           // rate storage is used to determine whether we're playing
     // the sample forward or in reverse, for use in the 'trigger' method.
@@ -15533,15 +15567,20 @@ module.exports = function (Gibberish) {
     for (let i = 0; i < syn.maxVoices; i++) {
       'use jsdsp';
       const voice = {
+        bang: g.bang(),
         bufferLength: g.data([1], 1, {
           meta: true
         }),
         bufferLoc: g.data([1], 1, {
           meta: true
         }),
-        bang: g.bang(),
-        // XXX how do I change this from main thread?
         __pan: g.data([.5], 1, {
+          meta: true
+        }),
+        __playing: g.data([0], 1, {
+          meta: true
+        }),
+        __decaying: g.data([0], 1, {
           meta: true
         }),
         __rate: g.data([1], 1, {
@@ -15559,6 +15598,8 @@ module.exports = function (Gibberish) {
         __loudness: g.data([1], 1, {
           meta: true
         }),
+        __decay: g.decay(decay),
+        cb: null,
 
         get loudness() {
           return g.gen.memory.heap[this.__loudness.memory.values.idx];
@@ -15577,55 +15618,30 @@ module.exports = function (Gibberish) {
         }
 
       };
-      voice.phase = g.counter(genish.mul(rate, voice.__rate[0]), genish.mul(start, voice.bufferLength[0]), genish.mul(end, voice.bufferLength[0]), voice.bang, shouldLoop, {
+      voice.phase = g.counter(genish.mul(rate, voice.__rate[0]), 0, Infinity, voice.bang, 0, {
         shouldWrap: false,
         initialValue: 9999999
       });
+      const phaseOffset = genish.sub(voice.phase, voice.__loopStart[0]);
+      const loopLength = genish.sub(genish.add(1, voice.__loopEnd[0]), voice.__loopStart[0]);
+      const loopPos = genish.mod(phaseOffset, loopLength);
+      const loopPhase = genish.add(voice.__loopStart[0], loopPos);
+      const phase = g.ifelse(g.and(voice.__playing[0], g.lt(voice.phase, voice.__loopStart[0])), voice.phase, loopPhase //g.ifelse( 
+      //  voice.__decaying[0],
+      //  loopPhase,//voice.phase,
+      //  loopPhase
+      //)
+      );
       voice.trigger = voice.bang.trigger;
-      voice.graph = genish.mul(genish.mul(g.ifelse( // if phase is greater than start and less than end... 
-      g.and(g.gte(voice.phase, genish.mul(start, voice.bufferLength[0])), g.lt(voice.phase, genish.mul(end, voice.bufferLength[0]))), // ...read data
-      voice.peek = g.peekDyn(voice.bufferLoc[0], voice.bufferLength[0], voice.phase, {
+      const state = g.peekDyn(voice.bufferLoc[0], voice.bufferLength[0], phase, {
         mode: 'samples'
-      }), // ...else return 0
-      0), loudness), voice.__loudness[0]); // start of attempt to loop sustain...
-      //voice.graph = g.ifelse(
-      //  // if phase is greater than start and less than end... 
-      //  g.and( 
-      //    g.gte( voice.phase, start * voice.bufferLength[0] ), 
-      //    g.lt(  voice.phase, end   * voice.bufferLength[0] ) 
-      //  ),
-      //  // ...read data
-      //  voice.peek = g.peekDyn( 
-      //    voice.bufferLoc[0], 
-      //    voice.bufferLength[0],
-      //    voice.phase,
-      //    { mode:'samples' }
-      //  ),
-      //  // ...else return 0
-      //  g.ifelse(
-      //    g.and(
-      //      voice.__shouldLoop[0],
-      //      g.gt( voice.phase, voice.__loopEnd[0] )
-      //    ),
-      //    g.peekDyn( 
-      //      voice.bufferLoc[0], 
-      //      voice.bufferLength[0],
-      //      g.add( 
-      //        voice.__loopStart[0],
-      //        g.mod(
-      //          voice.phase,
-      //          //g.sub( voice.phase, voice.__loopStart[0] ),
-      //          g.sub( voice.__loopEnd[0], voice.__loopStart[0] )
-      //        )
-      //      ),
-      //      { mode:'samples' }
-      //    ),
-      //    0
-      //  )
-      //) 
-      //* loudness 
-      //* triggerLoudness 
+      }); // XXX giving up on sustain for now
+      // it works for some samples but causes glitches/clicks in others
+      // when the decay is triggered and i have no idea why
 
+      const env = SHOULD_SUSTAIN ? g.ifelse( // if voice is playing and phase is less than sustain 
+      g.lt(voice.phase, sustain), 1, voice.__decay) : voice.__decay;
+      voice.graph = genish.mul(genish.mul(genish.mul(genish.mul(state, env), voice.__playing[0]), loudness), voice.__loudness[0]);
       const pan = g.pan(voice.graph, voice.graph, voice.__pan[0]);
       voice.graph = [pan.left, pan.right];
       voices.push(voice);
@@ -15788,6 +15804,8 @@ module.exports = function (Gibberish) {
     end: 1,
     bufferLength: -999999999,
     loudness: 1,
+    sustain: 44100,
+    decay: 44100,
     maxVoices: 5,
     __triggerLoudness: 1
   };
@@ -16913,6 +16931,17 @@ var Scheduler = {
       priority
     });
     return this.phase;
+  },
+
+  remove(__func) {
+    for (let i = 0; i < this.queue.data.length; i++) {
+      const func = this.queue.data[i].func;
+
+      if (func === __func) {
+        this.queue.data.splice(i, 1);
+        break;
+      }
+    }
   },
 
   tick(usingSync = false) {
