@@ -31,6 +31,16 @@ const Scheduler = {
     return this.phase
   },
 
+  remove( __func ) {
+    for( let i = 0; i < this.queue.data.length; i++ ) {
+      const func = this.queue.data[i].func
+      if( func === __func ) {
+        this.queue.data.splice( i, 1 )
+        break
+      }
+    }
+  },
+
   tick( usingSync = false ) {
     if( this.shouldSync === usingSync ) {
       if( this.queue.length ) {
