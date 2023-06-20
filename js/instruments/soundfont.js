@@ -65,14 +65,22 @@ module.exports = function( Gibberish ) {
     },
     midipick( midinote, loudness ) {
       // loop through zones to find correct sample #
-      let idx = 0, pitch = 0
+      let idx = 0, pitch = 0 
+
       for( let zone of this.zones ) {
-        if( midinote >= zone.keyRangeLow && midinote <= zone.keyRangeHigh ) {
+        const inzone  = midinote >= zone.keyRangeLow && midinote <= zone.keyRangeHigh 
+
+        // in case floating-point "midinote" falls between two zones, which are integers
+        const rounded = midinote - zone.keyRangeHigh < 1
+        
+        if( inzone || rounded ) { 
           pitch = zone.originalPitch
-          break;
+          break
         }
+
         idx++
       }
+
       this.pick( idx )
       return pitch
     },
@@ -121,23 +129,60 @@ module.exports = function( Gibberish ) {
         const sampler = this.samplers[ this.currentSample ]
 
         // if sample isn't loaded...
-        if( sampler === undefined ) return
+        if( sampler === undefined ) {
+          console.warn( 'no sampler found...', sampler, this.currentSample, this.samplers )
+          return
+        }
 
         voice = this.__getVoice__()
 
+        const sampleRateRatio = Gibberish.ctx.sampleRate / sampler.zone.sampleRate
+        let   loopStart = sampler.zone.loopStart * sampleRateRatio
+        let   loopEnd   = sampler.zone.loopEnd   * sampleRateRatio
+
+        if( rate !== null ) {
+          voice.rate = rate
+        }
+
+        console.log( loopStart, loopEnd, rate, sampler )
+
         // set voice buffer length
-        g.gen.memory.heap[ voice.bufferLength.memory.values.idx ] = sampler.dataLength
+        g.gen.memory.heap[ voice.bufferLength.memory.values.idx ] = sampler.dataLength //* sampleRateRatio
 
         // set voice data index
         g.gen.memory.heap[ voice.bufferLoc.memory.values.idx ] = sampler.dataIdx
 
-        g.gen.memory.heap[ voice.__loopStart.memory.values.idx ] = sampler.zone.loopStart
-        g.gen.memory.heap[ voice.__loopEnd.memory.values.idx   ] = sampler.zone.loopEnd
+        g.gen.memory.heap[ voice.__decaying.memory.values.idx  ] = 0
+        g.gen.memory.heap[ voice.__playing.memory.values.idx   ] = 1
+        g.gen.memory.heap[ voice.__loopStart.memory.values.idx ] = loopStart
+        g.gen.memory.heap[ voice.__loopEnd.memory.values.idx   ] = loopEnd
 
         if( volume !== null )
-          g.gen.memory.heap[ voice.__loudness.memory.values.idx   ] = volume
+          g.gen.memory.heap[ voice.__loudness.memory.values.idx ] = volume
 
-        if( rate !== null ) voice.rate = rate 
+        if( voice.cb !== null ) 
+          Gibberish.scheduler.remove( voice.cb )
+
+        voice.cb = ()=> {
+          console.log( voice.phase.value, loopStart, loopEnd )
+          if( voice.phase.value > loopStart ) {
+            const loopPos = (voice.phase.value - loopStart) % (loopEnd - loopStart)
+            voice.phase.value = loopStart + loopPos
+          }
+
+          //voice.phase.value = 
+          //  voice.__loopStart[0]
+          //  + ((voice.phase.value - voice.__loopStart[0]) % (voice.__loopEnd[0] - voice.__loopStart[0]))
+
+          voice.__decaying[0] = 1 
+          voice.__decay.trigger() 
+        }
+
+        //Gibberish.scheduler.add( 
+        //  this.sustain, 
+        //  voice.cb,
+        //  0
+        //)
         
         voice.trigger()
       }
@@ -159,6 +204,8 @@ module.exports = function( Gibberish ) {
     const start = g.in( 'start' ), end = g.in( 'end' ), 
           rate = g.in( 'rate' ), shouldLoop = g.in( 'loops' ),
           loudness = g.in( 'loudness' ),
+          sustain  = g.in( 'sustain' ),
+          decay    = g.in( 'decay' ),
           triggerLoudness = g.in( '__triggerLoudness' ),
           // rate storage is used to determine whether we're playing
           // the sample forward or in reverse, for use in the 'trigger' method.
@@ -185,18 +232,23 @@ module.exports = function( Gibberish ) {
       'use jsdsp'
 
       const voice = {
+        bang:         g.bang(),
         bufferLength: g.data( [1], 1, { meta:true }),
         bufferLoc:    g.data( [1], 1, { meta:true }),
-        bang: g.bang(),
-        // XXX how do I change this from main thread?
-        __pan: g.data( [.5], 1, { meta:true }),
-        __rate: g.data( [1], 1, { meta:true }),
-        __shouldLoop: g.data( [1], 1, { meta:true }),
-        __loopStart: g.data( [1], 1, { meta:true }),
-        __loopEnd:   g.data( [1], 1, { meta:true }),
-        __loudness:  g.data( [1], 1, { meta:true }),
+        __pan:        g.data( [.5], 1, { meta:true }),
+        __playing:    g.data( [0],  1, { meta:true }),
+        __decaying:   g.data( [0],  1, { meta:true }),
+        __rate:       g.data( [1],  1, { meta:true }),
+        __shouldLoop: g.data( [1],  1, { meta:true }),
+        __loopStart:  g.data( [1],  1, { meta:true }),
+        __loopEnd:    g.data( [1],  1, { meta:true }),
+        __loudness:   g.data( [1],  1, { meta:true }),
+        __decay:      g.decay( decay ),
+
+        cb: null,
+
         get loudness() { 
-          return g.gen.memory.heap[ this.__loudness.memory.values.idx   ]
+          return g.gen.memory.heap[ this.__loudness.memory.values.idx ]
         },
         set loudness( v ) {
           g.gen.memory.heap[ this.__loudness.memory.values.idx ] = v
@@ -211,72 +263,72 @@ module.exports = function( Gibberish ) {
 
       voice.phase = g.counter( 
         rate * voice.__rate[0], 
-        start * voice.bufferLength[0],
-        end * voice.bufferLength[0], 
+        0,
+        Infinity,
         voice.bang,
-        shouldLoop, 
+        0, 
         { shouldWrap:false, initialValue:9999999 }
       )
-
       voice.trigger = voice.bang.trigger
 
-      voice.graph = g.ifelse(
-        // if phase is greater than start and less than end... 
-        g.and( 
-          g.gte( voice.phase, start * voice.bufferLength[0] ), 
-          g.lt(  voice.phase, end   * voice.bufferLength[0] ) 
-        ),
-        // ...read data
-        voice.peek = g.peekDyn( 
-          voice.bufferLoc[0], 
-          voice.bufferLength[0],
-          voice.phase,
-          { mode:'samples' }
-        ),
-        // ...else return 0
-        0
-      ) 
-      * loudness 
-      * voice.__loudness[0] 
+      /*
+      start 4
+      end 6
+      phase 8
 
-      // start of attempt to loop sustain...
-      //voice.graph = g.ifelse(
-      //  // if phase is greater than start and less than end... 
-      //  g.and( 
-      //    g.gte( voice.phase, start * voice.bufferLength[0] ), 
-      //    g.lt(  voice.phase, end   * voice.bufferLength[0] ) 
-      //  ),
-      //  // ...read data
-      //  voice.peek = g.peekDyn( 
-      //    voice.bufferLoc[0], 
-      //    voice.bufferLength[0],
-      //    voice.phase,
-      //    { mode:'samples' }
-      //  ),
-      //  // ...else return 0
-      //  g.ifelse(
-      //    g.and(
-      //      voice.__shouldLoop[0],
-      //      g.gt( voice.phase, voice.__loopEnd[0] )
-      //    ),
-      //    g.peekDyn( 
-      //      voice.bufferLoc[0], 
-      //      voice.bufferLength[0],
-      //      g.add( 
-      //        voice.__loopStart[0],
-      //        g.mod(
-      //          voice.phase,
-      //          //g.sub( voice.phase, voice.__loopStart[0] ),
-      //          g.sub( voice.__loopEnd[0], voice.__loopStart[0] )
-      //        )
-      //      ),
-      //      { mode:'samples' }
-      //    ),
-      //    0
-      //  )
-      //) 
-      //* loudness 
-      //* triggerLoudness 
+      4 + 8 % ((6-4) + 1)
+      4 + (4 % 3)
+      4 + 1
+      5
+      */
+
+      //const loopPos = (voice.phase.value - loopStart) % (loopEnd - loopStart)
+      //voice.phase.value = loopStart + loopPos
+
+      const phaseOffset = voice.phase - voice.__loopStart[0]
+      const loopLength  = 1 + voice.__loopEnd[0] - voice.__loopStart[0]
+      const loopPos     = phaseOffset % loopLength
+      const loopPhase   = voice.__loopStart[0] + loopPos 
+
+      const state = g.peekDyn( 
+        voice.bufferLoc[0],  
+        voice.bufferLength[0],
+        //loopPhase,
+
+        g.ifelse( 
+          g.and( 
+            voice.__playing[0], 
+            g.lt( voice.phase, voice.__loopEnd[0] ) 
+          ), 
+
+          voice.phase,
+
+          g.ifelse( 
+            voice.__decaying[0],
+            voice.phase,
+            loopPhase
+          )
+        ),
+
+        { mode:'samples' }
+      )
+
+      console.log('f')
+
+      const env = g.ifelse(
+        g.and( g.lt( voice.phase, voice.__loopStart[0] ), voice.__decaying[0] ),
+        voice.__decay,
+        // if voice is playing and phase is less than sustain + release
+        g.and( voice.__playing[0], g.lt( voice.phase, sustain + (voice.bufferLength[0] - voice.__loopEnd[0] ) ) ),
+        1, 
+        0
+        //0, //voice.__decay
+      )
+      
+      voice.graph = state
+      * env
+      * loudness 
+      * voice.__loudness[0]
       
       const pan = g.pan( voice.graph, voice.graph, voice.__pan[0] )
       voice.graph = [ pan.left, pan.right ]
@@ -384,7 +436,7 @@ module.exports = function( Gibberish ) {
           __soundNumber = 0
           console.warn( `The ${soundNumber} Soundfont can't be found. Using Piano instead.` )
         }
-        soundNumber = __soundNumber
+        soundNumber = __soundNumber   
       }
 
       let num = (soundNumber) + '0'
@@ -455,6 +507,8 @@ module.exports = function( Gibberish ) {
     end:1,
     bufferLength:-999999999,
     loudness:1,
+    sustain: 44100,
+    decay: 22050,
     maxVoices:5, 
     __triggerLoudness:1
   }
