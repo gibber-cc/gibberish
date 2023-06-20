@@ -95,6 +95,7 @@ const minifyWorklet = ()=> {
 
 exports.default = series( jsFunc, workletFnc )
 exports.worklet = workletFnc
+exports.js = jsFunc
 
 //gulp.task( 'clean', ()=> {
 //  return gulp.src( './dist/*.js*', { read:false  })
@@ -132,8 +133,8 @@ const jsdsp = function({ types: t }) {
     '*':  'mul',
     '/':  'div',
     '^':  'pow',
-/*    '**': 'pow',
     '%':  'mod',
+/*    '**': 'pow',
     '+=': 'add',
     '*=': 'mul',
     '-=': 'sub',
