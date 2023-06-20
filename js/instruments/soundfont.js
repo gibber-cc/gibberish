@@ -16,6 +16,8 @@ _d = data( __ab )
 play( peek( _d, phasor(1,0,{min:0}) ) )
 */
 
+const SHOULD_SUSTAIN = false
+
 const g = require( 'genish.js' ),
       instrument = require( './instrument.js' )
 
@@ -150,7 +152,6 @@ module.exports = function( Gibberish ) {
         // set voice data index
         g.gen.memory.heap[ voice.bufferLoc.memory.values.idx ] = sampler.dataIdx
 
-        g.gen.memory.heap[ voice.__decaying.memory.values.idx  ] = 0
         g.gen.memory.heap[ voice.__playing.memory.values.idx   ] = 1
         g.gen.memory.heap[ voice.__loopStart.memory.values.idx ] = loopStart
         g.gen.memory.heap[ voice.__loopEnd.memory.values.idx   ] = loopEnd
@@ -161,22 +162,24 @@ module.exports = function( Gibberish ) {
         if( voice.cb !== null ) 
           Gibberish.scheduler.remove( voice.cb )
 
-        voice.__decay.trigger() 
-        voice.cb = ()=> {
-          //if( voice.phase.value > loopStart ) {
-          //  const loopPos = (voice.phase.value - loopStart) % (loopEnd - loopStart)
-          //  voice.phase.value = loopStart + loopPos
-          //}
+        // don't trigger this immediately if sustain
+        // is being attempted
+        if( !SHOULD_SUSTAIN ) voice.__decay.trigger()
 
-          voice.__decaying[0] = 1 
-          voice.__decay.trigger() 
+        // XXX re-enable callback for sustain
+        // have to also set it up in envelope later in code
+
+        if( SHOULD_SUSTAIN ) {
+          voice.cb = ()=> {
+            voice.__decay.trigger() 
+          }
+          
+          Gibberish.scheduler.add( 
+            this.sustain, 
+            voice.cb,
+            0
+          )
         }
-        
-        Gibberish.scheduler.add( 
-          this.sustain, 
-          voice.cb,
-          0
-        )
         
         voice.trigger()
       }
@@ -272,16 +275,17 @@ module.exports = function( Gibberish ) {
       const phase = g.ifelse( 
         g.and( 
           voice.__playing[0], 
-          g.lt( voice.phase, voice.__loopEnd[0] ) 
+          g.lt( voice.phase, voice.__loopStart[0] ) 
         ), 
 
         voice.phase,
 
-        g.ifelse( 
-          voice.__decaying[0],
-          loopPhase,//voice.phase,
-          loopPhase
-        )
+        loopPhase
+        //g.ifelse( 
+        //  voice.__decaying[0],
+        //  loopPhase,//voice.phase,
+        //  loopPhase
+        //)
       )
 
       voice.trigger = voice.bang.trigger
@@ -294,22 +298,25 @@ module.exports = function( Gibberish ) {
         { mode:'samples' }
       )
 
-      console.log('g')
-
-      const env = g.ifelse(
-        voice.__decaying[0],
-        voice.__decay,
-        // if voice is playing and phase is less than sustain + release
-        g.and( voice.__playing[0], g.lt( voice.phase, sustain + (voice.bufferLength[0] - voice.__loopEnd[0] ) ) ),
-        1, 
-
-        0
-      )
+      // XXX giving up on sustain for now
+      // it works for some samples but causes glitches/clicks in others
+      // when the decay is triggered and i have no idea why
+        
+      const env = SHOULD_SUSTAIN 
+        ? g.ifelse(
+          // if voice is playing and phase is less than sustain 
+            g.lt( voice.phase, sustain ),
+            1,
+            voice.__decay
+          )
+        : voice.__decay
       
-      voice.graph = state
-      * env
-      * loudness 
-      * voice.__loudness[0]
+      
+      voice.graph = state 
+        * env
+        * voice.__playing[0]
+        * loudness 
+        * voice.__loudness[0]
       
       const pan = g.pan( voice.graph, voice.graph, voice.__pan[0] )
       voice.graph = [ pan.left, pan.right ]
@@ -489,7 +496,7 @@ module.exports = function( Gibberish ) {
     bufferLength:-999999999,
     loudness:1,
     sustain: 44100,
-    decay: 22050,
+    decay: 44100,
     maxVoices:5, 
     __triggerLoudness:1
   }
