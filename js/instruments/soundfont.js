@@ -137,22 +137,20 @@ module.exports = function( Gibberish ) {
         voice = this.__getVoice__()
 
         const sampleRateRatio = Gibberish.ctx.sampleRate / sampler.zone.sampleRate
-        let   loopStart = sampler.zone.loopStart * sampleRateRatio
-        let   loopEnd   = sampler.zone.loopEnd   * sampleRateRatio
+        const loopStart = sampler.zone.loopStart * sampleRateRatio
+        const loopEnd   = sampler.zone.loopEnd   * sampleRateRatio
 
         if( rate !== null ) {
           voice.rate = rate
         }
 
-        console.log( loopStart, loopEnd, rate, sampler )
-
         // set voice buffer length
-        g.gen.memory.heap[ voice.bufferLength.memory.values.idx ] = sampler.dataLength //* sampleRateRatio
+        g.gen.memory.heap[ voice.bufferLength.memory.values.idx ] = sampler.dataLength 
 
         // set voice data index
         g.gen.memory.heap[ voice.bufferLoc.memory.values.idx ] = sampler.dataIdx
 
-        g.gen.memory.heap[ voice.__decaying.memory.values.idx  ] = 0
+        g.gen.memory.heap[ voice.__decaying.memory.values.idx  ] = 1
         g.gen.memory.heap[ voice.__playing.memory.values.idx   ] = 1
         g.gen.memory.heap[ voice.__loopStart.memory.values.idx ] = loopStart
         g.gen.memory.heap[ voice.__loopEnd.memory.values.idx   ] = loopEnd
@@ -163,20 +161,18 @@ module.exports = function( Gibberish ) {
         if( voice.cb !== null ) 
           Gibberish.scheduler.remove( voice.cb )
 
-        voice.cb = ()=> {
-          console.log( voice.phase.value, loopStart, loopEnd )
-          if( voice.phase.value > loopStart ) {
-            const loopPos = (voice.phase.value - loopStart) % (loopEnd - loopStart)
-            voice.phase.value = loopStart + loopPos
-          }
+        voice.__decay.trigger() 
+        //voice.cb = ()=> {
+        //  if( voice.phase.value > loopStart ) {
+        //    const loopPos = (voice.phase.value - loopStart) % (loopEnd - loopStart)
+        //    voice.phase.value = loopStart + loopPos
+        //  }
 
-          //voice.phase.value = 
-          //  voice.__loopStart[0]
-          //  + ((voice.phase.value - voice.__loopStart[0]) % (voice.__loopEnd[0] - voice.__loopStart[0]))
-
-          voice.__decaying[0] = 1 
-          voice.__decay.trigger() 
-        }
+        //  voice.__decaying[0] = 1 
+        //  voice.__decay.trigger() 
+        //}
+        
+        //console.log( 'sustain:', this.sustain )
 
         //Gibberish.scheduler.add( 
         //  this.sustain, 
@@ -269,64 +265,51 @@ module.exports = function( Gibberish ) {
         0, 
         { shouldWrap:false, initialValue:9999999 }
       )
-      voice.trigger = voice.bang.trigger
-
-      /*
-      start 4
-      end 6
-      phase 8
-
-      4 + 8 % ((6-4) + 1)
-      4 + (4 % 3)
-      4 + 1
-      5
-      */
-
-      //const loopPos = (voice.phase.value - loopStart) % (loopEnd - loopStart)
-      //voice.phase.value = loopStart + loopPos
 
       const phaseOffset = voice.phase - voice.__loopStart[0]
       const loopLength  = 1 + voice.__loopEnd[0] - voice.__loopStart[0]
       const loopPos     = phaseOffset % loopLength
       const loopPhase   = voice.__loopStart[0] + loopPos 
 
+      const phase = g.ifelse( 
+        g.and( 
+          voice.__playing[0], 
+          g.lt( voice.phase, voice.__loopEnd[0] ) 
+        ), 
+
+        voice.phase,
+
+        g.ifelse( 
+          voice.__decaying[0],
+          loopPhase,//voice.phase,
+          loopPhase
+        )
+      )
+
+      voice.trigger = voice.bang.trigger
+
       const state = g.peekDyn( 
         voice.bufferLoc[0],  
         voice.bufferLength[0],
-        //loopPhase,
-
-        g.ifelse( 
-          g.and( 
-            voice.__playing[0], 
-            g.lt( voice.phase, voice.__loopEnd[0] ) 
-          ), 
-
-          voice.phase,
-
-          g.ifelse( 
-            voice.__decaying[0],
-            voice.phase,
-            loopPhase
-          )
-        ),
+        phase,
 
         { mode:'samples' }
       )
 
-      console.log('f')
+      console.log('g')
 
       const env = g.ifelse(
-        g.and( g.lt( voice.phase, voice.__loopStart[0] ), voice.__decaying[0] ),
+        voice.__decaying[0],
         voice.__decay,
         // if voice is playing and phase is less than sustain + release
         g.and( voice.__playing[0], g.lt( voice.phase, sustain + (voice.bufferLength[0] - voice.__loopEnd[0] ) ) ),
         1, 
+
         0
-        //0, //voice.__decay
       )
       
       voice.graph = state
-      * env
+      * voice.__decay
       * loudness 
       * voice.__loudness[0]
       
