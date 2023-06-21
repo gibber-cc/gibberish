@@ -54,16 +54,16 @@ module.exports = function( Gibberish ) {
       this.currentSample = key
       return this.trigger()
     },
-    __note( rate, loudness=null ) {
+    __note( rate, loudness=null, decay=null ) {
       // soundfont measures pitch in cents
       // originalPitch = findMidiForHz( hz ) * 100 // (100 cents per midi index)
       // rate = Math.pow(2, (100.0 * pitch - originalPitch) / 1200.0) // 1200 cents per octave
-      return this.trigger( loudness, rate )
+      return this.trigger( loudness, rate, decay )
     },
-    note( freq, loudness=null ) {
+    note( freq, loudness=null, decay=null ) {
       'no jsdsp'
       const midinote = 69 + 12 * Math.log2( freq/440 )
-      return this.midinote( midinote, loudness )
+      return this.midinote( midinote, loudness, decay )
     },
     midipick( midinote, loudness ) {
       // loop through zones to find correct sample #
@@ -86,12 +86,12 @@ module.exports = function( Gibberish ) {
       this.pick( idx )
       return pitch
     },
-    midinote( midinote, loudness=null ) {
+    midinote( midinote, loudness=null, decay=null ) {
       'no jsdsp'
       const samplePitch = this.midipick( midinote )
       const pitch = Math.pow( 2, (100 * midinote - samplePitch ) / 1200 ) 
       //const pitch = 1//Math.pow( 2, (samplePitch ) ) 
-      return this.__note( pitch, loudness )
+      return this.__note( pitch, loudness, decay )
     }, 
     midichord( frequencies ) {
       if( Gibberish !== undefined && Gibberish.mode !== 'worklet' ) {
@@ -122,7 +122,7 @@ module.exports = function( Gibberish ) {
         voice.rate = value
       }
     },
-    trigger( volume=null, rate=null ) {
+    trigger( volume=null, rate=null, decay=null ) {
       'no jsdsp'
       //if( volume !== null ) this.__triggerLoudness = volume
 
@@ -145,6 +145,7 @@ module.exports = function( Gibberish ) {
         if( rate !== null ) {
           voice.rate = rate
         }
+        voice.decay = decay !== null ? decay : 1
 
         // set voice buffer length
         g.gen.memory.heap[ voice.bufferLength.memory.values.idx ] = sampler.dataLength 
@@ -236,11 +237,11 @@ module.exports = function( Gibberish ) {
         __playing:    g.data( [0],  1, { meta:true }),
         __decaying:   g.data( [0],  1, { meta:true }),
         __rate:       g.data( [1],  1, { meta:true }),
+        __decayV:     g.data( [1],  1, { meta:true }),
         __shouldLoop: g.data( [1],  1, { meta:true }),
         __loopStart:  g.data( [1],  1, { meta:true }),
         __loopEnd:    g.data( [1],  1, { meta:true }),
         __loudness:   g.data( [1],  1, { meta:true }),
-        __decay:      g.decay( decay ),
 
         cb: null,
 
@@ -256,7 +257,12 @@ module.exports = function( Gibberish ) {
         set rate(v) {
           g.gen.memory.heap[ this.__rate.memory.values.idx ] = v
         },
+        set decay(v) {
+          g.gen.memory.heap[ this.__decayV.memory.values.idx ] = v
+        },
       }
+
+      voice.__decay = g.decay( decay * voice.__decayV[0] )
 
       voice.phase = g.counter( 
         rate * voice.__rate[0], 
