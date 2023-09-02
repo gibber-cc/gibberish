@@ -19,7 +19,7 @@
     "gulp-clean": "^0.4.0",
     "gulp-gzip": "^1.4.2",
     "gulp-rename": "^1.2.2",
-    "gulp-uglify-es": "^1.0.4",
+    "gulp-uglify-es": "^3.0.0",
     "uglify-es": "^3.3.9",
     "vinyl-buffer": "^1.0.1",
     "vinyl-source-stream": "^2.0.0"
