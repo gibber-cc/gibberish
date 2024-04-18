@@ -13,6 +13,7 @@ module.exports = function( Gibberish ) {
     create( __props ) {
 
       if( bufferL === undefined ) {
+        // XXX I guess this is to setup wavetables if they're not created?
         const p = g.pan()
         
         // copy memory... otherwise the wavetables don't have memory indices.

@@ -241,7 +241,9 @@ let Gibberish = {
 
     if( this.debug === true ) console.log( 'callback:\n', callbackBody.join('\n') )
     
+    // XXX add 'input' for mic here
     this.callbackNames.push( 'mem' )
+    // ... and here
     this.callbackUgens.push( this.memory.heap )
     this.callback = Function( ...this.callbackNames, callbackBody.join( '\n' ) )//.bind( null, ...this.callbackUgens )
     this.callback.out = []
