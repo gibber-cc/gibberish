@@ -1,0 +1,102 @@
+const ugen    = require( '../ugen.js' )(),
+      __proxy = require( '../workletProxy.js' )
+
+/* we need to:
+ * 1. create the mediastream node and connect it as an input to our worklet
+ * 2. change the callback to (optionally?) include an input
+ * 3. use custom codegen in instrument to access input stream in callback
+ *
+ * look at misc/bus2 for example of how to create custom callback that
+ * doesn't use genish
+ *
+ * could we also use ugen.block to just insert a static line of code?
+ * maybe we could add getter/setter so that it can't be overridden?
+ *
+ * concern: we could just add 'input' as input to our callback function,
+ * but some ugens depend on memory being the last option. should we add
+ * it to the beginning?
+ */
+
+const Audio = {
+  __hasInput: false,
+  input:      null,
+  ctx:        null,
+
+  start( Gibberish ) {
+    console.log( 'connecting audio input...' )
+
+    const p = new Promise( resolve => {
+      if( Audio.input === null ) {
+        console.log( 'start?' )
+        navigator.mediaDevices.getUserMedia({ audio:true, video:false })
+          .then( stream => {
+            console.log( 'audio input connected' )
+            Audio.input = Gibberish.ctx.createMediaStreamSource( stream )
+            Audio.__hasInput = true
+
+            resolve( Audio.input )
+          })
+          .catch( err => { 
+            console.log( 'error opening audio input:', err )
+          })
+      }else{
+        resolve( Audio.input )
+      }
+    })
+    return p
+  }
+}
+  
+module.exports = function( Gibberish ) {
+
+  const Input = __props => {
+    const input = Object.create( ugen )
+    const proxy = __proxy( Gibberish )
+    const output = new Float64Array( 1 )
+    const props = Object.assign({}, Input.defaults, __props )
+
+    if( Audio.input === null ) Audio.start()
+
+    Object.assign( input, {
+      callback( phase, buffer, gain ) {
+        output[0] = buffer[ phase ] * gain 
+        return output
+      },
+
+      id : Gibberish.factory.getUID(),
+      dirty : false,
+      type : 'bus',
+      isStereo: false,
+      __properties__:props
+    })
+
+    input.ugenName = input.callback.ugenName = 'input_' + input.id
+
+    const out = input.__useProxy__ === true ? proxy( ['Input'], props, input ) : input
+
+
+    // we have to include custom properties for these as the argument list for
+    // the compiled output function is variable
+    // so codegen can't know the correct argument order for the function
+    // XXX this code was taken from bus, but here in input we do know the number
+    // of arguments. three: phase, mic buffer, gain
+    let gain = 1
+    Object.defineProperty( out, 'gain', {
+      get() { return gain },
+      set(v){ 
+        gain = v
+        out.inputs[ out.inputs.length - 1 ] = gain
+        Gibberish.dirty( out )
+      }
+    })
+
+    return out
+  }
+
+  Input.defaults = { gain:1, __useProxy__:true }
+
+  const constructor = Input.create.bind( Input )
+  constructor.defaults = Input.defaults
+
+  return constructor
+}
