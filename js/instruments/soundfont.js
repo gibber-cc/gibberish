@@ -99,9 +99,26 @@ module.exports = function( Gibberish ) {
         this.triggerChord = frequencies
       }
     },
-    chord( frequencies ) {
+    chord( frequencies, loudnesses=null, durations=null ) {
       if( Gibberish !== undefined && Gibberish.mode !== 'worklet' ) {
-        frequencies.forEach( v => this.note( v ) )
+        if( loudnesses === null && durations === null ) {
+          frequencies.forEach( v => this.note( v ) )
+        }else if( durations === null ) {
+          frequencies.forEach( (v,i) => 
+            this.note( 
+              v, 
+              typeof loudnesses === 'object' ? loudnesses[i] : loudnesses 
+            )
+          )
+        }else{
+          frequencies.forEach( (v,i) => 
+            this.note( 
+              v, 
+              typeof loudnesses === 'object' ? loudnesses[i] : loudnesses, 
+              typeof durations  === 'object' ? durations[i]  : durations
+            ) 
+          )
+        }
         this.triggerChord = frequencies
       }
     },
