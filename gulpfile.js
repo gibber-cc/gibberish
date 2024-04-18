@@ -27,6 +27,7 @@ const { src, task, dest, series, watch } = require( 'gulp' ),
             round = null,
             min   = null,
             max   = null,
+            line  = null,
             g     = null
 
         let initialized = false;\n`,
