@@ -15,6 +15,10 @@ module.exports = function( Gibberish ) {
       //Pattern( props.pattern, { addLocations:true, addUID:true, enclose:true }),
       __events: null,
 
+      addFilter( filter ) {
+        seq.filters.push( filter )
+      },
+
       tick(priority) {
         let startTime
         // running for first time, perform a query
