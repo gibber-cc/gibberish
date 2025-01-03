@@ -4,9 +4,9 @@ const Gibberish = require( '../index.js' )
 
 module.exports = {
   note( freq ) {
+    let voice = this.__getVoice__()
     // will be sent to processor node via proxy method...
     if( Gibberish.mode !== 'worklet' ) {
-      let voice = this.__getVoice__()
       //Object.assign( voice, this.properties )
       //if( gain === undefined ) gain = this.gain
       //voice.gain = gain
@@ -15,11 +15,14 @@ module.exports = {
       this.__runVoice__( voice, this )
       this.triggerNote = freq
     }
+    return voice
   },
 
   // XXX this is not particularly satisfying...
   // must check for both notes and chords
   trigger( loudness ) {
+    if( loudness < 0 ) loudness = 0
+
     if( this.triggerChord !== null ) {
       this.triggerChord.forEach( v => {
         let voice = this.__getVoice__()
@@ -32,11 +35,13 @@ module.exports = {
       Object.assign( voice, this.properties )
       voice.note( this.triggerNote, loudness )
       this.__runVoice__( voice, this )
+      return voice
     }else{
       let voice = this.__getVoice__()
       Object.assign( voice, this.properties )
       voice.trigger( loudness )
       this.__runVoice__( voice, this )
+      return voice
     }
   },
 
