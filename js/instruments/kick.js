@@ -23,7 +23,7 @@ module.exports = function( Gibberish ) {
     // create DSP graph
     const trigger = g.bang(),
           impulse = g.mul( trigger, 60 ),
-          scaledDecay = g.sub( 1.005, decay ), // -> range { .005, 1.005 }
+          scaledDecay = g.sub( 1.005, g.min( decay, .99999) ), // -> range { .005, 1.005 }
           scaledTone = g.add( 50, g.mul( tone, g.mul(4000, Loudness ) ) ), // -> range { 50, 4050 }
           bpf = g.svf( impulse, frequency, scaledDecay, 2, false ),
           lpf = g.svf( bpf, scaledTone, .5, 0, false ),
