@@ -18,6 +18,10 @@ module.exports = function( Gibberish ) {
       
       const __out = Gibberish.factory( abs, graph, ['monops','abs'], Object.assign({}, Monops.defaults, { inputs:[input], isop:true }) )
 
+      __out.isop = true
+
+      console.log( __out )
+
       return __out
     },
 
@@ -25,15 +29,19 @@ module.exports = function( Gibberish ) {
       const pow = Object.create( ugen )
       const graph = g.pow( g.in('input'), g.in('exponent') )
       
-      Gibberish.factory( pow, graph, ['monops','pow'], Object.assign({}, Monops.defaults, { inputs:[input], exponent, isop:true }) )
+      const __out =  Gibberish.factory( pow, graph, ['monops','pow'], Object.assign({}, Monops.defaults, { inputs:[input], exponent, isop:true }) )
 
-      return pow
+      __out.isop = true
+
+      return __out
     },
     Clamp( input, min, max ) {
       const clamp = Object.create( ugen )
       const graph = g.clamp( g.in('input'), g.in('min'), g.in('max') )
       
       const __out = Gibberish.factory( clamp, graph, ['monops','clamp'], Object.assign({}, Monops.defaults, { inputs:[input], isop:true, min, max }) )
+
+      __out.isop = true
 
       return __out
     },
