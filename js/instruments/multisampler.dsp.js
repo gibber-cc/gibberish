@@ -137,6 +137,8 @@ module.exports = function( Gibberish ) {
         // XXX how do I change this from main thread?
         __pan: g.data( [.5], 1, { meta:true }),
         __rate: g.data( [1], 1, { meta:true }),
+        __start: g.data( [0], 1, { meta:true }),
+        __end: g.data( [1], 1, { meta:true }),
         __shouldLoop: g.data( [1], 1, { meta:true }),
         __loudness:  g.data( [1], 1, { meta:true }),
         get loudness() { 
@@ -154,12 +156,24 @@ module.exports = function( Gibberish ) {
         get rate() {
           return g.gen.memory.heap[ this.__rate.memory.values.idx ]
         },
+        set start(v) {
+          g.gen.memory.heap[ this.__start.memory.values.idx ] = v
+        },
+        get start() {
+          return g.gen.memory.heap[ this.__start.memory.values.idx ]
+        },
+        set end(v) {
+          g.gen.memory.heap[ this.__end.memory.values.idx ] = v
+        },
+        get end() {
+          return g.gen.memory.heap[ this.__end.memory.values.idx ]
+        },
       }
 
       voice.phase = g.counter( 
         rate * voice.__rate[0], 
-        start * voice.bufferLength[0],
-        end * voice.bufferLength[0], 
+        (voice.__start[0]+start) * voice.bufferLength[0],
+        (voice.__end[0]*end) * voice.bufferLength[0], 
         voice.bang,
         shouldLoop, 
         { shouldWrap:false, initialValue:9999999 }
@@ -170,8 +184,8 @@ module.exports = function( Gibberish ) {
       voice.graph = g.ifelse(
         // if phase is greater than start and less than end... 
         g.and( 
-          g.gte( voice.phase, start * voice.bufferLength[0] ), 
-          g.lt(  voice.phase, end   * voice.bufferLength[0] ) 
+          g.gte( voice.phase, (voice.__start[0]*start) * voice.bufferLength[0] ), 
+          g.lt(  voice.phase, (voice.__end[0]*end)     * voice.bufferLength[0] ) 
         ),
         // ...read data
         voice.peek = g.peekDyn( 
