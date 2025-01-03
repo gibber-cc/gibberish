@@ -26,7 +26,7 @@ Object.assign(instrument, {
     }
 
     if (loudness !== null) {
-      this.__triggerLoudness = loudness;
+      this.__triggerLoudness = loudness >= 0 ? loudness : 0;
     }
 
     this.env.trigger();
@@ -36,7 +36,7 @@ Object.assign(instrument, {
     if (isNaN(loudness)) {
       throw Error(`A non-number was passed to trigger() on ${this.ugenName}; this value will be ignored and the envelope will not be triggered.`);
     } else {
-      this.__triggerLoudness = loudness;
+      this.__triggerLoudness = loudness >= 0 ? loudness : 0;
       this.env.trigger();
     }
   }
