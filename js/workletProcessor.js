@@ -318,6 +318,7 @@ class GibberishProcessor extends AudioWorkletProcessor {
             gibberish.graphIsDirty = false
           } finally {
             ugens = gibberish.callbackUgens
+            ugens.push( inputs[0][0] )
             this.callback = callback = cb
             // tell main thread that new callback has been created
             // in case it wants to display it / do something else
