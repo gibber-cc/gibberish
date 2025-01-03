@@ -206,7 +206,9 @@ module.exports = function( Gibberish ) {
     multiplier:1,
     abs: true,
     outputStereo:false,
-    offset:0
+    offset:0,
+    min:-Infinity,
+    max:Infinity
   }
 
   return Follow
