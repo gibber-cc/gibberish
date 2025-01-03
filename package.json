@@ -36,7 +36,8 @@
     "tidal.pegjs": "latest"
   },
   "scripts": {
-    "link": "npm link genish.js"
+    "link": "npm link genish.js",
+    "copy": "cp dist/gibberish_worklet.js ../gibber/playground/gibberish_worklet.js"
   },
   "repository": {
     "type": "git",
