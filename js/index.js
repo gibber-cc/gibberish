@@ -235,17 +235,22 @@ let Gibberish = {
         this.callbackUgens.push( v.callback )
     })
 
-    this.callbackNames = this.callbackUgens.map( v => v.ugenName )
 
     callbackBody.push( '\n\treturn ' + lastLine.split( '=' )[0].split( ' ' )[1] )
 
     if( this.debug === true ) console.log( 'callback:\n', callbackBody.join('\n') )
     
-    // XXX add 'input' for mic here
+    // XXX added unshift 'input' here
+    this.callbackNames = this.callbackUgens.map( v => v.ugenName )
     this.callbackNames.push( 'mem' )
+    this.callbackNames.push( 'input' )
+    
     // ... and here
     this.callbackUgens.push( this.memory.heap )
-    this.callback = Function( ...this.callbackNames, callbackBody.join( '\n' ) )//.bind( null, ...this.callbackUgens )
+    // XXX added 0 to represent mic input
+    this.callbackUgens.push( 0 )
+
+    this.callback = Function( ...this.callbackNames, callbackBody.join( '\n' ) )
     this.callback.out = []
 
     if( this.oncallback ) this.oncallback( this.callback )
@@ -291,7 +296,6 @@ let Gibberish = {
     if( block === undefined ) block = []
     if( ugen === undefined ) return block
 
-
     let dirtyIdx = Gibberish.dirtyUgens.indexOf( ugen )
 
     let memo = Gibberish.memoed[ ugen.ugenName ]
@@ -307,18 +311,26 @@ let Gibberish = {
       }
 
       let line = `\tconst v_${ugen.id} = ` 
-      if( !ugen.isop ) line += `${ugen.ugenName}( `
 
-      // must get array so we can keep track of length for comma insertion
-      const keys = ugen.isop === true || ugen.type === 'bus'  
-        ? Object.keys( ugen.inputs ) 
-        : [...ugen.inputNames ] 
+      // ugens can have custom callback strings so that they
+      // bypass codegen. currently Input is the only one that does this,
+      // it simply accepts the worklet input as its argument.
+      if( ugen.callbackString !== undefined ) {
+        line += ugen.callbackString
+      }else{
+        if( !ugen.isop ) line += `${ugen.ugenName}( `
 
-      line = ugen.isop === true 
-        ? Gibberish.__processBinop( ugen, line, block, keys ) 
-        : Gibberish.__processNonBinop( ugen, line, block, keys )
+        // must get array so we can keep track of length for comma insertion
+        const keys = ugen.isop === true || ugen.type === 'bus'  
+          ? Object.keys( ugen.inputs ) 
+          : [...ugen.inputNames ] 
 
-      line = Gibberish.__addLineEnding( line, ugen, keys )
+        line = ugen.isop === true 
+          ? Gibberish.__processBinop( ugen, line, block, keys ) 
+          : Gibberish.__processNonBinop( ugen, line, block, keys )
+
+        line = Gibberish.__addLineEnding( line, ugen, keys )
+      }
 
       block.push( line )
       
