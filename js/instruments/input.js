@@ -12,9 +12,7 @@ const ugen    = require( '../ugen.js' )(),
  * could we also use ugen.block to just insert a static line of code?
  * maybe we could add getter/setter so that it can't be overridden?
  *
- * concern: we could just add 'input' as input to our callback function,
- * but some ugens depend on memory being the last option. should we add
- * it to the beginning?
+ * concern: we could just add 'input' as input to our callback function
  */
 
 const Audio = {
@@ -55,31 +53,29 @@ module.exports = function( Gibberish ) {
     const output = new Float64Array( 1 )
     const props = Object.assign({}, Input.defaults, __props )
 
-    if( Audio.input === null ) Audio.start()
+    let phase = 0
+
+    if( Audio.input === null ) Audio.start( Gibberish )
 
     Object.assign( input, {
-      callback( phase, buffer, gain ) {
-        output[0] = buffer[ phase ] * gain 
+      callback( buffer ) {
+        output[0] = buffer[ phase++ % buffer.length ]
         return output
       },
 
       id : Gibberish.factory.getUID(),
       dirty : false,
-      type : 'bus',
+      type : 'ugen',
       isStereo: false,
       __properties__:props
     })
 
     input.ugenName = input.callback.ugenName = 'input_' + input.id
+    input.callbackString = input.ugenName + '( input );'
 
     const out = input.__useProxy__ === true ? proxy( ['Input'], props, input ) : input
 
-
-    // we have to include custom properties for these as the argument list for
-    // the compiled output function is variable
-    // so codegen can't know the correct argument order for the function
-    // XXX this code was taken from bus, but here in input we do know the number
-    // of arguments. three: phase, mic buffer, gain
+    /*
     let gain = 1
     Object.defineProperty( out, 'gain', {
       get() { return gain },
@@ -89,14 +85,12 @@ module.exports = function( Gibberish ) {
         Gibberish.dirty( out )
       }
     })
+    */
 
     return out
   }
 
   Input.defaults = { gain:1, __useProxy__:true }
 
-  const constructor = Input.create.bind( Input )
-  constructor.defaults = Input.defaults
-
-  return constructor
+  return Input 
 }
