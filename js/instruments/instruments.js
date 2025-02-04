@@ -9,6 +9,7 @@ const instruments = {
   Tom         : require( './tom.js' )( Gibberish ),
   Clap        : require( './clap.dsp.js' )( Gibberish ),
   Multisampler: require( './multisampler.dsp.js' )( Gibberish ),
+  Grains      : require( './grains.dsp.js' )( Gibberish ),
   Soundfont   : require( './soundfont.js' )( Gibberish ),
   Input       : require( './input.js' )( Gibberish ),
 }
