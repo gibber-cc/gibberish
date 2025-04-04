@@ -70,6 +70,13 @@ module.exports = {
     //Gibberish.blockCallbacks.push( envCheck )
   },
 
+  // get the next voice that will be used, in order to 
+  // set property values before it is triggered. voiceCount
+  // isn't incremented.
+  __getVoiceStatic__() {
+    return this.voices[ this.voiceCount % this.voices.length ]
+  },
+
   __getVoice__() {
     return this.voices[ this.voiceCount++ % this.voices.length ]
   },
