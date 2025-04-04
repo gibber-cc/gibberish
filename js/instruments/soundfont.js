@@ -66,6 +66,7 @@ module.exports = function( Gibberish ) {
       return this.midinote( midinote, loudness, decay )
     },
     midipick( midinote, loudness ) {
+      if( this.zones === undefined ) return
       // loop through zones to find correct sample #
       let idx = 0, pitch = 0 
 
@@ -150,7 +151,7 @@ module.exports = function( Gibberish ) {
         // if sample isn't loaded...
         if( sampler === undefined ) {
           console.warn( 'no sampler found...', sampler, this.currentSample, this.samplers )
-          return
+          return {}
         }
 
         voice = this.__getVoice__()
