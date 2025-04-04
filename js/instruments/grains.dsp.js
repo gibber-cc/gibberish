@@ -17,12 +17,12 @@ module.exports = function( Gibberish ) {
       const key = keys[ idx ]
       this.currentSample = key
     },
-    pickplay( __idx ) {
+    pickplay( __idx, rate=null, length=null, start=null ) {
       const idx = Math.floor( __idx )
       const keys = Object.keys( this.samplers )
       const key = keys[ idx ]
       this.currentSample = key
-      return this.trigger()
+      return this.trigger( null, rate, length, start )
     },
     note( rate ) {
       //this.rate = rate
@@ -44,7 +44,6 @@ module.exports = function( Gibberish ) {
         voice.rate = value
         voice.envrate = 1024 / g.gen.memory.heap[ voice.bufferLength.memory.values.idx ]
         
-        /*
         const samplerRate = typeof this.rate === 'object' ? 1 : this.rate
         const dir = Math.sign( voice.rate ) === Math.sign( samplerRate ) ? 1 : 0
 
@@ -57,10 +56,10 @@ module.exports = function( Gibberish ) {
           // end of the sample for reverse playback
           voice.phase.value = sampler.dataLength - 1
         }
-        */
+        
       }
     },
-    trigger( volume=null, rate=null ) {
+    trigger( volume=null, rate=null, length=null, start = null ) {
       'no jsdsp'
       if( volume !== null ) this.__triggerLoudness = volume
 
@@ -82,7 +81,9 @@ module.exports = function( Gibberish ) {
         
         // assume voice plays forward if no rate is provided
         // global rate for sampler can still be used to reverse
-        voice.rate = rate !== null ? rate : 1
+        voice.rate   = rate   !== null ? rate   : 1
+        voice.length = length !== null ? length : 1
+        voice.start  = start  !== null ? start  : 0
 
         // determine direction voice will play at by checking sign
         // of voice.rate and sampler.rate. If both are the same,
@@ -91,32 +92,38 @@ module.exports = function( Gibberish ) {
         // positive value
 
         // assume positive value if a modulation is applied to rate
-        const samplerRate = typeof this.rate === 'object' ? 1 : this.rate
-        const dir = Math.sign( voice.rate ) === Math.sign( samplerRate ) ? 1 : 0
+        //const samplerRate = typeof this.rate === 'object' ? 1 : this.rate
+        const dir = Math.sign( voice.rate )// === Math.sign( samplerRate ) ? 1 : 0
 
         if( dir === 1 ) {
           // trigger the bang assigned to the reset property of the 
-          // counter object representing phase for the voice
+          // counter object representing phase for the voice, and
+          // it's also attached to each voice's envelope.
           voice.trigger()
         }else{
-          // reset the value of the phase counter to the 
-          // end of the sample for reverse playback
-          voice.phase.value = sampler.dataLength - 1
+          // must set phase values of both 
+          // grain reader and envelope
+          voice.envphase.value = 0
+          voice.phase.value = (start+length)*sampler.dataLength 
         }
       }
 
       return voice
     },
+    __getVoiceStatic__() {
+      return this.voices[ this.voiceCount % this.voices.length ]
+    },
     __getVoice__() {
-      return this.voices[ this.voiceCount++ % this.voices.length ]
+      const v = this.voices[ this.voiceCount % this.voices.length ]
+      this.voiceCount++
+      return v
     },
   })
 
   const Sampler = inputProps => {
     const syn = Object.create( proto )
-    const env = g.env({ length:1024, type:'triangular', alpha:5 })
-
     const props = Object.assign( { onload:null, voiceCount:0, files:[] }, Sampler.defaults, inputProps )
+    const env = g.env({ length:1024, type:props.env, alpha:5 })
 
     syn.isStereo = props.isStereo !== undefined ? props.isStereo : false
 
@@ -145,7 +152,6 @@ module.exports = function( Gibberish ) {
 
     const voices = []
     for( let i = 0; i < syn.maxVoices; i++ ) {
-      'use jsdsp'
 
       const voice = {
         bufferLength: g.data( [1], 1, { meta:true }),
@@ -159,6 +165,7 @@ module.exports = function( Gibberish ) {
         __length: g.data( [1], 1, { meta:true }),
         __shouldLoop: g.data( [1], 1, { meta:true }),
         __loudness:  g.data( [1], 1, { meta:true }),
+
         get loudness() { 
           return g.gen.memory.heap[ this.__loudness.memory.values.idx   ]
         },
@@ -197,6 +204,7 @@ module.exports = function( Gibberish ) {
           // all envelopes are 1024 samples long
           const envrate = 1024 / (len * v)
 
+          //console.log( 'envrate:', envrate, len, v )
           // rate is accounted for in the increment for the envphase counter
           g.gen.memory.heap[ this.__envrate.memory.values.idx ] = envrate
         },
@@ -207,28 +215,33 @@ module.exports = function( Gibberish ) {
       'use jsdsp'
 
       voice.envphase = g.counter( 
-        rate * voice.__rate[0] * voice.__envrate[0], 
+        //.0005,
+        //voice.__envrate[0] * 2,
+        g.abs(rate * voice.__rate[0] * voice.__envrate[0]),  
         0,
         1023, 
         voice.bang,
-        false, // was shouldLoop 
+        0, // was shouldLoop 
         { shouldWrap:false, initialValue:9999999 }
       )
 
       voice.envpeek = g.peek( env, voice.envphase, { mode:'samples' })
+      voice.end = (voice.__start[0]+start+voice.__length[0]) * voice.bufferLength[0]
 
       voice.phase = g.counter( 
         rate * voice.__rate[0], 
         (voice.__start[0]+start) * voice.bufferLength[0],
-        (voice.__start[0]+start+voice.__length[0]) * voice.bufferLength[0],
+        voice.end,
         voice.bang,
-        false, // was shouldLoop 
+        0, // was shouldLoop 
         { shouldWrap:true, initialValue:9999999 }
       )
 
       voice.trigger = voice.bang.trigger
 
-      const grainstart = (voice.__start[0]*start) * voice.bufferLength[0]
+      // XXX the start values must be added together, because if multiplying 
+      // and one is zero then their product will always be zero. obvi not obvi.
+      const grainstart = (voice.__start[0]+start) * voice.bufferLength[0]
       const grainend   = (voice.__start[0]+start+voice.__length[0]) * voice.bufferLength[0]
       const grainread  = g.peekDyn( 
           voice.bufferLoc[0], 
@@ -236,12 +249,12 @@ module.exports = function( Gibberish ) {
           voice.phase,
           { mode:'samples' }
         )
-
+ 
       voice.graph = g.ifelse(
         // if phase is greater than start and less than end... 
         g.and( 
           g.gte( voice.phase, grainstart ), 
-          g.lt(  voice.phase, grainend )
+          g.lte( voice.phase, grainend )
         ),
         // ...read data and mul by envelope
         grainread * voice.envpeek, 
@@ -382,7 +395,8 @@ module.exports = function( Gibberish ) {
     end:1,
     bufferLength:-999999999,
     loudness:1,
-    maxVoices:5, 
+    maxVoices:5,
+    env:'triangular',
     __triggerLoudness:1
   }
 
