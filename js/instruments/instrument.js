@@ -30,6 +30,8 @@ Object.assign(instrument, {
     }
 
     this.env.trigger();
+
+    return this
   },
 
   trigger(loudness = 1) {
@@ -39,6 +41,8 @@ Object.assign(instrument, {
       this.__triggerLoudness = loudness >= 0 ? loudness : 0;
       this.env.trigger();
     }
+
+    return this
   }
 
 });
