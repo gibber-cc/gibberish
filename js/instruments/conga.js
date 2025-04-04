@@ -14,14 +14,28 @@ module.exports = function( Gibberish ) {
     const props = Object.assign( {}, Conga.defaults, argumentProps )
 
     const trigger = g.bang(),
+          Loudness = g.mul( triggerLoudness,loudness ),
           impulse = g.mul( trigger, 60 ),
           _decay =  g.sub( .101, g.div( g.min( decay, 1), 10 ) ), // create range of .001 - .099
           bpf = g.svf( impulse, frequency, _decay, 2, false ),
-          out = g.mul( bpf, g.mul( g.mul( triggerLoudness,loudness ), gain ) )
+          out = g.mul( bpf, g.mul( Loudness, gain ) )
     
     conga.isStereo = false
     conga.env = trigger
-    return Gibberish.factory( conga, out, ['instruments','conga'], props  )
+
+    if( props.panVoices === true ) {  
+      const panner = g.pan( bpf, bpf, g.in( 'pan' ) )
+      conga.graph = [ 
+        g.mul( panner.left, gain, Loudness ), 
+        g.mul( panner.right, gain, Loudness ) 
+      ]
+      conga.isStereo = true
+    }else{
+      conga.graph = out//g.mul( filteredOsc, g.in('gain'), Loudness )
+      conga.isStereo = false
+    }
+
+    return Gibberish.factory( conga, conga.graph, ['instruments','conga'], props  )
   }
   
   Conga.defaults = {
@@ -29,10 +43,12 @@ module.exports = function( Gibberish ) {
     frequency:190,
     decay: .85,
     loudness: 1,
-    __triggerLoudness:1
+    pan:.5,
+    __triggerLoudness:1,
+    panVoices:false
   }
 
-  const PolyConga = Gibberish.PolyTemplate( Conga, ['gain','frequency','decay','loudness','__triggerLoudness' ] ) 
+  const PolyConga = Gibberish.PolyTemplate( Conga, ['gain','frequency','decay','loudness','__triggerLoudness', 'pan' ] ) 
   PolyConga.defaults = Conga.defaults
 
   return [ Conga, PolyConga ]
