@@ -62,7 +62,6 @@ module.exports = function( Gibberish ) {
 
         // set voice data index
         g.gen.memory.heap[ voice.bufferLoc.memory.values.idx ] = sampler.dataIdx
-
         
         // assume voice plays forward if no rate is provided
         // global rate for sampler can still be used to reverse
