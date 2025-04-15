@@ -20,7 +20,6 @@ module.exports = function( Gibberish ) {
           bpf = g.svf( impulse, frequency, _decay, 2, false ),
           out = g.mul( bpf, g.mul( Loudness, gain ) )
     
-    conga.isStereo = false
     conga.env = trigger
 
     if( props.panVoices === true ) {  
