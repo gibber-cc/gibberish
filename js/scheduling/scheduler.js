@@ -1,15 +1,32 @@
 const Queue = require( '../external/priorityqueue.js' )
+const HeapQueue = function() {
+  const obj = {
+    cmp( a,b ) { return a.time - b.time },
+    data: [],
+    push( o ) {
+      obj.data.push( o )
+      obj.data.sort( obj.cmp )
+    },
+    peek() { return obj.data[0] },
+    pop() { 
+      obj.data.shift()
+      obj.data.sort( obj.cmp )
+    }
+  }
+
+  return obj
+}
 
 let Gibberish = null
 
 const Scheduler = {
   phase: 0,
 
-  queue: new Queue( ( a, b ) => {
+  queue: HeapQueue( ( a, b ) => {
     if( a.time === b.time ) { 
       return a.priority < b.priority ? -1 : a.priority > b.priority ? 1 : 0;
     }else{
-      return a.time - b.time //a.time.minus( b.time )
+      return a.time - b.time
     }
   }),
 
@@ -43,10 +60,11 @@ const Scheduler = {
 
   tick( usingSync = false ) {
     if( this.shouldSync === usingSync ) {
-      if( this.queue.length ) {
+      if( this.queue.data.length ) {
         let next = this.queue.peek()
 
         if( isNaN( next.time ) ) {
+          console.log( 'invalid time:', next )
           this.queue.pop()
         }
         
@@ -56,7 +74,10 @@ const Scheduler = {
           next = this.queue.peek()
 
           // XXX this happens when calling sequencer.stop()... why?
-          if( next === undefined ) break
+          if( next === undefined ) {
+            console.log( 'undefined next', this.queue )
+            break
+          }
         }
       }
 
