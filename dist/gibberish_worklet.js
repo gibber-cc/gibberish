@@ -14071,7 +14071,6 @@ module.exports = function (Gibberish) {
     bpf = g.svf(impulse, frequency, _decay, 2, false),
           out = g.mul(bpf, g.mul(Loudness, gain));
 
-    conga.isStereo = false;
     conga.env = trigger;
 
     if (props.panVoices === true) {
@@ -14678,7 +14677,7 @@ module.exports = function (Gibberish) {
         s5 = Gibberish.oscillators.factory('square', g.mul(baseFreq, 2.5028)),
         s6 = Gibberish.oscillators.factory('square', g.mul(baseFreq, 2.6637)),
         sum = g.add(s1, s2, s3, s4, s5, s6),
-        eg = g.decay(g.mul(g.max(.001, decay), g.gen.samplerate * 2), {
+        eg = g.decay(g.mul(g.max(.005, decay), g.gen.samplerate * 2), {
       initValue: 0
     }),
         bpf = g.svf(sum, bpfCutoff, .5, 2, false),
@@ -14859,7 +14858,6 @@ module.exports = instrument;
 
 module.exports = function (Gibberish) {
   const instruments = {
-    Kick: require('./kick.js')(Gibberish),
     Clave: require('./conga.js')(Gibberish)[0],
     // clave is same as conga with different defaults, see below
     Hat: require('./hat.js')(Gibberish),
@@ -14873,13 +14871,15 @@ module.exports = function (Gibberish) {
     Input: require('./input.js')(Gibberish)
   };
   instruments.Clave.defaults.frequency = 2500;
-  instruments.Clave.defaults.decay = .5;
+  instruments.Clave.defaults.decay = .5; // browserify needs semi-colons for this
+
   [instruments.Synth, instruments.PolySynth] = require('./synth.dsp.js')(Gibberish);
   [instruments.Complex, instruments.PolyComplex] = require('./complex.dsp.js')(Gibberish);
   [instruments.Monosynth, instruments.PolyMono] = require('./monosynth.dsp.js')(Gibberish);
   [instruments.FM, instruments.PolyFM] = require('./fm.dsp.js')(Gibberish);
   [instruments.Sampler, instruments.PolySampler] = require('./sampler.js')(Gibberish);
   [instruments.Karplus, instruments.PolyKarplus] = require('./karplusstrong.js')(Gibberish);
+  [instruments.Kick, instruments.PolyKick] = require('./kick.js')(Gibberish);
   [instruments.Conga, instruments.PolyConga] = require('./conga.js')(Gibberish);
 
   instruments.export = target => {
@@ -15001,8 +15001,7 @@ module.exports = function (Gibberish) {
           triggerLoudness = g.in('__triggerLoudness'),
           Loudness = g.mul(loudness, triggerLoudness); // create initial property set
 
-    const props = Object.assign({}, Kick.defaults, inputProps);
-    Object.assign(kick, props); // create DSP graph
+    const props = Object.assign({}, Kick.defaults, inputProps); // create DSP graph
 
     const trigger = g.bang(),
           impulse = g.mul(trigger, 60),
@@ -15011,10 +15010,19 @@ module.exports = function (Gibberish) {
     scaledTone = g.add(50, g.mul(tone, g.mul(4000, Loudness))),
           // -> range { 50, 4050 }
     bpf = g.svf(impulse, frequency, scaledDecay, 2, false),
-          lpf = g.svf(bpf, scaledTone, .5, 0, false),
-          graph = g.mul(lpf, g.mul(gain, Loudness));
+          lpf = g.svf(bpf, scaledTone, .5, 0, false); //kick = g.mul( lpf, g.mul( gain, Loudness ) )
+
+    if (props.panVoices === true) {
+      const panner = g.pan(lpf, lpf, g.in('pan'));
+      kick.graph = [g.mul(panner.left, gain, Loudness), g.mul(panner.right, gain, Loudness)];
+      kick.isStereo = true;
+    } else {
+      kick.graph = g.mul(lpf, g.mul(gain, Loudness));
+      kick.isStereo = false;
+    }
+
     kick.env = trigger;
-    const out = Gibberish.factory(kick, graph, ['instruments', 'kick'], props);
+    const out = Gibberish.factory(kick, kick.graph, ['instruments', 'kick'], props);
     return out;
   };
 
@@ -15024,9 +15032,13 @@ module.exports = function (Gibberish) {
     tone: .25,
     decay: .9,
     loudness: 1,
-    __triggerLoudness: 1
+    __triggerLoudness: 1,
+    pan: .5,
+    panVoices: false
   };
-  return Kick;
+  const PolyKick = Gibberish.PolyTemplate(Kick, ['gain', 'frequency', 'tone', 'decay', 'loudness', '__triggerLoudness', 'pan']);
+  PolyKick.defaults = Kick.defaults;
+  return [Kick, PolyKick];
 };
 
 },{"./instrument.js":127,"genish.js":40}],131:[function(require,module,exports){
@@ -15512,7 +15524,6 @@ module.exports = {
       this.triggerChord.forEach(v => {
         let voice = this.__getVoice__();
 
-        Object.assign(voice, this.properties);
         voice.note(v, loudness);
 
         this.__runVoice__(voice, this);
@@ -15520,7 +15531,6 @@ module.exports = {
     } else if (this.triggerNote !== null) {
       let voice = this.__getVoice__();
 
-      Object.assign(voice, this.properties);
       voice.note(this.triggerNote, loudness);
 
       this.__runVoice__(voice, this);
@@ -15529,7 +15539,6 @@ module.exports = {
     } else {
       let voice = this.__getVoice__();
 
-      Object.assign(voice, this.properties);
       voice.trigger(loudness);
 
       this.__runVoice__(voice, this);
@@ -17546,14 +17555,40 @@ module.exports = function (Gibberish) {
 
 var Queue = require('../external/priorityqueue.js');
 
+var HeapQueue = function () {
+  const obj = {
+    cmp(a, b) {
+      return a.time - b.time;
+    },
+
+    data: [],
+
+    push(o) {
+      obj.data.push(o);
+      obj.data.sort(obj.cmp);
+    },
+
+    peek() {
+      return obj.data[0];
+    },
+
+    pop() {
+      obj.data.shift();
+      obj.data.sort(obj.cmp);
+    }
+
+  };
+  return obj;
+};
+
 var Gibberish = null;
 var Scheduler = {
   phase: 0,
-  queue: new Queue((a, b) => {
+  queue: HeapQueue((a, b) => {
     if (a.time === b.time) {
       return a.priority < b.priority ? -1 : a.priority > b.priority ? 1 : 0;
     } else {
-      return a.time - b.time; //a.time.minus( b.time )
+      return a.time - b.time;
     }
   }),
 
@@ -17590,10 +17625,11 @@ var Scheduler = {
 
   tick(usingSync = false) {
     if (this.shouldSync === usingSync) {
-      if (this.queue.length) {
+      if (this.queue.data.length) {
         let next = this.queue.peek();
 
         if (isNaN(next.time)) {
+          console.log('invalid time:', next);
           this.queue.pop();
         }
 
@@ -17602,7 +17638,10 @@ var Scheduler = {
           this.queue.pop();
           next = this.queue.peek(); // XXX this happens when calling sequencer.stop()... why?
 
-          if (next === undefined) break;
+          if (next === undefined) {
+            console.log('undefined next', this.queue);
+            break;
+          }
         }
       }
 
