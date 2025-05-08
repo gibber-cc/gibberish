@@ -123,7 +123,7 @@ module.exports = function( Gibberish ) {
   const Sampler = inputProps => {
     const syn = Object.create( proto )
     const props = Object.assign( { onload:null, voiceCount:0, files:[] }, Sampler.defaults, inputProps )
-    const env = g.env({ length:1024, type:props.env, alpha:5 })
+    const env = g.env({ length:1024, type:props.env, alpha:props.envalpha })
 
     syn.isStereo = props.isStereo !== undefined ? props.isStereo : false
 
@@ -397,6 +397,7 @@ module.exports = function( Gibberish ) {
     loudness:1,
     maxVoices:5,
     env:'triangular',
+    envalpha:5,
     __triggerLoudness:1
   }
 
