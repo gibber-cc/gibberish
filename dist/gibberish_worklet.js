@@ -14071,6 +14071,7 @@ module.exports = function (Gibberish) {
         let complexWithGain = genish.mul(filteredOsc, g.in('gain')); // XXX ugly, ugly hack
 
         if (props.filterModel !== 2) complexWithGain = genish.mul(complexWithGain, saturation);
+        complexWithGain = g.dcblock(complexWithGain);
 
         if (syn.panVoices === true) {
           panner = g.pan(complexWithGain, complexWithGain, g.in('pan'));
