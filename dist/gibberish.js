@@ -14976,17 +14976,25 @@ module.exports = function (Gibberish) {
           env = g.gtp(g.sub(1, g.div(phase, 200)), 0),
           impulse = g.mul(g.noise(), env),
           feedback = g.history(),
-          frequency = g.max(25, g.in('frequency')),
+          frequency = g.in('frequency'),
           glide = g.max(1, g.in('glide')),
-          slidingFrequency = g.slide(frequency, glide, glide),
-          delay = g.delay(g.add(impulse, feedback.out), g.div(sampleRate, slidingFrequency), {
-      size: 2048
+          // ensures lookup index is within size of table (2048)
+    // but only at 48 kHz and lower!!! e.g. 48000 / 25 = 1920
+    slidingFrequency = g.max(25, g.slide(frequency, glide, glide)),
+          // interpolation creates better pitch but adds lowpass filtering effect
+    // https://stackoverflow.com/questions/6675445
+    delay = g.delay(g.add(impulse, feedback.out), // subtract one for delay compensation, otherwise pitches
+    // get sketchy in higher registers
+    g.sub(g.div(sampleRate, slidingFrequency), 1), {
+      size: 2048,
+      interp: 'linear'
     }),
           decayed = g.mul(delay, g.t60(g.mul(g.in('decay'), slidingFrequency))),
           damped = g.mix(decayed, feedback.out, g.in('damping')),
           n = g.noise(),
           blendValue = g.switch(g.gt(n, g.in('blend')), -1, 1),
-          withGain = g.mul(g.mul(blendValue, damped), g.mul(g.mul(g.in('loudness'), g.in('__triggerLoudness')), g.in('gain')));
+          withGain = g.mul(g.mul(blendValue, damped), g.mul(g.mul(g.in('loudness'), g.in('__triggerLoudness')), g.in('gain'))),
+          withBlock = g.dcblock(withGain);
     feedback.in(damped);
     const properties = Object.assign({}, Karplus.defaults, props);
     Object.assign(syn, {
@@ -15001,11 +15009,11 @@ module.exports = function (Gibberish) {
     });
 
     if (properties.panVoices) {
-      const panner = g.pan(withGain, withGain, g.in('pan'));
+      const panner = g.pan(withBlock, withBlock, g.in('pan'));
       syn = Gibberish.factory(syn, [panner.left, panner.right], ['instruments', 'karplus'], props);
       syn.isStereo = true;
     } else {
-      syn = Gibberish.factory(syn, withGain, ['instruments', 'karplus'], props);
+      syn = Gibberish.factory(syn, withBlock, ['instruments', 'karplus'], props);
       syn.isStereo = false;
     }
 
@@ -15015,7 +15023,7 @@ module.exports = function (Gibberish) {
   Karplus.defaults = {
     decay: .97,
     damping: .2,
-    gain: .15,
+    gain: 1,
     frequency: 220,
     pan: .5,
     glide: 1,
