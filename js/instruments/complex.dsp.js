@@ -61,6 +61,8 @@ module.exports = function( Gibberish ) {
         // XXX ugly, ugly hack
         if(  props.filterModel !== 2 ) complexWithGain = complexWithGain * saturation
     
+        complexWithGain = g.dcblock( complexWithGain )
+
         if( syn.panVoices === true ) { 
           panner = g.pan( complexWithGain, complexWithGain, g.in( 'pan' ) ) 
           syn.graph = [ panner.left, panner.right ]
