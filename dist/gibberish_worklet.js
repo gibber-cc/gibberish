@@ -4241,36 +4241,41 @@ const utilities = {
     if( gen.graph !== null ) gen.free( gen.graph )
   },
 
-  createContext( bufferSize = 2048 ) {
-    const AC = typeof AudioContext === 'undefined' ? webkitAudioContext : AudioContext
-    
-    // tell polyfill global object and buffersize
-    AWPF( window, bufferSize )
+  createContext( bufferSize = 2048, __AC=null ) {
+    if( __AC === null ) {
+      const AC = typeof AudioContext === 'undefined' ? webkitAudioContext : AudioContext
+      
+      // tell polyfill global object and buffersize
+      AWPF( window, bufferSize )
 
-    const start = () => {
-      if( typeof AC !== 'undefined' ) {
-        this.ctx = new AC({ latencyHint:.0125 })
+      const start = () => {
+        if( typeof AC !== 'undefined' ) {
+          this.ctx = new AC({ latencyHint:.0125 })
 
-        gen.samplerate = this.ctx.sampleRate
+          gen.samplerate = this.ctx.sampleRate
 
-        if( document && document.documentElement && 'ontouchstart' in document.documentElement ) {
-          window.removeEventListener( 'touchstart', start )
-        }else{
-          window.removeEventListener( 'mousedown', start )
-          window.removeEventListener( 'keydown', start )
+          if( document && document.documentElement && 'ontouchstart' in document.documentElement ) {
+            window.removeEventListener( 'touchstart', start )
+          }else{
+            window.removeEventListener( 'mousedown', start )
+            window.removeEventListener( 'keydown', start )
+          }
+
+          const mySource = utilities.ctx.createBufferSource()
+          mySource.connect( utilities.ctx.destination )
+          mySource.start()
         }
-
-        const mySource = utilities.ctx.createBufferSource()
-        mySource.connect( utilities.ctx.destination )
-        mySource.start()
       }
-    }
 
-    if( document && document.documentElement && 'ontouchstart' in document.documentElement ) {
-      window.addEventListener( 'touchstart', start )
+      if( document && document.documentElement && 'ontouchstart' in document.documentElement ) {
+        window.addEventListener( 'touchstart', start )
+      }else{
+        window.addEventListener( 'mousedown', start )
+        window.addEventListener( 'keydown', start )
+      }
     }else{
-      window.addEventListener( 'mousedown', start )
-      window.addEventListener( 'keydown', start )
+      this.ctx = __AC
+      gen.samplerate = this.ctx.sampleRate
     }
 
     return this
@@ -4459,11 +4464,13 @@ class ${name}Processor extends AudioWorkletProcessor {
 
   process( inputs, outputs, parameters ) {
     if( this.initialized === true ) {
+
       const output = outputs[0]
       ${inputsString}
       const len    = channel0.length
       const memory = this.memory ${parameterDereferences}${inputDereferences}${memberString}
       ${kernel ? 'const kernel = this.kernel' : '' }
+
 
       for( let i = 0; i < len; ++i ) {
         ${kernel ? 'kernel( memory )\n' : prettyCallback}
@@ -4498,6 +4505,75 @@ registerProcessor( '${name}', ${name}Processor)`
       this.registeredForNodeAssignment.push( ugen )
     }
   },
+
+  makeWorklet( graph, name, debug=false, mem=44100 * 1, __eval=false, kernel=false ) {
+    const [ url, codeString, inputs, params, numChannels ] = utilities.createWorkletProcessor( graph, name, debug, mem, __eval, kernel )
+
+    const nodePromise = new Promise( (resolve,reject) => {
+      utilities.ctx.audioWorklet.addModule( url ).then( ()=> {
+        const workletNode = new AudioWorkletNode( utilities.ctx, name, { channelInterpretation:'discrete', channelCount: numChannels, outputChannelCount:[ numChannels ] })
+
+        workletNode.callbacks = {}
+        workletNode.onmessage = function( event ) {
+          if( event.data.message === 'return' ) {
+            workletNode.callbacks[ event.data.idx ]( event.data.value )
+
+
+            delete workletNode.callbacks[ event.data.idx ]
+          }
+        }
+
+        workletNode.getMemoryValue = function( idx, cb ) {
+          this.workletCallbacks[ idx ] = cb
+          this.workletNode.port.postMessage({ key:'get', idx: idx })
+        }
+        
+        workletNode.port.postMessage({ key:'init', memory:gen.memory.heap })
+        utilities.workletNode = workletNode
+
+        utilities.registeredForNodeAssignment.forEach( ugen => ugen.node = workletNode )
+        utilities.registeredForNodeAssignment.length = 0
+
+        // assign all params as properties of node for easier reference 
+        for( let dict of inputs.values() ) {
+          const name = Object.keys( dict )[0]
+          const param = workletNode.parameters.get( name )
+      
+          Object.defineProperty( workletNode, name, {
+            set( v ) {
+              param.value = v
+            },
+            get() {
+              return param.value
+            }
+          })
+        }
+
+        for( let ugen of params.values() ) {
+          const name = ugen.name
+          const param = workletNode.parameters.get( name )
+          ugen.waapi = param 
+          // initialize?
+          param.value = ugen.defaultValue
+
+          Object.defineProperty( workletNode, name, {
+            set( v ) {
+              param.value = v
+            },
+            get() {
+              return param.value
+            }
+          })
+        }
+
+        resolve( workletNode )
+      })
+
+    })
+
+    return nodePromise
+  },
+
 
   playWorklet( graph, name, debug=false, mem=44100 * 60, __eval=false, kernel=false ) {
     utilities.clear()
@@ -4703,10 +4779,17 @@ const windows = module.exports = {
     return Math.pow( index / length, alpha )
   },
 
+  rexponential( length, index, alpha ) {
+    return Math.pow( index / length, alpha )
+  },
+
   linear( length, index ) {
     return index / length
   }
 }
+
+windows.expodec = windows.rexponential
+windows.rexpodec = windows.exponential
 
 },{}],81:[function(require,module,exports){
 'use strict'
@@ -14382,7 +14465,7 @@ module.exports = function (Gibberish) {
     const env = g.env({
       length: 1024,
       type: props.env,
-      alpha: 5
+      alpha: props.envalpha
     });
     syn.isStereo = props.isStereo !== undefined ? props.isStereo : false;
     const start = g.in('start'),
@@ -14645,6 +14728,7 @@ module.exports = function (Gibberish) {
     loudness: 1,
     maxVoices: 5,
     env: 'triangular',
+    envalpha: 5,
     __triggerLoudness: 1
   };
   return Sampler;
@@ -14913,10 +14997,12 @@ module.exports = function (Gibberish) {
           env = g.gtp(g.sub(1, g.div(phase, 200)), 0),
           impulse = g.mul(g.noise(), env),
           feedback = g.history(),
-          frequency = g.in('frequency'),
+          frequency = g.max(25, g.in('frequency')),
           glide = g.max(1, g.in('glide')),
           slidingFrequency = g.slide(frequency, glide, glide),
-          delay = g.delay(g.add(impulse, feedback.out), g.div(sampleRate, slidingFrequency)),
+          delay = g.delay(g.add(impulse, feedback.out), g.div(sampleRate, slidingFrequency), {
+      size: 2048
+    }),
           decayed = g.mul(delay, g.t60(g.mul(g.in('decay'), slidingFrequency))),
           damped = g.mix(decayed, feedback.out, g.in('damping')),
           n = g.noise(),
