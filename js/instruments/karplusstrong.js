@@ -16,10 +16,18 @@ module.exports = function( Gibberish ) {
           env = g.gtp( g.sub( 1, g.div( phase, 200 ) ), 0 ),
           impulse = g.mul( g.noise(), env ),
           feedback = g.history(),
-          frequency = g.max( 25, g.in('frequency')),
+          frequency = g.in('frequency'),
           glide = g.max( 1, g.in( 'glide' ) ),
-          slidingFrequency = g.slide( frequency, glide, glide ),
-          delay = g.delay( g.add( impulse, feedback.out ), g.div( sampleRate, slidingFrequency ), { size:2048 }),
+          // ensures lookup index is within size of table (2048)
+          // but only at 48 kHz and lower!!! e.g. 48000 / 25 = 1920
+          slidingFrequency = g.max( 25, g.slide( frequency, glide, glide )),
+          // interpolation creates better pitch but adds lowpass filtering effect
+          // https://stackoverflow.com/questions/6675445
+          delay = g.delay( 
+            g.add( impulse, feedback.out ), 
+            g.div( sampleRate, slidingFrequency ), 
+            { size:2048, interp:'linear' }
+          ),
           decayed = g.mul( delay, g.t60( g.mul( g.in('decay'), slidingFrequency ) ) ),
           damped =  g.mix( decayed, feedback.out, g.in('damping') ),
           n = g.noise(),
