@@ -13,7 +13,7 @@ kik = Kick().connect() // connects to master output by default
 
 // sequence calls to 'trigger' method of kick drum every 1/2 second
 // with alternating loudness levels.
-seq  = Sequencer.make( [.25,.5], [22050], kik, 'trigger' ] ).start()
+seq  = Sequencer.make( [.25,.5], [22050], kik, 'trigger' ).start()
 
 chr = Chorus().connect()
 syn = PolySynth({ maxVoices:4, attack:44, decay:22050, gain:.1 })
