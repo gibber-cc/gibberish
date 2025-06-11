@@ -94,7 +94,8 @@ module.exports = function( Gibberish ) {
 
       const input = g.in( 'input' ),
             gain  = g.in( 'gain' ),
-            postgain = g.in( 'postgain' )
+            postgain = g.in( 'postgain' ),
+            bias  = g.in( 'bias' )
 
       let lout
       {
@@ -102,9 +103,9 @@ module.exports = function( Gibberish ) {
 
         const linput = isStereo ? input[0] * gain : input * gain
         lout = linput * .333
-        lout = wavestage( wavestage( wavestage( wavestage( lout ) ) ) )
+        lout = wavestage( wavestage( wavestage( wavestage( bias + lout ) ) ) )
         lout = lout * .6
-        lout = g.tanh( lout ) * postgain
+        lout = g.dcblock( g.tanh( lout ) * postgain )
       }
 
       wavefolder.graph = lout
@@ -115,9 +116,9 @@ module.exports = function( Gibberish ) {
           'use jsdsp'
           const rinput = isStereo ? input[1] * gain : input * gain
           rout = rinput * .333
-          rout = wavestage( wavestage( wavestage( wavestage( rout ) ) ) )
+          rout = wavestage( wavestage( wavestage( wavestage( bias + rout ) ) ) )
           rout = rout * .6
-          rout = g.tanh( rout ) * postgain
+          rout = g.dcblock( g.tanh( rout ) * postgain )
         }
 
         wavefolder.graph = [ lout, rout ]
@@ -140,7 +141,8 @@ module.exports = function( Gibberish ) {
   Wavefolder.defaults = {
     input:0,
     gain:2,
-    postgain:1
+    postgain:1,
+    bias:0
   }
 
   return [ Wavefolder, wavestage ]

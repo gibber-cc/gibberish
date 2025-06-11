@@ -13408,15 +13408,16 @@ module.exports = function (Gibberish) {
 
       const input = g.in('input'),
             gain = g.in('gain'),
-            postgain = g.in('postgain');
+            postgain = g.in('postgain'),
+            bias = g.in('bias');
       let lout;
       {
         'use jsdsp';
         const linput = isStereo ? genish.mul(input[0], gain) : genish.mul(input, gain);
         lout = genish.mul(linput, .333);
-        lout = wavestage(wavestage(wavestage(wavestage(lout))));
+        lout = wavestage(wavestage(wavestage(wavestage(genish.add(bias, lout)))));
         lout = genish.mul(lout, .6);
-        lout = genish.mul(g.tanh(lout), postgain);
+        lout = g.dcblock(genish.mul(g.tanh(lout), postgain));
       }
       wavefolder.graph = lout;
 
@@ -13426,9 +13427,9 @@ module.exports = function (Gibberish) {
           'use jsdsp';
           const rinput = isStereo ? genish.mul(input[1], gain) : genish.mul(input, gain);
           rout = genish.mul(rinput, .333);
-          rout = wavestage(wavestage(wavestage(wavestage(rout))));
+          rout = wavestage(wavestage(wavestage(wavestage(genish.add(bias, rout)))));
           rout = genish.mul(rout, .6);
-          rout = genish.mul(g.tanh(rout), postgain);
+          rout = g.dcblock(genish.mul(g.tanh(rout), postgain));
         }
         wavefolder.graph = [lout, rout];
       }
@@ -13444,7 +13445,8 @@ module.exports = function (Gibberish) {
   Wavefolder.defaults = {
     input: 0,
     gain: 2,
-    postgain: 1
+    postgain: 1,
+    bias: 0
   };
   return [Wavefolder, wavestage];
 };
