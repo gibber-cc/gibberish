@@ -139,9 +139,15 @@ const Sequencer = props => {
       
       if( Gibberish.mode === 'processor' ) {
         if( seq.__isRunning === true && !isNaN( timing ) && seq.autotrig === false ) {
-          timing += floatError
+          //timing += floatError
+          let ft = Math.floor( timing )
+          floatError += timing - ft
+          while( floatError > 1 ) {
+            timing += 1
+            floatError -= 1
+          }
           Gibberish.scheduler.add( timing, seq.tick, seq.priority )
-          floatError = timing - Math.floor( timing )
+          //floatError = timing - Math.floor( timing )
         }
       }
     },

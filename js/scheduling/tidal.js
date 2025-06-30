@@ -14,6 +14,7 @@ module.exports = function( Gibberish ) {
       __pattern: mini.mini( props.pattern ),
       //Pattern( props.pattern, { addLocations:true, addUID:true, enclose:true }),
       __events: null,
+      __floatError: 0,
 
       addFilter( filter ) {
         seq.filters.push( filter )
@@ -33,7 +34,15 @@ module.exports = function( Gibberish ) {
         if (seq.__events.length <= 0) {
           if (Gibberish.mode === 'processor') {
             if (seq.__isRunning === true) {
-              Gibberish.scheduler.add(Gibberish.ctx.sampleRate / Sequencer.clock.cps, seq.tick, seq.priority)
+              let t = Gibberish.ctx.sampleRate / Sequencer.clock.cps
+              let ft = Math.floor( t )
+              seq.__floatError += t - ft
+
+              if( seq.__floatError >= 1 ) {
+                t += 1
+                seq.__floatError -= 1
+              }
+              Gibberish.scheduler.add( t, seq.tick, seq.priority)
             }
           }
 
@@ -116,6 +125,14 @@ module.exports = function( Gibberish ) {
 
           //console.log( 'timings:', timing, startTime.valueOf(), seq.__events[0].whole.begin.valueOf() )
           timing *= Math.ceil( Gibberish.ctx.sampleRate / Sequencer.clock.cps )
+          let ft = Math.floor( timing )
+          seq.__floatError += timing - ft
+
+          if( seq.__floatError >= 1 ) {
+            timing += 1
+            seq.__floatError -= 1
+          }
+
           //console.log( 'timing:', timing, startTime.valueOf(), seq.__events[0].whole.begin.valueOf() )
           if( seq.__isRunning === true && !isNaN( timing ) ) {
             Gibberish.scheduler.add( timing, seq.tick, seq.priority )
