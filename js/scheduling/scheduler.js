@@ -1,4 +1,4 @@
-const Queue = require( '../external/priorityqueue.js' )
+//const Queue = require( '../external/priorityqueue.js' )
 const HeapQueue = function() {
   const obj = {
     cmp( a,b ) { return a.time - b.time },
