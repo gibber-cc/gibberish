@@ -52,10 +52,10 @@ module.exports = function( Gibberish ) {
       if( Gibberish.mode === 'processor' ) {
         const sampler = this.samplers[ this.currentSample ]
 
-        // if sample isn't loaded...
-        if( sampler === undefined ) return
-
         voice = this.__getVoice__()
+
+        // if sample isn't loaded...
+        if( sampler === undefined ) return voice
 
         // set voice buffer length
         g.gen.memory.heap[ voice.bufferLength.memory.values.idx ] = sampler.dataLength
@@ -91,7 +91,8 @@ module.exports = function( Gibberish ) {
       return voice
     },
     __getVoice__() {
-      return this.voices[ this.voiceCount++ % this.voices.length ]
+      const v =  this.voices[ this.voiceCount++ % this.voices.length ]
+      return v
     },
   })
 
