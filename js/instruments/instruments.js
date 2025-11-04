@@ -26,6 +26,7 @@ instruments.Clave.defaults.decay = .5;
 [ instruments.Sampler, instruments.PolySampler ] = require( './sampler.js' )( Gibberish );
 [ instruments.Karplus, instruments.PolyKarplus ] = require( './karplusstrong.js' )( Gibberish );
 [ instruments.Kick, instruments.PolyKick ]       = require( './kick.js' )( Gibberish );
+[ instruments.Snare, instruments.PolySnare ]     = require( './snare.js' )( Gibberish );
 [ instruments.Conga, instruments.PolyConga ]     = require( './conga.js' )( Gibberish );
 
 instruments.export = target => {

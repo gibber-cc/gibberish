@@ -2159,7 +2159,7 @@ gen.__proto__ = new EE()
 
 module.exports = gen
 
-},{"events":158,"memory-helper":160}],34:[function(require,module,exports){
+},{"events":158,"memory-helper":161}],34:[function(require,module,exports){
 'use strict'
 
 let gen  = require('./gen.js')
@@ -13723,7 +13723,7 @@ Gibberish.prototypes.Ugen = Gibberish.prototypes.ugen = require('./ugen.js')(Gib
 Gibberish.utilities = require('./utilities.js')(Gibberish);
 module.exports = Gibberish;
 
-},{"./analysis/analyzer.js":82,"./analysis/analyzers.js":83,"./envelopes/envelopes.js":88,"./factory.js":93,"./filters/filters.js":100,"./fx/effect.js":108,"./fx/effects.js":109,"./instruments/instrument.js":126,"./instruments/instruments.js":127,"./instruments/polyMixin.js":132,"./instruments/polytemplate.js":133,"./misc/binops.js":139,"./misc/bus.js":140,"./misc/bus2.js":141,"./misc/monops.js":142,"./misc/panner.js":143,"./misc/time.js":144,"./oscillators/oscillators.js":147,"./scheduling/scheduler.js":151,"./scheduling/seq2.js":152,"./scheduling/sequencer.js":153,"./scheduling/tidal.js":154,"./ugen.js":155,"./utilities.js":156,"./workletProxy.js":157,"genish.js":40,"memory-helper":160}],117:[function(require,module,exports){
+},{"./analysis/analyzer.js":82,"./analysis/analyzers.js":83,"./envelopes/envelopes.js":88,"./factory.js":93,"./filters/filters.js":100,"./fx/effect.js":108,"./fx/effects.js":109,"./instruments/instrument.js":126,"./instruments/instruments.js":127,"./instruments/polyMixin.js":132,"./instruments/polytemplate.js":133,"./misc/binops.js":139,"./misc/bus.js":140,"./misc/bus2.js":141,"./misc/monops.js":142,"./misc/panner.js":143,"./misc/time.js":144,"./oscillators/oscillators.js":147,"./scheduling/scheduler.js":151,"./scheduling/seq2.js":152,"./scheduling/sequencer.js":153,"./scheduling/tidal.js":154,"./ugen.js":155,"./utilities.js":156,"./workletProxy.js":157,"genish.js":40,"memory-helper":159}],117:[function(require,module,exports){
 "use strict";
 
 var g = require('genish.js'),
@@ -15171,6 +15171,7 @@ module.exports = function (Gibberish) {
   [instruments.Sampler, instruments.PolySampler] = require('./sampler.js')(Gibberish);
   [instruments.Karplus, instruments.PolyKarplus] = require('./karplusstrong.js')(Gibberish);
   [instruments.Kick, instruments.PolyKick] = require('./kick.js')(Gibberish);
+  [instruments.Snare, instruments.PolySnare] = require('./snare.js')(Gibberish);
   [instruments.Conga, instruments.PolyConga] = require('./conga.js')(Gibberish);
 
   instruments.export = target => {
@@ -16256,9 +16257,18 @@ module.exports = function (Gibberish) {
     // code at the bottom of the callback function, instead of at the end of the
     // associated if/else block.
 
+    if (props.panVoices === true) {
+      const panner = g.pan(ife, ife, g.in('pan'));
+      snare.graph = [g.mul(panner.left, gain, Loudness), g.mul(panner.right, gain, Loudness)];
+      snare.isStereo = true;
+    } else {
+      snare.graph = ife;
+      snare.isStereo = false;
+    }
+
     snare.env = eg;
 
-    const __snare = Gibberish.factory(snare, ife, ['instruments', 'snare'], props);
+    const __snare = Gibberish.factory(snare, snare.graph, ['instruments', 'snare'], props);
 
     return __snare;
   };
@@ -16269,9 +16279,12 @@ module.exports = function (Gibberish) {
     snappy: 1,
     decay: .1,
     loudness: 1,
+    pan: .5,
     __triggerLoudness: 1
   };
-  return Snare;
+  const PolySnare = Gibberish.PolyTemplate(Snare, ['gain', 'tune', 'snappy', 'decay', 'loudness', '__triggerLoudness', 'pan']);
+  PolySnare.defaults = Snare.defaults;
+  return [Snare, PolySnare];
 };
 
 },{"./instrument.js":126,"genish.js":40}],136:[function(require,module,exports){
@@ -19327,7 +19340,7 @@ module.exports = function (Gibberish) {
   return __proxy;
 };
 
-},{"serialize-javascript":159}],158:[function(require,module,exports){
+},{"serialize-javascript":160}],158:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -19853,6 +19866,138 @@ function functionBindPolyfill(context) {
 }
 
 },{}],159:[function(require,module,exports){
+'use strict'
+
+let MemoryHelper = {
+  
+  create( sizeOrBuffer=4096, memtype=Float32Array ) {
+    let helper = Object.create( this )
+
+    // conveniently, buffer constructors accept either a size or an array buffer to use...
+    // so, no matter which is passed to sizeOrBuffer it should work.
+    Object.assign( helper, {
+      heap: new memtype( sizeOrBuffer ),
+      list: {},
+      freeList: {},
+
+      // if useTail is true, will force MemoryHelper to allocate at end of the
+      // heap and skip any freed memory blocks. Useful to force a contiguous
+      // block of memory
+      useTail:false,
+    })
+
+    return helper
+  },
+
+  alloc( size, immutable ) {
+    let idx = -1
+
+    if( size > this.heap.length ) {
+      throw Error( 'Allocation request is larger than heap size of ' + this.heap.length )
+    }
+
+    if( this.useTail === false ) {
+      for( let key in this.freeList ) {
+        let candidate = this.freeList[ key ]
+
+        if( candidate.size >= size ) {
+          idx = key
+
+          this.list[ idx ] = { size, immutable, references:1 }
+
+          if( candidate.size !== size ) {
+            let newIndex = idx + size,
+                newFreeSize
+
+            for( let key in this.list ) {
+              if( key > newIndex ) {
+                newFreeSize = key - newIndex
+                this.freeList[ newIndex ] = newFreeSize
+              }
+            }
+          }
+
+          break
+        }
+      }
+    }
+
+    if( idx !== -1 ) delete this.freeList[ idx ]
+
+    if( idx === -1 ) {
+      let keys = Object.keys( this.list ),
+          lastIndex
+
+      if( keys.length ) { // if not first allocation...
+        lastIndex = parseInt( keys[ keys.length - 1 ] )
+
+        idx = lastIndex + this.list[ lastIndex ].size
+      }else{
+        idx = 0
+      }
+
+      this.list[ idx ] = { size, immutable, references:1 }
+    }
+
+    if( idx + size >= this.heap.length ) {
+      throw Error( 'No available blocks remain sufficient for allocation request.' )
+    }
+
+    return idx
+  },
+
+  // this returns the next index that will be use by 
+  // memory helper, unless there are freed blcoks available.  
+  // if the useTail property is set to true this will return
+  // the next block index regardless of any freed blocks.
+  getLastUsedIndex() {
+    let keys = Object.keys( this.list ),
+        idx = 0,
+        lastIndex
+
+    if( keys.length ) { // if not first allocation...
+      lastIndex = parseInt( keys[ keys.length - 1 ] )
+
+      idx = lastIndex + this.list[ lastIndex ].size
+    }
+
+    return idx
+  },
+
+  addReference( index ) {
+    if( this.list[ index ] !== undefined ) { 
+      this.list[ index ].references++
+    }
+  },
+
+  free( index ) {
+    if( this.list[ index ] === undefined ) {
+      throw Error( 'Calling free() on non-existing block.' )
+    }
+
+    let slot = this.list[ index ]
+    if( slot === 0 ) return
+    slot.references--
+
+    if( slot.references === 0 && slot.immutable !== true ) {    
+      this.list[ index ] = 0
+
+      let freeBlockSize = 0
+      for( let key in this.list ) {
+        if( key > index ) {
+          freeBlockSize = key - index
+          break
+        }
+      }
+
+      this.freeList[ index ] = freeBlockSize
+    }
+  },
+}
+
+module.exports = MemoryHelper
+
+},{}],160:[function(require,module,exports){
 /*
 Copyright (c) 2014, Yahoo! Inc. All rights reserved.
 Copyrights licensed under the New BSD License.
@@ -20027,139 +20172,9 @@ module.exports = function serialize(obj, options) {
     });
 }
 
-},{}],160:[function(require,module,exports){
-'use strict'
-
-let MemoryHelper = {
-  
-  create( sizeOrBuffer=4096, memtype=Float32Array ) {
-    let helper = Object.create( this )
-
-    // conveniently, buffer constructors accept either a size or an array buffer to use...
-    // so, no matter which is passed to sizeOrBuffer it should work.
-    Object.assign( helper, {
-      heap: new memtype( sizeOrBuffer ),
-      list: {},
-      freeList: {},
-
-      // if useTail is true, will force MemoryHelper to allocate at end of the
-      // heap and skip any freed memory blocks. Useful to force a contiguous
-      // block of memory
-      useTail:false,
-    })
-
-    return helper
-  },
-
-  alloc( size, immutable ) {
-    let idx = -1
-
-    if( size > this.heap.length ) {
-      throw Error( 'Allocation request is larger than heap size of ' + this.heap.length )
-    }
-
-    if( this.useTail === false ) {
-      for( let key in this.freeList ) {
-        let candidate = this.freeList[ key ]
-
-        if( candidate.size >= size ) {
-          idx = key
-
-          this.list[ idx ] = { size, immutable, references:1 }
-
-          if( candidate.size !== size ) {
-            let newIndex = idx + size,
-                newFreeSize
-
-            for( let key in this.list ) {
-              if( key > newIndex ) {
-                newFreeSize = key - newIndex
-                this.freeList[ newIndex ] = newFreeSize
-              }
-            }
-          }
-
-          break
-        }
-      }
-    }
-
-    if( idx !== -1 ) delete this.freeList[ idx ]
-
-    if( idx === -1 ) {
-      let keys = Object.keys( this.list ),
-          lastIndex
-
-      if( keys.length ) { // if not first allocation...
-        lastIndex = parseInt( keys[ keys.length - 1 ] )
-
-        idx = lastIndex + this.list[ lastIndex ].size
-      }else{
-        idx = 0
-      }
-
-      this.list[ idx ] = { size, immutable, references:1 }
-    }
-
-    if( idx + size >= this.heap.length ) {
-      throw Error( 'No available blocks remain sufficient for allocation request.' )
-    }
-
-    return idx
-  },
-
-  // this returns the next index that will be use by 
-  // memory helper, unless there are freed blcoks available.  
-  // if the useTail property is set to true this will return
-  // the next block index regardless of any freed blocks.
-  getLastUsedIndex() {
-    let keys = Object.keys( this.list ),
-        idx = 0,
-        lastIndex
-
-    if( keys.length ) { // if not first allocation...
-      lastIndex = parseInt( keys[ keys.length - 1 ] )
-
-      idx = lastIndex + this.list[ lastIndex ].size
-    }
-
-    return idx
-  },
-
-  addReference( index ) {
-    if( this.list[ index ] !== undefined ) { 
-      this.list[ index ].references++
-    }
-  },
-
-  free( index ) {
-    if( this.list[ index ] === undefined ) {
-      throw Error( 'Calling free() on non-existing block.' )
-    }
-
-    let slot = this.list[ index ]
-    if( slot === 0 ) return
-    slot.references--
-
-    if( slot.references === 0 && slot.immutable !== true ) {    
-      this.list[ index ] = 0
-
-      let freeBlockSize = 0
-      for( let key in this.list ) {
-        if( key > index ) {
-          freeBlockSize = key - index
-          break
-        }
-      }
-
-      this.freeList[ index ] = freeBlockSize
-    }
-  },
-}
-
-module.exports = MemoryHelper
-
-},{}]},{},[116])(116)
+},{}],161:[function(require,module,exports){
+arguments[4][159][0].apply(exports,arguments)
+},{"dup":159}]},{},[116])(116)
 });
 
 class GibberishProcessor extends AudioWorkletProcessor {

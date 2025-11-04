@@ -29,8 +29,20 @@ module.exports = function( Gibberish ) {
     // code at the bottom of the callback function, instead of at the end of the
     // associated if/else block.
     
+    if( props.panVoices === true ) {  
+      const panner = g.pan( ife, ife, g.in( 'pan' ) )
+      snare.graph = [ 
+        g.mul( panner.left, gain, Loudness ), 
+        g.mul( panner.right, gain, Loudness ) 
+      ]
+      snare.isStereo = true
+    }else{
+      snare.graph = ife 
+      snare.isStereo = false
+    }
+
     snare.env = eg 
-    const __snare = Gibberish.factory( snare, ife, ['instruments','snare'], props  )
+    const __snare = Gibberish.factory( snare, snare.graph, ['instruments','snare'], props  )
     
     return __snare
   }
@@ -41,9 +53,16 @@ module.exports = function( Gibberish ) {
     snappy: 1,
     decay:.1,
     loudness:1,
+    pan:.5,
     __triggerLoudness:1
   }
 
-  return Snare
+  const PolySnare = Gibberish.PolyTemplate( 
+    Snare, 
+    [ 'gain','tune','snappy','decay','loudness','__triggerLoudness', 'pan']
+  ) 
 
+  PolySnare.defaults = Snare.defaults
+
+  return [ Snare, PolySnare ]
 }
